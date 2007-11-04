@@ -1,0 +1,35 @@
+
+		ARPSG-NG    v0.01
+
+A receive-only APRS-IS "i-gate" with following properties:
+
+   CONFIGURATION IS PARTIALLY HARD-CODED INTO  config.c  FILE;
+   Config file  /etc/aprsg-ng.conf  IS MOSTLY READ.
+
+   - Is receive-only
+
+   - Can receive data from multiple receivers/modems on local machine
+     serial ports
+
+   - Understands:
+       - several KISS protocol variants, plain basic KISS preferred
+       - TNC2 debug style text  (incomplete)
+       - and even AEA "monitor 1" format (incomplete)
+
+   - Connects with one  callsign-ssid  pair to APRS-IS core for all
+     received radio ports
+
+   - Knows that messages with following tokens in VIA fields of the
+     path are not to be relayed into network:
+              RFONLY, NOGATE
+
+   - Knows that following source address prefixes are bogus and thus
+     to be junked:
+              WIDE, RELAY, TRACE
+
+
+   - Does not require machine to have AX.25 protocol support internally!
+   - Does not use internal AX.25 protocol support! (TODO)
+
+
+by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007
