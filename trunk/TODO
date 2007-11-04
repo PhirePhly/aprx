@@ -1,0 +1,23 @@
+
+		  ARPSG-NG    v0.01
+
+			TODO
+
+- config file reading
+   - Mostly done,  serialport additional parameters etc. need work
+
+- manual
+
+- configure -script
+
+- "make install"
+
+- Understand more KISS protocol variants, the CRC-details...
+
+- Support AX.25 via Linux kernel, if running on such a system
+
+- connection to multiple APRS-IS systems ?
+
+- bidirectional relaying capability with areal filters ??
+
+by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007
