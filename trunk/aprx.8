@@ -1,0 +1,200 @@
+.\" APRSG-NG  v.0.06
+.TH aprsg 8 "2007 December 05 - v0.06"
+.LO 8
+.SH NAME
+.B aprsg
+\- A receive\-only APRS iGate application,
+.B "UNDER WORK"
+.SH SYNOPSIS
+aprsg [\-d[\-d]] [\-e] [\-v] [\-f /etc/aprsg-ng.conf]
+.SH DESCRIPTION
+.B aprsg
+is a
+.I receive\-only
+APRS iGate application with minimum system support technology requirements.
+.PP
+.IP \(bu 3
+Can listen KISS\-TNCs on ordinary serial ports (real ones, or USB ones, all
+work as long as they respond to normal UNIX serial port ioctl()s.)
+Maximum number of separate serial ports used for radio modem communication
+is 16, limit is easy to increase in source code.
+.IP \(bu 3
+On Linux machine with kernel internal AX.25 protocol support, does want to
+listen on it with promiscuous mode, and in order to use that, must be started
+as
+.I root
+user.
+The AX.25 socket listening is
+.I not
+configurable, it is always on in Linux systems.
+.IP \(bu 3
+Does not require machine to have AX.25 protocol support internally!
+(Thus this works also on e.g. BSD machines without PF\_AX25 sockets.)
+.IP \(bu 3
+Does not require machine to have any other software in it, than things in libc.
+In particular no special AX.25 libraries at all, nor widgets or even C++ runtime.
+.IP \(bu 3
+Connects with one callsign\-ssid pair to APRS\-IS core for all received radio
+ports.
+.IP \(bu 3
+Knows that messages with following tokens in AX.25 VIA fields are not to be
+relayed into APRS\-IS network:
+.RS 9
+.B "RFONLY, NOTAGE, TCPIP, TCPXX"
+.RE
+.IP \(bu 3
+Knows that following source address prefixes are bogus and thus messages with
+them are to be junked:
+.RS 9
+.B "WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL"
+.RE
+.IP \(bu 3
+Drops all
+.I query
+messages ("?"), as well as all 3rd party messages ("}").
+.IP \(bu 3
+Has built\-in "Erlang monitor" mechanism, that logs (to STDOUT) interface
+specific channel occupancy.
+.I "(Very RAW implementation, unbroken log file is not a nice thing...)"
+.PP
+.SH OPTIONS
+The
+.B aprsg
+has following runtime options:
+.TP
+.B "\-d"
+Turn on verbose debugging, outputs data to STDOUT.
+.TP
+.B "\-dd"
+the "more debug" mode shows also details of network interaction with
+the APRS-IS network service.
+.TP
+.B "\-e"
+.I "Erlang output"
+shows 10 minute and 60 minute traffic accumulation byte counts, and guestimates
+on channel occupancy, alias "Erlang".
+These outputs are sent to STDOUT, which system operator may choose to log elsewere.
+.TP
+.B "\-v"
+Verbose logging of received traffic to STDOUT.
+Lines begin with reception timestamp (UNIX time\_t seconds), then TAB,
+and either data as is, or with prefix byte: "*" for "discarded due to data content",
+or possibly "#" for "discarded due to APRS-IS being unreachable".
+.TP
+.B "\-f /etc/aprsg\-ng.conf"
+Configuration file, given path is built-in default, and can be overridden by the program runner.
+
+
+.SH CONFIGURATION FILE
+The configuration file is used to setup the program to do its job.
+Some configurations can be done without the file, namely a channel
+.I "Erlang monitor"
+siphoning APRS packets off the Linux kernel AX.25 network stack.
+.PP
+.PP
+On the configuration file, following additional notes
+.IP \(bu 2
+Most parameters are singletons, that is, there can be only one.
+.IP \(bu 2
+There can be up to (by default) 16 entries of "serialport".
+.IP \(bu 2
+There can be unlimited number of "netbeacon" lines.
+.PP
+The configuration file is read upon program start, ever latter.
+.nf
+\fC
+#
+#  Sample configuration file for the ARPSG-NG  -- an Rx-only APRS iGate
+#
+#
+
+# The  mycall  parameter: 
+# Station call-id used for relaying APRS frames into APRS-IS.
+#
+#mycall           N0CALL-1
+
+# APRS-IS server name and portnumber.
+# Every reconnect does happen syncronous,
+# and does re-resolve the name to IP address.
+#
+#aprsis-server    rotate.aprs.net  14580
+
+# Some APRS-IS servers tell every about 20 seconds
+# to all contact ports that they are there and alive.
+# Others are just silent.  Enable only if the server
+# you use does present heartbeat. Recommended value
+# 3*"heartbeat" + some  -> 120 (seconds)
+#
+#aprsis-heartbeat-timeout   120
+
+# The  serialport  option.  Parameters are:
+#   - /dev/ttyUSB1    -- tty device
+#   - 19200           -- baud rate, supported ones are: 1200, 2400, 4800, 9600, 19200, 38400
+#   - 8n1             -- 8-bits, no parity, one stop-bit, no other supported modes
+#   - KISS            -- KISS mode
+#   - kissopts..      -- optional KISS parameters: SMACK (CRC16), BPQCRC (XOR-sum)  (TODO)
+#
+# There can be up to 16 serialport definitions in this file!
+#
+#serialport      /dev/ttyUSB1  19200 8n1    KISS
+
+# initstring is TODO for latter -- serial port init strings..
+#initstring ...
+
+
+# The  netbeacon  option.
+# Parameter string (in quotes) is sent to network (without quotes)
+# at varying intervals --  1200-1800 seconds in between restransmits.
+# This interval is intentionally randomized.
+#
+# There can be multiple netbeacon options.
+# Symbol  R&   is for "rx-only iGate"
+#
+#netbeacon  "!6016.35NR02506.36E&aprsg-ng Rx-only 'iGate'"
+\fR
+.fi
+
+.SH TODO
+Lots and lots..
+To begin with, see the
+.I TODO
+\-file
+.IP \(bu 2
+Understand several KISS protocol variants on serial port
+.IP \(bu 2
+Understand TNC2 debug style texts on serial port
+.IP \(bu 2
+Possibly grow to fully fledged Rx/Tx iGate
+.IP \(bu 2
+Log via syslog() ?  (At least the ERLANG stuff.)
+.IP \(bu 2
+SNMP poll responder
+.IP \(bu 2
+
+.SH BUGS
+.IP \(bu 2
+Incompleteness
+.IP \(bu 2
+Many monitor mechanisms are of rudimentary quality
+.IP \(bu 2
+Connection to APRS\-IS is done synchronously, so if system call for
+.IR connect ()
+takes prolonged time, other services do pause.
+Same happens also with resolving APRS\-IS system hostnames to IP addresses.
+But then, when those do not work, there is not much point in running this
+software.
+
+.SH SEE ALSO
+Couple web sites:
+.IR "http://www.aprs\-is.net/" ,
+.I "http://www.aprs2.net/"
+
+.SH AUTHOR
+This little piece was written by
+.I "Matti Aarnio, OH2MQK"
+upon dark and rainy fall and winter of 2007\-2008 after a number of
+discussions grumbling about current breed of available software for
+APRS iGate use in Linux (or of any UNIX) platforms.
+.PP
+Principal contributors and test users include:
+.I "Pentti Gronlund, OH3BK,"
