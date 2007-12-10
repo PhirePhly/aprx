@@ -1,3 +1,19 @@
+2007-12-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsg.8, erlang.c, aprsg.c, netax25.c, ttyreader.c:
+	    Erlang logging now uses syslog(3), unless explicitely told to use
+	    output to stdout.  Also the Erlang log format was altered a bit,
+	    now it reports also number of packets in the interval.
+
+	* erlang.c, Makefile:
+	    "make ERLANG1=1" compiles in also 1 minute erlang logging interval.
+
+	* aprsis.c:
+	    Code refactored to put the APRS-IS communication into its own
+	    fork()ed sub-process communicating via a socketpair() with the
+	    main loop.   Now reconnection time with the APRS-IS server does
+	    not affect functionality of the main loop.
+
 2007-12-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* ChangeLog

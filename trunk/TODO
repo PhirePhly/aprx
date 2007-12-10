@@ -1,23 +1,42 @@
 
-		  ARPSG-NG    v0.01
+		  ARPSG-NG    v0.07
 
 			TODO
 
 - config file reading
    - Mostly done,  serialport additional parameters etc. need work
 
-- manual
+- manual (man-page draft there is)
 
 - configure -script
 
 - "make install"
 
-- Understand more KISS protocol variants, the CRC-details...
+- Understand more KISS protocol variants, the CRC-details, port polling ?
 
 - Support AX.25 via Linux kernel, if running on such a system
+   -- Mostly completed (netax25.c)
+   -- add a filter to permit only listed AX.25 interfaces to
+      be relayed into APRS-IS ?
 
-- connection to multiple APRS-IS systems ?
+- improved detection of connectivity failure with APRS-IS ?
+  (heartbeat monitor does work with javAPRSSrvr, but not with some others)
 
 - bidirectional relaying capability with areal filters ??
+  (that would make this a full-blown aprsd / aprsdigi replacement..)
+
+- sync Erlang monitor time intervals to wall clock
+  - done  (presuming system clock is in sync)
+  - reports also number of packets (done)
+  - report calculated erlang value taking the true duration of the first
+    frame into consideration (done)
+
+
+- Properly process heard RF 3rd-party packets
+   - Discard them all ?  (CURRENT BEHAVIOUR)
+     ( http://www.aprs-is.net/ISPaths.htm )
+   - Open up 3rd party header, and check if gating is OK ?
+     ( http://www.aprs-is.net/gatecriteria.htm )
+
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007

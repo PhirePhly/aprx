@@ -15,12 +15,52 @@
 /* The ttyreader does read TTY ports into a big buffer, and then from there
    to packet frames depending on what is attached...  */
 
-struct serialport ttys[MAXTTYS];
-int serialcount; /* How many are defined ? */
+
+struct serialport {
+	char	fd;		/* UNIX fd of the port					*/
+
+	time_t	wait_until;
+	time_t  last_read_something; /* Used by serial port functionality watchdog	*/
+
+	int	linetype;	/* 0: KISS,  2: TNC2 monitor, 3: AEA TNC monitor	*/
+#define LINETYPE_KISS 0		/* all KISS variants without CRC on line		*/
+#define LINETYPE_KISSSMACK 1	/* KISS/SMACK variants with CRC on line			*/
+#define LINETYPE_KISSBPQCRC 2	/* BPQCRC - really XOR sum of data bytes, also "AEACRC"	*/
+
+#define LINETYPE_TNC2 4		/* text line from TNC2 in monitor mode -- incomplete	*/
+
+	int	kissstate;	/* state for KISS frame reader, also for line collector */
+#define KISSSTATE_SYNCHUNT 0
+#define KISSSTATE_COLLECTING 1
+#define KISSSTATE_KISSFESC  2
+
+	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)			*/
+  /*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
+
+	char	ttyname[32];	/* "/dev/ttyUSB1234-bar22-xyz7" -- Linux TTY-names can be long.. */
+	char	*initstring;	/* optional init-string to be sent to the TNC, NULL ok	*/
+	int	initlen;	/* .. as it can have even NUL-bytes, length is important! */
+
+	unsigned char rdbuf[1000];	/* buffering area for raw stream read			*/
+	int	rdlen, rdcursor;	/* rdlen = last byte in buffer, rdcursor = next to read.
+					   When rdlen == 0, buffer is empty.			*/
+	unsigned char rdline[330];	/* processed into lines/records				*/
+	int	rdlinelen;		/* length of this record				*/
+
+	unsigned char wrbuf[1000];	/* buffering area for raw stream read			*/
+	int	wrlen, wrcursor;	/* wrlen = last byte in buffer, wrcursor = next to write.
+					    When wrlen == 0, buffer is empty.			*/
+};
+
+static struct serialport ttys[MAXTTYS];
+static int  ttyindex; /* How many are defined ? */
+static int  serialport_read_timeout; /* No data in N (> 0) seconds -> close and reopen  */
+
+#define TTY_OPEN_RETRY_DELAY_SECS 30
 
 
 /*
- *  ttyread_kissprocess()  --  the S->rdline[]  array has a KISS frame after
+ *  ttyreader_kissprocess()  --  the S->rdline[]  array has a KISS frame after
  *  KISS escape decode.  The frame begins with KISS command byte, then
  *  AX25 headers and payload, and possibly a CRC-checksum.
  *  Frame length is in S->rdlinelen variable.
@@ -65,7 +105,7 @@ int serialcount; /* How many are defined ? */
 */
 
 
-int  crc16_calc(char *buf, int n)
+int  crc16_calc(unsigned char *buf, int n)
 {
 
   static int  crc_table[] = {
@@ -107,13 +147,13 @@ int  crc16_calc(char *buf, int n)
 
   crc = 0;
   while (--n >= 0)
-    crc = ((crc >> 8) & 0xff) ^ crc_table[(crc ^ *buf++) & 0xff];
+    crc = ((crc >> 8) & 0xff) ^ crc_table[(crc ^ *buf++) & 0xFF];
   return crc;
 }
 
 
 
-static int ttyread_kissprocess(struct serialport *S)
+static int ttyreader_kissprocess(struct serialport *S)
 {
 	int i;
 	int cmdbyte;
@@ -132,7 +172,7 @@ static int ttyread_kissprocess(struct serialport *S)
 	 * --
 	 */
 
-	/* printf("ttyread_kissprocess()  cmdbyte=%02X len=%d ",cmdbyte,S->rdlinelen); */
+	/* printf("ttyreader_kissprocess()  cmdbyte=%02X len=%d ",cmdbyte,S->rdlinelen); */
 
 	/* Ok, cmdbyte tells us something, and we should ignore the
 	   frame if we don't know it... */
@@ -190,6 +230,7 @@ static int ttyread_kissprocess(struct serialport *S)
 	/* printf("\n"); */
 
 	ax25_to_tnc2(cmdbyte, S->rdline+1, S->rdlinelen-1);
+	erlang_add(S, S->ttyname, ERLANG_RX, 0, 1); /* Account one packet */
 
 	return 0;
 }
@@ -240,7 +281,6 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 	if (S->kissstate == KISSSTATE_SYNCHUNT) {
 	  /* Hunt for KISS_FEND, discard everything until then! */
-	  int i;
 	  int c;
 	  for (;;) {
 	    c = ttyreader_getc(S);
@@ -271,7 +311,7 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 	      if (S->rdlinelen > 0) {
 		/* Non-zero sized frame  Process it away ! */
-		ttyread_kissprocess(S);
+		ttyreader_kissprocess(S);
 		S->kissstate = KISSSTATE_COLLECTING;
 		S->rdlinelen = 0;
 	      }
@@ -320,7 +360,7 @@ static int ttyreader_pullkiss(struct serialport *S)
 	return 0;
 }
 
-
+#if 0
 /*
  *  ttyreader_pulltnc2()  --  process a line of text by calling TNC2 UI Monitor analyzer
  */
@@ -332,7 +372,9 @@ static int ttyreader_pulltnc2(struct serialport *S)
 	
 	return 0;
 }
+#endif
 
+#if 0
 /*
  * ttyreader_pullaea()  --  process a line of text by calling AEA MONITOR 1 analyzer
  */
@@ -367,11 +409,10 @@ static int ttyreader_pullaea(struct serialport *S)
 
 	return 0;
 }
+#endif
 
 
-
-
-
+#if 0
 /*
  *  ttyreader_pulltext()  -- process a line of text from the serial port..
  */
@@ -432,6 +473,7 @@ static int ttyreader_pulltext(struct serialport *S)
 
 	return 0; /* not reached */
 }
+#endif
 
 
 /*
@@ -452,6 +494,7 @@ static void ttyreader_linewrite(struct serialport *S)
 	i = write(S->fd, S->wrbuf + S->wrcursor, len);
 	if (i > 0) {  /* wrote something */
 	  S->wrcursor += i;
+	  erlang_add(S, S->ttyname, ERLANG_TX, i, 0);
 	  len = S->wrlen - S->wrcursor;
 	  if (len == 0) {
 	    S->wrcursor = S->wrlen = 0; /* wrote all ! */
@@ -499,6 +542,8 @@ static void ttyreader_lineread(struct serialport *S)
 	    close(S->fd);
 	    S->fd = -1;
 	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
+	    if (debug)
+	      printf("%ld\tTTY %s EOF - CLOSED, WAITING %d SECS\n",now,S->ttyname,TTY_OPEN_RETRY_DELAY_SECS);
 	    return;
 	  }
 	  if (i < 0) /* EAGAIN or whatever.. */
@@ -506,6 +551,8 @@ static void ttyreader_lineread(struct serialport *S)
 
 	  /* Some data has been accumulated ! */
 	  S->rdlen += i;
+	  erlang_add(S, S->ttyname, ERLANG_RX, i, 0);
+	  S->last_read_something = now;
 	}
 
 	/* Done reading, maybe.  Now processing.
@@ -520,11 +567,12 @@ static void ttyreader_lineread(struct serialport *S)
 
 	  ttyreader_pullkiss(S);
 
+#if 0
 	} else if (S->linetype == LINETYPE_TNC2 ||
 		   S->linetype == LINETYPE_AEA) {
 
 	  ttyreader_pulltext(S);
-
+#endif
 	} else {
 	  close(S->fd); /* Urgh ?? Bad linetype value ?? */
 	  S->fd = -1;
@@ -548,17 +596,22 @@ static void ttyreader_lineread(struct serialport *S)
 static void ttyreader_linesetup(struct serialport *S)
 {
 	int i;
-	const char *s;
 
 	S->wait_until = 0; /* Zero it just to be safe */
 
 	S->fd = open(S->ttyname, O_RDWR|O_NOCTTY|O_NONBLOCK, 0);
+	if (debug)
+	  printf("%ld\tTTY %s OPEN - ",now,S->ttyname);
 	if (S->fd < 0) { /* Urgh.. an error.. */
 	  S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
+	  if (debug)
+	    printf("FAILED, WAITING %d SECS\n", TTY_OPEN_RETRY_DELAY_SECS);
 	  return;
 	}
+	if (debug)
+	  printf("OK\n");
 
-	i = tcsetattr(S->fd, TCSANOW, &S->tio);
+	i = tcsetattr(S->fd, TCSAFLUSH, &S->tio); /* Flush the serial port queue */
 	if (i < 0) {
 	  close(S->fd);
 	  S->fd = -1;
@@ -578,16 +631,35 @@ static void ttyreader_linesetup(struct serialport *S)
 	  i = write(S->fd, S->wrbuf, S->wrlen);
 	  if (i > 0) { /* wrote something */
 	    S->wrcursor = i;
+	    erlang_add(S, S->ttyname, ERLANG_TX, i, 0);
 	    if (S->wrcursor >= S->wrlen)
 	      S->wrlen = S->wrcursor = 0;  /* wrote all */
 	  }
 	}
 
 
+	S->last_read_something = now; /* mark the timeout for future.. */
+
 	S->rdlen = S->rdcursor = S->rdlinelen = 0;
 	S->kissstate = 0; /* Zero it, whatever protocol we actually use
 			     will consider it as 'hunt for sync' state. */
 }
+
+/*
+ *  ttyreader_init()
+ */
+
+void ttyreader_init(void)
+{
+	int i;
+
+	memset(ttys, 0, sizeof(ttys));
+	for (i = 0; i < MAXTTYS; ++i) {
+	  ttys[i].fd = -1;
+	  ttys[i].ttyname[0] = 0;
+	}
+}
+
 
 
 /*
@@ -601,7 +673,7 @@ int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
 	struct serialport *S = ttys;
 	struct pollfd *fds = *fdsp;
 
-	for (i = 0; i < MAXTTYS; ++i, ++S) {
+	for (i = 0; i < ttyindex; ++i, ++S) {
 	  if (*S->ttyname == 0) continue; /* No name, no look... */
 	  if (S->fd < 0) {
 	    /* Not an open TTY, but perhaps waiting ? */
@@ -624,6 +696,14 @@ int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
 	  if (S->fd < 0)
 	    continue;
 
+	  /* FD is open, check read/idle timeout ... */
+	  if ((serialport_read_timeout > 0) &&
+	      (now > (S->last_read_something + serialport_read_timeout))) {
+	    close(S->fd); /* Close and mark for re-open */
+	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
+	    continue;
+	  }
+
 	  /* FD is open, lets mark it for poll read.. */
 	  fds->fd = S->fd;
 	  fds->events = POLLIN|POLLPRI;
@@ -640,7 +720,6 @@ int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
 	return idx;
 }
 
-
 /*
  *  ttyreader_postpoll()  -- Done polling, what happened ?
  */
@@ -653,17 +732,149 @@ int ttyreader_postpoll(int nfds, struct pollfd *fds)
 	struct pollfd     *P;
 	for (idx = 0, P = fds; idx < nfds; ++idx, ++P) {
 
-	  if (P->revents & POLLOUT)
-	    ttyreader_linewrite(S);
-
 	  if (! (P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)))
 	    continue; /* No read event we are interested in... */
 
-	  for (i = 0, S = ttys; i < MAXTTYS; ++i, ++S) {
+	  for (i = 0, S = ttys; i < ttyindex; ++i, ++S) {
 	    if (S->fd != P->fd) continue; /* Not this one ? */
 	    /* It is this one! */
+
+	    if (P->revents & POLLOUT)
+	      ttyreader_linewrite(S);
+
 	    ttyreader_lineread(S);
 	  }
 	}
+
 	return 0;
 }
+
+
+
+const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
+{	/* serialport /dev/ttyUSB123   19200  8n1   {KISS|TNC2|AEA|..}  */
+	int i;
+	speed_t baud;
+	struct serialport *tty;
+
+	/* serialport /dev/ttyUSB123 [19200 [8n1] ] */
+	if (*param1 == 0) return "Bad tty-name";
+	if (ttyindex >= MAXTTYS) return"TOO MANY"; /* Too many, sorry no.. */
+	++ttyindex;
+
+	tty = & ttys[ttyindex-1];
+
+	tty->fd = -1;
+	tty->wait_until = now - 1; /* begin opening immediately */
+	tty->last_read_something = now; /* well, not really.. */
+	tty->linetype  = LINETYPE_KISS;           /* default */
+	tty->kissstate = KISSSTATE_SYNCHUNT;
+
+	strncpy(tty->ttyname, param1, sizeof(tty->ttyname));
+	tty->ttyname[sizeof(tty->ttyname)-1] = 0;
+
+	/* setup termios parameters for this line.. */
+	cfmakeraw(& tty->tio );
+	tty->tio.c_cc[VMIN] = 1;  /* pick at least one char .. */
+	tty->tio.c_cc[VTIME] = 1; /* 0.1 seconds timeout */
+	tty->tio.c_cflag |= (CREAD | CLOCAL);
+
+
+
+	i = atol(param2);  /* serial port speed - baud rate */
+	baud = B1200;
+	switch (i) {
+	case 1200:  baud = B1200;   break;
+	case 2400:  baud = B2400;   break;
+	case 4800:  baud = B4800;   break;
+	case 9600:  baud = B9600;   break;
+	case 19200: baud = B19200;  break;
+	case 38400: baud = B38400;  break;
+	default: return "Bad baud rate"; break;
+	}
+
+	cfsetispeed(& tty->tio, baud );
+	cfsetospeed(& tty->tio, baud );
+
+	config_STRLOWER(str); /* until end of line */
+
+
+	param1 = str;		/* serial port databits-parity-stopbits */
+	str = config_SKIPTEXT (str);
+	if (*str != 0)
+	  *str++ = 0;
+	str = config_SKIPSPACE (str);
+
+	/* FIXME:  analyze correct serial port data and parity format settings,
+	   now hardwired to 8-n-1 */
+
+	param1 = str;		/* Mode: KISS or something else */
+	str = config_SKIPTEXT (str);
+	if (*str != 0)
+	  *str++ = 0;
+	str = config_SKIPSPACE (str);
+
+	if (strcmp(param1, "kiss") == 0) {
+	  tty->linetype = LINETYPE_KISS;  /* plain basic KISS */
+
+
+	/* ttys[0].linetype = LINETYPE_AEA; */
+	/* ttys[0].linetype = LINETYPE_KISSBPQCRC; */
+
+	} else {
+	  return "Bad linetype parameter, known ones: KISS";
+	}
+
+	/* Optional parameters */
+	while (*str != 0) {
+	  param1 = str;
+	  str = config_SKIPTEXT (str);
+	  if (*str != 0)
+	    *str++ = 0;
+	  str = config_SKIPSPACE (str);
+
+	  if (strcmp(param1, "xorsum") == 0) {
+	  } else if (strcmp(param1, "bpqcrc") == 0) {
+	  } else if (strcmp(param1, "smack") == 0) {
+	  } else if (strcmp(param1, "crc16") == 0) {
+	  } else if (strcmp(param1, "poll") == 0) {
+	  }
+
+	}
+
+
+	/* Use side-effect: this defines the tty into erlang accounting */
+	erlang_set(tty, tty->ttyname, (1200*60)/9); /* Magic constant for channel capa.. */
+
+	return NULL;
+}
+
+
+#if 0
+void ttyreader_initstring(const char *param)
+{
+	  if (debug)
+	    printf("%s:%d: INITSTRING = ....\n", cfgfilename, linenum);
+	  /* hard-coded init-string for OH2MQK with old AEA PK-96 ... */
+	  switch (ttys[0].linetype) {
+	  case LINETYPE_KISS:
+	    s = "\xC0\xC0\xFF\xC0\r\rMO 0\rKISS $01\r";
+	    break;
+	  case LINETYPE_KISSSMACK: /* SMACK ... */
+	    break;
+	  case LINETYPE_KISSBPQCRC:
+	    s = "\xC0\xC0\xFF\xC0\r\rMO 0\rKISS $0B\r";
+	    break;
+	  case LINETYPE_TNC2:
+	    break;
+	  case LINETYPE_AEA:
+	    s = "\xC0\xC0\xFF\xC0\xC0\xFF\xC0\xC0\r\r\rMO 1\r";
+	    break;
+	  default:
+	    break;
+	  }
+
+	  ttys[0].initstring = s;
+	  ttys[0].initlen = s ? strlen(s) : 0;
+}
+#endif

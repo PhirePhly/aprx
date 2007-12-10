@@ -7,7 +7,8 @@
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *
  * NETAX25:  Listen on (Linux) AX.25 socket and pick all AX.25      *
- *           data packets                                           *
+ *           data packets     ...    actually don't pick those      *
+ *           that are going outwards.  All incoming ones do pick.   *
  *                                                                  *
  * **************************************************************** */
 
@@ -32,7 +33,10 @@ void netax25_init(void)
 {
 	int i;
 
-	rx_protocol = ETH_P_AX25;
+	rx_protocol = ETH_P_AX25; /* Choosing ETH_P_ALL would pick also outbound
+				     packets, but also all of the ethernet traffic..
+				     ETH_P_AX25 picks only inbound-at-ax25-devices
+				     ..packets.  */
 
 	rx_socket = socket(PF_PACKET, SOCK_PACKET, htons(rx_protocol));
 
@@ -55,7 +59,6 @@ void netax25_init(void)
 
 int netax25_prepoll(int n, struct pollfd **fdsp, time_t *tp)
 {
-	int i;
 	struct pollfd *fds = *fdsp;
 
 	if (rx_socket < 0) return 0;
@@ -92,7 +95,9 @@ int netax25_postpoll(int nfds, struct pollfd *fds)
 	      return -1; /* No more at this time.. */
 	    }
 
-	    if (rx_protocol == ETH_P_ALL) { /* promiscuous mode ? */
+	    if (sa.sa_family == AF_AX25) {
+	      ;
+	    } else if (rx_protocol == ETH_P_ALL) { /* promiscuous mode ? */
 	      strcpy(ifr.ifr_name, sa.sa_data);
 	      if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
 		  || ifr.ifr_hwaddr.sa_family != AF_AX25) {
@@ -106,6 +111,12 @@ int netax25_postpoll(int nfds, struct pollfd *fds)
 
 	    /* Now: actual AX.25 frame reception,
 	       and transmit via ax25_to_tnc2() ! */
+
+	    /*
+	     * "+10" is a magic constant for trying to estimate channel
+	     * occupation overhead
+	     */
+	    erlang_add(NULL, sa.sa_data, ERLANG_RX, rcvlen+10, 1);
 
 	    ax25_to_tnc2(rxbuf[0], rxbuf+1, rcvlen-1);
 
