@@ -14,16 +14,18 @@
 #include <signal.h>
 
 time_t now; /* this is globally used */
+int debug;
+int verbout;
+int erlangout;
 
-#define MAXPOLLS 20 /* No really all that much, 16 serial ports
-		       one network socket to APRS-IS, something
-		       for latter inventions.. */
+#define CFGFILE "/etc/aprsg-ng.conf"
+
 
 struct pollfd polls[MAXPOLLS];
 
 int die_now;
 
-const char *version = "aprsg-ng-v0.01";
+const char *version = "aprsg-ng-v0.07";
 
 
 static void sig_handler(int sig)
@@ -31,6 +33,28 @@ static void sig_handler(int sig)
   die_now = 1;
 }
 
+static void usage(void)
+{
+	printf("aprsg-ng: [-d][-d][-e][-v][-l logfacility] [-f %s]\n", CFGFILE);
+	printf("    -f %s:  where the configuration is\n", CFGFILE);
+	printf("    -v:  Outputs textual format of received packets, and data on STDOUT.\n");
+	printf("    -e:  Outputs raw ERLANG-report lines on SYSLOG.\n");
+	printf("    -l ...: sets syslog FACILITY code for erlang reports, default: LOG_DAEMON\n");
+	printf("    -d:  turn debug printout on, use to verify config file!\n");
+	printf("         twice: prints also interaction with aprs-is system..\n");
+	exit(64); /* EX_USAGE */
+}
+
+int fd_nonblockingmode(int fd)
+{
+	int __i = fcntl(fd, F_GETFL, 0);
+	if (__i >= 0) {
+	  /* set up non-blocking I/O */
+	  __i |= O_NONBLOCK;
+	  __i = fcntl(fd, F_SETFL, __i);
+	}
+	return __i;
+}
 
 int main(int argc, char * const argv[]) 
 {
@@ -38,23 +62,57 @@ int main(int argc, char * const argv[])
 	struct pollfd *fds;
 	int nfds, nfds2;
 	const char *cfgfile = "/etc/aprsg-ng.conf";
+	const char *syslog_facility = "LOG_DAEMON";
+
+	now = time(NULL);
+
+	setlinebuf(stdout);
+	setlinebuf(stderr);
 
 	/* Init the poll(2) descriptor array */
 	memset(polls, 0, sizeof(polls));
 	for (i = 0; i < MAXPOLLS; ++i)
 	  polls[i].fd = -1;
-	memset(ttys, 0, sizeof(ttys));
-	for (i = 0; i < MAXTTYS; ++i)
-	  ttys[i].fd = -1;
 
 	signal(SIGTERM, sig_handler);
 	signal(SIGINT, sig_handler);
+	signal(SIGHUP, sig_handler);
 
-	now = time(NULL);
+	while ((i = getopt(argc, argv, "def:hl:v?")) != -1) {
+	  switch (i) {
+	  case '?': case 'h':
+	    usage();
+	    break;
+	  case 'd':
+	    ++debug;
+	    break;
+	  case 'e':
+	    ++erlangout;
+	    break;
+	  case 'l':
+	    syslog_facility = optarg;
+	    break;
+	  case 'v':
+	    ++verbout;
+	    break;
+	  case 'f':
+	    cfgfile = optarg;
+	    break;
+	  default:
+	    break;
+	  }
+	}
+
+
+	erlang_init(syslog_facility);
+	ttyreader_init();
+	netax25_init();
+	aprsis_init();
 
 	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
 
-	aprsis_init();
+	/* Must be after config reading ... */
+	aprsis_start();
 
 
 	/* The main loop */
@@ -65,12 +123,8 @@ int main(int argc, char * const argv[])
 	  now = time(NULL);
 	  next_timeout = now + 30;
 
-	  aprsis_cond_reconnect();
-
 	  fds = polls;
 	  nfds = MAXPOLLS;
-
-	  for (i = 0; i < MAXPOLLS; ++i)   polls[i].fd = -1;
 
 	  i = ttyreader_prepoll(nfds, &fds, &next_timeout);
 	  nfds -= i;
@@ -81,9 +135,13 @@ int main(int argc, char * const argv[])
 	  i = beacon_prepoll(nfds, &fds, &next_timeout);
 	  nfds2 += i;
 	  nfds  -= i;
+	  i = netax25_prepoll(nfds, &fds, &next_timeout);
+	  nfds2 += i;
+	  nfds  -= i;
+	  i = erlang_prepoll(nfds, &fds, &next_timeout);
+	  nfds2 += i;
+	  nfds  -= i;
 
-
-	  now = time(NULL);
 	  if (next_timeout <= now)
 	    next_timeout = now + 1; /* Just to be on safe side.. */
 
@@ -92,8 +150,10 @@ int main(int argc, char * const argv[])
 
 
 	  i = beacon_postpoll(nfds2, polls);
-	  i = aprsis_postpoll(nfds2, polls);
 	  i = ttyreader_postpoll(nfds2, polls);
+	  i = netax25_postpoll(nfds2, polls);
+	  i = aprsis_postpoll(nfds2, polls);
+	  i = erlang_postpoll(nfds2, polls);
 
 	}
 

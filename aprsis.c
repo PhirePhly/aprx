@@ -13,66 +13,149 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-      int   aprsis_heartbeat_monitor_timeout;
-const char *aprsis_server_name;
-const char *aprsis_server_port; /* numeric text, not an interger */
 
 /*
  * $aprsserver = "rotate.aprs.net:14580";
  *
  * re-resolve the $aprsserver at each connection setup!
+ *
+ * The APRS-IS system connection runs as separate sub-process, once it starts.
+ * This way the main-loop is independent from uncertainties of DNS resolving
+ * in this part of the code.
+ *
  */ 
 
-static int sockaprsis;
-static time_t next_aprsis_reconnect;
-static time_t aprsis_last_read;
+struct aprsis {
+	int	server_socket;
+	const char *server_name;
+	const char *server_port;
+	const char *filterparam;
+	const char *mycall;
+	int	heartbeat_monitor_timeout;
+	time_t	next_reconnect;
+	time_t	last_read;
+	int	wrbuf_len;
+	int	wrbuf_cur;
+	int	rdbuf_len;
+	int	rdbuf_cur;
+	int	rdlin_len;
 
-static char aprsis_wrbuf[16000];
-static char aprsis_rdbuf[ 3000];
+	char	wrbuf[16000];
+	char	rdbuf[3000];
+	char	rdline[500];
+};
 
-static int  aprsis_wrbuf_len;
-static int  aprsis_wrbuf_cur;
-
+static int AprsIScount;
+static struct aprsis AprsIS[MAXAPRSIS];
+static int aprsis_multiconnect;
+static int aprsis_sp; /* up & down talking socket(pair),
+			 parent: write talks down,
+			 child: write talks up. */
 
 void aprsis_init(void)
 {
-	sockaprsis = -1;
-}
-
-int fd_nonblockingmode(int fd)
-{
-	int __i, __i2;
-	__i2 = __i = fcntl(fd, F_GETFL, 0);
-	if (__i >= 0) {
-	  /* set up non-blocking I/O */
-	  __i |= O_NONBLOCK;
-	  __i = fcntl(fd, F_SETFL, __i);
-	}
-	return __i;
+	int i;
+	for (i = 0; i < AprsIScount; ++i)
+	  AprsIS[i].server_socket = -1;
+	aprsis_sp = -1;
 }
 
 
 /*
- *Close APRS-IS socket, clean state..
+ *Close APRS-IS server_socket, clean state..
  */
 
-static void aprsis_close(void)
+static void aprsis_close(struct aprsis *A)
 {
-	if (sockaprsis >= 0)
-	  close(sockaprsis);  /* close, and flush write buffers */
+	if (A->server_socket >= 0)
+	  close(A->server_socket);  /* close, and flush write buffers */
 
-	sockaprsis = -1;
+	A->server_socket = -1;
 
-	aprsis_wrbuf_len = aprsis_wrbuf_cur = 0;
-	next_aprsis_reconnect = now + 60;
-	aprsis_last_read = 0;
+	A->wrbuf_len = A->wrbuf_cur = 0;
+	A->next_reconnect = now + 60;
+	A->last_read = now;
 
-
-now = time(NULL);
 printf("%ld\tCLOSE APRSIS\n",(long)now);
 
 }
 
+
+/*
+ *  aprsis_queue_() - internal routine - queue data to specific APRS-IS instance
+ */
+static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, int textlen)
+{
+	int i;
+	char addrbuf[1000];
+	int addrlen, len;
+
+	/* Queue for sending to APRS-IS only when the socket is operational */
+	if (A->server_socket < 0) return 1;
+
+	/*
+	 * Append stuff on the writebuf, if it fits.
+	 * If it does not fit, something is broken already
+	 * and we just drop it..
+	 *
+	 * Just to make sure that the write pointer is not left
+	 * rewound when all has been done...
+	 */
+
+	if (A->wrbuf_cur >= A->wrbuf_len && A->wrbuf_len > 0)
+	  A->wrbuf_cur = A->wrbuf_len = 0;
+
+	addrlen = 0;
+	if (addr)
+	  addrlen = sprintf(addrbuf, "%s,%s,I:", addr, A->mycall);
+	len = addrlen + textlen;
+
+
+	/* Does it fit in ? */
+
+	if ((sizeof(A->wrbuf)-10) <= (A->wrbuf_len + len)) {
+	  /* The string does not fit in, perhaps it needs compacting ? */
+	  if (A->wrbuf_cur > 0) { /* Compacting is possible ! */
+	    memmove(A->wrbuf, A->wrbuf + A->wrbuf_cur, A->wrbuf_len - A->wrbuf_cur);
+	    A->wrbuf_len -= A->wrbuf_cur;
+	    A->wrbuf_cur = 0;
+	  }
+
+	  /* Check again if it fits in..*/
+	  if ((sizeof(A->wrbuf)-10) <= (A->wrbuf_len + len)) {
+	    /* NOT!  Too bad, drop it.. */
+	    return 2;
+	  }
+	}
+
+
+	/* Place it on our send buffer */
+
+	if (addrlen > 0) {
+	  memcpy(A->wrbuf + A->wrbuf_len, addrbuf, addrlen);
+	  A->wrbuf_len += addrlen;
+	}
+
+	memcpy(A->wrbuf + A->wrbuf_len, text, textlen);
+	A->wrbuf_len += textlen; /* Always supplied with tail newline.. */
+
+	/* Try writing it right away: */
+
+	i = write(A->server_socket, A->wrbuf + A->wrbuf_cur, A->wrbuf_len - A->wrbuf_cur);
+	if (i > 0) {
+	  if (debug > 1) {
+	    printf("%ld\t<< %s:%s << ", now, A->server_name, A->server_port);
+	    fwrite(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur), 1, stdout); /* Does end on  \r\n */
+	  }
+
+	  A->wrbuf_cur += i;
+	  if (A->wrbuf_cur >= A->wrbuf_len) {  /* Wrote all ! */
+	    A->wrbuf_cur = A->wrbuf_len = 0;
+	  }
+	}
+
+	return 0;
+}
 
 
 /*
@@ -104,15 +187,14 @@ static int aprspass(const char *mycall)
  *  programs principal reason for existence...
  */
 
-static void aprsis_reconnect(void)
+static void aprsis_reconnect(struct aprsis *A)
 {
 	struct addrinfo req, *ai, *a2;
-	int i, n, asize;
-	const char *s;
-	int  len;
-	char aprsislogincmd[300];
+	int i, n;
+	char *s;
+	char aprsislogincmd[3000];
 
-	aprsis_close();
+	aprsis_close(A);
 
 	memset(&req, 0, sizeof(req));
 	req.ai_socktype = SOCK_STREAM;
@@ -126,7 +208,7 @@ static void aprsis_reconnect(void)
 	ai = NULL;
 
 
-	i = getaddrinfo(aprsis_server_name, aprsis_server_port, &req, &ai);
+	i = getaddrinfo(A->server_name, A->server_port, &req, &ai);
 
 	if (i != 0) {
 
@@ -135,7 +217,7 @@ static void aprsis_reconnect(void)
 
 	  if (ai) freeaddrinfo(ai);
 
-	  aprsis_close();
+	  aprsis_close(A);
 	  return;
 	}
 	
@@ -150,183 +232,491 @@ static void aprsis_reconnect(void)
 	    ;
 	}
 
-	sockaprsis = socket(a2->ai_family, SOCK_STREAM, 0);
-	if (sockaprsis < 0)
+	A->server_socket = socket(a2->ai_family, SOCK_STREAM, 0);
+	if (A->server_socket < 0)
 	  goto fail_out;
 
-	i = connect(sockaprsis, a2->ai_addr, a2->ai_addrlen);
+	i = connect(A->server_socket, a2->ai_addr, a2->ai_addrlen);
 	if (i < 0)
 	  goto fail_out;
 
 	freeaddrinfo(ai);
 	ai = NULL;
 
-	now = time(NULL);
-printf("%ld\tCONNECT APRSIS\n",(long)now);
+now = time(NULL); /* unpredictable time since system did last poll.. */
+printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->server_name,A->server_port);
 
 
 	/* From now the socket will be non-blocking for its entire lifetime..*/
-	fd_nonblockingmode(sockaprsis);
+	fd_nonblockingmode(A->server_socket);
 
 	/* We do at first sync writing of login, and such.. */
-	sprintf(aprsislogincmd, "user %s pass %d vers %s\r\n", mycall, aprspass(mycall), version);
+	s = aprsislogincmd;
+	s += sprintf(s, "user %s pass %d vers %s", A->mycall, aprspass(A->mycall), version);
+	if (A->filterparam)
+	  s+= sprintf(s, "filter %s", A->filterparam);
+	strcpy(s,"\r\n");
 
-	aprsis_queue(aprsislogincmd, strlen(aprsislogincmd));
+	A->last_read = now;
+
+	aprsis_queue_(A, NULL, aprsislogincmd, strlen(aprsislogincmd));
 	beacon_reset();
 }
 
 
-int aprsis_queue(const char *s, int len)
+static int aprsis_sockreadline(struct aprsis *A)
+{
+	int i, c;
+
+	/* reads multiple lines from buffer, last one is left into incomplete state */
+
+	for (i = A->rdbuf_cur; i < A->rdbuf_len; ++i) {
+	  c = 0xFF & (A->rdbuf[i]);
+	  if (c == '\r' || c == '\n') {
+	    /* End of line, process.. */
+	    if (A->rdlin_len > 0) {
+	      A->rdline[A->rdlin_len] = 0;
+	      /* */
+	      if (A->rdline[0] != '#') /* Not only a comment! */
+		A->last_read = now;  /* Time stamp me ! */
+	      
+	      if (debug > 1)
+		printf("%ld\t<< %s:%s >> %s\n", now,
+		       A->server_name, A->server_port, A->rdline);
+
+	      /* Send the A->rdline content to main program */
+	      send(aprsis_sp, A->rdline, strlen(A->rdline), MSG_NOSIGNAL);
+	    }
+	    A->rdlin_len = 0;
+	    continue;
+	  }
+	  if (A->rdlin_len < sizeof(A->rdline)-2) {
+	    A->rdline[A->rdlin_len++] = c;
+	  }
+	}
+	A->rdbuf_cur = 0;
+	A->rdbuf_len = 0;  /* we ignore line reading */
+	return 0;	   /* .. this is placeholder.. */
+}
+
+static int aprsis_sockread(struct aprsis *A)
 {
 	int i;
 
-	/* Queue for sending to APRS-IS only when the socket is operational */
-	if (sockaprsis < 0) return 1;
+	int rdspace = sizeof(A->rdbuf) - A->rdbuf_len;
 
-	/*
-	 * Append stuff on the writebuf, if it fits.
-	 * If it does not fit, something is broken already
-	 * and we just drop it..
-	 *
-	 * Just to make sure that the write pointer is not left
-	 * rewound when all has been done...
-	 */
+	if (A->rdbuf_cur > 0) {
+	  /* Read-out cursor is not at block beginning,
+	     is there unread data too ? */
+	  if (A->rdbuf_cur > A->rdbuf_len) {
+	    memcpy(A->rdbuf, A->rdbuf + A->rdbuf_cur,
+		   A->rdbuf_len - A->rdbuf_cur);
+	    A->rdbuf_len -= A->rdbuf_cur;
+	  } else
+	    A->rdbuf_len = 0; /* all processed, mark its size zero */
+	  A->rdbuf_cur = 0;
 
-	if (aprsis_wrbuf_cur >= aprsis_wrbuf_len && aprsis_wrbuf_len > 0)
-	  aprsis_wrbuf_cur = aprsis_wrbuf_len = 0;
-
-	/* Does it fit in ? */
-
-	if ((sizeof(aprsis_wrbuf)-10) <= (aprsis_wrbuf_len + len)) {
-	  /* The string does not fit in, perhaps it needs compacting ? */
-	  if (aprsis_wrbuf_cur > 0) { /* Compacting is possible ! */
-	    memmove(aprsis_wrbuf, aprsis_wrbuf + aprsis_wrbuf_cur, aprsis_wrbuf_len - aprsis_wrbuf_cur);
-	    aprsis_wrbuf_len -= aprsis_wrbuf_cur;
-	    aprsis_wrbuf_cur = 0;
-	  }
-
-	  /* Check again if it fits in..*/
-	  if ((sizeof(aprsis_wrbuf)-10) <= (aprsis_wrbuf_len + len)) {
-	    /* NOT!  Too bad, drop it.. */
-	    return 2;
-	  }
+	  /* recalculate */
+	  rdspace = sizeof(A->rdbuf) - A->rdbuf_len;
 	}
 
+	i = read(A->server_socket, A->rdbuf + A->rdbuf_len, rdspace);
 
-	/* Place it on our send buffer */
-
-	memcpy(aprsis_wrbuf + aprsis_wrbuf_len, s, len);
-	aprsis_wrbuf_len += len; /* Always supplied with tail newline.. */
-
-	/* Try writing it right away: */
-
-	i = write(sockaprsis, aprsis_wrbuf + aprsis_wrbuf_cur, aprsis_wrbuf_len - aprsis_wrbuf_cur);
 	if (i > 0) {
-	  aprsis_wrbuf_cur += i;
-	  if (aprsis_wrbuf_cur >= aprsis_wrbuf_len) {  /* Wrote all ! */
-	    aprsis_wrbuf_cur = aprsis_wrbuf_len = 0;
-	  }
+
+	  A->rdbuf_len += i;
+
+	  /* we just ignore the readback.. but do time-stamp the event */
+	  if (! A->filterparam)
+	    A->last_read = now;
+
+	  aprsis_sockreadline(A);
 	}
 
-	return 0;
+	return i;
+}
+
+static void aprsis_readsp(void)
+{
+	int i;
+	char buf[10000];
+	const char *addr;
+	const char *text;
+	int textlen;
+	time_t then;
+
+	i = recv(aprsis_sp, buf, sizeof(buf), 0);
+	if (i == 0) { /* EOF ! */
+	  exit(0);
+	}
+	if (i < 0) {
+	  return; /* Whatever was the reason.. */
+	}
+	buf[i] = 0; /* String Termination NUL byte */
+
+	memcpy(&then, buf, sizeof(then));
+	if (then + 10 < now) return; /* Too old, discard */
+	addr = buf+sizeof(then);
+	text = addr;
+	while (*text && text < (buf+sizeof(buf))) ++text;
+	++text; /* skip over the 0 byte in between addr and message text */
+	/* now we have text content.. */
+	textlen = i - (text - buf);
+	if (textlen < 0) return; /* BAD! */
+	
+	/* Now queue the thing! */
+
+	for (i = 0; i < AprsIScount; ++i)
+	  aprsis_queue_(& AprsIS[i], addr, text, textlen);
+}
+
+int aprsis_queue(const char *addr, const char *text, int textlen)
+{
+	static char *buf;
+	static int buflen;
+	int len, i;
+	char *p;
+
+	if (textlen + strlen(addr) + 30 > buflen) {
+	  buflen = textlen + strlen(addr) + 30;
+	  buf = realloc(buf, buflen);
+	}
+
+	memcpy(buf, &now, sizeof(now));
+	p = buf+sizeof(now);
+	p += sprintf(p, "%s", addr);
+	++p; /* string terminating 0 byte */
+	p += sprintf(p, "%s", text);
+	len = p - buf;
+
+	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL); /* No SIGPIPE if the
+							receiver is out,
+							or pipe is full
+							because it is doing
+							slow reconnection. */
+
+	return (i != len);
+	/* Return 0 if ANY of the queue operations was successfull
+	   Return 1 if there was some error.. */
 }
 
 
 
-int aprsis_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
+
+static int aprsis_prepoll_(int nfds, struct pollfd **fdsp, time_t *tout)
 {
 	int idx = 0; /* returns number of *fds filled.. */
 	int i;
 
 	struct pollfd *fds = *fdsp;
 
-	if (aprsis_last_read == 0) aprsis_last_read = now;
+	if (AprsIScount > 1 && !aprsis_multiconnect)
+	  AprsIScount = 1; /* There can be only one... */
 
-	/* Not all aprs-is systems send "heartbeat", but when they do.. */
-	if ((aprsis_heartbeat_monitor_timeout > 0) &&
-	    (aprsis_last_read + aprsis_heartbeat_monitor_timeout < now)) {
+	for (i = 0; i < AprsIScount; ++i) {
+	  struct aprsis *A = & AprsIS[i];
 
-	  /*
-	   * More than 120 seconds (2 minutes) since last time
-	   * that APRS-IS systems told us something on the connection.
-	   * There is a heart-beat ticking every 20 or so seconds.
-	   */
+	  if (A->last_read == 0) A->last_read = now;
 
-	  aprsis_close();
+	  /* Not all aprs-is systems send "heartbeat", but when they do.. */
+	  if ((A->heartbeat_monitor_timeout > 0) &&
+	      (A->last_read + A->heartbeat_monitor_timeout < now)) {
+
+	    /*
+	     * More than 120 seconds (2 minutes) since last time
+	     * that APRS-IS systems told us something on the connection.
+	     * There is a heart-beat ticking every 20 or so seconds.
+	     */
+
+	    aprsis_close(A);
+	  }
+
+	  if (A->server_socket < 0) continue; /* Not open, do nothing */
+
+
+	  /* FD is open, lets mark it for poll read.. */
+
+	  if (nfds <= 0) continue; /* If we have room! */
+
+	  fds->fd = A->server_socket;
+	  fds->events = POLLIN|POLLPRI;
+	  fds->revents = 0;
+
+	  /* Do we have something for writing ?  */
+	  if (A->wrbuf_len)
+	    fds->events |= POLLOUT;
+
+	  --nfds;
+	  ++fds;
+	  ++idx;
 	}
-
-	if (sockaprsis < 0) return 0; /* Not open, do nothing */
-
-	/* FD is open, lets mark it for poll read.. */
-	fds->fd = sockaprsis;
-	fds->events = POLLIN|POLLPRI;
-	fds->revents = 0;
-
-	/* Do we have something for writing ?  */
-	if (aprsis_wrbuf_len)
-	  fds->events |= POLLOUT;
-
-	++fds;
 
 	*fdsp = fds;
 
-	return 1;
+	return idx;
 
 }
+
+static int aprsis_postpoll_(int nfds, struct pollfd *fds)
+{
+	int i, a;
+
+	for (i = 0; i < nfds; ++i, ++fds) {
+	  for (a = 0; a < AprsIScount; ++a) {
+	    struct aprsis *A = & AprsIS[a];
+	    if (fds->fd == A->server_socket && A->server_socket >= 0) {
+	      /* This is APRS-IS socket, and we may have some results.. */
+
+	      if (fds->revents & (POLLERR | POLLHUP)) { /* Errors ? */
+	      close_sockaprsis:;
+		aprsis_close(A);
+		continue;
+	      }
+
+	      if (fds->revents & POLLIN) {  /* Ready for reading */
+		for(;;) {
+		  i = aprsis_sockread(A);
+		  if (i == 0) /* EOF ! */
+		    goto close_sockaprsis;
+		  if (i < 0) break;
+		}
+	      }
+
+	      if (fds->revents & POLLOUT) { /* Ready for writing  */
+		/* Normal queue write processing */
+
+		if (A->wrbuf_len > 0 && A->wrbuf_cur < A->wrbuf_len) {
+		  i = write(A->server_socket, A->wrbuf + A->wrbuf_cur, A->wrbuf_len - A->wrbuf_cur);
+		  if (i < 0) continue; /* Argh.. nothing */
+		  if (i == 0) ; /* What ? */
+		  A->wrbuf_cur += i;
+		  if (A->wrbuf_cur >= A->wrbuf_len) { /* Wrote all! */
+		    A->wrbuf_len = A->wrbuf_cur = 0;
+		  } else {
+		    /* partial write .. do nothing.. */
+		  }
+		} /* .. normal queue */
+
+	      } /* .. POLLOUT */
+	    } /* .. if fd == server_socket */
+	  } /* .. MAXPARSIS .. */
+	} /* .. for .. nfds .. */
+	return 1; /* there was something we did, maybe.. */
+}
+
+
+static void aprsis_cond_reconnect(void)
+{
+	int i;
+	for (i = 0; i < AprsIScount; ++i) {
+	  struct aprsis *A = & AprsIS[i];
+	  if (A->server_socket < 0 &&
+	      A->next_reconnect <= now) {
+	    aprsis_reconnect(A);
+	  }
+	}
+}
+
+
+
+extern struct pollfd polls[MAXPOLLS];
+
+static void aprsis_main(void)
+{
+	int i;
+	struct pollfd *fds;
+	int nfds, nfds2;
+
+	/* The main loop */
+	while (! die_now) {
+	  time_t next_timeout;
+	  now = time(NULL);
+	  next_timeout = now + 30;
+
+	  aprsis_cond_reconnect();
+
+	  fds = polls;
+
+	  fds[0].fd = aprsis_sp;
+	  fds[0].events = POLLIN | POLLPRI;
+	  fds[0].revents = 0;
+	  ++fds;
+
+	  nfds = MAXPOLLS-1;
+	  nfds2 = 1;
+
+
+	  i = aprsis_prepoll_(nfds, &fds, &next_timeout);
+	  nfds2  += i;
+	  nfds   -= i;
+
+
+	  if (next_timeout <= now)
+	    next_timeout = now + 1; /* Just to be on safe side.. */
+
+	  i = poll(polls, nfds2, (next_timeout - now) * 1000);
+	  now = time(NULL);
+
+	  if (polls[0].revents & (POLLIN|POLLPRI|POLLERR|POLLHUP)) {
+	    /* messaging channel has something for us, if
+	       the channel reports EOF, we exit there and then. */
+	    aprsis_readsp();
+	  }
+	  i = aprsis_postpoll_(nfds2, polls);
+	}
+	/* Got "DIE NOW" signal... */
+	exit(0);
+}
+
+
+/*
+ *  aprsis_add_server() - 
+ */
+
+void aprsis_add_server(const char *server, const char *port)
+{
+	struct aprsis *A = & AprsIS[AprsIScount];
+	if (AprsIScount >= MAXAPRSIS) return;
+	++AprsIScount;
+
+	A->server_name   = strdup(server);
+	A->server_port   = strdup(port);
+	A->server_socket = -1;
+	A->mycall        = mycall;  /* global mycall */
+}
+
+void aprsis_set_heartbeat_timeout(const int tout)
+{
+	int i = AprsIScount;
+	struct aprsis *A;
+
+	if (i > 0) --i;
+	A = & AprsIS[i];
+
+	A->heartbeat_monitor_timeout = tout;
+}
+
+void aprsis_set_multiconnect(void)
+{
+	aprsis_multiconnect = 1; /* not really implemented.. */
+}
+
+void aprsis_set_filter(const char *filter)
+{
+	int i = AprsIScount;
+	struct aprsis *A;
+
+	if (i > 0) --i;
+	A = & AprsIS[i];
+
+	A->filterparam = strdup(filter);
+}
+
+void aprsis_set_mycall(const char *mycall)
+{
+	int i = AprsIScount;
+	struct aprsis *A;
+
+	if (i > 0) --i;
+	A = & AprsIS[i];
+
+	A->mycall = strdup(mycall);
+}
+
+void aprsis_start(void)
+{
+	int i;
+	int pipes[2];
+
+	i = socketpair(AF_UNIX, SOCK_DGRAM, PF_UNSPEC, pipes);
+	if (i != 0) {
+	  return; /* FAIL ! */
+	}
+
+	i = fork();
+	if (i < 0) {
+	  close(pipes[0]);close(pipes[1]);
+	  return; /* FAIL ! */
+	}
+
+	if (i == 0) {
+	  /* Child -- the APRSIS talker */
+	  aprsis_sp = pipes[1];
+	  fd_nonblockingmode(pipes[1]);
+	  close(pipes[0]);
+	  aprsis_main();
+	}
+
+	/* Parent */
+	close(pipes[1]);
+	fd_nonblockingmode(pipes[0]);
+	aprsis_sp = pipes[0];
+}
+
+
+
+
+int aprsis_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
+{
+	int idx = 0; /* returns number of *fds filled.. */
+
+	struct pollfd *fds = *fdsp;
+
+
+	fds->fd = aprsis_sp; /* APRS-IS communicator server Sub-process */
+	fds->events = POLLIN|POLLPRI;
+	fds->revents = 0;
+	
+	/* We react only for reading, if write fails because the socket is
+	   jammed,  that is just too bad... */
+
+	--nfds;
+	++fds;
+	++idx;
+
+	*fdsp = fds;
+
+	return idx;
+
+}
+
+static int aprsis_comssockread(int fd)
+{
+	int i;
+	char buf[10000];
+
+	i = recv(fd, buf, sizeof(buf), 0);
+	if (i == 0) return 0;
+
+	/* TODO: do something with the data ?
+	   A receive-only iGate does nothing, but Rx/Tx would do... */
+
+	return 1;
+}
+
 
 int aprsis_postpoll(int nfds, struct pollfd *fds)
 {
 	int i;
 
 	for (i = 0; i < nfds; ++i, ++fds) {
-	  if (fds->fd == sockaprsis && sockaprsis >= 0) {
-	    /* This is APRS-IS socket, and we may have some results.. */
-
+	  if (fds->fd == aprsis_sp) {
+	    /* This is APRS-IS communicator subprocess socket,
+	       and we may have some results.. */
+	    
 	    if (fds->revents & (POLLERR | POLLHUP)) { /* Errors ? */
 	    close_sockaprsis:;
-	      aprsis_close();
-	      return -1;
+	      printf("APRS-IS coms subprocess socket failure from main program side!\n");
+	      continue;
 	    }
 
 	    if (fds->revents & POLLIN) {  /* Ready for reading */
-	      for(;;) {
-		i = read(sockaprsis, aprsis_rdbuf, sizeof(aprsis_rdbuf));
-		if (i == 0) /* EOF ! */
-		  goto close_sockaprsis;
-		if (i < 0) break;
-		/* we just ignore the readback.. */
-		aprsis_last_read = time(NULL);
-	      }
+	      i = aprsis_comssockread(fds->fd);
+	      if (i == 0) /* EOF ! */
+		goto close_sockaprsis;
+	      if (i < 0) continue;
 	    }
-
-	    if (fds->revents & POLLOUT) { /* Ready for writing  */
-	      /* Normal queue write processing */
-
-	      if (aprsis_wrbuf_len > 0 && aprsis_wrbuf_cur < aprsis_wrbuf_len) {
-		i = write(sockaprsis, aprsis_wrbuf + aprsis_wrbuf_cur, aprsis_wrbuf_len - aprsis_wrbuf_cur);
-		if (i < 0) return; /* Argh.. nothing */
-		if (i == 0) ; /* What ? */
-		if (i == (aprsis_wrbuf_len - aprsis_wrbuf_cur)) { /* Wrote all! */
-		  aprsis_wrbuf_len = aprsis_wrbuf_cur = 0;
-		} else { /* Partial write */
-		  aprsis_wrbuf_cur += i;
-		}
-
-	      } /* .. normal queue */
-
-	    } /* .. POLLOUT */
-
-	    return 1; /* there was something we did, maybe.. */
 	  }
-	}
-}
-
-
-void aprsis_cond_reconnect(void)
-{
-	if (sockaprsis < 0 &&
-	    next_aprsis_reconnect <= now) {
-
-	  aprsis_reconnect();
-	}
+	} /* .. for .. nfds .. */
+	return 1; /* there was something we did, maybe.. */
 }

@@ -1,17 +1,17 @@
 
-		ARPSG-NG    v0.01
+		ARPSG-NG    v0.07
 
 A receive-only APRS-IS "i-gate" with following properties:
 
-   CONFIGURATION IS PARTIALLY HARD-CODED INTO  config.c  FILE;
-   Config file  /etc/aprsg-ng.conf  IS MOSTLY READ.
+   Config file (-f option) default is:  /etc/aprsg-ng.conf
+   Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
 
-   - Is receive-only
+   - Is receive-only  (future may, or may not, have Rx/Tx behaviour)
 
    - Can receive data from multiple receivers/modems on local machine
      serial ports
 
-   - Understands:
+   - Understands on serial ports:
        - several KISS protocol variants, plain basic KISS preferred
        - TNC2 debug style text  (incomplete)
        - and even AEA "monitor 1" format (incomplete)
@@ -21,15 +21,37 @@ A receive-only APRS-IS "i-gate" with following properties:
 
    - Knows that messages with following tokens in VIA fields of the
      path are not to be relayed into network:
-              RFONLY, NOGATE
+              RFONLY, NOGATE, TCPIP, TCPXX
 
    - Knows that following source address prefixes are bogus and thus
      to be junked:
-              WIDE, RELAY, TRACE
+              WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL
 
 
    - Does not require machine to have AX.25 protocol support internally!
-   - Does not use internal AX.25 protocol support! (TODO)
+
+   - On Linux machine with kernel internal AX.25 protocol support, does
+     listen on internal AX.25 network in promiscuous form, and requires
+     to be running as root to do that.   Does not fail to start in case
+     the port fails to open (running as non-root.)   Does not filter
+     reported AX.25 UI frames by AX.25 interface ports or anything.
+     (Such filter is on TODO list.)
+
+   - Built-in "erlang-monitor" actually counts bytes per time interval
+     (10 min, and 60 min)  on each receiving interface, including all
+     that feed internal AX.25 network.  Report goes to SYSLOG, unless
+     option "-e" is used, then it goes to STDOUT.
+
+   - The "erlang-monitor" presumes that system internal time is on sync with
+     the UTC, as is the style in UNIX systems, and makes those reports at
+     exact 10 minutes and exact 60 minutes, cycle depending.
+
+   - The netbeacons are distributed timewise more evenly around the interval,
+     and even the interval length is varied at random in between 20 and 30
+     minutes.  Number of netbeacons are unlimited, but their minimum transmit
+     interval is 3 seconds making the amount of beacons sendable in 20 minutes
+     to be: 20*60/3 = 400.  All will be sent, but the cycle will just take
+     longer.
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007

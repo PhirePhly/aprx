@@ -1,12 +1,12 @@
-.\" APRSG-NG  v.0.06
-.TH aprsg 8 "2007 December 05 - v0.06"
+.\" APRSG-NG  v.0.07
+.TH aprsg 8 "2007 December 10 - v0.07"
 .LO 8
 .SH NAME
 .B aprsg
 \- A receive\-only APRS iGate application,
 .B "UNDER WORK"
 .SH SYNOPSIS
-aprsg [\-d[\-d]] [\-e] [\-v] [\-f /etc/aprsg-ng.conf]
+aprsg [\-d[\-d]] [\-e] [\-v] [\-l syslogfacility] [\-f /etc/aprsg-ng.conf]
 .SH DESCRIPTION
 .B aprsg
 is a
@@ -53,9 +53,8 @@ Drops all
 .I query
 messages ("?"), as well as all 3rd party messages ("}").
 .IP \(bu 3
-Has built\-in "Erlang monitor" mechanism, that logs (to STDOUT) interface
-specific channel occupancy.
-.I "(Very RAW implementation, unbroken log file is not a nice thing...)"
+Has built\-in "Erlang monitor" mechanism, that logs to syslog a interface
+specific channel occupancy.   Optionally can log to STDOUT.
 .PP
 .SH OPTIONS
 The
@@ -74,6 +73,38 @@ the APRS-IS network service.
 shows 10 minute and 60 minute traffic accumulation byte counts, and guestimates
 on channel occupancy, alias "Erlang".
 These outputs are sent to STDOUT, which system operator may choose to log elsewere.
+If no
+.B "\-e"
+option is used, then
+.RB syslog (3)
+facility is used.
+.TP
+.B "\-l logfacilityname"
+Defines
+.RB syslog (3)
+facility code used by the erlang reporter by defining its name.
+Default value is:
+.BR LOG_DAEMON ,
+and accepted values are:
+.BR LOG_DAEMON ,
+.BR LOG_FTP ,
+.BR LOG_LPR ,
+.BR LOG_MAIL ,
+.BR LOG_NEWS ,
+.BR LOG_USER ,
+.BR LOG_UUCP ,
+.BR LOG_LOCAL0 ,
+.BR LOG_LOCAL1 ,
+.BR LOG_LOCAL2 ,
+.BR LOG_LOCAL3 ,
+.BR LOG_LOCAL4 ,
+.BR LOG_LOCAL5 ,
+.BR LOG_LOCAL6 ,
+.BR LOG_LOCAL7 .
+That list is subject to actual facility code set in the system,
+and in any case if you specify a code that is not known, then the program
+will complain during the startup, and report it.
+.B "The \-l affects only when no \-e option is used!"
 .TP
 .B "\-v"
 Verbose logging of received traffic to STDOUT.
@@ -83,7 +114,10 @@ or possibly "#" for "discarded due to APRS-IS being unreachable".
 .TP
 .B "\-f /etc/aprsg\-ng.conf"
 Configuration file, given path is built-in default, and can be overridden by the program runner.
-
+.PP
+Use parameter set 
+.B "\-ddv"
+to test new configuration by running it synchronously to console.
 
 .SH CONFIGURATION FILE
 The configuration file is used to setup the program to do its job.
@@ -197,4 +231,5 @@ discussions grumbling about current breed of available software for
 APRS iGate use in Linux (or of any UNIX) platforms.
 .PP
 Principal contributors and test users include:
-.I "Pentti Gronlund, OH3BK,"
+.IR "Pentti Gronlund, OH3BK" ,
+.IR "Reijo Hakala, OH1GWK" .
