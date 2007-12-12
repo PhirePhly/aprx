@@ -1,14 +1,14 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRSG-NG -- 2nd generation receive-only APRS-i-gate with        *
- *              minimal requirement of esoteric facilities or       *
- *              libraries of any kind beyond UNIX system libc.      *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *
  * **************************************************************** */
 
-#include "aprsg.h"
+#include "aprx.h"
 
 /* Bits used only in the main program.. */
 #include <signal.h>
@@ -18,14 +18,14 @@ int debug;
 int verbout;
 int erlangout;
 
-#define CFGFILE "/etc/aprsg-ng.conf"
+#define CFGFILE "/etc/aprx.conf"
 
 
 struct pollfd polls[MAXPOLLS];
 
 int die_now;
 
-const char *version = "aprsg-ng-v0.07";
+const char *version = "aprx-v0.08";
 
 
 static void sig_handler(int sig)
@@ -35,7 +35,7 @@ static void sig_handler(int sig)
 
 static void usage(void)
 {
-	printf("aprsg-ng: [-d][-d][-e][-v][-l logfacility] [-f %s]\n", CFGFILE);
+	printf("aprx: [-d][-d][-e][-v][-l logfacility] [-f %s]\n", CFGFILE);
 	printf("    -f %s:  where the configuration is\n", CFGFILE);
 	printf("    -v:  Outputs textual format of received packets, and data on STDOUT.\n");
 	printf("    -e:  Outputs raw ERLANG-report lines on SYSLOG.\n");
@@ -61,7 +61,7 @@ int main(int argc, char * const argv[])
 	int i;
 	struct pollfd *fds;
 	int nfds, nfds2;
-	const char *cfgfile = "/etc/aprsg-ng.conf";
+	const char *cfgfile = "/etc/aprx.conf";
 	const char *syslog_facility = "LOG_DAEMON";
 
 	now = time(NULL);

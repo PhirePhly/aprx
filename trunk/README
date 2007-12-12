@@ -1,9 +1,9 @@
 
-		ARPSG-NG    v0.07
+		APRX    v0.08
 
 A receive-only APRS-IS "i-gate" with following properties:
 
-   Config file (-f option) default is:  /etc/aprsg-ng.conf
+   Config file (-f option) default is:  /etc/aprx.conf
    Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
 
    - Is receive-only  (future may, or may not, have Rx/Tx behaviour)

@@ -1,15 +1,15 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRSG-NG -- 2nd generation receive-only APRS-i-gate with        *
- *              minimal requirement of esoteric facilities or       *
- *              libraries of any kind beyond UNIX system libc.      *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *
  * **************************************************************** */
 
 
-#include "aprsg.h"
+#include "aprx.h"
 
 
 /*
@@ -25,7 +25,7 @@
  * --
  */
 
-static int ax25_fmtaddress(char *dest, const char *src, int markflag)
+static int ax25_fmtaddress(char *dest, const unsigned char *src, int markflag)
 {
 	int i, c;
 
@@ -33,7 +33,7 @@ static int ax25_fmtaddress(char *dest, const char *src, int markflag)
 
 	/* 6 bytes of station callsigns in shifted ASCII format.. */
 	for (i = 0; i < 6; ++i,++src) {
-	  c = (*src) & 0xFF;
+	  c = *src;
 	  if (c & 1) return c;  /* Bad address-end flag ? */
 
 	  /* Don't copy spaces or 0 bytes */
@@ -41,7 +41,7 @@ static int ax25_fmtaddress(char *dest, const char *src, int markflag)
 	    *dest++ = c >> 1;
 	}
 	/* 7th byte carries SSID et.al. bits */
-	c = (*src) & 0xFF;
+	c = *src;
 	if ((c >> 1) % 16) { /* don't print SSID==0 value */
 	  dest += sprintf(dest, "-%d", (c >> 1) % 16);
 	}
@@ -57,35 +57,39 @@ static int ax25_fmtaddress(char *dest, const char *src, int markflag)
 static int ax25_forbidden_via_stationid(const char *t)
 {
 	return (memcmp("RFONLY",t,6) == 0 ||
-		memcmp("NOGATE",t,6) == 0);
+		memcmp("NOGATE",t,6) == 0 ||
+		memcmp("TCPIP",t,5)  == 0 ||
+		memcmp("TCPXX",t,5)  == 0);
 }
 
 static int ax25_forbidden_source_stationid(const char *t)
 {
-	return (memcmp("WIDE",t,4) == 0 ||   /* just plain wrong setting */
-		memcmp("RELAY",t,5) == 0 ||  /* just plain wrong setting */
-		memcmp("TRACE",t,5) == 0 ||  /* just plain wrong setting */
+	return (memcmp("WIDE",t,4)   == 0 || /* just plain wrong setting */
+		memcmp("RELAY",t,5)  == 0 || /* just plain wrong setting */
+		memcmp("TRACE",t,5)  == 0 || /* just plain wrong setting */
+		memcmp("TCPIP",t,5)  == 0 || /* just plain wrong setting */
+		memcmp("TCPXX",t,5)  == 0 || /* just plain wrong setting */
 		memcmp("N0CALL",t,6) == 0 || /* TNC default setting */
 		memcmp("NOCALL",t,6) == 0 ); /* TNC default setting */
 }
 
 
-void  ax25_to_tnc2(int cmdbyte, const char *frame, const int framelen)
+void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 {
 	int i, j;
-	const char *s = frame;
-	const char *e = frame + framelen;
+	const unsigned char *s = frame;
+	const unsigned char *e = frame + framelen;
 	int discard = 0;
+	int thirdparty = 0;
 
 	char tnc2buf[800];
-	char *t = tnc2buf;
-	const char *t2 = t + sizeof(tnc2buf)-50;
+	char *t = tnc2buf, *t0;
 
-	setlinebuf(stdout); setlinebuf(stderr);
+#if 0
+	memset(tnc2buf, 0, sizeof(tnc2buf)); /* DEBUG STUFF */
+#endif
 
-	/* memset(tnc2buf, 0, sizeof(tnc2buf)); /* DEBUG STUFF */
-
-	if (framelen > sizeof(tnc2buf)-20) {
+	if (framelen > sizeof(tnc2buf)-80) {
 	  /* Too much ! Too much! */
 	  return;
 	}
@@ -119,6 +123,8 @@ void  ax25_to_tnc2(int cmdbyte, const char *frame, const int framelen)
 
 	/*
 	 *  next if ($axpath =~ m/RFONLY/io); # Has any of these in via fields..
+	 *  next if ($axpath =~ m/TCPIP/io);
+	 *  next if ($axpath =~ m/TCPXX/io);
 	 *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
 	 */
 
@@ -138,26 +144,28 @@ void  ax25_to_tnc2(int cmdbyte, const char *frame, const int framelen)
 	  }
 	}
 
-
-	/* printf("%s\n", tnc2buf); */
-	/* t = tnc2buf; */
+	/* Address completed */
 
 	if ((s+2) >= e) return; /* never happens ?? */
 
-	/* Now insert ",$MYCALL,I:"  */
-	t += sprintf(t, ",%s,I:", mycall);
+	*t++ = 0; /* terminate the string */
+
+	t0 = t; /* Start assembling packet here */
 
 	if ((*s++ != 0x03) ||
-	    (*s++ != (char)0xF0)) {
-	  /* Not APRS UI frame */
+	    (*s++ != 0xF0)) {
+	  /* Not AX.25 UI frame */
 	  return;
 	}
+
+	/* Will not relay messages that begin with '?' char: */
+	if (*s == '?')
+	  discard = 1;
 
 
 	/* Will not relay messages that begin with '}' char: */
 	if (*s == '}')
-	  discard = 1;
-
+	  thirdparty = 1;
 
 	/* Copy payload - stop at CR or LF chars */
 	for ( ; s < e; ++s ) {
@@ -166,18 +174,70 @@ void  ax25_to_tnc2(int cmdbyte, const char *frame, const int framelen)
 	    break;
 	  *t++ = c;
 	}
+	*t = 0;
+	s = (unsigned char*) t0;
+
+	/* TODO: Verify message being of recognized APRS packet type */
+	/*   '\0x60', '\0x27':  MIC-E, len >= 9
+	 *   '!','=','/','{':   Normal or compressed location packet..
+	 *   '$':               NMEA data, if it begins as '$GP'
+	 *   '$':               WX data (maybe) if not NMEA data
+	 *   ';':	 	Object data, len >= 31
+	 *   ')':	 	Item data, len >= 18
+	 *   ':':	 	message, bulletin or aanouncement, len >= 11
+	 *   '<':               Station Capabilities, len >= 2
+	 *   '>':		Status report
+	 *   '}':		Third-party message
+	 * ...  and many more ...
+	 */
+
+
+#if 0
+	while (thirdparty) {
+	  /* Rule says either: discard all 3rd party headers, OR discard
+	     at first existing address header and type ('}') char, then
+	     reprocess internal data blob from beginning:
+	          ADDR1>THERE:}ADDR2>HERE,ELSWRE:...
+
+	     Great documentation...
+	  */
+	  /* Whatever happens, this line gets discarded, and reformatted
+	     one may get sent.. */
+	  if (verbout)
+	    printf("%ld\t#%s:%s\n", (long)now, tnc2buf, t0);
+
+	  thirdparty = discard = 0;
+	  strcpy(tnc2buf, t0);
+
+	  s = t = tnc2buf;
+
+	  /* Analyze 'from' address */
+
+	  /* Analyze 'to' address */
+
+	  /* Analyze 'path' components */
+
+	  t += strlen(t);
+	}
+#else
+	discard = thirdparty; /* Discard all 3rd party messages */
+#endif
+
+
 	/* End the line with CRLF */
 	*t++ = '\r';
 	*t++ = '\n';
 	*t = 0;
 
 	if (!discard)
-	  discard = aprsis_queue(tnc2buf, t-tnc2buf);  /* Send it.. */
+	  discard = aprsis_queue(tnc2buf, t0, t-t0);  /* Send it.. */
 	else
 	  discard = -1;
 
 	/* DEBUG OUTPUT TO STDOUT ! */
-	printf("%ld\t", (long)now);
-	if (discard < 0) { printf("*"); };  if(discard>0) { printf("#"); };
-	printf("%s", tnc2buf); /* newline is included, debug stuff */
+	if (verbout) {
+	  printf("%ld\t", (long)now);
+	  if (discard < 0) { printf("*"); };  if(discard>0) { printf("#"); };
+	  printf("%s:%s", tnc2buf, t0); /* newline is included, debug stuff */
+	}
 }

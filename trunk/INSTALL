@@ -1,4 +1,4 @@
-          INSTALL of  APRSG-NG v0.07
+          INSTALL of  APRX v0.08
 
 A rough-cut version of the installation instructions
 
@@ -26,9 +26,9 @@ A rough-cut version of the installation instructions
 
   5) Edit the configuration file to match your system:
 
-        # emacs /etc/aprsg-ng.conf
+        # emacs /etc/aprx.conf
 
-     See the  aprsg(8) man-page for more info (man 8 aprsg)
+     See the  aprx(8) man-page for more info (man 8 aprx)
 
   6) Starting the program requires manual job, init-script
      has not been written for it yet!

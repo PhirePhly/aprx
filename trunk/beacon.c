@@ -1,39 +1,40 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRSG-NG -- 2nd generation receive-only APRS-i-gate with        *
- *              minimal requirement of esoteric facilities or       *
- *              libraries of any kind beyond UNIX system libc.      *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *
  * **************************************************************** */
 
-#include "aprsg.h"
+#include "aprx.h"
 
-time_t beacon_nexttime;
-
-
-char **beacon_msgs;
-int    beacon_msgs_count;
+static time_t beacon_nexttime;
+static int    beacon_increment;
+static char **beacon_msgs;
+static int    beacon_msgs_count;
+static int    beacon_msgs_cursor;
 
 
 void beacon_reset(void)
 {
-	beacon_nexttime = time(NULL) + 30; /* 30 seconds from now */
+	beacon_nexttime = now + 30; /* start 30 seconds from now */
+	beacon_msgs_cursor = beacon_msgs_count; /* and start the sequence
+						   from the beginning */
 }
 
 void beacon_set(const char *s)
 {
 	int i;
 
-	if (!beacon_msgs)
-	  beacon_msgs = malloc(sizeof(char*) * 3);
-	else
-	  beacon_msgs = realloc(beacon_msgs, sizeof(char*) * (beacon_msgs_count+3));
+	/* realloc() works also when old ptr is NULL */
+	beacon_msgs = realloc(beacon_msgs,
+			      sizeof(char*) * (beacon_msgs_count+3));
 
-	i = strlen(s) + 4;
+	i = strlen(s) + 2;
 	beacon_msgs[beacon_msgs_count] = malloc(i);
-	sprintf(beacon_msgs[beacon_msgs_count], "%s\r\n", s);
+	strcpy(beacon_msgs[beacon_msgs_count], s);
 
 	++beacon_msgs_count;
 	beacon_msgs[beacon_msgs_count] = NULL;
@@ -55,15 +56,32 @@ int  beacon_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
 
 int  beacon_postpoll(int nfds, struct pollfd *fds)
 {
-	char **b = beacon_msgs;
-	if (!b) return 0; /* Nothing to do */
+	char beacontext[1024];
+	char beaconaddr[64];
+
+	if (!beacon_msgs) return 0; /* Nothing to do */
 
 	if (beacon_nexttime > now) return 0; /* Too early.. */
 
-	beacon_nexttime = time(NULL) + 1200 + rand() % 600; /*  1200-1800 seconds from now */
+	if (beacon_msgs_cursor >= beacon_msgs_count) /* Last done.. */
+	  beacon_msgs_cursor = 0;
 
-	for (;*b; ++b)
-	  aprsis_queue(*b, strlen(*b)); /* Send those (net)beacons.. */
+	if (beacon_msgs_cursor == 0) {
+	  int beacon_interval = 1200 + rand() % 600; /*  1200-1800 seconds from now */
+	  beacon_increment = beacon_interval / beacon_msgs_count;
+	  if (beacon_increment < 3)
+	    beacon_increment = 3; /* Minimum interval: 3 seconds ! */
+	}
+
+	beacon_nexttime += beacon_increment;
+
+	sprintf(beaconaddr, "%s>APRS", mycall);
+	sprintf(beacontext, "%s\r\n", beacon_msgs[beacon_msgs_cursor++]);
+
+	/* Send those (net)beacons.. */
+	aprsis_queue(beaconaddr, beacontext, strlen(beacontext));
+
+	return 0;
 }
 
 
