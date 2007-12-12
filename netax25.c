@@ -1,8 +1,8 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRSG-NG -- 2nd generation receive-only APRS-i-gate with        *
- *              minimal requirement of esoteric facilities or       *
- *              libraries of any kind beyond UNIX system libc.      *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *
@@ -12,7 +12,7 @@
  *                                                                  *
  * **************************************************************** */
 
-#include "aprsg.h"
+#include "aprx.h"
 
 // TODO: Requires autoconfig sensing that the system really does have
 //       AX.25 headers available ?   Or does it ?
@@ -47,7 +47,7 @@ void netax25_init(void)
 	  i = errno;
 	  /* D'uh..  could not open it, report and leave it at that. */
 	  if (debug)
-	    fprintf(stderr,"aprsg-ng: Could not open socket(PF_PACKET,SOCK_PACKET,ETH_P_AX25) for listening.  Errno=%d (%s)\n",
+	    fprintf(stderr,"aprx: Could not open socket(PF_PACKET,SOCK_PACKET,ETH_P_AX25) for listening.  Errno=%d (%s)\n",
 		    i, strerror(i));
 	  return;
 	}

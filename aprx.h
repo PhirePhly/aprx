@@ -1,8 +1,8 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRSG-NG -- 2nd generation receive-only APRS-i-gate with        *
- *              minimal requirement of esoteric facilities or       *
- *              libraries of any kind beyond UNIX system libc.      *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *

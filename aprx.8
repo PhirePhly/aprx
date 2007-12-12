@@ -1,14 +1,14 @@
-.\" APRSG-NG  v.0.07
-.TH aprsg 8 "2007 December 10 - v0.07"
+.\" APRX  v.0.08
+.TH aprx 8 "2007 December 12 - v0.08"
 .LO 8
 .SH NAME
-.B aprsg
+.B aprx
 \- A receive\-only APRS iGate application,
 .B "UNDER WORK"
 .SH SYNOPSIS
-aprsg [\-d[\-d]] [\-e] [\-v] [\-l syslogfacility] [\-f /etc/aprsg-ng.conf]
+aprx [\-d[\-d]] [\-e] [\-v] [\-l syslogfacility] [\-f /etc/aprx.conf]
 .SH DESCRIPTION
-.B aprsg
+.B aprx
 is a
 .I receive\-only
 APRS iGate application with minimum system support technology requirements.
@@ -58,7 +58,7 @@ specific channel occupancy.   Optionally can log to STDOUT.
 .PP
 .SH OPTIONS
 The
-.B aprsg
+.B aprx
 has following runtime options:
 .TP
 .B "\-d"
@@ -112,7 +112,7 @@ Lines begin with reception timestamp (UNIX time\_t seconds), then TAB,
 and either data as is, or with prefix byte: "*" for "discarded due to data content",
 or possibly "#" for "discarded due to APRS-IS being unreachable".
 .TP
-.B "\-f /etc/aprsg\-ng.conf"
+.B "\-f /etc/aprx.conf"
 Configuration file, given path is built-in default, and can be overridden by the program runner.
 .PP
 Use parameter set 
@@ -138,7 +138,7 @@ The configuration file is read upon program start, ever latter.
 .nf
 \fC
 #
-#  Sample configuration file for the ARPSG-NG  -- an Rx-only APRS iGate
+#  Sample configuration file for the APRX -- an Rx-only APRS iGate
 #
 #
 
@@ -184,7 +184,7 @@ The configuration file is read upon program start, ever latter.
 # There can be multiple netbeacon options.
 # Symbol  R&   is for "rx-only iGate"
 #
-#netbeacon  "!6016.35NR02506.36E&aprsg-ng Rx-only 'iGate'"
+#netbeacon  "!6016.35NR02506.36E&aprx Rx-only 'iGate'"
 \fR
 .fi
 
@@ -223,10 +223,15 @@ Couple web sites:
 .IR "http://www.aprs\-is.net/" ,
 .I "http://www.aprs2.net/"
 
+.SH NOTES
+Initially this program has name
+.IR aprsg\-ng ,
+which was same as another (less low-tech C++ approach) had.
+
 .SH AUTHOR
 This little piece was written by
 .I "Matti Aarnio, OH2MQK"
-upon dark and rainy fall and winter of 2007\-2008 after a number of
+during a dark and rainy fall and winter of 2007\-2008 after a number of
 discussions grumbling about current breed of available software for
 APRS iGate use in Linux (or of any UNIX) platforms.
 .PP

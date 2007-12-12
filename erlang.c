@@ -1,15 +1,15 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRSG-NG -- 2nd generation receive-only APRS-i-gate with        *
- *              minimal requirement of esoteric facilities or       *
- *              libraries of any kind beyond UNIX system libc.      *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
  * (c) Matti Aarnio - OH2MQK,  2007                                 *
  *                                                                  *
  * **************************************************************** */
 
 
-#include "aprsg.h"
+#include "aprx.h"
 
 
 /* The erlang module accounts data reception per 1m/10m/60m
@@ -370,6 +370,6 @@ void erlang_init(const char *syslog_facility_name)
 	  }
 	}
 
-	openlog("aprsg", LOG_NDELAY|LOG_PID, syslog_fac);
+	openlog("aprx", LOG_NDELAY|LOG_PID, syslog_fac);
 
 }
