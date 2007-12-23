@@ -1,5 +1,5 @@
 
-		     APRX   v0.08
+		     APRX   v0.09
 
 		  	TODO
 
@@ -11,6 +11,7 @@
 - configure -script
 
 - "make install"
+  - Sort of one exists..
 
 - Understand more KISS protocol variants, the CRC-details, port polling ?
 
@@ -29,9 +30,8 @@
   - done  (presuming system clock is in sync)
   - reports also number of packets (done)
   - report calculated erlang value taking the true duration of the first
-    frame into consideration (done)
-  - let erlang data to be polled via a "http" server
-    (erlang accumulation has been placed into its own server to help this)
+    frame into consideration (done) -- actually based on an estimator with
+    likely undervalued preamble times...  (and presuming 1200 bps AX.25)
   - erlang-data is stored on /tmp/aprx-erlang.dat  backing store, add tool
     to make:
      - SNMP polling
@@ -43,10 +43,6 @@
      ( http://www.aprs-is.net/ISPaths.htm )
    - Open up 3rd party header, and check if gating is OK ?
      ( http://www.aprs-is.net/gatecriteria.htm )
-
-- Logs:
-   - rf.log   - packets received from radio, ERLANG10/60 data 
-   - aprx.log - network connects/disconnects
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007

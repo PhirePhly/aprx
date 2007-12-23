@@ -1,9 +1,18 @@
-2007-12-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2007-12-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, aprx.h, aprsis.c, aprx.8, aprx.conf, ax25.c, erlang.c:
+	    Multiple configuration file options, rf-log, and aprx-log -files,
+	    related documentation.
+
+	* config.c, aprx.8:
+	    Special quoted-string escape processing.
+
+	* version aprx-v0.08
 
 	* erlang.c, aprx.c, aprx.h:
-	   Erlang data has now a mmap():ed filesystem based backing-store.
-	   Erlang-data can be syslog()ed, and independently of that,
-	   it can be printed on STDOUT.  Default syslog facility is "NONE".
+	    Erlang data has now a mmap():ed filesystem based backing-store.
+	    Erlang-data can be syslog()ed, and independently of that,
+	    it can be printed on STDOUT.  Default syslog facility is "NONE".
 	
 	* Great Rename -- the thing is now called:  aprx
 

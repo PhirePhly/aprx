@@ -237,7 +237,24 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	/* DEBUG OUTPUT TO STDOUT ! */
 	if (verbout) {
 	  printf("%ld\t", (long)now);
-	  if (discard < 0) { printf("*"); };  if(discard>0) { printf("#"); };
+	  if (discard<0) { printf("*"); };
+	  if (discard>0) { printf("#"); };
 	  printf("%s:%s", tnc2buf, t0); /* newline is included, debug stuff */
+	}
+	if (rflogfile) {
+	  FILE *fp = fopen(rflogfile,"a");
+
+	  if (fp) {
+	    char timebuf[60];
+	    struct tm *t = gmtime(&now);
+	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+
+	    fprintf(fp, "%s ",timebuf);
+	    if (discard < 0) { fprintf(fp, "*"); }
+	    if (discard > 0) { fprintf(fp, "#"); }
+	    fprintf(fp, "%s:%s", tnc2buf, t0);
+
+	    fclose(fp);
+	  }
 	}
 }

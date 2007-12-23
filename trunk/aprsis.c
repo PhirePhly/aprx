@@ -8,6 +8,7 @@
  *                                                                  *
  * **************************************************************** */
 
+/* This code works only with single  aprsis-server  instance! */
 
 #include "aprx.h"
 #include <sys/socket.h>
@@ -76,8 +77,18 @@ static void aprsis_close(struct aprsis *A)
 	A->next_reconnect = now + 60;
 	A->last_read = now;
 
-printf("%ld\tCLOSE APRSIS\n",(long)now);
+	if (verbout)
+	  printf("%ld\tCLOSE APRSIS\n",(long)now);
+	if (aprxlogfile) {
+	  FILE *fp = fopen(aprxlogfile,"a");
+	  if (fp) {
+	    char timebuf[60];
+	    struct tm *t = gmtime(&now);
+	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
+	    fprintf(fp,"%s CLOSE APRSIS\n", timebuf);
+	  }
+	}
 }
 
 
@@ -243,8 +254,19 @@ static void aprsis_reconnect(struct aprsis *A)
 	freeaddrinfo(ai);
 	ai = NULL;
 
-now = time(NULL); /* unpredictable time since system did last poll.. */
-printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->server_name,A->server_port);
+	now = time(NULL); /* unpredictable time since system did last poll.. */
+	if (verbout)
+	  printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->server_name,A->server_port);
+	if (aprxlogfile) {
+	  FILE *fp = fopen(aprxlogfile,"a");
+	  if (fp) {
+	    char timebuf[60];
+	    struct tm *t = gmtime(&now);
+	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+
+	    fprintf(fp,"%s CONNECT APRSIS %s:%s\n", timebuf, A->server_name, A->server_port);
+	  }
+	}
 
 
 	/* From now the socket will be non-blocking for its entire lifetime..*/

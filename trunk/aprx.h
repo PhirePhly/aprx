@@ -65,6 +65,8 @@ extern time_t now;
 extern int    debug;
 extern int    verbout;
 extern int    erlangout;
+extern char *rflogfile;
+extern char *aprxlogfile;
 
 extern void beacon_set(const char *s);
 extern void beacon_reset(void);
@@ -91,6 +93,7 @@ extern void erlang_add(const void *refp, const char *portname, int rx_or_tx, int
 extern void erlang_set(const void *refp, const char *portname, int bytes_per_minute);
 extern int erlangsyslog;
 extern int erlanglog1min;
+extern const char *erlang_backingstore;
 
 
 /* The   struct erlangline  is shared in between the aprx, and

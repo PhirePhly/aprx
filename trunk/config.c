@@ -38,9 +38,10 @@ char *config_SKIPDIGIT ( char *Y)
 
 /* SKIPTEXT:
  *
- *  Detect " -> scan until matching double quote
- *  Detect ' -> scan until matching single quote
+ *  Detect "/' -> scan until matching double quote
+ *    Process \-escapes on string: \xFD, \n, \", \'
  *  Detect non-eol, non-space(tab): scan until eol, or white-space
+ *    No \-escapes
  *
  *  Will thus stop when found non-quoted space/tab, or
  *  end of line/string.
@@ -48,21 +49,47 @@ char *config_SKIPDIGIT ( char *Y)
 
 char * config_SKIPTEXT ( char *Y )
 {
+	char *O = Y;
+	char endc = *Y;
 	if (!Y) return Y;
 
-	if (*Y == '"') {
+	if (*Y == '"' || *Y == '\'') {
 	  ++Y;
-	  while (*Y && *Y != '"')
-	    ++Y;
+	  while (*Y && *Y != endc) {
+	    if (*Y == '\\') {
+	      /* backslash escape.. */
+	      ++Y;
+	      if (*Y == 'n') {
+		*O++ = '\n';
+	      } else if (*Y == 'r') {
+		*O++ = '\r';
+	      } else if (*Y == '"') {
+		*O++ = '"';
+	      } else if (*Y == '\'') {
+		*O++ = '\'';
+	      } else if (*Y == 'x') {
+		/* Hex encoded char */
+		int i;
+		char hx[3];
+		if (*Y) ++Y;
+		hx[0] = *Y;
+		if (*Y) ++Y;
+		hx[1] = *Y;
+		hx[2] = 0;
+		i = (int)strtol(hx, NULL, 16);
+		*O++ = i;
+	      }
+	    } else
+	      *O++ = *Y;
+	    if (*Y != 0)
+	      ++Y;
+	  }
+	  *O = 0; /* String end */
 	  /* STOP at the tail-end " */
-	} else if ( *Y == '\'' ) {
-	  ++Y;
-	  while(*Y && *Y != '\'')
-	    ++Y;
-	  /* STOP at the tail-end ' */
 	} else {
-	  while (*Y && *Y != ' ' && *Y != '\t')
+	  while (*Y && *Y != ' ' && *Y != '\t') {
 	    ++Y;
+	  }
 	  /* Stop at white-space */
 	}
 
@@ -99,7 +126,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	str = config_SKIPSPACE (str);
 	param1 = str;
-	if (*str == '\'' || *str == '"') ++param1;
+
 	str = config_SKIPTEXT (str);
 	if (*str != 0)
 	  *str++ = 0;
@@ -139,6 +166,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	    printf("%s:%d: APRSIS-FILTER = '%s'\n", cfgfilename, linenum, param1);
 
 	} else if (strcmp(name, "aprsis-mycall") == 0) {
+	  /* Do not use! - multi APRSIS connection thing, which is also "do not use" item.. */
 	  aprsis_set_mycall(param1);
 
 	  if (debug)
@@ -150,15 +178,42 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	  if (debug)
 	    printf("%s:%d: NETBEACON = '%s'\n", cfgfilename, linenum, param1);
 
+	} else if (strcmp(name, "aprxlog") == 0) {
+	  if (debug)
+	    printf("%s:%d: APRXLOG = '%s'\n", cfgfilename, linenum, param1);
+
+	  rflogfile = strdup(param1);
+
+	} else if (strcmp(name, "aprxlog-erlang") == 0) {
+	  if (debug)
+	    printf("%s:%d: APRXLOG-ERLANG\n", cfgfilename, linenum);
+
+	  erlangout = 2;
+
+	} else if (strcmp(name, "rflog") == 0) {
+	  if (debug)
+	    printf("%s:%d: RFLOG = '%s'\n", cfgfilename, linenum, param1);
+
+	  aprxlogfile = strdup(param1);
+
+	} else if (strcmp(name, "erlangfile") == 0) {
+	  if (debug)
+	    printf("%s:%d: ERLANGFILE = '%s'\n", cfgfilename, linenum, param1);
+
+	  erlang_backingstore = strdup(param1);
+
+	} else if (strcmp(name, "erlang-loglevel") == 0) {
+	  if (debug)
+	    printf("%s:%d: ERLANG-LOGLEVEL = '%s'\n", cfgfilename, linenum, param1);
+	  erlang_init(param1);
+
 	} else if (strcmp(name, "serialport") == 0) {
 	  const char *s = ttyreader_serialcfg(param1, param2, str);
 	  if (debug)
 	    printf("%s:%d: SERIALPORT = %s %s %s..  %s\n", cfgfilename, linenum, param1, param2, str, s ? s : "");
 
-	} else if (strcmp(name, "initstring") == 0) {
-	  // if (ttyindex >= MAXTTYS) return; /* Too many, sorry no.. */
-	  // TODO: ...  parse C-style escaped string into storage string..
-	  // ttyreader_initstring(param1);
+	} else {
+	  printf("%s:%d: Unknown config keyword: '%s'\n", cfgfilename, linenum, param1);
 	}
 }
 

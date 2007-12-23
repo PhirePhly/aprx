@@ -17,6 +17,8 @@ time_t now; /* this is globally used */
 int debug;
 int verbout;
 int erlangout;
+char *rflogfile;
+char *aprxlogfile;
 
 #define CFGFILE "/etc/aprx.conf"
 
@@ -25,7 +27,7 @@ struct pollfd polls[MAXPOLLS];
 
 int die_now;
 
-const char *version = "aprx-v0.08";
+const char *version = "aprx-v0.09";
 
 
 static void sig_handler(int sig)
