@@ -82,9 +82,60 @@ extern char *config_SKIPTEXT(char *Y);
 extern void  config_STRLOWER(char *Y);
 
 extern void erlang_init(const char *syslog_facility_name);
+extern void erlang_start(void);
 extern int  erlang_prepoll(int nfds, struct pollfd **fdsp, time_t *tout);
 extern int  erlang_postpoll(int nfds, struct pollfd *fds);
 #define ERLANG_RX 0
 #define ERLANG_TX 1
 extern void erlang_add(const void *refp, const char *portname, int rx_or_tx, int bytes, int packets);
 extern void erlang_set(const void *refp, const char *portname, int bytes_per_minute);
+extern int erlangsyslog;
+extern int erlanglog1min;
+
+
+/* The   struct erlangline  is shared in between the aprx, and
+   erlang reporter application: aprx-erl */
+
+struct erlang_rxtxbytepkt {
+	long	packets_rx, packets_tx;
+	long	bytes_rx, bytes_tx;
+	time_t	update;
+};
+
+
+struct erlangline {
+	const void *refp;
+	int	index;
+	char name[32];
+	time_t	last_update;
+
+	int     erlang_capa;	/* bytes, 1 minute			*/
+
+	struct erlang_rxtxbytepkt SNMP; /* SNMPish counters		*/
+
+	struct erlang_rxtxbytepkt erl1m;  /*  1 minute erlang period	*/
+	struct erlang_rxtxbytepkt erl10m; /* 10 minute erlang period	*/
+	struct erlang_rxtxbytepkt erl60m; /* 60 minute erlang period	*/
+
+	int	e1_cursor,  e1_max;	/* next store point + max cursor index */
+	int	e10_cursor, e10_max;
+	int	e60_cursor, e60_max;
+
+#define APRXERL_1M_COUNT   (60*24)
+#define APRXERL_10M_COUNT  (60*24*7)
+#define APRXERL_60M_COUNT  (24*31*3)
+
+	struct erlang_rxtxbytepkt e1[APRXERL_1M_COUNT];   /* 1 minute RR, 24 hours */
+	struct erlang_rxtxbytepkt e10[APRXERL_10M_COUNT]; /* 10 min RR, 7 days     */
+	struct erlang_rxtxbytepkt e60[APRXERL_60M_COUNT]; /* 1 hour RR, 3 months  */
+};
+
+struct erlanghead {
+	int	version;	/* format version			*/
+	int	linecount;
+	time_t	last_update;
+
+	double	align_filler;
+};
+
+#define ERLANGLINE_STRUCT_VERSION ((1<<16)|sizeof(struct erlangline))

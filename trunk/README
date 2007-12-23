@@ -44,7 +44,15 @@ A receive-only APRS-IS "i-gate" with following properties:
 
    - The "erlang-monitor" presumes that system internal time is on sync with
      the UTC, as is the style in UNIX systems, and makes those reports at
-     exact 10 minutes and exact 60 minutes, cycle depending.
+     exact 1 minute,  10 minutes and exact 60 minutes, cycle depending.
+
+   - The "erlang-monitor" runs always, and stores data on backing-store
+     file  /tmp/aprx-erlang.dat,  which is mmap()able/read()able to
+     a program for analysis by:
+          - SNMP polling
+          - preanalyzed 1m, 10m, and 60m round-robin arrays
+     File is created if a) it does not exist, or b) its "magic" value is wrong.
+     Tool to extract it is at present on TODO list...
 
    - The netbeacons are distributed timewise more evenly around the interval,
      and even the interval length is varied at random in between 20 and 30

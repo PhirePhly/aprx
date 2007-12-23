@@ -30,6 +30,12 @@
   - reports also number of packets (done)
   - report calculated erlang value taking the true duration of the first
     frame into consideration (done)
+  - let erlang data to be polled via a "http" server
+    (erlang accumulation has been placed into its own server to help this)
+  - erlang-data is stored on /tmp/aprx-erlang.dat  backing store, add tool
+    to make:
+     - SNMP polling
+     - 1m/10m/60m erlang data extract via HTTP/XML
 
 
 - Properly process heard RF 3rd-party packets
@@ -37,6 +43,10 @@
      ( http://www.aprs-is.net/ISPaths.htm )
    - Open up 3rd party header, and check if gating is OK ?
      ( http://www.aprs-is.net/gatecriteria.htm )
+
+- Logs:
+   - rf.log   - packets received from radio, ERLANG10/60 data 
+   - aprx.log - network connects/disconnects
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007

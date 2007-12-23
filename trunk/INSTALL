@@ -8,15 +8,7 @@ A rough-cut version of the installation instructions
 
          $ make clean
 
-  3) If you want 1-minute Erlang logging and reporting:
-
-	 $ make ERLANG1=1 
-
-     and without it:
-
-         $ make
-
-  4) There is automatic "install" as:
+  3) There is automatic "install" as:
 
         # make install
 
@@ -24,14 +16,14 @@ A rough-cut version of the installation instructions
       fixed into the Makefile (possibly adjustments
       are required.)
 
-  5) Edit the configuration file to match your system:
+  4) Edit the configuration file to match your system:
 
         # emacs /etc/aprx.conf
 
      See the  aprx(8) man-page for more info (man 8 aprx)
 
-  6) Starting the program requires manual job, init-script
+  5) Starting the program requires manual job, init-script
      has not been written for it yet!
      (trivialish, but not with development priority)
 
-  7) Collect Erlang data, and analyze it..
+  6) Collect Erlang data, and analyze it..
