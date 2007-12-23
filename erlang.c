@@ -316,6 +316,12 @@ static void erlang_time_end(void)
 	char msgbuf[500];
 	char logtime[40];
 	struct tm *wallclock = localtime(&now);
+	FILE *fp = NULL;
+
+	if (erlangout > 1 && aprxlogfile) {
+	  /* actually we want it to the aprxlogfile... */
+	  fp = fopen(aprxlogfile,"a");
+	}
 
 	strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
 
@@ -333,7 +339,9 @@ static void erlang_time_end(void)
 		      ((float)E->erl1m.bytes_rx/(float)E->erlang_capa*erlang_time_ival_1min),
 		      ((float)E->erl1m.bytes_tx/(float)E->erlang_capa*erlang_time_ival_1min)
 		      );
-	      if (erlangout)
+	      if (fp)
+		fprintf(fp,"%s %s\n", logtime, msgbuf);
+	      else if (erlangout)
 		printf("%ld\t%s\n", now,msgbuf);
 	      if (erlangsyslog)
 		syslog(LOG_INFO, "%ld %s", now, msgbuf);
@@ -365,8 +373,10 @@ static void erlang_time_end(void)
 		    ((float)E->erl10m.bytes_rx/((float)E->erlang_capa*10.0*erlang_time_ival_10min)),
 		    ((float)E->erl10m.bytes_tx/((float)E->erlang_capa*10.0*erlang_time_ival_10min))
 		    );
-	    if (erlangout)
-	      printf("%ld\t%s\n", now, msgbuf);
+	    if (fp)
+	      fprintf(fp,"%s %s\n", logtime, msgbuf);
+	    else if (erlangout)
+	      printf("%ld\t%s\n", now,msgbuf);
 	    if (erlangsyslog)
 	      syslog(LOG_INFO, "%ld %s", now, msgbuf);
 
@@ -396,8 +406,10 @@ static void erlang_time_end(void)
 		    ((float)E->erl60m.bytes_rx/((float)E->erlang_capa*60.0*erlang_time_ival_60min)),
 		    ((float)E->erl60m.bytes_tx/((float)E->erlang_capa*60.0*erlang_time_ival_60min))
 		    );
-	    if (erlangout)
-	      printf("%ld\t%s\n", now, msgbuf);
+	    if (fp)
+	      fprintf(fp,"%s %s\n", logtime, msgbuf);
+	    else if (erlangout)
+	      printf("%ld\t%s\n", now,msgbuf);
 	    if (erlangsyslog)
 	      syslog(LOG_INFO, "%ld %s", now, msgbuf);
 
@@ -413,6 +425,8 @@ static void erlang_time_end(void)
 	  }
 	  erlang_time_ival_60min = 1.0;
 	}
+	if (fp)
+	  fclose(fp);
 }
 
 int erlang_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
