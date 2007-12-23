@@ -62,7 +62,7 @@ int main(int argc, char * const argv[])
 	struct pollfd *fds;
 	int nfds, nfds2;
 	const char *cfgfile = "/etc/aprx.conf";
-	const char *syslog_facility = "LOG_DAEMON";
+	const char *syslog_facility = "NONE";
 
 	now = time(NULL);
 
@@ -109,11 +109,11 @@ int main(int argc, char * const argv[])
 	netax25_init();
 	aprsis_init();
 
+	erlang_start();
 	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
 
 	/* Must be after config reading ... */
 	aprsis_start();
-
 
 	/* The main loop */
 

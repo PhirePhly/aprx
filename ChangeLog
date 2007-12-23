@@ -1,5 +1,10 @@
 2007-12-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* erlang.c, aprx.c, aprx.h:
+	   Erlang data has now a mmap():ed filesystem based backing-store.
+	   Erlang-data can be syslog()ed, and independently of that,
+	   it can be printed on STDOUT.  Default syslog facility is "NONE".
+	
 	* Great Rename -- the thing is now called:  aprx
 
 2007-12-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>

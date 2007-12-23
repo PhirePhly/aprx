@@ -29,7 +29,7 @@ install:
 	install -c -m 644 aprx.8 $(MANDIR)
 
 clean:
-	rm -f *~ *.o aprx
+	rm -f *~ *.o aprx aprs.8.ps
 
 
 aprx.o: aprx.c aprx.h
@@ -59,3 +59,8 @@ beacon.o: beacon.c aprx.h
 
 aprx: $(OBJS)
 	$(CC) $(CFLAGS) -o aprx $(OBJS) $(LIBS)
+
+pdf aprx.8.pdf: aprx.8
+	groff -man aprx.8 > aprx.8.ps
+	ps2pdf aprx.8.ps
+	rm -f aprx.8.ps
