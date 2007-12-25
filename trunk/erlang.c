@@ -34,7 +34,7 @@ static float erlang_time_ival_60min = 1.0;
 
 
 int erlangsyslog;	/* if set, will log via syslog(3)  */
-int erlanglog1min = 1;	/* if set, will log also "ERLANG1" interval  */
+int erlanglog1min;	/* if set, will log also "ERLANG1" interval  */
 
 const  char *erlang_backingstore = "/tmp/aprx-erlang.dat";
 static int erlang_file_fd = -1;

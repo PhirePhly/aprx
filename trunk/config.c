@@ -215,6 +215,12 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	    printf("%s:%d: ERLANG-LOGLEVEL = '%s'\n", cfgfilename, linenum, param1);
 	  erlang_init(param1);
 
+	} else if (strcmp(name, "erlang-log1min") == 0) {
+	  if (debug)
+	    printf("%s:%d: ERLANG-LOG1MIN\n", cfgfilename, linenum);
+
+	  erlanglog1min = 1;
+
 	} else if (strcmp(name, "serialport") == 0) {
 	  const char *s = ttyreader_serialcfg(param1, param2, str);
 	  if (debug)
