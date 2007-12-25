@@ -45,6 +45,7 @@ extern void ttyreader_init (void);
 extern const char *ttyreader_serialcfg(char *param1, char *param2, char *str);
 
 extern void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen);
+extern void  ax25_filter_add(const char *p1, const char *p2);
 
 extern void aprsis_add_server(const char *server, const char *port);
 extern void aprsis_set_heartbeat_timeout(const int tout);
@@ -84,7 +85,7 @@ extern char *config_SKIPTEXT(char *Y);
 extern void  config_STRLOWER(char *Y);
 
 extern void erlang_init(const char *syslog_facility_name);
-extern void erlang_start(void);
+extern void erlang_start(int do_create);
 extern int  erlang_prepoll(int nfds, struct pollfd **fdsp, time_t *tout);
 extern int  erlang_postpoll(int nfds, struct pollfd *fds);
 #define ERLANG_RX 0
@@ -142,3 +143,6 @@ struct erlanghead {
 };
 
 #define ERLANGLINE_STRUCT_VERSION ((1<<16)|sizeof(struct erlangline))
+
+extern struct erlangline **ErlangLines;
+extern int                 ErlangLinesCount;

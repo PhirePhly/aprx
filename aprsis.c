@@ -26,13 +26,18 @@
  *
  */ 
 
-struct aprsis {
-	int	server_socket;
+
+struct aprsis_host {
 	const char *server_name;
 	const char *server_port;
 	const char *filterparam;
 	const char *mycall;
 	int	heartbeat_monitor_timeout;
+};
+
+struct aprsis {
+	int	server_socket;
+	struct aprsis_host *H;	
 	time_t	next_reconnect;
 	time_t	last_read;
 	int	wrbuf_len;
@@ -46,8 +51,13 @@ struct aprsis {
 	char	rdline[500];
 };
 
+
 static int AprsIScount;
+static int AprsISindex;
 static struct aprsis AprsIS[MAXAPRSIS];
+static struct aprsis_host AISh[MAXAPRSIS];
+static int AIShcount;
+static int AIShindex;
 static int aprsis_multiconnect;
 static int aprsis_sp; /* up & down talking socket(pair),
 			 parent: write talks down,
@@ -56,7 +66,7 @@ static int aprsis_sp; /* up & down talking socket(pair),
 void aprsis_init(void)
 {
 	int i;
-	for (i = 0; i < AprsIScount; ++i)
+	for (i = 0; i < MAXAPRSIS; ++i)
 	  AprsIS[i].server_socket = -1;
 	aprsis_sp = -1;
 }
@@ -77,8 +87,10 @@ static void aprsis_close(struct aprsis *A)
 	A->next_reconnect = now + 60;
 	A->last_read = now;
 
+	if (!A->H) return; /* Not connected, nor defined.. */
+
 	if (verbout)
-	  printf("%ld\tCLOSE APRSIS\n",(long)now);
+	  printf("%ld\tCLOSE APRSIS %s:%s\n",(long)now, A->H->server_name,A->H->server_port);
 	if (aprxlogfile) {
 	  FILE *fp = fopen(aprxlogfile,"a");
 	  if (fp) {
@@ -86,7 +98,7 @@ static void aprsis_close(struct aprsis *A)
 	    struct tm *t = gmtime(&now);
 	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
-	    fprintf(fp,"%s CLOSE APRSIS\n", timebuf);
+	    fprintf(fp,"%s CLOSE APRSIS %s:%s\n", timebuf, A->H->server_name,A->H->server_port);
 	  }
 	}
 }
@@ -118,7 +130,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, i
 
 	addrlen = 0;
 	if (addr)
-	  addrlen = sprintf(addrbuf, "%s,%s,I:", addr, A->mycall);
+	  addrlen = sprintf(addrbuf, "%s,%s,I:", addr, A->H->mycall);
 	len = addrlen + textlen;
 
 
@@ -155,7 +167,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, i
 	i = write(A->server_socket, A->wrbuf + A->wrbuf_cur, A->wrbuf_len - A->wrbuf_cur);
 	if (i > 0) {
 	  if (debug > 1) {
-	    printf("%ld\t<< %s:%s << ", now, A->server_name, A->server_port);
+	    printf("%ld\t<< %s:%s << ", now, A->H->server_name, A->H->server_port);
 	    fwrite(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur), 1, stdout); /* Does end on  \r\n */
 	  }
 
@@ -207,11 +219,22 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	aprsis_close(A);
 
+	if (!aprsis_multiconnect) {
+	  if (!A->H) {
+	    A->H = & AISh[0];
+	  } else {
+	    ++AIShindex;
+	    if (AIShindex >= AIShcount)
+	      AIShindex = 0;
+	    A->H = &AISh[AIShindex];
+	  }
+	}
+
 	memset(&req, 0, sizeof(req));
 	req.ai_socktype = SOCK_STREAM;
 	req.ai_protocol = IPPROTO_TCP;
 	req.ai_flags    = 0;
-#if 0
+#if 1
 	req.ai_family   = AF_UNSPEC;  /* IPv4 and IPv6 are both OK */
 #else
 	req.ai_family   = AF_INET;    /* IPv4 only */
@@ -219,7 +242,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	ai = NULL;
 
 
-	i = getaddrinfo(A->server_name, A->server_port, &req, &ai);
+	i = getaddrinfo(A->H->server_name, A->H->server_port, &req, &ai);
 
 	if (i != 0) {
 
@@ -256,7 +279,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	now = time(NULL); /* unpredictable time since system did last poll.. */
 	if (verbout)
-	  printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->server_name,A->server_port);
+	  printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->H->server_name,A->H->server_port);
 	if (aprxlogfile) {
 	  FILE *fp = fopen(aprxlogfile,"a");
 	  if (fp) {
@@ -264,7 +287,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	    struct tm *t = gmtime(&now);
 	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
-	    fprintf(fp,"%s CONNECT APRSIS %s:%s\n", timebuf, A->server_name, A->server_port);
+	    fprintf(fp,"%s CONNECT APRSIS %s:%s\n", timebuf, A->H->server_name, A->H->server_port);
 	  }
 	}
 
@@ -274,9 +297,9 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	/* We do at first sync writing of login, and such.. */
 	s = aprsislogincmd;
-	s += sprintf(s, "user %s pass %d vers %s", A->mycall, aprspass(A->mycall), version);
-	if (A->filterparam)
-	  s+= sprintf(s, "filter %s", A->filterparam);
+	s += sprintf(s, "user %s pass %d vers %s", A->H->mycall, aprspass(A->H->mycall), version);
+	if (A->H->filterparam)
+	  s+= sprintf(s, "filter %s", A->H->filterparam);
 	strcpy(s,"\r\n");
 
 	A->last_read = now;
@@ -304,7 +327,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 	      
 	      if (debug > 1)
 		printf("%ld\t<< %s:%s >> %s\n", now,
-		       A->server_name, A->server_port, A->rdline);
+		       A->H->server_name, A->H->server_port, A->rdline);
 
 	      /* Send the A->rdline content to main program */
 	      send(aprsis_sp, A->rdline, strlen(A->rdline), MSG_NOSIGNAL);
@@ -349,7 +372,7 @@ static int aprsis_sockread(struct aprsis *A)
 	  A->rdbuf_len += i;
 
 	  /* we just ignore the readback.. but do time-stamp the event */
-	  if (! A->filterparam)
+	  if (! A->H->filterparam)
 	    A->last_read = now;
 
 	  aprsis_sockreadline(A);
@@ -432,17 +455,21 @@ static int aprsis_prepoll_(int nfds, struct pollfd **fdsp, time_t *tout)
 
 	struct pollfd *fds = *fdsp;
 
+#if 0
 	if (AprsIScount > 1 && !aprsis_multiconnect)
 	  AprsIScount = 1; /* There can be only one... */
+#endif
 
 	for (i = 0; i < AprsIScount; ++i) {
 	  struct aprsis *A = & AprsIS[i];
 
-	  if (A->last_read == 0) A->last_read = now;
+	  if (A->last_read == 0) A->last_read = now; /* mark it non-zero.. */
+
+	  if (A->server_socket < 0) continue; /* Not open, do nothing */
 
 	  /* Not all aprs-is systems send "heartbeat", but when they do.. */
-	  if ((A->heartbeat_monitor_timeout > 0) &&
-	      (A->last_read + A->heartbeat_monitor_timeout < now)) {
+	  if ((A->H->heartbeat_monitor_timeout > 0) &&
+	      (A->last_read + A->H->heartbeat_monitor_timeout < now)) {
 
 	    /*
 	     * More than 120 seconds (2 minutes) since last time
@@ -452,8 +479,6 @@ static int aprsis_prepoll_(int nfds, struct pollfd **fdsp, time_t *tout)
 
 	    aprsis_close(A);
 	  }
-
-	  if (A->server_socket < 0) continue; /* Not open, do nothing */
 
 
 	  /* FD is open, lets mark it for poll read.. */
@@ -529,12 +554,20 @@ static int aprsis_postpoll_(int nfds, struct pollfd *fds)
 
 static void aprsis_cond_reconnect(void)
 {
-	int i;
-	for (i = 0; i < AprsIScount; ++i) {
-	  struct aprsis *A = & AprsIS[i];
-	  if (A->server_socket < 0 &&
-	      A->next_reconnect <= now) {
-	    aprsis_reconnect(A);
+	if (aprsis_multiconnect) {
+	  int i;
+	  for (i = 0; i < AprsIScount; ++i) {
+	    struct aprsis *A = & AprsIS[i];
+	    if (A->server_socket < 0 &&
+		A->next_reconnect <= now) {
+	      aprsis_reconnect(A);
+	    }
+	  }
+	} else {
+	  struct aprsis *AIS = & AprsIS[AprsISindex];
+	  if (AIS->server_socket < 0 &&
+	      AIS->next_reconnect <= now) {
+	    aprsis_reconnect(AIS);
 	  }
 	}
 }
@@ -597,25 +630,52 @@ static void aprsis_main(void)
 
 void aprsis_add_server(const char *server, const char *port)
 {
-	struct aprsis *A = & AprsIS[AprsIScount];
-	if (AprsIScount >= MAXAPRSIS) return;
-	++AprsIScount;
+	struct aprsis *A;
+	struct aprsis_host *H;
 
-	A->server_name   = strdup(server);
-	A->server_port   = strdup(port);
+	if (aprsis_multiconnect) {
+
+	  if (AprsIScount >= MAXAPRSIS) return; /* Too many, no room.. */
+
+	  A = & AprsIS[AprsIScount];
+	  H = &AISh[AIShcount];
+	  A->H = H;
+
+	  ++AprsIScount;
+	  ++AIShcount;
+
+	} else { /* not multiconnect */
+
+	  if (AprsIScount == 0) AprsIScount = 1;
+
+	  if (AIShcount >= MAXAPRSIS) return; /* Too many, no room.. */
+
+	  A = & AprsIS[AprsIScount];
+	  H = &AISh[AIShcount];
+
+	  ++AIShcount;
+	  /* No inc on AprsIScount */
+
+	}
+
+
+	H->server_name   = strdup(server);
+	H->server_port   = strdup(port);
+	H->mycall        = mycall;  /* global mycall */
+
 	A->server_socket = -1;
-	A->mycall        = mycall;  /* global mycall */
+	A->next_reconnect = now; /* perhaps somewhen latter.. */
 }
 
 void aprsis_set_heartbeat_timeout(const int tout)
 {
-	int i = AprsIScount;
-	struct aprsis *A;
+	int i = AIShcount;
+	struct aprsis_host *H;
 
 	if (i > 0) --i;
-	A = & AprsIS[i];
+	H = & AISh[i];
 
-	A->heartbeat_monitor_timeout = tout;
+	H->heartbeat_monitor_timeout = tout;
 }
 
 void aprsis_set_multiconnect(void)
@@ -625,24 +685,24 @@ void aprsis_set_multiconnect(void)
 
 void aprsis_set_filter(const char *filter)
 {
-	int i = AprsIScount;
-	struct aprsis *A;
+	int i = AIShcount;
+	struct aprsis_host *H;
 
 	if (i > 0) --i;
-	A = & AprsIS[i];
+	H = & AISh[i];
 
-	A->filterparam = strdup(filter);
+	H->filterparam = strdup(filter);
 }
 
 void aprsis_set_mycall(const char *mycall)
 {
-	int i = AprsIScount;
-	struct aprsis *A;
+	int i = AIShcount;
+	struct aprsis_host *H;
 
 	if (i > 0) --i;
-	A = & AprsIS[i];
+	H = & AISh[i];
 
-	A->mycall = strdup(mycall);
+	H->mycall = strdup(mycall);
 }
 
 void aprsis_start(void)

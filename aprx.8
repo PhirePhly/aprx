@@ -1,5 +1,5 @@
-.\" APRX  v.0.09
-.TH aprx 8 "2007 December 12 \- v0.09"
+.\" APRX  v.0.10
+.TH aprx 8 "2007 December 25 \- v0.10"
 .LO 8
 .SH NAME
 .B aprx
@@ -40,7 +40,7 @@ ports.
 Knows that messages with following tokens in AX.25 VIA fields are not to be
 relayed into APRS\-IS network:
 .RS 9
-.B "RFONLY, NOTAGE, TCPIP, TCPXX"
+.B "RFONLY, NOGATE, TCPIP, TCPXX"
 .RE
 .IP \(bu 3
 Knows that following source address prefixes are bogus and thus messages with
@@ -129,6 +129,8 @@ Most parameters are singletons, that is, there can be only one.
 There can be up to (by default) 16 entries of "serialport".
 .IP \(bu 2
 There can be unlimited number of "netbeacon" lines.
+.IP \(bu 2
+There can be unlimited number of "ax25-filter" lines.
 .PP
 The configuration file is read upon program start, ever latter.
 .nf
@@ -145,6 +147,9 @@ The configuration file is read upon program start, ever latter.
 
 # APRS\-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
+# There can be up to 4 system definitions without code modification,
+# they are used in round\-robin fashion.  Heartbeat and filter
+# definitions must follow each server definition.
 #
 #aprsis\-server    rotate.aprs.net  14580
 
@@ -163,7 +168,17 @@ The configuration file is read upon program start, ever latter.
 #
 #aprsis\-filter "some filter specs in quotes"
 
-
+# AX.25 filters block selected messages matching on selected regular
+# expressions.  The expressions are case sensitive, and AX.25 address
+# elements are in all uppercase text.  There can be unlimited number
+# of patterns, type fields are four: "source", "destination", "via",
+# and "data".  These patterns can be used in addition to built\-in
+# hard\-coded reject rules listed in documentation.
+#
+#ax25\-filter source      "^NOCALL"
+#ax25\-filter destination "^NOCALL"
+#ax25\-filter via         "^NOGATE"
+#ax25\-filter data        "^?"
 
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
@@ -242,8 +257,10 @@ Produces newline character (Control-J) on the output string.
 .B "\\\\r"
 Produces carriage return character (Control-M) on the output string.
 .TP
+.B "\\\\\\\\"
+Places a back-slash on the output string.
+.TP
 .B "\\\\""
-."
 Places  a double-quote on the output string.
 .TP
 .B "\\\\'"
@@ -258,37 +275,53 @@ The complex encodings are for possible init-strings of the external devices,
 .PP
 A configuration token without surrounding quotes does not understand the backslash escapes.
 
-.SH TODO
-Lots and lots..
-To begin with, see the
-.I TODO
-file
-.IP \(bu 2
-Understand several KISS protocol variants on serial port
-.IP \(bu 2
-Understand TNC2 debug style texts on serial port
-.IP \(bu 2
-Possibly grow to fully fledged Rx/Tx iGate
-.IP \(bu 2
-Log via syslog() ?  (the ERLANG stuff does, but other ?)
-.IP \(bu 2
-SNMP/HTTP poll responder
+
+.SH NOTES: ERLANG
+The
+.I Erlang
+is telecom measurement of channel occupancy, and in this application sense
+it does tell how much traffic there is on the radio channel.
+.PP
+Most radio transmitters are not aware of all transmitters on channel,
+and thus there can happen a collision causing loss of both messages.
+The higher the channel activity, the more likely that collision is.
+For further details, refer to statistical mathematics books, or perhaps
+on Wikipedia.
+.PP
+In order to measure channel activity, the
+.B aprx
+program suite has these built-in statistics counter and summary estimators.
+.PP
+The
+.I Erlag
+value that the estimators present are likely somewhat
+.I underestimating
+the true channel occupancy simply because it calculates estimate of channel
+bit transmit rate, and thus a per-minute character capacity.
+It does not know true frequency of bit-stuffing events of the HDLC framing,
+nor each transmitter pre- and port frame PTT times. The transmitters need to
+stabilize their transmit oscillators in many cases, which may take up to
+around 500 ms!
+The counters are not aware of this preamble-, nor postamble-times.
+.PP
+The HDLC bit stuffing ratio is guessed to be 8.2 bits for each 8 bits of payload.
+
+.SH NOTES: PROGRAM NAME
+Initially this program had name
+.IR aprsg\-ng ,
+which was same as another (less low\-tech C++ approach) had.
 
 .SH BUGS
-.IP \(bu 2
-Incompleteness
-.IP \(bu 2
-Many monitor mechanisms are of rudimentary quality
+The
+.IR Erlang -monitor
+mechanisms are of rudimentary quality, and can seriously underestimate the channel occupancy.
 
 .SH SEE ALSO
 Couple web sites:
 .IR "http://www.aprs\-is.net/" ,
 .I "http://www.aprs2.net/"
-
-.SH NOTES
-Initially this program had name
-.IR aprsg\-ng ,
-which was same as another (less low\-tech C++ approach) had.
+.PP
+.BR aprx\-stat (8)
 
 .SH AUTHOR
 This little piece was written by

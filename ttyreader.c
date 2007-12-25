@@ -844,7 +844,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 
 	/* Use side-effect: this defines the tty into erlang accounting */
-	erlang_set(tty, tty->ttyname, (1200*60)/9); /* Magic constant for channel capa.. */
+	erlang_set(tty, tty->ttyname, (int)((1200.0*60)/8.2)); /* Magic constant for channel capa.. */
 
 	return NULL;
 }
