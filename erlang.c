@@ -56,8 +56,11 @@ static int erlang_backingstore_grow(int add_count)
 	struct stat st;
 	char buf[256];
 	int new_size, pagesize  = sysconf(_SC_PAGE_SIZE);
+	int doing_init = 0;
 
-	if (erlang_file_fd < 0) return -1;
+	if (erlang_file_fd < 0) {
+	  return -1;
+	}
 
 	fstat(erlang_file_fd, &st);
 	lseek(erlang_file_fd, 0, SEEK_END);
@@ -69,8 +72,10 @@ static int erlang_backingstore_grow(int add_count)
 	  ++new_size;
 	  new_size *= pagesize;
 	}
-	if (new_size == 0)
+	if (new_size == 0) {
 	  new_size = pagesize;
+	  doing_init = 1;
+	}
 	/* new_size expanded to be exact page size multiple.  */
 
 	/* If the new size is larger than the file size..
@@ -111,7 +116,7 @@ static int erlang_backingstore_grow(int add_count)
 	erlang_mmap      = mmap(NULL, erlang_mmap_size, PROT_READ|PROT_WRITE, MAP_SHARED, erlang_file_fd, 0);
 	if (erlang_mmap == MAP_FAILED) {
 	  erlang_mmap = NULL;
-	  fprintf(stderr,"mmap() failed, fd=%d, errno=%d: %s\n", erlang_file_fd, errno, strerror(errno));
+	  fprintf(stderr,"Erlang-file mmap() failed, fd=%d, errno=%d: %s\n", erlang_file_fd, errno, strerror(errno));
 	}
 
 	if (erlang_mmap) {
@@ -120,14 +125,25 @@ static int erlang_backingstore_grow(int add_count)
 	  struct erlang_file *EF = erlang_mmap;
 
 	  if (EF->head.version != ERLANGLINE_STRUCT_VERSION ||
-	      EF->head.last_update == 0 ) {
-	    /* Not initialized ? */
-	    memset(erlang_mmap, 0, erlang_mmap_size);
+	      EF->head.last_update == 0) {
+	    if (doing_init) {
+	      /* Not initialized ? */
+	      memset(erlang_mmap, 0, erlang_mmap_size);
 
-	    EF->head.version = ERLANGLINE_STRUCT_VERSION;
-	    EF->head.linecount = 0;
-	    EF->head.last_update = now;
-	    ErlangLinesCount = 0;
+	      EF->head.version = ERLANGLINE_STRUCT_VERSION;
+	      EF->head.linecount = 0;
+	      EF->head.last_update = now;
+	      ErlangLinesCount = 0;
+	    } else {
+	      /* Wrong head magic, and not doing block init..  */
+	      munmap(erlang_mmap, erlang_mmap_size);
+	      erlang_mmap = NULL;
+	      erlang_mmap_size = 0;
+	      fprintf(stderr,"Erlang-file has bad magic in it, not opening! Not modifying!\n");
+	      close (erlang_file_fd);
+	      erlang_file_fd = -1;
+	      return -1; /* BAD BAD ! */
+	    }
 	  }
 
 	  if (EF->head.linecount != ErlangLinesCount  || add_count > 0) {
@@ -194,7 +210,10 @@ static int erlang_backingstore_open(int do_create)
 	  return -1;
 	}
 
-	erlang_file_fd = open(erlang_backingstore, O_RDWR|(do_create ? O_CREAT : 0), 0644);
+	erlang_file_fd = open(erlang_backingstore, O_RDWR, 0644); /* Presume: it exists! */
+	if ((erlang_file_fd < 0) && do_create && (errno == ENOENT)) {
+	  erlang_file_fd = open(erlang_backingstore, O_RDWR|O_CREAT|O_EXCL, 0644);
+	}
 	if (erlang_file_fd < 0) {
 	  fprintf(stderr,"open of '%s' for erlang_backingstore file failed!  errno=%d: %s\n",
 		 erlang_backingstore, errno, strerror(errno));

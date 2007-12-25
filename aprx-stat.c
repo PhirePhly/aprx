@@ -13,6 +13,7 @@
 
 time_t now;
 int erlangout;
+int epochtime;
 char *aprxlogfile;
 
 void erlang_snmp(void)
@@ -60,8 +61,12 @@ void erlang_xml(int topmode)
 	  for (j = 0; j < t; ++j) {
 	    --k; if (k < 0) k = E->e1_max-1;
 	    if (E->e1[k].update == 0) continue;
-	    wallclock = gmtime(&E->e1[k].update);
-	    strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	    if (epochtime) {
+	      sprintf(logtime,"%ld",(long)E->e1[k].update);
+	    } else {
+	      wallclock = gmtime(&E->e1[k].update);
+	      strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	    }
 	    printf("%s  %s %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
 		   logtime, E->name, 1,
 		   E->e1[k].bytes_rx,  E->e1[k].packets_rx,
@@ -77,8 +82,12 @@ void erlang_xml(int topmode)
 	  for (j = 0; j < t; ++j) {
 	    --k; if (k < 0) k = E->e10_max-1;
 	    if (E->e10[k].update == 0) continue;
-	    wallclock = gmtime(&E->e10[k].update);
-	    strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	    if (epochtime) {
+	      sprintf(logtime,"%ld",(long)E->e10[k].update);
+	    } else {
+	      wallclock = gmtime(&E->e10[k].update);
+	      strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	    }
 	    printf("%s  %s %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
 		   logtime, E->name, 10,
 		   E->e10[k].bytes_rx,  E->e10[k].packets_rx,
@@ -94,8 +103,12 @@ void erlang_xml(int topmode)
 	  for (j = 0; j < t; ++j) {
 	    --k; if (k < 0) k = E->e60_max-1;
 	    if (E->e60[k].update == 0) continue;
-	    wallclock = gmtime(&E->e60[k].update);
-	    strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	    if (epochtime) {
+	      sprintf(logtime,"%ld",(long)E->e60[k].update);
+	    } else {
+	      wallclock = gmtime(&E->e60[k].update);
+	      strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	    }
 	    printf("%s  %s %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
 		   logtime, E->name, 60,
 		   E->e60[k].bytes_rx,  E->e60[k].packets_rx,
@@ -127,7 +140,7 @@ int main(int argc, char **argv)
 
 	now = time(NULL);
 
-	while ((opt = getopt(argc, argv, "f:SxX?h")) != -1) {
+	while ((opt = getopt(argc, argv, "f:StxX?h")) != -1) {
 	  switch (opt) {
 	  case 'f':
 	    erlang_backingstore = optarg;
@@ -140,6 +153,9 @@ int main(int argc, char **argv)
 	    break;
 	  case 'x':
 	    mode_xml = 2;
+	    break;
+	  case 't':
+	    epochtime = 1;
 	    break;
 	  default:
 	    usage();

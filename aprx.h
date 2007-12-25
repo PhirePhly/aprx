@@ -75,9 +75,10 @@ extern int  beacon_prepoll(int nfds, struct pollfd **fdsp, time_t *tout);
 extern int  beacon_postpoll(int nfds, struct pollfd *fds);
 
 
-extern void netax25_init (void);
-extern int  netax25_prepoll (int, struct pollfd **, time_t *);
-extern int  netax25_postpoll (int, struct pollfd *);
+extern void netax25_init(void);
+extern int  netax25_prepoll(int, struct pollfd **, time_t *);
+extern int  netax25_postpoll(int, struct pollfd *);
+extern void netax25_addport(const char *portname);
 
 extern void  readconfig(const char *cfgfile);
 extern char *config_SKIPSPACE(char *Y);

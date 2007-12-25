@@ -759,7 +759,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	/* serialport /dev/ttyUSB123 [19200 [8n1] ] */
 	if (*param1 == 0) return "Bad tty-name";
-	if (ttyindex >= MAXTTYS) return"TOO MANY"; /* Too many, sorry no.. */
+	if (ttyindex >= MAXTTYS) return "TOO MANY"; /* Too many, sorry no.. */
 	++ttyindex;
 
 	tty = & ttys[ttyindex-1];
@@ -801,43 +801,34 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	param1 = str;		/* serial port databits-parity-stopbits */
 	str = config_SKIPTEXT (str);
-	if (*str != 0)
-	  *str++ = 0;
 	str = config_SKIPSPACE (str);
 
 	/* FIXME:  analyze correct serial port data and parity format settings,
 	   now hardwired to 8-n-1 */
 
-	param1 = str;		/* Mode: KISS or something else */
-	str = config_SKIPTEXT (str);
-	if (*str != 0)
-	  *str++ = 0;
-	str = config_SKIPSPACE (str);
-
-	if (strcmp(param1, "kiss") == 0) {
-	  tty->linetype = LINETYPE_KISS;  /* plain basic KISS */
-
-
-	/* ttys[0].linetype = LINETYPE_AEA; */
-	/* ttys[0].linetype = LINETYPE_KISSBPQCRC; */
-
-	} else {
-	  return "Bad linetype parameter, known ones: KISS";
-	}
-
 	/* Optional parameters */
 	while (*str != 0) {
 	  param1 = str;
 	  str = config_SKIPTEXT (str);
-	  if (*str != 0)
-	    *str++ = 0;
 	  str = config_SKIPSPACE (str);
 
-	  if (strcmp(param1, "xorsum") == 0) {
+	  if (strcmp(param1, "kiss") == 0) {
+	    tty->linetype = LINETYPE_KISS;  /* plain basic KISS */
+	  } else if (strcmp(param1, "xorsum") == 0) {
+	    tty->linetype = LINETYPE_KISSBPQCRC;  /* KISS with BPQ "CRC" */
 	  } else if (strcmp(param1, "bpqcrc") == 0) {
+	    tty->linetype = LINETYPE_KISSBPQCRC;  /* KISS with BPQ "CRC" */
 	  } else if (strcmp(param1, "smack") == 0) {
+	    tty->linetype = LINETYPE_KISSSMACK;  /* KISS with SMACK / CRC16 */
 	  } else if (strcmp(param1, "crc16") == 0) {
+	    tty->linetype = LINETYPE_KISSSMACK;  /* KISS with SMACK / CRC16 */
 	  } else if (strcmp(param1, "poll") == 0) {
+	    /* FIXME: Some systems want polling... */
+	  } else if (strcmp(param1, "initstring") == 0) {
+	    param1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    tty->initstring = strdup(param1);
 	  }
 
 	}

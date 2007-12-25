@@ -29,6 +29,16 @@
 static int rx_socket;
 static int rx_protocol = ETH_P_ALL;
 
+static char **ax25rxports;
+static int    ax25rxportscount;
+
+void netax25_addport(const char *portname)
+{
+	ax25rxports = realloc(ax25rxports, sizeof(void*)*(ax25rxportscount+1));
+	ax25rxports[ax25rxportscount] = strdup(portname);
+	++ax25rxportscount;
+}
+
 void netax25_init(void)
 {
 	int i;
@@ -93,6 +103,18 @@ int netax25_postpoll(int nfds, struct pollfd *fds)
 	    rcvlen = recvfrom(rx_socket, rxbuf, sizeof(rxbuf), 0, &sa, &asize);
 	    if (rcvlen < 0) {
 	      return -1; /* No more at this time.. */
+	    }
+
+	    if (ax25rxports) {
+	      /* We have a list of AX.25 ports where we limit the reception from! */
+	      int j, ok = 0;
+	      for (j = 0; j < ax25rxportscount; ++j) {
+		if (strcmp(sa.sa_data, ax25rxports[j]) == 0) {
+		  ok = 1; /* Found match ! */
+		  break;
+		}
+	      }
+	      if (!ok) return -1; /* No match :-(  */
 	    }
 
 	    if (sa.sa_family == AF_AX25) {

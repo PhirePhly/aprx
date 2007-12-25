@@ -1,6 +1,32 @@
 2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
-	* version aprx-v0.10
+	* version aprx-v0.11
+
+	* TODO, README:
+	    Cleanup
+
+	* config.c, netax25.c, aprx.8, aprx.conf:
+	    Config option "ax25-rxport" - Limits acceptance of APRS
+	    packets only from listed Linux AX.25 ports.
+
+	* ttyreader.c, aprx.conf, aprx.8:
+	    Reworked a bit of the serialport config options.
+	    Now initstring, and various KISS modes are configurable
+
+	* erlang.c:
+	    Carefull approach on erlang-file opening, if file exists,
+	    and is non-zero size, open it only if magics match.
+
+	* config.c:
+	    config_SKIPTEXT() terminates all scanned strings with NUL byte,
+	    and moves to byte following it, if the termination byte was not
+	    a NUL byte originally.
+
+	* aprx-stat.c, aprx-stat.8:
+	    Option -t  to show timestamps differently.
+
+	* Makefile, man-to-html.sh:
+	    Produce decent format HTML versions of the man-pages.
 
 	* config.c, erlang.c, aprx.8, aprx.conf:
 	    Added "erlang-log1min" option to control 1 minute interval
@@ -8,6 +34,8 @@
 
 	* Makefile:
 	    Fix "make install" of man-pages
+
+	* version aprx-v0.10
 
 	* aprx-stat.c, aprx-stat.8, erlang.c, Makefile:
 	    Statistics reporter tool.

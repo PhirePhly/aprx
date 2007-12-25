@@ -1,5 +1,5 @@
-.\" APRX-STAT  v.0.10
-.TH aprx\-stat 8 "2007 December 25 \- v0.10"
+.\" APRX-STAT  v.0.11
+.TH aprx\-stat 8 "2007 December 25 \- v0.11"
 .LO 8
 .SH NAME
 .B aprx\-stat
@@ -7,7 +7,7 @@
 .BR aprx (8)
 .B "UNDER WORK"
 .SH SYNOPSIS
-aprx-stat [\-f /tmp/aprx\-erlang.dat] {\-S|\-x|\-X}
+aprx-stat [\-t] [\-f /tmp/aprx\-erlang.dat] {\-S|\-x|\-X}
 .SH DESCRIPTION
 .B aprx\-stat
 is a statistics utility for
@@ -18,6 +18,11 @@ program.
 The
 .B aprx\-stat
 has following runtime options:
+.TP
+.B "\-t"
+Use UNIX
+.I time_t
+for timestamps, instead of human readable text format.
 .TP
 .B "\-f /tmp/aprx\-erlang.dat"
 Turn on verbose debugging, outputs data to STDOUT.
@@ -109,8 +114,37 @@ SNMP  /dev/ttyUSB1   816675 11332   0  0     15
 .fi
 .PP
 The output repeats for all interfaces.
-
-
+.PP
+The SNMP dataset is given in the beginning, and described above.
+Then each extended output line has following fields:
+.IP \(bu 2
+Timestamp is two fields, date and time (in minute resolution) is in UTC.
+.IP \(bu 2
+Alternate timestamp format is UNIX
+.I time_t
+as an integer, counting seconds from epoch, and as single field.
+.IP \(bu 2
+Interface name is same as in SNMP case.
+.IP \(bu 2
+Data qualifier tells what integration period the data is valid for:
+.IR 1m ", " 10m ", " 60m .
+.IP \(bu 2
+Counter of received bytes on interface (including KISS flags etc.)
+.IP \(bu 2
+Counter of received frames.
+.IP \(bu 2
+Counter of transmitted bytes on interface
+.IP \(bu 2
+Counter of transmitted frames.
+.IP \(bu 2
+Reception
+.I Erlang 
+value estimate.
+.IP \(bu 2
+Transmission
+.I Erlang
+value estimate.
+.PP
 .SH TODO
 .SH BUGS
 .SH SEE ALSO

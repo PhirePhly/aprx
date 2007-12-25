@@ -27,7 +27,7 @@ struct pollfd polls[MAXPOLLS];
 
 int die_now;
 
-const char *version = "aprx-v0.10";
+const char *version = "aprx-v0.11";
 
 
 static void sig_handler(int sig)
