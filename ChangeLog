@@ -1,7 +1,16 @@
 2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* version aprx-v0.10
+
+	* config.c, erlang.c, aprx.8, aprx.conf:
+	    Added "erlang-log1min" option to control 1 minute interval
+	    Erlang sampling logging behaviour.
+
+	* Makefile:
+	    Fix "make install" of man-pages
+
 	* aprx-stat.c, aprx-stat.8, erlang.c, Makefile:
-	    Statistics reporter tool
+	    Statistics reporter tool.
 
 	* aprsis.c, config.c, aprx.8, aprx.conf:
 	    Multiple aprsis-server  config definitions are now
