@@ -128,7 +128,7 @@ void erlang_xml(int topmode)
 
 void usage(void)
 {
-	printf("Usage: aprx-stat [-f arpx-erlang.dat] {-S|-x|-X}\n");
+	printf("Usage: aprx-stat [-t] [-f arpx-erlang.dat] {-S|-x|-X}\n");
 	exit(64);
 }
 
