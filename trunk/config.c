@@ -67,6 +67,8 @@ char * config_SKIPTEXT ( char *Y )
 		*O++ = '"';
 	      } else if (*Y == '\'') {
 		*O++ = '\'';
+	      } else if (*Y == '\\') {
+		*O++ = '\\';
 	      } else if (*Y == 'x') {
 		/* Hex encoded char */
 		int i;
@@ -171,6 +173,12 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	  if (debug)
 	    printf("%s:%d: APRSIS-MYCALL = '%s'\n", cfgfilename, linenum, param1);
+
+	} else if (strcmp(name, "ax25-filter") == 0) {
+	  if (debug)
+	    printf("%s:%d: AX25-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
+
+	  ax25_filter_add(param1,param2);
 
 	} else if (strcmp(name, "netbeacon") == 0) {
 	  beacon_set(param1);

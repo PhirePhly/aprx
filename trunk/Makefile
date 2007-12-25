@@ -13,23 +13,25 @@ CC=	gcc
 CFLAGS=	-g -O3  -Wall
 
 SBINDIR=/usr/sbin/
-MANDIR=/usr/share/man/man8/
+MANDIR=/usr/share/man/
 CFGDIR=/etc/
 
 LIBS=	# Nothing special needed!
 HDRS=	aprx.h
-SRC=	aprx.c ttyreader.c ax25.c aprsis.c beacon.c config.c netax25.c erlang.c
-OBJS=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o netax25.o erlang.o
+SRC=		aprx.c ttyreader.c ax25.c aprsis.c beacon.c config.c netax25.c erlang.c
+OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o netax25.o erlang.o
+OBJSSTAT=	erlang.o aprx-stat.o
 
-all:  aprx
+all:  aprx aprx-stat
 
 install:
 	install -c -m 755 aprx $(SBINDIR)
 	install -c -m 644 aprx.conf $(CFGDIR)
-	install -c -m 644 aprx.8 $(MANDIR)
+	install -c -m 644 aprx.8 $(MANDIR)/man/
+	install -c -m 644 aprx-stat.8 $(MANDIR)/man/
 
 clean:
-	rm -f *~ *.o aprx aprs.8.ps
+	rm -f *~ *.o aprx aprx-stat *.ps 
 
 
 aprx.o: aprx.c aprx.h
@@ -57,10 +59,16 @@ netax25.o: netax25.c aprx.h
 beacon.o: beacon.c aprx.h
 	$(CC) $(CFLAGS) -c beacon.c
 
-aprx: $(OBJS)
-	$(CC) $(CFLAGS) -o aprx $(OBJS) $(LIBS)
+aprx: $(OBJSAPRX)
+	$(CC) $(CFLAGS) -o aprx $(OBJSAPRX) $(LIBS)
 
-pdf aprx.8.pdf: aprx.8
+aprx-stat: $(OBJSSTAT)
+	$(CC) $(CFLAGS) -o aprx-stat $(OBJSSTAT) $(LIBS)
+
+pdf aprx.8.pdf: aprx.8 aprx-stat.8
 	groff -man aprx.8 > aprx.8.ps
 	ps2pdf aprx.8.ps
 	rm -f aprx.8.ps
+	groff -man aprx-stat.8 > aprx-stat.8.ps
+	ps2pdf aprx-stat.8.ps
+	rm -f aprx-stat.8.ps

@@ -1,5 +1,5 @@
 
-		     APRX   v0.09
+		     APRX   v0.10
 
 		  	TODO
 
@@ -20,6 +20,8 @@
    -- add a filter to permit only listed AX.25 interfaces to
       be relayed into APRS-IS ?
 
+- Configurable reject filters ?
+
 - improved detection of connectivity failure with APRS-IS ?
   (heartbeat monitor does work with javAPRSSrvr, but not with some others)
 
@@ -36,6 +38,11 @@
     to make:
      - SNMP polling
      - 1m/10m/60m erlang data extract via HTTP/XML
+
+- aprx-stat  tool:
+  - exists for extracting data out of erlang datasets
+  - need to improve its output formats ?
+  - possibly to run suid-root ?
 
 
 - Properly process heard RF 3rd-party packets

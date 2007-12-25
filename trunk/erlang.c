@@ -43,7 +43,7 @@ static void *erlang_mmap;
 static int   erlang_mmap_size;
 
 struct erlangline **ErlangLines;
-int                ErlangLineCount;
+int                 ErlangLinesCount;
 
 struct erlang_file {
 	struct erlanghead	head;
@@ -127,10 +127,10 @@ static int erlang_backingstore_grow(int add_count)
 	    EF->head.version = ERLANGLINE_STRUCT_VERSION;
 	    EF->head.linecount = 0;
 	    EF->head.last_update = now;
-	    ErlangLineCount = 0;
+	    ErlangLinesCount = 0;
 	  }
 
-	  if (EF->head.linecount != ErlangLineCount  || add_count > 0) {
+	  if (EF->head.linecount != ErlangLinesCount  || add_count > 0) {
 	    /* must resize.. */
 	    int new_count = EF->head.linecount + add_count;
 	    new_size = sizeof(struct erlang_file) + sizeof(struct erlangline) * (new_count - 2);
@@ -164,15 +164,15 @@ static int erlang_backingstore_grow(int add_count)
 
 	    add_count = 0;
 	    EF->head.linecount = new_count;
-	    ErlangLineCount = new_count;
+	    ErlangLinesCount = new_count;
 
 	    goto redo_open; /* redo mapping */
 	  }
 
 	  /* Ok, successfull open, correct linecount */
-	  ErlangLines  = (void*)realloc((void*)ErlangLines, (ErlangLineCount+1)*sizeof(void*));
+	  ErlangLines  = (void*)realloc((void*)ErlangLines, (ErlangLinesCount+1)*sizeof(void*));
 
-	  for (i = 0; i < ErlangLineCount; ++i) {
+	  for (i = 0; i < ErlangLinesCount; ++i) {
 	    ErlangLines[i] = &EF->lines[i];
 	  }
 
@@ -187,14 +187,14 @@ static int erlang_backingstore_grow(int add_count)
 	return -1; /* D'uh..  something failed! */
 }
 
-static int erlang_backingstore_open(void)
+static int erlang_backingstore_open(int do_create)
 {
 	if (!erlang_backingstore) {
 	  fprintf(stderr,"erlang_backingstore not defined!\n");
 	  return -1;
 	}
 
-	erlang_file_fd = open(erlang_backingstore, O_RDWR|O_CREAT, 0644);
+	erlang_file_fd = open(erlang_backingstore, O_RDWR|(do_create ? O_CREAT : 0), 0644);
 	if (erlang_file_fd < 0) {
 	  fprintf(stderr,"open of '%s' for erlang_backingstore file failed!  errno=%d: %s\n",
 		 erlang_backingstore, errno, strerror(errno));
@@ -216,7 +216,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 #endif
 
 	if (ErlangLines) {
-	  for (i=0; i < ErlangLineCount; ++i) {
+	  for (i=0; i < ErlangLinesCount; ++i) {
 	    if (refp && (refp != ErlangLines[i]->refp))
 	      continue; /* Was not this.. */
 	    if (!refp && (strcmp(portname, ErlangLines[i]->name) != 0))
@@ -235,7 +235,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	  erlang_backingstore_grow(1);
 	  if (!ErlangLines) return NULL; /* D'uh! */
 
-	  E = ErlangLines[ErlangLineCount-1]; /* Last one is the lattest.. */
+	  E = ErlangLines[ErlangLinesCount-1]; /* Last one is the lattest.. */
 
 	  memset(E, 0, sizeof(*E));
 	  E->refp = refp;
@@ -243,7 +243,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	  E->name[sizeof(E->name)-1] = 0;
 
 	  E->erlang_capa = bytes_per_minute;
-	  E->index = ErlangLineCount-1;
+	  E->index = ErlangLinesCount-1;
 
 	  E->e1_cursor = E->e10_cursor = E->e60_cursor = 0;
 	  E->e1_max  = APRXERL_1M_COUNT;
@@ -266,13 +266,14 @@ void erlang_set(const void *refp, const char *portname, int bytes_per_minute)
  */
 void erlang_add(const void *refp, const char *portname, int rx_or_tx, int bytes, int packets)
 {
-	struct erlangline *E = erlang_findline(refp, portname, (1200*60/9));
+	struct erlangline *E = erlang_findline(refp, portname, (int)((1200.0*60)/8.2));
 	if (!E) return;
 
 	if (rx_or_tx == ERLANG_RX) {
 	  E->SNMP.bytes_rx       += bytes;
 	  E->SNMP.packets_rx     += packets;
 	  E->SNMP.update          = now;
+	  E->last_update          = now;
 
 	  E->erl1m.bytes_rx      += bytes;
 	  E->erl1m.packets_rx    += packets;
@@ -291,6 +292,7 @@ void erlang_add(const void *refp, const char *portname, int rx_or_tx, int bytes,
 	  E->SNMP.bytes_tx       += bytes;
 	  E->SNMP.packets_tx     += packets;
 	  E->SNMP.update          = now;
+	  E->last_update          = now;
 
 	  E->erl1m.bytes_tx      += bytes;
 	  E->erl1m.packets_tx    += packets;
@@ -327,7 +329,7 @@ static void erlang_time_end(void)
 
 	if (now >= erlang_time_end_1min) {
 	  erlang_time_end_1min += 60;
-	  for (i = 0; i < ErlangLineCount; ++i) {
+	  for (i = 0; i < ErlangLinesCount; ++i) {
 	    struct erlangline *E = ErlangLines[i];
 	    E->last_update = now;
 	    if (erlanglog1min) {
@@ -347,6 +349,7 @@ static void erlang_time_end(void)
 		syslog(LOG_INFO, "%ld %s", now, msgbuf);
 	    }
 
+	    E->erl1m.update = now;
 	    E->e1[E->e1_cursor] = E->erl1m;
 	    ++E->e1_cursor;
 	    if (E->e1_cursor >= E->e1_max)
@@ -362,7 +365,7 @@ static void erlang_time_end(void)
 	if (now >= erlang_time_end_10min) {
 	  erlang_time_end_10min += 600;
 
-	  for (i = 0; i < ErlangLineCount; ++i) {
+	  for (i = 0; i < ErlangLinesCount; ++i) {
 	    struct erlangline *E = ErlangLines[i];
 	    E->last_update = now;
 	    sprintf(msgbuf,
@@ -380,6 +383,7 @@ static void erlang_time_end(void)
 	    if (erlangsyslog)
 	      syslog(LOG_INFO, "%ld %s", now, msgbuf);
 
+	    E->erl10m.update = now;
 	    E->e10[E->e10_cursor] = E->erl10m;
 	    ++E->e10_cursor;
 	    if (E->e10_cursor >= E->e10_max)
@@ -395,7 +399,7 @@ static void erlang_time_end(void)
 	if (now >= erlang_time_end_60min) {
 	  erlang_time_end_60min += 3600;
 
-	  for (i = 0; i < ErlangLineCount; ++i) {
+	  for (i = 0; i < ErlangLinesCount; ++i) {
 	    struct erlangline *E = ErlangLines[i];
 	    /* E->last_update = now; -- the 10 minute step does also this */
 	    sprintf(msgbuf,
@@ -413,6 +417,7 @@ static void erlang_time_end(void)
 	    if (erlangsyslog)
 	      syslog(LOG_INFO, "%ld %s", now, msgbuf);
 
+	    E->erl60m.update = now;
 	    E->e60[E->e60_cursor] = E->erl60m;
 	    ++E->e60_cursor;
 	    if (E->e60_cursor >= E->e60_max)
@@ -536,7 +541,7 @@ void erlang_init(const char *syslog_facility_name)
 	}
 }
 
-void erlang_start(void)
+void erlang_start(int do_create)
 {
-	erlang_backingstore_open();
+	erlang_backingstore_open(do_create);
 }

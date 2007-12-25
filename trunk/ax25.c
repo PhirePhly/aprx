@@ -10,6 +10,19 @@
 
 
 #include "aprx.h"
+#include <regex.h>
+
+static regex_t **sourceregs;
+static int       sourceregscount;
+
+static regex_t **destinationregs;
+static int       destinationregscount;
+
+static regex_t **viaregs;
+static int       viaregscount;
+
+static regex_t **dataregs;
+static int       dataregscount;
 
 
 /*
@@ -34,7 +47,7 @@ static int ax25_fmtaddress(char *dest, const unsigned char *src, int markflag)
 	/* 6 bytes of station callsigns in shifted ASCII format.. */
 	for (i = 0; i < 6; ++i,++src) {
 	  c = *src;
-	  if (c & 1) return c;  /* Bad address-end flag ? */
+	  if (c & 1) return (-(int)(c));  /* Bad address-end flag ? */
 
 	  /* Don't copy spaces or 0 bytes */
 	  if (c != 0 && c != 0x40)
@@ -54,24 +67,137 @@ static int ax25_fmtaddress(char *dest, const unsigned char *src, int markflag)
 	return c;
 }
 
-static int ax25_forbidden_via_stationid(const char *t)
+
+void ax25_filter_add(const char *p1, const char *p2)
 {
-	return (memcmp("RFONLY",t,6) == 0 ||
-		memcmp("NOGATE",t,6) == 0 ||
-		memcmp("TCPIP",t,5)  == 0 ||
-		memcmp("TCPXX",t,5)  == 0);
+	int rc;
+	int groupcode = -1;
+	regex_t re, *rep;
+	char errbuf[2000];
+
+	if (strcmp(p1,"source")==0) {
+	  groupcode = 0;
+	} else if (strcmp(p1,"destination")==0) {
+	  groupcode = 1;
+	} else if (strcmp(p1,"via")==0) {
+	  groupcode = 2;
+	} else if (strcmp(p1,"data")==0) {
+	  groupcode = 3;
+	} else {
+	  printf("Bad RE target: '%s'  must be one of: source, destination, via\n", p1);
+	  return;
+	}
+
+	if (!*p2) return; /* Bad input.. */
+
+	memset(&re, 0, sizeof(re));
+	rc = regcomp(&re, p2, REG_EXTENDED|REG_NOSUB);
+
+	if (rc != 0) {  /* Something is bad.. */
+	  if (debug) {
+	    *errbuf = 0;
+	    regerror(rc, &re, errbuf, sizeof(errbuf));
+	    printf("Bad POSIX RE input, error: %s\n", errbuf);
+	  }
+	}
+
+	/* p1 and p2 were processed successfully ... */
+
+	rep = malloc(sizeof(*rep));
+	*rep = re;
+
+	switch(groupcode) {
+	case 0:
+	  ++sourceregscount;
+	  sourceregs = realloc(sourceregs, sourceregscount * sizeof(void*));
+	  sourceregs[sourceregscount-1] = rep;
+	  break;
+	case 1:
+	  ++destinationregscount;
+	  destinationregs = realloc(destinationregs, destinationregscount * sizeof(void*));
+	  destinationregs[destinationregscount-1] = rep;
+	  break;
+	case 2:
+	  ++viaregscount;
+	  viaregs = realloc(viaregs, viaregscount * sizeof(void*));
+	  viaregs[viaregscount-1] = rep;
+	  break;
+	case 3:
+	  ++dataregscount;
+	  dataregs = realloc(dataregs, dataregscount * sizeof(void*));
+	  dataregs[dataregscount-1] = rep;
+	  break;
+	}
 }
+
 
 static int ax25_forbidden_source_stationid(const char *t)
 {
-	return (memcmp("WIDE",t,4)   == 0 || /* just plain wrong setting */
-		memcmp("RELAY",t,5)  == 0 || /* just plain wrong setting */
-		memcmp("TRACE",t,5)  == 0 || /* just plain wrong setting */
-		memcmp("TCPIP",t,5)  == 0 || /* just plain wrong setting */
-		memcmp("TCPXX",t,5)  == 0 || /* just plain wrong setting */
-		memcmp("N0CALL",t,6) == 0 || /* TNC default setting */
-		memcmp("NOCALL",t,6) == 0 ); /* TNC default setting */
+	int i;
+
+	if (memcmp("WIDE",t,4)   == 0 || /* just plain wrong setting */
+	    memcmp("RELAY",t,5)  == 0 || /* just plain wrong setting */
+	    memcmp("TRACE",t,5)  == 0 || /* just plain wrong setting */
+	    memcmp("TCPIP",t,5)  == 0 || /* just plain wrong setting */
+	    memcmp("TCPXX",t,5)  == 0 || /* just plain wrong setting */
+	    memcmp("N0CALL",t,6) == 0 || /* TNC default setting */
+	    memcmp("NOCALL",t,6) == 0 ) /* TNC default setting */
+	  return 1;
+
+	for (i = 0; i < sourceregscount; ++i) {
+	  int stat = regexec(sourceregs[i], t, 0, NULL, 0);
+	  if (stat == 0)
+	    return 1; /* MATCH! */
+	}
+
+	return 0;
 }
+
+static int ax25_forbidden_destination_stationid(const char *t)
+{
+	int i;
+
+	for (i = 0; i < destinationregscount; ++i) {
+	  int stat = regexec(destinationregs[i], t, 0, NULL, 0);
+	  if (stat == 0)
+	    return 1; /* MATCH! */
+	}
+
+	return 0;
+}
+
+static int ax25_forbidden_via_stationid(const char *t)
+{
+	int i;
+
+	if (memcmp("RFONLY",t,6) == 0 ||
+	    memcmp("NOGATE",t,6) == 0 ||
+	    memcmp("TCPIP",t,5)  == 0 ||
+	    memcmp("TCPXX",t,5)  == 0)
+	  return 1;
+
+	for (i = 0; i < viaregscount; ++i) {
+	  int stat = regexec(viaregs[i], t, 0, NULL, 0);
+	  if (stat == 0)
+	    return 1; /* MATCH! */
+	}
+
+	return 0;
+}
+
+static int ax25_forbidden_data(const char *t)
+{
+	int i;
+
+	for (i = 0; i < dataregscount; ++i) {
+	  int stat = regexec(dataregs[i], t, 0, NULL, 0);
+	  if (stat == 0)
+	    return 1; /* MATCH! */
+	}
+
+	return 0;
+}
+
 
 
 void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
@@ -102,6 +228,8 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 
 	*t = 0;
 	i = ax25_fmtaddress(t, frame+7, 0); /* source */
+	if (i < 0)
+	  discard = 1; /* Bad format */
 
 	/*
 	 * If any of following matches, discard the packet!
@@ -116,6 +244,11 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	*t++ = '>';
 
 	j = ax25_fmtaddress(t, frame+0, 0); /* destination */
+	if (i < 0)
+	  discard = 1; /* Bad format */
+
+	if (ax25_forbidden_destination_stationid(t))
+	  discard = 1;
 
 	t += strlen(t);
 
@@ -133,6 +266,10 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	  for ( ; s < e;) {
 	    *t++ = ','; /* separator char */
 	    i = ax25_fmtaddress(t, s, 1);
+	    if (i < 0) {
+	      discard = 1; /* Bad format */
+	      break;
+	    }
 
 	    if (ax25_forbidden_via_stationid(t))
 	      discard = 1; /* Forbidden in via fields.. */
@@ -176,6 +313,9 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	}
 	*t = 0;
 	s = (unsigned char*) t0;
+
+	if (ax25_forbidden_data(t0))
+	  discard = 1;
 
 	/* TODO: Verify message being of recognized APRS packet type */
 	/*   '\0x60', '\0x27':  MIC-E, len >= 9

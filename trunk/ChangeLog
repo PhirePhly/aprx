@@ -1,3 +1,18 @@
+2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* aprx-stat.c, aprx-stat.8, erlang.c, Makefile:
+	    Statistics reporter tool
+
+	* aprsis.c, config.c, aprx.8, aprx.conf:
+	    Multiple aprsis-server  config definitions are now
+	    supported, and used in round-robin fashion.
+
+	* ax25.c, config.c, aprx.8, aprx.conf:
+	    Config option  ax25-filter
+
+	* ttyreader.c, erlang.c:
+	    Magic channel capacity constant expressions updated..
+
 2007-12-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c, aprx.h, aprsis.c, aprx.8, aprx.conf, ax25.c, erlang.c:

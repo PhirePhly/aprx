@@ -1,4 +1,4 @@
-          INSTALL of  APRX v0.09
+          INSTALL of  APRX v0.10
 
 A rough-cut version of the installation instructions
 
@@ -26,4 +26,5 @@ A rough-cut version of the installation instructions
      has not been written for it yet!
      (trivialish, but not with development priority)
 
-  6) Collect Erlang data, and analyze it..
+  6) Collect Erlang data, and analyze it using
+     the  aprx-stat(8)  utility...

@@ -27,7 +27,7 @@ struct pollfd polls[MAXPOLLS];
 
 int die_now;
 
-const char *version = "aprx-v0.09";
+const char *version = "aprx-v0.10";
 
 
 static void sig_handler(int sig)
@@ -111,7 +111,7 @@ int main(int argc, char * const argv[])
 	netax25_init();
 	aprsis_init();
 
-	erlang_start();
+	erlang_start(1);
 	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
 
 	/* Must be after config reading ... */

@@ -1,5 +1,5 @@
 
-		APRX    v0.09
+		APRX    v0.10
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -53,6 +53,10 @@ A receive-only APRS-IS "i-gate" with following properties:
           - preanalyzed 1m, 10m, and 60m round-robin arrays
      File is created if a) it does not exist, or b) its "magic" value is wrong.
      Tool to extract it is at present on TODO list...
+
+   - Auxiliary utility  aprx-stat  to pull statistics data out of the
+     shared memory segment
+
 
    - The netbeacons are distributed timewise more evenly around the interval,
      and even the interval length is varied at random in between 20 and 30
