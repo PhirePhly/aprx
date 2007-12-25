@@ -65,10 +65,21 @@ aprx: $(OBJSAPRX)
 aprx-stat: $(OBJSSTAT)
 	$(CC) $(CFLAGS) -o aprx-stat $(OBJSSTAT) $(LIBS)
 
-pdf aprx.8.pdf: aprx.8 aprx-stat.8
+pdf: aprx.8.pdf aprx-stat.8.pdf
+html: aprx.8.html aprx-stat.8.html
+
+aprx.8.html: aprx.8
+	sh man-to-html.sh aprx.8 > aprx.8.html
+
+aprx-stat.8.html: aprx-stat.8
+	sh man-to-html.sh aprx-stat.8 > aprx-stat.8.html
+
+aprx.8.pdf: aprx.8
 	groff -man aprx.8 > aprx.8.ps
 	ps2pdf aprx.8.ps
 	rm -f aprx.8.ps
+
+aprx-stat.8.pdf: aprx-stat.8
 	groff -man aprx-stat.8 > aprx-stat.8.ps
 	ps2pdf aprx-stat.8.ps
 	rm -f aprx-stat.8.ps

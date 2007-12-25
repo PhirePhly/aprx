@@ -92,7 +92,8 @@ char * config_SKIPTEXT ( char *Y )
 	  while (*Y && *Y != ' ' && *Y != '\t') {
 	    ++Y;
 	  }
-	  /* Stop at white-space */
+	  /* Stop at white-space or end */
+	  if (*Y) *Y++ = 0;
 	}
 
 	return Y;
@@ -122,22 +123,16 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	name = str;
 	str = config_SKIPTEXT (str);
-	if (*str != 0)
-	  *str++ = 0;
 	config_STRLOWER(name);
 
 	str = config_SKIPSPACE (str);
 	param1 = str;
 
 	str = config_SKIPTEXT (str);
-	if (*str != 0)
-	  *str++ = 0;
 
 	str = config_SKIPSPACE (str);
 	param2 = str;
 	str = config_SKIPTEXT (str);
-	if (*str != 0)
-	  *str++ = 0;
 
 
 	if (strcmp(name, "mycall") == 0) {
@@ -179,6 +174,12 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	    printf("%s:%d: AX25-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
 
 	  ax25_filter_add(param1,param2);
+
+	} else if (strcmp(name, "ax25-rxport") == 0) {
+	  if (debug)
+	    printf("%s:%d: AX25-RXPORT '%s'\n", cfgfilename, linenum, param1);
+
+	  netax25_addport(param1);
 
 	} else if (strcmp(name, "netbeacon") == 0) {
 	  beacon_set(param1);

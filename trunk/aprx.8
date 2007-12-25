@@ -1,20 +1,20 @@
-.\" APRX  v.0.10
-.TH aprx 8 "2007 December 25 \- v0.10"
+.\" APRX  v.0.11
+.TH aprx 8 "2007 December 25 \- v0.11"
 .LO 8
 .SH NAME
 .B aprx
-\- A receive\-only APRS iGate application,
+\- A receive-only APRS iGate application,
 .B "UNDER WORK"
 .SH SYNOPSIS
 aprx [\-d[\-d]] [\-e] [\-v] [\-l syslogfacility] [\-f /etc/aprx.conf]
 .SH DESCRIPTION
 .B aprx
 is a
-.I receive\-only
+.I receive-only
 APRS iGate application with minimum system support technology requirements.
 .PP
 .IP \(bu 3
-Can listen KISS\-TNCs on ordinary serial ports (real ones, or USB ones, all
+Can listen KISS-TNCs on ordinary serial ports (real ones, or USB ones, all
 work as long as they respond to normal UNIX serial port ioctl()s.)
 Maximum number of separate serial ports used for radio modem communication
 is 16, limit is easy to increase in source code.
@@ -34,11 +34,11 @@ Does not require machine to have AX.25 protocol support internally!
 Does not require machine to have any other software in it, than things in libc.
 In particular no special AX.25 libraries at all, nor widgets or even C++ runtime.
 .IP \(bu 3
-Connects with one callsign\-ssid pair to APRS\-IS core for all received radio
+Connects with one callsign-ssid pair to APRS-IS core for all received radio
 ports.
 .IP \(bu 3
 Knows that messages with following tokens in AX.25 VIA fields are not to be
-relayed into APRS\-IS network:
+relayed into APRS-IS network:
 .RS 9
 .B "RFONLY, NOGATE, TCPIP, TCPXX"
 .RE
@@ -53,7 +53,7 @@ Drops all
 .I query
 messages ("?"), as well as all 3rd party messages ("}").
 .IP \(bu 3
-Has built\-in "Erlang monitor" mechanism, that logs to syslog a interface
+Has built-in "Erlang monitor" mechanism, that logs to syslog a interface
 specific channel occupancy.   Optionally can log to STDOUT and/or to syslog.
 .PP
 .SH OPTIONS
@@ -66,7 +66,7 @@ Turn on verbose debugging, outputs data to STDOUT.
 .TP
 .B "\-dd"
 the "more debug" mode shows also details of network interaction with
-the APRS\-IS network service.
+the APRS-IS network service.
 .TP
 .B "\-e"
 .I "Erlang output"
@@ -104,9 +104,9 @@ This is independent of the "\-e" option above.
 .TP
 .B "\-v"
 Verbose logging of received traffic to STDOUT.
-Lines begin with reception timestamp (UNIX time\_t seconds), then TAB,
+Lines begin with reception timestamp (UNIX time_t seconds), then TAB,
 and either data as is, or with prefix byte: "*" for "discarded due to data content",
-or possibly "#" for "discarded due to APRS\-IS being unreachable".
+or possibly "#" for "discarded due to APRS-IS being unreachable".
 .TP
 .B "\-f /etc/aprx.conf"
 Configuration file, given path is built-in default, and can be overridden by the program runner.
@@ -131,6 +131,8 @@ There can be up to (by default) 16 entries of "serialport".
 There can be unlimited number of "netbeacon" lines.
 .IP \(bu 2
 There can be unlimited number of "ax25-filter" lines.
+.IP \(bu 2
+There can be unlimited number of "ax25-rxport" lines.
 .PP
 The configuration file is read upon program start, ever latter.
 .nf
@@ -145,7 +147,7 @@ The configuration file is read upon program start, ever latter.
 #
 #mycall           N0CALL\-1
 
-# APRS\-IS server name and portnumber.
+# APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
 # There can be up to 4 system definitions without code modification,
 # they are used in round\-robin fashion.  Heartbeat and filter
@@ -180,6 +182,14 @@ The configuration file is read upon program start, ever latter.
 #ax25\-filter via         "^NOGATE"
 #ax25\-filter data        "^?"
 
+# ax25\-rxport limits reception on listed AX.25 ports, if system
+# happens to use AX.25 ports also for other purposes than APRS.
+# If this option is not used, all reception ports are accepted.
+# Number of port definitions here is unlimited.
+#
+#ax25\-rxport ax0
+#ax25\-rxport ax1
+
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
@@ -201,8 +211,10 @@ The configuration file is read upon program start, ever latter.
 # and does not stradle any exact minute.
 # (Do restarts at 15 seconds over an even minute..)
 # This file is around 0.5 MB per each interface talking APRS.
-# Things go BADLY WRONG if this file can not be created!
-# Built-in default value is: /tmp/aprs\-erlang.dat
+# Things go BADLY WRONG if this file can not be created or
+# it is corrupted!
+#
+# Built\-in default value is: /tmp/aprs\-erlang.dat
 #
 erlangfile /tmp/aprx\-erlang.dat
 
@@ -227,16 +239,20 @@ erlangfile /tmp/aprx\-erlang.dat
 #                        1200, 2400, 4800, 9600, 19200, 38400
 #   \- 8n1             \-\- 8\-bits, no parity, one stop\-bit,
 #                        no other supported modes
-#   \- KISS            \-\- KISS mode
-#   \- kissopts..      \-\- optional KISS parameters:
-#                        SMACK (CRC16), BPQCRC (XOR\-sum)  (TODO)
+#   \- KISS/XORSUM/BPQCRC/SMACK/CRC16  \-\- KISS mode
 #
 # There can be up to 16 serialport definitions in this file!
 #
-#serialport      /dev/ttyUSB1  19200 8n1    KISS
+#serialport   /dev/ttyUSB1  19200 8n1    KISS
 
-# initstring is TODO for latter \-\- serial port init strings..
-#initstring ...
+# Additional options for the "serialport" line.
+#
+# "initstring" is of two parts, the keyword, and then a string.
+#    initstring "\\xC0\\xC0\\xFF\\xC0\\r\\nMO 0\\rKISS $01\\r"
+#
+#  "KISS"                  \- plain basic KISS mode
+#  "XORSUM" alias "BPQCRC" \- KISS with BPQ "CRC" byte
+#  "SMACK" alias "CRC16"   \- KISS with better CRC
 
 
 # The  netbeacon  option.
@@ -248,35 +264,36 @@ erlangfile /tmp/aprx\-erlang.dat
 # Symbol  R&   is for "rx\-only iGate"
 #
 #netbeacon  "!6016.35NR02506.36E&aprx Rx\-only 'iGate'"
+
 \fR
 .fi
 .PP
 In the configuration file there is special treatment for quoted strings.
-They are stripped of the outer quotes, and "\\" character is processed within
+They are stripped of the outer quotes, and "\fC\\\fR" character is processed within
 the source string to produce an output string.
 The escapes are:
 .TP
-.B "\\\\n"
+.B "\fC\\\\n"
 Produces newline character (Control-J) on the output string.
 .TP
-.B "\\\\r"
+.B "\fC\\\\r"
 Produces carriage return character (Control-M) on the output string.
 .TP
-.B "\\\\\\\\"
+.B "\fC\\\\\\\\"
 Places a back-slash on the output string.
 .TP
-.B "\\\\""
+.B "\fC\\\\""
 Places  a double-quote on the output string.
 .TP
-.B "\\\\'"
+.B "\fC\\\\'"
 Places a single-quote on the output string.
 .TP
-.B "\\\\xHH"
+.B "\fC\\\\xHH"
 Lower-case "x" precedes two hex digits which ensemble is then converted to a single byte in the output string.
 .PP
 The complex encodings are for possible init-strings of the external devices,
 .I "however: a nul byte is not possible to produce as it terminates a string!"
-( = "\\x00" )
+( = "\fC\\x00\fR" )
 .PP
 A configuration token without surrounding quotes does not understand the backslash escapes.
 
@@ -313,8 +330,8 @@ The HDLC bit stuffing ratio is guessed to be 8.2 bits for each 8 bits of payload
 
 .SH NOTES: PROGRAM NAME
 Initially this program had name
-.IR aprsg\-ng ,
-which was same as another (less low\-tech C++ approach) had.
+.IR aprsg-ng ,
+which was same as another (less low-tech C++ approach) had.
 
 .SH BUGS
 The
@@ -323,15 +340,15 @@ mechanisms are of rudimentary quality, and can seriously underestimate the chann
 
 .SH SEE ALSO
 Couple web sites:
-.IR "http://www.aprs\-is.net/" ,
+.IR "http://www.aprs-is.net/" ,
 .I "http://www.aprs2.net/"
 .PP
-.BR aprx\-stat (8)
+.BR aprx-stat (8)
 
 .SH AUTHOR
 This little piece was written by
 .I "Matti Aarnio, OH2MQK"
-during a dark and rainy fall and winter of 2007\-2008 after a number
+during a dark and rainy fall and winter of 2007-2008 after a number
 of discussions grumbling about current breed of available software
 for APRS iGate use in Linux (or of any UNIX) platforms.
 .PP

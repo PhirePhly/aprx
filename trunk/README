@@ -1,5 +1,5 @@
 
-		APRX    v0.10
+		APRX    v0.11
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -26,33 +26,31 @@ A receive-only APRS-IS "i-gate" with following properties:
    - Knows that following source address prefixes are bogus and thus
      to be junked:
               WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL
-
+     (Actually these are string prefixes, so any WIDE*-* will block, etc.)
 
    - Does not require machine to have AX.25 protocol support internally!
 
    - On Linux machine with kernel internal AX.25 protocol support, does
      listen on internal AX.25 network in promiscuous form, and requires
      to be running as root to do that.   Does not fail to start in case
-     the port fails to open (running as non-root.)   Does not filter
-     reported AX.25 UI frames by AX.25 interface ports or anything.
-     (Such filter is on TODO list.)
+     the port fails to open (running as non-root.)
 
    - Built-in "erlang-monitor" actually counts bytes per time interval
      (10 min, and 60 min)  on each receiving interface, including all
-     that feed internal AX.25 network.  Report goes to SYSLOG, unless
-     option "-e" is used, then it goes to STDOUT.
+     that feed internal AX.25 network.  There are multiple ways to
+     extract the report data.
 
-   - The "erlang-monitor" presumes that system internal time is on sync with
-     the UTC, as is the style in UNIX systems, and makes those reports at
-     exact 1 minute,  10 minutes and exact 60 minutes, cycle depending.
+   - The "erlang-monitor" presumes that system internal time is on sync
+     with the UTC, as is the style in UNIX systems, and makes those
+     reports at exact 1 minute,  10 minutes and exact 60 minutes, cycle
+     depending.   This sync is best maintained with NTP tool.
 
    - The "erlang-monitor" runs always, and stores data on backing-store
      file  /tmp/aprx-erlang.dat,  which is mmap()able/read()able to
      a program for analysis by:
           - SNMP polling
           - preanalyzed 1m, 10m, and 60m round-robin arrays
-     File is created if a) it does not exist, or b) its "magic" value is wrong.
-     Tool to extract it is at present on TODO list...
+     File is created if it does not exist.
 
    - Auxiliary utility  aprx-stat  to pull statistics data out of the
      shared memory segment
