@@ -271,7 +271,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	  /* DEBUG OUTPUT TO STDOUT ! */
 	  if (verbout) {
 	    printf("%ld\t#", (long)now);
-	    printf("%s:%s\n", tnc2buf, t0); /* newline is NOT included, debug stuff */
+	    printf("%s:%s\n", tnc2buf, t0);
 	  }
 	  if (rflogfile) {
 	    FILE *fp = fopen(rflogfile,"a");
@@ -281,8 +281,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
 	      fprintf(fp, "%s #",timebuf);
-	      fprintf(fp, "%s:%s", tnc2buf, t0);
-	      fprintf(fp, "\n"); /* this buffer has no ending CRLF */
+	      fprintf(fp, "%s:%s\n", tnc2buf, t0);
 	      fclose(fp);
 	    }
 	  }
@@ -330,7 +329,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	  printf("%ld\t", (long)now);
 	  if (discard<0) { printf("*"); };
 	  if (discard>0) { printf("#"); };
-	  printf("%s:%s", tnc2buf, t0); /* newline is included, debug stuff */
+	  printf("%s:%s\n", tnc2buf, t0);
 	}
 	if (rflogfile) {
 	  FILE *fp = fopen(rflogfile,"a");
@@ -343,7 +342,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	    fprintf(fp, "%s ",timebuf);
 	    if (discard < 0) { fprintf(fp, "*"); }
 	    if (discard > 0) { fprintf(fp, "#"); }
-	    fprintf(fp, "%s:%s", tnc2buf, t0);
+	    fprintf(fp, "%s:%s\n", tnc2buf, t0);
 
 	    fclose(fp);
 	  }
