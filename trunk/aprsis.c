@@ -130,7 +130,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, i
 
 	addrlen = 0;
 	if (addr)
-	  addrlen = sprintf(addrbuf, "%s,%s,I:", addr, A->H->mycall);
+	  addrlen = sprintf(addrbuf, "%s,qAR,%s*:", addr, A->H->mycall);
 	len = addrlen + textlen;
 
 
@@ -432,7 +432,7 @@ int aprsis_queue(const char *addr, const char *text, int textlen)
 	p += sprintf(p, "%s", addr);
 	++p; /* string terminating 0 byte */
 	p += sprintf(p, "%s\r\n", text);
-	len = p - buf + 2;
+	len = p - buf;
 
 	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL); /* No SIGPIPE if the
 							receiver is out,
