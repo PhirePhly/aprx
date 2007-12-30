@@ -1,5 +1,5 @@
 
-		     APRX   v0.11
+		     APRX   v0.12
 
 		  	TODO
 
@@ -20,12 +20,6 @@
   - exists for extracting data out of erlang datasets
   - need to improve its output formats ?
   - possibly to run suid-root ?
-
-- Properly process heard RF 3rd-party packets
-   - Discard them all ?  (CURRENT BEHAVIOUR)
-     ( http://www.aprs-is.net/ISPaths.htm )
-   - Open up 3rd party header, and check if gating is OK ?
-     ( http://www.aprs-is.net/gatecriteria.htm )
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007

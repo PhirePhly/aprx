@@ -1,3 +1,18 @@
+2007-12-29  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* PROTOCOLS:
+	    Writeup of existing (and planned) protocols that this
+	    software uses.
+
+	* ax25.c:
+	    Correct processing of 3rd-party frames.
+	    Also separate TNC2 formatted frame Rx-igateing rules
+	    from AX.25-to-TNC2 format translation routine.
+
+	* ax25.c, beacon.c, aprsis.c:
+	    Centralize the APRSIS communication line ending CRLF char pair
+	    addition into common code, not distributed all over.
+
 2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
 	* version aprx-v0.11

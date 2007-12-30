@@ -417,7 +417,7 @@ static void aprsis_readsp(void)
 
 int aprsis_queue(const char *addr, const char *text, int textlen)
 {
-	static char *buf;
+	static char *buf; /* Dynamically allocated buffer... */
 	static int buflen;
 	int len, i;
 	char *p;
@@ -431,8 +431,8 @@ int aprsis_queue(const char *addr, const char *text, int textlen)
 	p = buf+sizeof(now);
 	p += sprintf(p, "%s", addr);
 	++p; /* string terminating 0 byte */
-	p += sprintf(p, "%s", text);
-	len = p - buf;
+	p += sprintf(p, "%s\r\n", text);
+	len = p - buf + 2;
 
 	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL); /* No SIGPIPE if the
 							receiver is out,

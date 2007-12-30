@@ -58,6 +58,7 @@ int  beacon_postpoll(int nfds, struct pollfd *fds)
 {
 	char beacontext[1024];
 	char beaconaddr[64];
+	int txtlen;
 
 	if (!beacon_msgs) return 0; /* Nothing to do */
 
@@ -76,12 +77,13 @@ int  beacon_postpoll(int nfds, struct pollfd *fds)
 	beacon_nexttime += beacon_increment;
 
 	sprintf(beaconaddr, "%s>APRS", mycall);
-	sprintf(beacontext, "%s\r\n", beacon_msgs[beacon_msgs_cursor++]);
+	/* sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]); */
+	txtlen = sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]);
+
+	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(beaconaddr, beacontext, strlen(beacontext));
+	aprsis_queue(beaconaddr, beacontext, txtlen);
 
 	return 0;
 }
-
-

@@ -198,38 +198,21 @@ static int ax25_forbidden_data(const char *t)
 	return 0;
 }
 
+/*
+ * The  tnc2_rxgate()  is actual RX-iGate filter function, and processes
+ * prepated TNC2 format text presentation of the packet.
+ * It does presume that the record is in a buffer that can be written on!
+ */
 
-
-void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
+void tnc2_rxgate(char *tnc2buf, int discard)
 {
-	int i, j;
-	const unsigned char *s = frame;
-	const unsigned char *e = frame + framelen;
-	int discard = 0;
-	int thirdparty = 0;
+	char *t, *t0;
 
-	char tnc2buf[800];
-	char *t = tnc2buf, *t0;
+ redo_frame_filter:;
 
-#if 0
-	memset(tnc2buf, 0, sizeof(tnc2buf)); /* DEBUG STUFF */
-#endif
+	t = tnc2buf;
 
-	if (framelen > sizeof(tnc2buf)-80) {
-	  /* Too much ! Too much! */
-	  return;
-	}
-
-
-
-	/* Phase 1: scan address fields. */
-	/* Source and Destination addresses must be printed in altered order.. */
-
-
-	*t = 0;
-	i = ax25_fmtaddress(t, frame+7, 0); /* source */
-	if (i < 0)
-	  discard = 1; /* Bad format */
+	/* t == beginning of the TNC2 format packet */
 
 	/*
 	 * If any of following matches, discard the packet!
@@ -240,82 +223,83 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	if (ax25_forbidden_source_stationid(t))
 	  discard = 1; /* Forbidden in source fields.. */
 
-	t += strlen(t);
-	*t++ = '>';
+	/*  SOURCE>DESTIN,VIA,VIA:payload */
 
-	j = ax25_fmtaddress(t, frame+0, 0); /* destination */
-	if (i < 0)
-	  discard = 1; /* Bad format */
+	while (*t && *t != '>') ++t;
+	if (*t) ++t;
 
 	if (ax25_forbidden_destination_stationid(t))
 	  discard = 1;
 
-	t += strlen(t);
+	while (1) {
+	  while (*t && (*t != ',' && *t != ':')) ++t;
+	  if (*t == ':') break;
+	  if (*t == ',') ++t;
 
-	s = frame+14;
+	  /*
+	   *  next if ($axpath =~ m/RFONLY/io); # Has any of these in via fields..
+	   *  next if ($axpath =~ m/TCPIP/io);
+	   *  next if ($axpath =~ m/TCPXX/io);
+	   *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
+	   */
 
-	/*
-	 *  next if ($axpath =~ m/RFONLY/io); # Has any of these in via fields..
-	 *  next if ($axpath =~ m/TCPIP/io);
-	 *  next if ($axpath =~ m/TCPXX/io);
-	 *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
-	 */
+	  if (ax25_forbidden_via_stationid(t))
+	    discard = 1; /* Forbidden in via fields.. */
 
-	if ((i & 1) == 0) { /* addresses continue after the source! */
 
-	  for ( ; s < e;) {
-	    *t++ = ','; /* separator char */
-	    i = ax25_fmtaddress(t, s, 1);
-	    if (i < 0) {
-	      discard = 1; /* Bad format */
-	      break;
-	    }
-
-	    if (ax25_forbidden_via_stationid(t))
-	      discard = 1; /* Forbidden in via fields.. */
-
-	    t += strlen(t);
-	    s += 7;
-	    if (i & 1)
-	      break; /* last address */
-	  }
 	}
+	/* Now we have processed the address, this should be ABORT time if
+	   the current character is not ':' !  */
+	if (*t == ':') {
+	  *t++ = 0; /* turn it to NUL character */
+	} else
+	  discard = 1;
+	t0 = t;
 
-	/* Address completed */
+	/* Now 't' points to data.. */
 
-	if ((s+2) >= e) return; /* never happens ?? */
 
-	*t++ = 0; /* terminate the string */
-
-	t0 = t; /* Start assembling packet here */
-
-	if ((*s++ != 0x03) ||
-	    (*s++ != 0xF0)) {
-	  /* Not AX.25 UI frame */
-	  return;
-	}
+	if (ax25_forbidden_data(t))
+	  discard = 1;
 
 	/* Will not relay messages that begin with '?' char: */
-	if (*s == '?')
+	if (*t == '?')
 	  discard = 1;
 
+	/* Messages begining with '}' char are 3rd-party frames.. */
+	if (*t == '}' && !discard) {
+	  /* DEBUG OUTPUT TO STDOUT ! */
+	  if (verbout) {
+	    printf("%ld\t#", (long)now);
+	    printf("%s:%s\n", tnc2buf, t0); /* newline is NOT included, debug stuff */
+	  }
+	  if (rflogfile) {
+	    FILE *fp = fopen(rflogfile,"a");
+	    if (fp) {
+	      char timebuf[60];
+	      struct tm *t = gmtime(&now);
+	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
-	/* Will not relay messages that begin with '}' char: */
-	if (*s == '}')
-	  thirdparty = 1;
+	      fprintf(fp, "%s #",timebuf);
+	      fprintf(fp, "%s:%s", tnc2buf, t0);
+	      fprintf(fp, "\n"); /* this buffer has no ending CRLF */
+	      fclose(fp);
+	    }
+	  }
 
-	/* Copy payload - stop at CR or LF chars */
-	for ( ; s < e; ++s ) {
-	  int c = *s;
-	  if (c == '\n' || c == '\r' || c == 0)
-	    break;
-	  *t++ = c;
+	  /* Copy the 3rd-party message content into begining of the buffer... */
+	  strcpy(tnc2buf, t+1);
+	  /* .. and redo the filtering. */
+	  goto  redo_frame_filter;
+	  /* Could do as well:
+
+	     tnc2_rxgate(t+1, discard);
+	     return;
+
+	   */
 	}
-	*t = 0;
-	s = (unsigned char*) t0;
 
-	if (ax25_forbidden_data(t0))
-	  discard = 1;
+
 
 	/* TODO: Verify message being of recognized APRS packet type */
 	/*   '\0x60', '\0x27':  MIC-E, len >= 9
@@ -332,42 +316,9 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	 */
 
 
-#if 0
-	while (thirdparty) {
-	  /* Rule says either: discard all 3rd party headers, OR discard
-	     at first existing address header and type ('}') char, then
-	     reprocess internal data blob from beginning:
-	          ADDR1>THERE:}ADDR2>HERE,ELSWRE:...
+	t += strlen(t); /* To the end of the string */
 
-	     Great documentation...
-	  */
-	  /* Whatever happens, this line gets discarded, and reformatted
-	     one may get sent.. */
-	  if (verbout)
-	    printf("%ld\t#%s:%s\n", (long)now, tnc2buf, t0);
-
-	  thirdparty = discard = 0;
-	  strcpy(tnc2buf, t0);
-
-	  s = t = tnc2buf;
-
-	  /* Analyze 'from' address */
-
-	  /* Analyze 'to' address */
-
-	  /* Analyze 'path' components */
-
-	  t += strlen(t);
-	}
-#else
-	discard = thirdparty; /* Discard all 3rd party messages */
-#endif
-
-
-	/* End the line with CRLF */
-	*t++ = '\r';
-	*t++ = '\n';
-	*t = 0;
+	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	if (!discard)
 	  discard = aprsis_queue(tnc2buf, t0, t-t0);  /* Send it.. */
@@ -397,4 +348,87 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	    fclose(fp);
 	  }
 	}
+}
+
+
+void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
+{
+	int i, j;
+	const unsigned char *s = frame;
+	const unsigned char *e = frame + framelen;
+	int discard = 0;
+
+	char tnc2buf[800];
+	char *t = tnc2buf;
+
+#if 0
+	memset(tnc2buf, 0, sizeof(tnc2buf)); /* DEBUG STUFF */
+#endif
+
+	if (framelen > sizeof(tnc2buf)-80) {
+	  /* Too much ! Too much! */
+	  return;
+	}
+
+
+
+	/* Phase 1: scan address fields. */
+	/* Source and Destination addresses must be printed in altered order.. */
+
+
+	*t = 0;
+	i = ax25_fmtaddress(t, frame+7, 0); /* source */
+	if (i < 0)
+	  discard = 1; /* Bad format */
+
+	t += strlen(t);
+	*t++ = '>';
+
+	j = ax25_fmtaddress(t, frame+0, 0); /* destination */
+	if (i < 0)
+	  discard = 1; /* Bad format */
+
+	t += strlen(t);
+
+	s = frame+14;
+
+	if ((i & 1) == 0) { /* addresses continue after the source! */
+
+	  for ( ; s < e;) {
+	    *t++ = ','; /* separator char */
+	    i = ax25_fmtaddress(t, s, 1);
+	    if (i < 0) {
+	      discard = 1; /* Bad format */
+	      break;
+	    }
+
+	    t += strlen(t);
+	    s += 7;
+	    if (i & 1)
+	      break; /* last address */
+	  }
+	}
+
+	/* Address completed */
+
+	if ((s+2) >= e) return; /* never happens ?? */
+
+	*t++ = ':'; /* end of address */
+
+	if ((*s++ != 0x03) ||
+	    (*s++ != 0xF0)) {
+	  /* Not AX.25 UI frame */
+	  return;
+	}
+
+	/* Copy payload - stop at CR or LF chars */
+	for ( ; s < e; ++s ) {
+	  int c = *s;
+	  if (c == '\n' || c == '\r' || c == 0)
+	    break;
+	  *t++ = c;
+	}
+	*t = 0;
+
+	tnc2_rxgate(tnc2buf, discard);
 }

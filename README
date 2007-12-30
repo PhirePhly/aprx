@@ -1,5 +1,5 @@
 
-		APRX    v0.11
+		APRX    v0.12
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -36,8 +36,8 @@ A receive-only APRS-IS "i-gate" with following properties:
      the port fails to open (running as non-root.)
 
    - Built-in "erlang-monitor" actually counts bytes per time interval
-     (10 min, and 60 min)  on each receiving interface, including all
-     that feed internal AX.25 network.  There are multiple ways to
+     (1 min, 10 min, and 60 min)  on each receiving interface, including
+     all that feed internal AX.25 network.  There are multiple ways to
      extract the report data.
 
    - The "erlang-monitor" presumes that system internal time is on sync
