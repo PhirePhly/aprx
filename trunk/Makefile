@@ -26,6 +26,7 @@ all:  aprx aprx-stat
 
 install:
 	install -c -m 755 aprx $(SBINDIR)
+	install -c -m 755 aprx-stat $(SBINDIR)
 	install -c -m 644 aprx.conf $(CFGDIR)
 	install -c -m 644 aprx.8 $(MANDIR)/man8/
 	install -c -m 644 aprx-stat.8 $(MANDIR)/man8/
