@@ -130,7 +130,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, i
 
 	addrlen = 0;
 	if (addr)
-	  addrlen = sprintf(addrbuf, "%s,qAR,%s*:", addr, A->H->mycall);
+	  addrlen = sprintf(addrbuf, "%s,qAR,%s:", addr, A->H->mycall);
 	len = addrlen + textlen;
 
 
