@@ -116,6 +116,8 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, i
 	/* Queue for sending to APRS-IS only when the socket is operational */
 	if (A->server_socket < 0) return 1;
 
+	/* Here the A->H->mycall is always set. */
+
 	/*
 	 * Append stuff on the writebuf, if it fits.
 	 * If it does not fit, something is broken already
@@ -229,6 +231,11 @@ static void aprsis_reconnect(struct aprsis *A)
 	    A->H = &AISh[AIShindex];
 	  }
 	}
+
+
+	if (!A->H->mycall)
+	  return; /* Will try to reconnect in about 60 seconds.. */
+
 
 	memset(&req, 0, sizeof(req));
 	req.ai_socktype = SOCK_STREAM;

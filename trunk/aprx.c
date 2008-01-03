@@ -114,6 +114,11 @@ int main(int argc, char * const argv[])
 	erlang_start(1);
 	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
 
+	if ((debug || verbout) && !mycall) {
+	  fprintf(stderr,"NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n");
+	}
+
+
 	/* Must be after config reading ... */
 	aprsis_start();
 
