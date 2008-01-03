@@ -119,6 +119,9 @@ Proprietary monitoring mechanism
 
 APRX-APRX linkage
 
+	(For a feature in planning...)
+
+
 	With introduction of APRX-Cluster (APRXC) mode, multiple APRX
 	instances are used as remote attachments to TNCs, and one central
 	system runs more complicated business logic deciding which messages
