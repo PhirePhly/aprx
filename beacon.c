@@ -76,6 +76,7 @@ int  beacon_postpoll(int nfds, struct pollfd *fds)
 
 	beacon_nexttime += beacon_increment;
 
+	if (!mycall) return 0; /* No mycall !  hoh... */
 	sprintf(beaconaddr, "%s>APRS", mycall);
 	/* sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]); */
 	txtlen = sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]);
