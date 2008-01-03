@@ -3,6 +3,8 @@
 	* aprx.c, aprsis.c, beacon.c:
 	    Complain loudly with -d or -v options on, and if the
 	    configuration does not set global  mycall  parameter.
+	    Do not refuse to run, though!  This is perfectly valid
+	    for things like Erlang-monitoring.
 
 2007-12-29  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 

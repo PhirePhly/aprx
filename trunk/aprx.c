@@ -115,7 +115,7 @@ int main(int argc, char * const argv[])
 	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
 
 	if ((debug || verbout) && !mycall) {
-	  fprintf(stderr,"NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n");
+	  fprintf(stderr,"NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	}
 
 
