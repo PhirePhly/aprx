@@ -4,27 +4,26 @@
 #          libraries of any kind beyond UNIX system libc.
 #
 
-# easy way to have 1 minute ERLANG data included:  make ERLANG1=1
-ifdef ERLANG1
-ERLANG="-DUSE_ONE_MINUTE_INTERVAL=1"
-endif
+# Expect GNU make!
+VERSION=$(shell cat VERSION)
+DATE=	$(shell date +"%Y %B %d")
 
 CC=	gcc 
-CFLAGS=	-g -O3  -Wall
+CFLAGS=	-g -O3  -Wall -DAPRXVERSION="\"${VERSION}\""
 
 SBINDIR=/usr/sbin/
 MANDIR=/usr/share/man/
 CFGDIR=/etc/
 
 LIBS=	# Nothing special needed!
-HDRS=	aprx.h
+HDRS=		aprx.h
 SRC=		aprx.c ttyreader.c ax25.c aprsis.c beacon.c config.c netax25.c erlang.c
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o netax25.o erlang.o
 OBJSSTAT=	erlang.o aprx-stat.o
 
-all:  aprx aprx-stat
+all:  aprx aprx-stat aprx.8 aprx-stat.8
 
-install:
+install: all
 	install -c -m 755 aprx $(SBINDIR)
 	install -c -m 755 aprx-stat $(SBINDIR)
 	install -c -m 644 aprx.conf $(CFGDIR)
@@ -69,6 +68,7 @@ aprx-stat: $(OBJSSTAT)
 pdf: aprx.8.pdf aprx-stat.8.pdf
 html: aprx.8.html aprx-stat.8.html
 
+
 aprx.8.html: aprx.8
 	sh man-to-html.sh aprx.8 > aprx.8.html
 
@@ -84,3 +84,16 @@ aprx-stat.8.pdf: aprx-stat.8
 	groff -man aprx-stat.8 > aprx-stat.8.ps
 	ps2pdf aprx-stat.8.ps
 	rm -f aprx-stat.8.ps
+
+aprx.8: aprx.8.in
+	sed -e "s/@DATEVERSION@/${VERSION} - ${DATE}/g" < aprx.8.in > aprx.8
+
+aprx-stat.8: aprx-stat.8.in
+	sed -e "s/@DATEVERSION@/${VERSION} - ${DATE}/g" < aprx-stat.8.in > aprx-stat.8
+
+dist:
+	# Special for OH2MQK only..
+	if [ ! -d ../../${VERSION} ] ; then mkdir ../../${VERSION} ; fi
+	cp -p * ../../${VERSION}/
+	cd ../../${VERSION} && make clean
+	cd ../.. && tar czvf ${VERSION}.tar.gz ${VERSION}

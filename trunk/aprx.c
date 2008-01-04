@@ -27,7 +27,7 @@ struct pollfd polls[MAXPOLLS];
 
 int die_now;
 
-const char *version = "aprx-v0.12";
+const char *version = APRXVERSION;
 
 
 static void sig_handler(int sig)
@@ -38,6 +38,7 @@ static void sig_handler(int sig)
 static void usage(void)
 {
 	printf("aprx: [-d][-d][-e][-v][-l logfacility] [-f %s]\n", CFGFILE);
+	printf("    version: %s\n", version);
 	printf("    -f %s:  where the configuration is\n", CFGFILE);
 	printf("    -v:  Outputs textual format of received packets, and data on STDOUT.\n");
 	printf("    -e:  Outputs raw ERLANG-report lines on SYSLOG.\n");
