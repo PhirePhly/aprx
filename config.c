@@ -191,7 +191,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	  if (debug)
 	    printf("%s:%d: APRXLOG = '%s'\n", cfgfilename, linenum, param1);
 
-	  rflogfile = strdup(param1);
+	  aprxlogfile = strdup(param1);
 
 	} else if (strcmp(name, "aprxlog-erlang") == 0) {
 	  if (debug)
@@ -203,7 +203,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	  if (debug)
 	    printf("%s:%d: RFLOG = '%s'\n", cfgfilename, linenum, param1);
 
-	  aprxlogfile = strdup(param1);
+	  rflogfile = strdup(param1);
 
 	} else if (strcmp(name, "erlangfile") == 0) {
 	  if (debug)
