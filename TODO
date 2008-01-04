@@ -1,5 +1,5 @@
 
-		     APRX   v0.12
+		     APRX   v0.13
 
 		  	TODO
 
@@ -8,7 +8,7 @@
 
 - manual (man-pages exist)
 
-- configure -script
+- configure -script ?
 
 - "make install"
   - Sort of one exists..

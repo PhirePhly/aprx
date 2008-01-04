@@ -1,4 +1,13 @@
-2008-01-04  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+2008-01-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION, arpx.c, Makefile, aprx.8, aprx.8.in,
+	  aprx-stat.8, aprx-stat.8.in:
+	    Define system version in VERSION file, have it stamped
+	    on programs and 
+
+	* config.c:
+	    The "aprxlog" and "rflog" parameters were interchanged
+	    at some point.
 
 	* aprx.c, aprsis.c, beacon.c:
 	    Complain loudly with -d or -v options on, and if the
@@ -6,7 +15,7 @@
 	    Do not refuse to run, though!  This is perfectly valid
 	    for things like Erlang-monitoring.
 
-2007-12-29  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+2007-12-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* version aprx-v0.12
 
@@ -23,7 +32,7 @@
 	    Centralize the APRSIS communication line ending CRLF char pair
 	    addition into common code, not distributed all over.
 
-2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* version aprx-v0.11
 
