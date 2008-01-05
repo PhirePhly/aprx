@@ -158,5 +158,6 @@ struct erlanghead {
 
 #define ERLANGLINE_STRUCT_VERSION ((2<<16)|sizeof(struct erlangline))
 
+extern struct erlanghead  *ErlangHead;
 extern struct erlangline **ErlangLines;
 extern int                 ErlangLinesCount;

@@ -13,6 +13,11 @@
 - "make install"
   - Sort of one exists..
 
+- system integration bits, like init-scripts..
+  - Debian Linux
+  - Fedora Linux
+  - ...
+
 - bidirectional relaying capability with areal filters ??
   (that would make this a full-blown aprsd / aprsdigi replacement..)
 
@@ -22,4 +27,4 @@
   - possibly to run suid-root ?
 
 
-by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007
+by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007,2008

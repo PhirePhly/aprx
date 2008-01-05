@@ -42,6 +42,7 @@ static int erlang_file_fd = -1;
 static void *erlang_mmap;
 static int   erlang_mmap_size;
 
+struct erlanghead  *ErlangHead;
 struct erlangline **ErlangLines;
 int                 ErlangLinesCount;
 
@@ -51,7 +52,7 @@ struct erlang_file {
 };
 
 
-static int erlang_backingstore_grow(int add_count)
+static int erlang_backingstore_grow(int do_create, int add_count)
 {
 	struct stat st;
 	char buf[256];
@@ -106,6 +107,7 @@ static int erlang_backingstore_grow(int add_count)
 	  munmap(erlang_mmap, erlang_mmap_size);
 	  erlang_mmap = NULL;
 	  erlang_mmap_size = 0;
+	  ErlangHead = NULL;
 	}
 
 	/* Some (early Linux) systems mmap() offset on IO pointer... */
@@ -123,6 +125,8 @@ static int erlang_backingstore_grow(int add_count)
 
 	  int i, rc, l;
 	  struct erlang_file *EF = erlang_mmap;
+
+	  ErlangHead = & EF->head;
 
 	  if (EF->head.version != ERLANGLINE_STRUCT_VERSION ||
 	      EF->head.last_update == 0) {
@@ -144,6 +148,11 @@ static int erlang_backingstore_grow(int add_count)
 	      erlang_file_fd = -1;
 	      return -1; /* BAD BAD ! */
 	    }
+	  }
+
+	  if (do_create) {
+	    EF->head.server_pid = getpid();
+	    EF->head.start_time = time(NULL);
 	  }
 
 	  if (EF->head.linecount != ErlangLinesCount  || add_count > 0) {
@@ -180,7 +189,7 @@ static int erlang_backingstore_grow(int add_count)
 
 	    add_count = 0;
 	    EF->head.linecount = new_count;
-	    ErlangLinesCount = new_count;
+	    ErlangLinesCount   = new_count;
 
 	    goto redo_open; /* redo mapping */
 	  }
@@ -220,7 +229,7 @@ static int erlang_backingstore_open(int do_create)
 	  return -1;
 	}
 
-	return erlang_backingstore_grow(0); /* Just open */
+	return erlang_backingstore_grow(do_create, 0); /* Just open */
 }
 
 
@@ -251,7 +260,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	if (!E) {
 
 	  /* Allocate a new one */
-	  erlang_backingstore_grow(1);
+	  erlang_backingstore_grow(0, 1);
 	  if (!ErlangLines) return NULL; /* D'uh! */
 
 	  E = ErlangLines[ErlangLinesCount-1]; /* Last one is the lattest.. */

@@ -1,5 +1,12 @@
 2008-01-05  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* INSTALL:
+	    Some text fixes
+
+	* aprx-stat.c, aprx.h, erlang.c:
+	    Report also server process PID on the SNMP dataset,
+	    and time in seconds since it was started.
+
 	* ax25.c:
 	    Verify TNC2 format APRS message's FROM>DEST,VIA,VIA:
 	    callsigns to be of proper syntax.

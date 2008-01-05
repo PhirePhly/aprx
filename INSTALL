@@ -2,29 +2,34 @@
 
 A rough-cut version of the installation instructions
 
-  1) possibly adjust  Makefile
+  1) possibly adjust  Makefile  or perhaps just
+     define overrider values for "make" command
 
   2) Cleanliness is good start:
 
          $ make clean
 
-  3) There is automatic "install" as:
+  3) Compile the thing:
 
-        # make install
+         $ make
+
+  4) There is automatic "install" as:
+
+         # make install
 
       with several presumptions about directories
       fixed into the Makefile (possibly adjustments
       are required.)
 
-  4) Edit the configuration file to match your system:
+  5) Edit the configuration file to match your system:
 
         # emacs /etc/aprx.conf
 
      See the  aprx(8) man-page for more info (man 8 aprx)
 
-  5) Starting the program requires manual job, init-script
+  6) Starting the program requires manual job, init-script
      has not been written for it yet!
      (trivialish, but not with development priority)
 
-  6) Collect Erlang data, and analyze it using
+  7) Collect Erlang data, and analyze it using
      the  aprx-stat(8)  utility...
