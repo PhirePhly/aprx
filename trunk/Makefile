@@ -40,7 +40,7 @@ install: all
 	: install -c -m 644 aprx.conf $(CFGFILE)
 
 clean:
-	rm -f *~ *.o aprx aprx-stat *.ps *.8 *.html *.pdf
+	rm -f *~ *.o aprx aprx-stat *.ps *.8 *.html *.pdf aprx.conf
 
 aprx.o: aprx.c aprx.h Makefile
 	$(CC) $(CFLAGS) -c aprx.c
