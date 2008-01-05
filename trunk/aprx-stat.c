@@ -23,6 +23,9 @@ void erlang_snmp(void)
 	/* SNMP data output - continuously growing counters
 	 */
 
+	printf("APRX.pid     %8ld\n", (long)ErlangHead->server_pid);
+	printf("APRX.uptime  %8ld\n", (long)(time(NULL) - ErlangHead->start_time));
+
 	for (i = 0; i < ErlangLinesCount; ++i) {
 	  struct erlangline *E = ErlangLines[i];
 
@@ -43,6 +46,10 @@ void erlang_xml(int topmode)
 	   It is not even the whole dataset, just last 60 samples
 	   of each type.
 	*/
+
+
+	printf("APRX.pid     %8ld\n", (long)ErlangHead->server_pid);
+	printf("APRX.uptime  %8ld\n", (long)(time(NULL) - ErlangHead->start_time));
 
 	for (i = 0; i < ErlangLinesCount; ++i) {
 	  struct erlangline *E = ErlangLines[i];
