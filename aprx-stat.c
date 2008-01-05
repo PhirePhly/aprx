@@ -14,7 +14,8 @@
 time_t now;
 int erlangout;
 int epochtime;
-char *aprxlogfile;
+char *aprxlogfile; /* linkage dummy */
+const char *mycall; /* linkage dummy */
 
 void erlang_snmp(void)
 {
@@ -25,6 +26,7 @@ void erlang_snmp(void)
 
 	printf("APRX.pid     %8ld\n", (long)ErlangHead->server_pid);
 	printf("APRX.uptime  %8ld\n", (long)(time(NULL) - ErlangHead->start_time));
+	printf("APRX.mycall  %s\n", ErlangHead->mycall);
 
 	for (i = 0; i < ErlangLinesCount; ++i) {
 	  struct erlangline *E = ErlangLines[i];
@@ -50,6 +52,7 @@ void erlang_xml(int topmode)
 
 	printf("APRX.pid     %8ld\n", (long)ErlangHead->server_pid);
 	printf("APRX.uptime  %8ld\n", (long)(time(NULL) - ErlangHead->start_time));
+	printf("APRX.mycall  %s\n", ErlangHead->mycall);
 
 	for (i = 0; i < ErlangLinesCount; ++i) {
 	  struct erlangline *E = ErlangLines[i];
@@ -171,6 +174,8 @@ int main(int argc, char **argv)
 	}
 
 	erlang_start(0); /* Open the backing-store */
+
+	if (!ErlangHead) exit(1);
 
 	if (mode_snmp) {
 	  erlang_snmp();

@@ -32,6 +32,7 @@ static float erlang_time_ival_10min = 1.0;
 static time_t	erlang_time_end_60min;
 static float erlang_time_ival_60min = 1.0;
 
+static const char *erlangtitle = "APRX SNMP + Erlang dataset\n";
 
 int erlangsyslog;	/* if set, will log via syslog(3)  */
 int erlanglog1min;	/* if set, will log also "ERLANG1" interval  */
@@ -51,6 +52,17 @@ struct erlang_file {
 	struct erlangline	lines[2];
 };
 
+static void erlang_backingstore_startops(void)
+{
+	ErlangHead->server_pid = getpid();
+	ErlangHead->start_time = time(NULL);
+
+	if (!mycall)
+	  strncpy(ErlangHead->mycall,"N0CALL",sizeof(ErlangHead->mycall));
+	else
+	  strncpy(ErlangHead->mycall,mycall,sizeof(ErlangHead->mycall));
+	ErlangHead->mycall[sizeof(ErlangHead->mycall)-1] = 0; /* NUL terminate */
+}
 
 static int erlang_backingstore_grow(int do_create, int add_count)
 {
@@ -134,6 +146,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	      /* Not initialized ? */
 	      memset(erlang_mmap, 0, erlang_mmap_size);
 
+	      strcpy(EF->head.title, erlangtitle);
 	      EF->head.version = ERLANGLINE_STRUCT_VERSION;
 	      EF->head.linecount = 0;
 	      EF->head.last_update = now;
@@ -148,11 +161,6 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	      erlang_file_fd = -1;
 	      return -1; /* BAD BAD ! */
 	    }
-	  }
-
-	  if (do_create) {
-	    EF->head.server_pid = getpid();
-	    EF->head.start_time = time(NULL);
 	  }
 
 	  if (EF->head.linecount != ErlangLinesCount  || add_count > 0) {
@@ -572,4 +580,6 @@ void erlang_init(const char *syslog_facility_name)
 void erlang_start(int do_create)
 {
 	erlang_backingstore_open(do_create);
+	if (do_create > 1)
+	  erlang_backingstore_startops();
 }
