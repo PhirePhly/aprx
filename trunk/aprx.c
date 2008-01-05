@@ -126,22 +126,25 @@ int main(int argc, char * const argv[])
 	    /* This is parent */
 	    exit(0);
 	  }
-	  if (pid == 0) {
-	    /* This is child ! */
-	    FILE *pf = fopen(pidfile,"w");
+	  /* child and error cases continue on main program.. */
+	}
 
-	    setsid(); /* Happens or not ... */
+	if (1) {
+	  /* Open the pidfile, if you can.. */
+	  FILE *pf = fopen(pidfile,"w");
 
-	    if (!pf) {
-	      /* Could not open pidfile! */
-	      fprintf(stderr,"COULD NOT OPEN PIDFILE: '%s'\n", pidfile);
-	      pidfile = NULL;
-	    } else {
-	      fprintf(pf,"%ld\n",(long)getpid());
-	      fclose(pf);
-	    }
+	  setsid(); /* Happens or not ... */
+
+	  if (!pf) {
+	    /* Could not open pidfile! */
+	    fprintf(stderr,"COULD NOT OPEN PIDFILE: '%s'\n", pidfile);
+	    pidfile = NULL;
+	  } else {
+	    fprintf(pf,"%ld\n",(long)getpid());
+	    fclose(pf);
 	  }
 	}
+
 
 	erlang_start(2); /* reset PID, etc.. */
 

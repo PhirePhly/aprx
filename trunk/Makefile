@@ -3,127 +3,141 @@
 #          minimal requirement of esoteric facilities or
 #          libraries of any kind beyond UNIX system libc.
 #
+# Note: This makefile uses features from GNU make
 
-# Expect GNU make!
-VERSION=$(shell cat VERSION)
-SVNVERSION=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
-DATE=	$(shell date +"%Y %B %d")
+# -------------------------------------------------------------------- #
 
-# Directory where aprx.state, and aprx.pid -files live.
-VARRUN=	/var/run
-VARLOG=	/var/log
-CFGFILE= /etc/aprx.conf
+# target paths
+VARRUN=		/var/run	# directory for aprx.state and pid-file
+VARLOG=		/var/log	# directory for direct logfiles
+CFGFILE=	/etc/aprx.conf	# default configuration file
+SBINDIR=	/usr/sbin/	# installation path for programs
+MANDIR=		/usr/share/man	# installation path for manual pages
 
-DEFS=	 -DAPRXVERSION="\"${VERSION}\"" -DVARRUN="\"${VARRUN}\""	\
-	 -DVARLOG="\"${VARLOG}\"" -DCFGFILE="\"${CFGFILE}\""
+# -------------------------------------------------------------------- #
 
-CC=	gcc 
-CFLAGS=	-g -O3  -Wall $(DEFS)
+# Compiler and flags
+CC=		gcc 
+CFLAGS=		-g -O3 -Wall $(DEFS)
 
+# Linker and flags
+LD=		$(CC)
+LDFLAGS=	-g -Wall
 
-SBINDIR=/usr/sbin/
-MANDIR=/usr/share/man
+INSTALL=	/usr/bin/install
+INSTALL_PROGRAM=$(INSTALL)  -m 755
+INSTALL_DATA=	$(INSTALL)      -m 644
+
+# -------------------------------------------------------------------- #
+# no user serviceable parts below 
+# -------------------------------------------------------------------- #
+
+# strip extra whitespace from paths
+VARRUN:=$(strip $(VARRUN))
+VARLOG:=$(strip $(VARLOG))
+CFGFILE:=$(strip $(CFGFILE))
+SBINDIR:=$(strip $(SBINDIR))
+MANDIR:=$(strip $(MANDIR))
+
+# generate version strings
+VERSION:=$(shell cat VERSION)
+SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
+DATE:=$(shell date +"%Y %B %d")
+
+DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
+	 -DVARLOG="\"$(VARLOG)\"" -DCFGFILE="\"$(CFGFILE)\""
+
+# program names
+PROGAPRX=	aprx
+PROGSTAT=	$(PROGAPRX)-stat
 
 LIBS=	# Nothing special needed!
-HDRS=		aprx.h
-SRC=		aprx.c ttyreader.c ax25.c aprsis.c beacon.c config.c netax25.c erlang.c aprxpolls.c Makefile
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o netax25.o erlang.o aprxpolls.o
 OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
 
-all:  aprx aprx-stat html pdf aprx.conf
+# man page sources, will be installed as $(PROGAPRX).8 / $(PROGSTAT).8
+MANAPRX := 	aprx.8
+MANSTAT := 	aprx-stat.8
 
+OBJS=		$(OBJSAPRX) $(OBJSSTAT)
+MAN=		$(MANAPRX) $(MANSTAT)
+
+# -------------------------------------------------------------------- #
+
+.PHONY: 	all
+all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf
+
+$(PROGAPRX):	$(OBJSAPRX) VERSION Makefile
+		$(LD) $(LDLAGS) -o $@ $(OBJSAPRX) $(LIBS)
+
+$(PROGSTAT):	$(OBJSSTAT) VERSION Makefile
+		$(LD) $(LDLAGS) -o $@ $(OBJSSTAT) $(LIBS)
+
+.PHONY:		man
+man:		$(MAN)
+
+.PHONY:		doc html pdf
+doc:		html pdf
+pdf:		$(MAN:=.pdf)
+html:		($MAN:=.html)
+
+# -------------------------------------------------------------------- #
+
+.PHONY:	install
 install: all
-	install -c -m 755 aprx $(SBINDIR)
-	install -c -m 755 aprx-stat $(SBINDIR)
-	install -c -m 644 aprx.8 $(MANDIR)/man8/
-	install -c -m 644 aprx-stat.8 $(MANDIR)/man8/
-	: install -c -m 644 aprx.conf $(CFGFILE)
+	$(INSTALL_PROGRAM) $(PROGAPRX) $(DESTDIR)(SBINDIR)/$(PROGAPRX)
+	$(INSTALL_PROGRAM) $(PROGSTAT) $(DESTDIR)(SBINDIR)/$(PROGSTAT)
+	$(INSTALL_DATA) $(MANAPRX) $(DESTDIR)$(MANDIR)/man8/$(PROGAPRX).8
+	$(INSTALL_DATA) $(MANSTAT) $(DESTDIR)$(MANDIR)/man8/$(PROGSTAT).8
+	: $(INSTALL_DATA) aprx.conf $(DESTDIR)$(CFGFILE)
 
+.PHONY: clean
 clean:
-	rm -f *~ *.o aprx aprx-stat *.ps *.8 *.html *.pdf aprx.conf
+	rm -f $(PROGAPRX) $(PROGSTAT)	\
+	      $(MAN) $(MAN:=.html) $(MAN:=.ps) $(MAN:=.pdf)	\
+	      aprx.conf	\
+	      $(OBJS)	\
+	      $(OBJS:.o=.d)
 
-aprx.o: aprx.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c aprx.c
+.PHONY: distclean
+distclean: clean
+	rm -f *~ *.o *.d
 
-aprsis.o: aprsis.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c aprsis.c
+# -------------------------------------------------------------------- #
 
-aprxpolls.o: aprxpolls.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c aprxpolls.c
+# include object depencies if available
+-include $(OBJS:.o=.d)
 
-config.o: config.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c config.c
+%.o: %.c aprx.h VERSION Makefile
+	$(CC) $(CFLAGS) -c $<
+	@$(CC) -MM $(CFLAGS) $< > $(@:.o=.d)
 
-erlang.o: erlang.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c erlang.c $(ERLANG)
+$(MAN:=.html): %.html : %
+	sh man-to-html.sh $< > $@
 
-ttyreader.o: ttyreader.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c ttyreader.c
+$(MAN:=.ps): %.ps : %
+	groff -man $< > $@
 
-ax25.o: ax25.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c ax25.c
+$(MAN:=.pdf): %.pdf : %.ps
+	ps2pdf $<
 
-netax25.o: netax25.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c netax25.c
+$(MAN)	\
+aprx.conf: % : %.in VERSION Makefile
+	perl -ne "s{\@DATEVERSION\@}{$(VERSION) - $(DATE)}g;	\
+	          s{\@VARRUN\@}{$(VARRUN)}g;			\
+	          s{\@VARLOG\@}{$(VARLOG)}g;			\
+	          s{\@CFGFILE\@}{$(CFGFILE)}g;			\
+		  print;"					\
+	 < $< > $@
 
-beacon.o: beacon.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c beacon.c
+# -------------------------------------------------------------------- #
 
-aprx-stat.o: aprx-stat.c aprx.h Makefile
-	$(CC) $(CFLAGS) -c aprx-stat.c
-
-aprx: $(OBJSAPRX)
-	$(CC) $(CFLAGS) -o aprx $(OBJSAPRX) $(LIBS)
-
-aprx-stat: $(OBJSSTAT)
-	$(CC) $(CFLAGS) -o aprx-stat $(OBJSSTAT) $(LIBS)
-
-pdf: aprx.8.pdf aprx-stat.8.pdf
-html: aprx.8.html aprx-stat.8.html
-
-aprx.8.html: aprx.8
-	sh man-to-html.sh aprx.8 > aprx.8.html
-
-aprx-stat.8.html: aprx-stat.8
-	sh man-to-html.sh aprx-stat.8 > aprx-stat.8.html
-
-aprx.8.pdf: aprx.8
-	groff -man aprx.8 > aprx.8.ps
-	ps2pdf aprx.8.ps
-	rm -f aprx.8.ps
-
-aprx-stat.8.pdf: aprx-stat.8
-	groff -man aprx-stat.8 > aprx-stat.8.ps
-	ps2pdf aprx-stat.8.ps
-	rm -f aprx-stat.8.ps
-
-aprx.8: aprx.8.in Makefile
-	perl -ne "s{\@DATEVERSION\@}{${VERSION} - ${DATE}}g;		\
-	          s{\@VARRUN\@}{${VARRUN}}g;				\
-	          s{\@VARLOG\@}{${VARLOG}}g;				\
-	          s{\@CFGFILE\@}{${CFGFILE}}g;				\
-		  print;"						\
-	 < aprx.8.in > aprx.8
-
-aprx-stat.8: aprx-stat.8.in Makefile
-	perl -ne "s{\@DATEVERSION\@}{${VERSION} - ${DATE}}g;		\
-	          s{\@VARRUN\@}{${VARRUN}}g;				\
-	          s{\@VARLOG\@}{${VARLOG}}g;				\
-	          s{\@CFGFILE\@}{${CFGFILE}}g;				\
-		  print;"						\
-	 < aprx-stat.8.in > aprx-stat.8
-
-aprx.conf: aprx.conf.in Makefile
-	perl -ne "s{\@DATEVERSION\@}{${VERSION} - ${DATE}}g;		\
-	          s{\@VARRUN\@}{${VARRUN}}g;				\
-	          s{\@VARLOG\@}{${VARLOG}}g;				\
-	          s{\@CFGFILE\@}{${CFGFILE}}g;				\
-		  print;"						\
-	 < aprx.conf.in > aprx.conf
-
+.PHONY: dist
 dist:
-	# Special for OH2MQK only..
-	if [ ! -d ../../${VERSION}-svn${SVNVERSION} ] ; then mkdir ../../${VERSION}-svn${SVNVERSION} ; fi
-	cp -p * ../../${VERSION}-svn${SVNVERSION}/
-	cd ../../${VERSION}-svn${SVNVERSION} && make clean
-	cd ../.. && tar czvf ${VERSION}-svn${SVNVERSION}.tar.gz ${VERSION}-svn${SVNVERSION}
+	# Special for maintainer only..
+	if [ ! -d ../../$(VERSION)-svn$(SVNVERSION) ] ; then mkdir ../../$(VERSION)-svn$(SVNVERSION) ; fi
+	cp -p * ../../$(VERSION)-svn$(SVNVERSION)/
+	cd ../../$(VERSION)-svn$(SVNVERSION) && make clean
+	cd ../.. && tar czvf $(VERSION)-svn$(SVNVERSION).tar.gz $(VERSION)-svn$(SVNVERSION)
+
+# -------------------------------------------------------------------- #
