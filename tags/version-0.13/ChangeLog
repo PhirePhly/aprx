@@ -1,0 +1,163 @@
+2008-01-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version 0.13
+
+	* aprx.h, aprx.c, erlang.c, aprx-stat.c:
+	    Modifications on shared memory segment head, stores
+	    MYCALL, correct running process PID.
+
+	* INSTALL:
+	    Some text fixes
+
+	* aprx-stat.c, aprx.h, erlang.c:
+	    Report also server process PID on the SNMP dataset,
+	    and time in seconds since it was started.
+
+	* ax25.c:
+	    Verify TNC2 format APRS message's FROM>DEST,VIA,VIA:
+	    callsigns to be of proper syntax.
+
+	* Makefile, aprx.8, aprx.8.in, aprx-stat.8, aprx-stat.8.in,
+	  aprx.conf, aprx.conf.in:
+	    Centralized a bit of configuring into Makefile, generating
+	    files from *.in versions.
+
+	* aprxpolls.c:
+	    Library function used everywhere, part of "eliminate fixed
+	    size preallocations" -task.
+	
+	* aprsis.c:
+	    Debug logging improvements, parent death detection.
+	    Preserved MAXAPRSIS setting - of 10 servers.
+
+	* ttyreader.c:
+	    Unfix the number of TTYs, now can be as many as one wants.
+
+	* config.c, aprx.c, aprx.h, aprx.conf.in, aprx.8.in:
+	    pidfile configuration parameter, and its usage
+
+2008-01-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION, arpx.c, Makefile, aprx.8, aprx.8.in,
+	  aprx-stat.8, aprx-stat.8.in:
+	    Define system version in VERSION file, have it stamped
+	    on programs and 
+
+	* config.c:
+	    The "aprxlog" and "rflog" parameters were interchanged
+	    at some point.
+
+	* aprx.c, aprsis.c, beacon.c:
+	    Complain loudly with -d or -v options on, and if the
+	    configuration does not set global  mycall  parameter.
+	    Do not refuse to run, though!  This is perfectly valid
+	    for things like Erlang-monitoring.
+
+2007-12-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version aprx-v0.12
+
+	* PROTOCOLS:
+	    Writeup of existing (and planned) protocols that this
+	    software uses.
+
+	* ax25.c:
+	    Correct processing of 3rd-party frames.
+	    Also separate TNC2 formatted frame Rx-igateing rules
+	    from AX.25-to-TNC2 format translation routine.
+
+	* ax25.c, beacon.c, aprsis.c:
+	    Centralize the APRSIS communication line ending CRLF char pair
+	    addition into common code, not distributed all over.
+
+2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version aprx-v0.11
+
+	* TODO, README:
+	    Cleanup
+
+	* config.c, netax25.c, aprx.8, aprx.conf:
+	    Config option "ax25-rxport" - Limits acceptance of APRS
+	    packets only from listed Linux AX.25 ports.
+
+	* ttyreader.c, aprx.conf, aprx.8:
+	    Reworked a bit of the serialport config options.
+	    Now initstring, and various KISS modes are configurable
+
+	* erlang.c:
+	    Carefull approach on erlang-file opening, if file exists,
+	    and is non-zero size, open it only if magics match.
+
+	* config.c:
+	    config_SKIPTEXT() terminates all scanned strings with NUL byte,
+	    and moves to byte following it, if the termination byte was not
+	    a NUL byte originally.
+
+	* aprx-stat.c, aprx-stat.8:
+	    Option -t  to show timestamps differently.
+
+	* Makefile, man-to-html.sh:
+	    Produce decent format HTML versions of the man-pages.
+
+	* config.c, erlang.c, aprx.8, aprx.conf:
+	    Added "erlang-log1min" option to control 1 minute interval
+	    Erlang sampling logging behaviour.
+
+	* Makefile:
+	    Fix "make install" of man-pages
+
+	* version aprx-v0.10
+
+	* aprx-stat.c, aprx-stat.8, erlang.c, Makefile:
+	    Statistics reporter tool.
+
+	* aprsis.c, config.c, aprx.8, aprx.conf:
+	    Multiple aprsis-server  config definitions are now
+	    supported, and used in round-robin fashion.
+
+	* ax25.c, config.c, aprx.8, aprx.conf:
+	    Config option  ax25-filter
+
+	* ttyreader.c, erlang.c:
+	    Magic channel capacity constant expressions updated..
+
+2007-12-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, aprx.h, aprsis.c, aprx.8, aprx.conf, ax25.c, erlang.c:
+	    Multiple configuration file options, rf-log, and aprx-log -files,
+	    related documentation.
+
+	* config.c, aprx.8:
+	    Special quoted-string escape processing.
+
+	* version aprx-v0.08
+
+	* erlang.c, aprx.c, aprx.h:
+	    Erlang data has now a mmap():ed filesystem based backing-store.
+	    Erlang-data can be syslog()ed, and independently of that,
+	    it can be printed on STDOUT.  Default syslog facility is "NONE".
+	
+	* Great Rename -- the thing is now called:  aprx
+
+2007-12-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsg.8, erlang.c, aprsg.c, netax25.c, ttyreader.c:
+	    Erlang logging now uses syslog(3), unless explicitely told to use
+	    output to stdout.  Also the Erlang log format was altered a bit,
+	    now it reports also number of packets in the interval.
+
+	* erlang.c, Makefile:
+	    "make ERLANG1=1" compiles in also 1 minute erlang logging interval.
+
+	* aprsis.c:
+	    Code refactored to put the APRS-IS communication into its own
+	    fork()ed sub-process communicating via a socketpair() with the
+	    main loop.   Now reconnection time with the APRS-IS server does
+	    not affect functionality of the main loop.
+
+2007-12-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* ChangeLog
+	   Opened for the first time.  Version 0.06.
+
