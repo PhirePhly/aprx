@@ -6,7 +6,7 @@
 
 # Expect GNU make!
 VERSION=$(shell cat VERSION)
-SVNVERSION=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo ""; fi)
+SVNVERSION=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
 DATE=	$(shell date +"%Y %B %d")
 
 # Directory where aprx.state, and aprx.pid -files live.
@@ -123,7 +123,7 @@ aprx.conf: aprx.conf.in Makefile
 
 dist:
 	# Special for OH2MQK only..
-	if [ ! -d ../../${VERSION} ] ; then mkdir ../../${VERSION} ; fi
-	cp -p * ../../${VERSION}/
-	cd ../../${VERSION} && make clean
-	cd ../.. && tar czvf ${VERSION}.tar.gz ${VERSION}
+	if [ ! -d ../../${VERSION}-svn${SVNVERSION} ] ; then mkdir ../../${VERSION}-svn${SVNVERSION} ; fi
+	cp -p * ../../${VERSION}-svn${SVNVERSION}/
+	cd ../../${VERSION}-svn${SVNVERSION} && make clean
+	cd ../.. && tar czvf ${VERSION}-svn${SVNVERSION}.tar.gz ${VERSION}-svn${SVNVERSION}
