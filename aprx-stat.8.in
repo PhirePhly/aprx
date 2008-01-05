@@ -5,7 +5,10 @@
 \- statistics utility for
 .BR aprx (8)
 .SH SYNOPSIS
-aprx-stat [\-t] [\-f /tmp/aprx\-erlang.dat] {\-S|\-x|\-X}
+.B aprx\-stat
+.RB [ \-t ]
+.RB [ \-f " \fI@VARRUN@/aprx.state\fR]
+.RB { \-S | \-x | \-X }
 .SH DESCRIPTION
 .B aprx\-stat
 is a statistics utility for
@@ -17,16 +20,16 @@ The
 .B aprx\-stat
 has following runtime options:
 .TP
-.B "\-t"
-Use UNIX
-.I time_t
-for timestamps, instead of human readable text format.
-.TP
-.B "\-f /tmp/aprx\-erlang.dat"
+.B "\-f \fI@VARRUN@/aprx.state\fR"
 Turn on verbose debugging, outputs data to STDOUT.
 .TP
 .B "\-S"
 SNMP data mode, current counter and gauge values.
+.TP
+.B "\-t"
+Use UNIX
+.I time_t
+for timestamps, instead of human readable text format.
 .TP
 .B "\-x"
 Lattest of extended historical gauge values.
@@ -186,10 +189,11 @@ The HDLC bit stuffing ratio is guessed to be 8.2 bits for each 8 bits of payload
 This program needs probably to be run as
 .I "suid\-root" 
 !
-It is fairly safe to do so, as this checks that the
+It is considered safe to do so, as this checks that the
 .B "\-f"
-parameter file is of correct time, and will not try to create create
-it if it does not exist.
+parameter file is of correct "magic value", and will not try to create
+it if it does not exist, nor modify that file under any circumstances,
+nor reveal content of "wrong magic kind" of file.
 
 .SH AUTHOR
 This little piece was written by
@@ -201,3 +205,5 @@ for APRS iGate use in Linux (or of any UNIX) platforms.
 Principal contributors and test users include:
 .IR "Pentti Gronlund, OH3BK" ,
 .IR "Reijo Hakala, OH1GWK" .
+Debian packaging by
+.IR "Kimmo Jukarinen, OH3GNU" .

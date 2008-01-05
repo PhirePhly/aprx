@@ -14,7 +14,8 @@
 # they are used in round-robin fashion.  Heartbeat and filter
 # definitions must follow each server definition.
 #
-#aprsis-server    rotate.aprs.net  14580
+#aprsis-server    finland.aprs2.net  14580
+#aprsis-server    rotate.aprs.net    14580
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
@@ -52,16 +53,22 @@
 #ax25-rxport ax0
 #ax25-rxport ax1
 
+# pidfile is UNIX way to tell that others that this program is
+# running with given process-id number.  This has compiled-in
+# default value of:  pidfile @VARRUN@/aprx.pid
+#
+pidfile @VARRUN@/aprx.pid
+
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
-#rflog /tmp/aprx-rf.log
+#rflog @VARLOG@/aprx-rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS-IS connection are logged, namely connects and
 # disconnects.
 #
-#aprxlog /tmp/aprx.log
+#aprxlog @VARLOG@/aprx.log
 
 # erlangfile defines a mmap():able binary file, which stores
 # running sums of interfaces upon which the channel erlang
@@ -76,9 +83,9 @@
 # Things go BADLY WRONG if this file can not be created or
 # it is corrupted!
 #
-# Built-in default value is: /tmp/aprs-erlang.dat
+# Built-in default value is: @VARRUN@/aprx.state
 #
-erlangfile /tmp/aprx-erlang.dat
+#erlangfile @VARRUN@/aprx.state
 
 # erlang-loglevel is config file edition of the "-l" option
 # pushing erlang data to syslog(3).

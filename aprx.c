@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -20,10 +20,11 @@ int erlangout;
 char *rflogfile;
 char *aprxlogfile;
 
+#ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
+#endif
 
-
-struct pollfd polls[MAXPOLLS];
+char *pidfile = VARRUN "/aprx.pid";
 
 int die_now;
 
@@ -62,10 +63,10 @@ int fd_nonblockingmode(int fd)
 int main(int argc, char * const argv[]) 
 {
 	int i;
-	struct pollfd *fds;
-	int nfds, nfds2;
 	const char *cfgfile = "/etc/aprx.conf";
 	const char *syslog_facility = "NONE";
+	int foreground = 0;
+	struct aprxpolls app = { NULL, 0, 0 };
 
 	now = time(NULL);
 
@@ -73,13 +74,10 @@ int main(int argc, char * const argv[])
 	setlinebuf(stderr);
 
 	/* Init the poll(2) descriptor array */
-	memset(polls, 0, sizeof(polls));
-	for (i = 0; i < MAXPOLLS; ++i)
-	  polls[i].fd = -1;
 
 	signal(SIGTERM, sig_handler);
-	signal(SIGINT, sig_handler);
-	signal(SIGHUP, sig_handler);
+	signal(SIGINT,  sig_handler);
+	signal(SIGHUP,  sig_handler);
 
 	while ((i = getopt(argc, argv, "def:hl:v?")) != -1) {
 	  switch (i) {
@@ -88,15 +86,18 @@ int main(int argc, char * const argv[])
 	    break;
 	  case 'd':
 	    ++debug;
+	    ++foreground;
 	    break;
 	  case 'e':
 	    ++erlangout;
+	    ++foreground;
 	    break;
 	  case 'l':
 	    syslog_facility = optarg;
 	    break;
 	  case 'v':
 	    ++verbout;
+	    ++foreground;
 	    break;
 	  case 'f':
 	    cfgfile = optarg;
@@ -119,6 +120,29 @@ int main(int argc, char * const argv[])
 	  fprintf(stderr,"NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	}
 
+	if (!foreground) {
+	  int pid = fork();
+	  if (pid > 0) {
+	    /* This is parent */
+	    exit(0);
+	  }
+	  if (pid == 0) {
+	    /* This is child ! */
+	    FILE *pf = fopen(pidfile,"w");
+
+	    setsid(); /* Happens or not ... */
+
+	    if (!pf) {
+	      /* Could not open pidfile! */
+	      fprintf(stderr,"COULD NOT OPEN PIDFILE: '%s'\n", pidfile);
+	      pidfile = NULL;
+	    } else {
+	      fprintf(pf,"%ld\n",(long)getpid());
+	      fclose(pf);
+	    }
+	  }
+	}
+
 
 	/* Must be after config reading ... */
 	aprsis_start();
@@ -127,42 +151,34 @@ int main(int argc, char * const argv[])
 
 	while (! die_now ) {
 
-	  time_t next_timeout;
 	  now = time(NULL);
-	  next_timeout = now + 30;
 
-	  fds = polls;
-	  nfds = MAXPOLLS;
+	  aprxpolls_reset(&app);
+	  app.next_timeout = now + 30;
 
-	  i = ttyreader_prepoll(nfds, &fds, &next_timeout);
-	  nfds -= i;
-	  nfds2 = i;
-	  i = aprsis_prepoll(nfds, &fds, &next_timeout);
-	  nfds2 += i;
-	  nfds  -= i;
-	  i = beacon_prepoll(nfds, &fds, &next_timeout);
-	  nfds2 += i;
-	  nfds  -= i;
-	  i = netax25_prepoll(nfds, &fds, &next_timeout);
-	  nfds2 += i;
-	  nfds  -= i;
-	  i = erlang_prepoll(nfds, &fds, &next_timeout);
-	  nfds2 += i;
-	  nfds  -= i;
+	  i = ttyreader_prepoll(&app);
+	  i = aprsis_prepoll(&app);
+	  i = beacon_prepoll(&app);
+	  i = netax25_prepoll(&app);
+	  i = erlang_prepoll(&app);
 
-	  if (next_timeout <= now)
-	    next_timeout = now + 1; /* Just to be on safe side.. */
+	  if (app.next_timeout <= now)
+	    app.next_timeout = now + 1; /* Just to be on safe side.. */
 
-	  i = poll(polls, nfds2, (next_timeout - now) * 1000);
+	  i = poll(app.polls, app.pollcount, (app.next_timeout - now) * 1000);
 	  now = time(NULL);
 
 
-	  i = beacon_postpoll(nfds2, polls);
-	  i = ttyreader_postpoll(nfds2, polls);
-	  i = netax25_postpoll(nfds2, polls);
-	  i = aprsis_postpoll(nfds2, polls);
-	  i = erlang_postpoll(nfds2, polls);
+	  i = beacon_postpoll(&app);
+	  i = ttyreader_postpoll(&app);
+	  i = netax25_postpoll(&app);
+	  i = aprsis_postpoll(&app);
+	  i = erlang_postpoll(&app);
 
+	}
+
+	if (pidfile) {
+	  unlink(pidfile);
 	}
 
 	exit (0);

@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * NETAX25:  Listen on (Linux) AX.25 socket and pick all AX.25      *
  *           data packets     ...    actually don't pick those      *
@@ -67,24 +67,22 @@ void netax25_init(void)
 
 }
 
-int netax25_prepoll(int n, struct pollfd **fdsp, time_t *tp)
+int netax25_prepoll(struct aprxpolls *app)
 {
-	struct pollfd *fds = *fdsp;
+	struct pollfd *pfd;
 
 	if (rx_socket < 0) return 0;
 
 	/* FD is open, lets mark it for poll read.. */
-	fds->fd = rx_socket;
-	fds->events = POLLIN|POLLPRI;
-	fds->revents = 0;
-
-	++fds;
-	*fdsp = fds;
+	pfd = aprxpolls_new(app);
+	pfd->fd = rx_socket;
+	pfd->events = POLLIN|POLLPRI;
+	pfd->revents = 0;
 
 	return 1;
 }
 
-int netax25_postpoll(int nfds, struct pollfd *fds)
+int netax25_postpoll(struct aprxpolls *app)
 {
 	struct sockaddr sa;
 	struct ifreq ifr;
@@ -92,12 +90,13 @@ int netax25_postpoll(int nfds, struct pollfd *fds)
 	unsigned char rxbuf[3000];
 	int rcvlen;
 	int i;
+	struct pollfd *pfd = app->polls;
 
 	if (rx_socket < 0) return 0;
 
-	for (i = 0; i < nfds; ++i, ++fds) {
-	  while ((fds->fd == rx_socket) &&
-		 (fds->revents & (POLLIN|POLLPRI))) {
+	for (i = 0; i < app->pollcount; ++i, ++pfd) {
+	  while ((pfd->fd == rx_socket) &&
+		 (pfd->revents & (POLLIN|POLLPRI))) {
 	    /* something coming in.. */
 	    asize = sizeof(sa);
 	    rcvlen = recvfrom(rx_socket, rxbuf, sizeof(rxbuf), 0, &sa, &asize);

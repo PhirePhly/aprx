@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -27,36 +27,20 @@
  #define static /*ignore statics during debug */
 #endif
 
-/* Max number of things to pre-allocate several arrays */
-#define MAXTTYS 16
-#define MAXAPRSIS 4
+/* aprxpolls.c */
+struct aprxpolls {
+	struct pollfd *polls;
+	int pollcount;
+	int pollsize;
+	time_t next_timeout;
+};
 
+extern void aprxpolls_reset(struct aprxpolls *app);
+extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
 
-#define MAXPOLLS 24 /* No really all that much, MAXTTYS + MAXAPRSIS,
-		       plus some slack just in case... */
-
-
+/* aprx.c */
 extern const char *mycall;
 extern int die_now;
-
-extern int  ttyreader_prepoll (int, struct pollfd **, time_t *);
-extern int  ttyreader_postpoll (int, struct pollfd *);
-extern void ttyreader_init (void);
-extern const char *ttyreader_serialcfg(char *param1, char *param2, char *str);
-
-extern void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen);
-extern void  ax25_filter_add(const char *p1, const char *p2);
-
-extern void aprsis_add_server(const char *server, const char *port);
-extern void aprsis_set_heartbeat_timeout(const int tout);
-extern void aprsis_set_filter(const char *filter);
-extern void aprsis_set_mycall(const char *filter);
-
-extern int  aprsis_queue(const char *addr, const char *text, int textlen);
-extern int  aprsis_prepoll(int nfds, struct pollfd **fdsp, time_t *tout);
-extern int  aprsis_postpoll(int nfds, struct pollfd *fds);
-extern void aprsis_init(void);
-extern void aprsis_start(void);
 
 extern int fd_nonblockingmode(int fd);
 
@@ -68,27 +52,54 @@ extern int    verbout;
 extern int    erlangout;
 extern char *rflogfile;
 extern char *aprxlogfile;
+extern char *pidfile;
 
+
+/* ttyreader.c */
+extern int  ttyreader_prepoll (struct aprxpolls *);
+extern int  ttyreader_postpoll (struct aprxpolls *);
+extern void ttyreader_init (void);
+extern const char *ttyreader_serialcfg(char *param1, char *param2, char *str);
+
+/* ax25.c */
+extern void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen);
+extern void  ax25_filter_add(const char *p1, const char *p2);
+
+/* aprsis.c */
+extern void aprsis_add_server(const char *server, const char *port);
+extern void aprsis_set_heartbeat_timeout(const int tout);
+extern void aprsis_set_filter(const char *filter);
+extern void aprsis_set_mycall(const char *filter);
+
+extern int  aprsis_queue(const char *addr, const char *text, int textlen);
+extern int  aprsis_prepoll(struct aprxpolls *app);
+extern int  aprsis_postpoll(struct aprxpolls *app);
+extern void aprsis_init(void);
+extern void aprsis_start(void);
+
+/* beacon.c */
 extern void beacon_set(const char *s);
 extern void beacon_reset(void);
-extern int  beacon_prepoll(int nfds, struct pollfd **fdsp, time_t *tout);
-extern int  beacon_postpoll(int nfds, struct pollfd *fds);
+extern int  beacon_prepoll(struct aprxpolls *app);
+extern int  beacon_postpoll(struct aprxpolls *app);
 
-
+/* netax25.c */
 extern void netax25_init(void);
-extern int  netax25_prepoll(int, struct pollfd **, time_t *);
-extern int  netax25_postpoll(int, struct pollfd *);
+extern int  netax25_prepoll(struct aprxpolls *);
+extern int  netax25_postpoll(struct aprxpolls *);
 extern void netax25_addport(const char *portname);
 
+/* config.c */
 extern void  readconfig(const char *cfgfile);
 extern char *config_SKIPSPACE(char *Y);
 extern char *config_SKIPTEXT(char *Y);
 extern void  config_STRLOWER(char *Y);
 
+/* erlang.c */
 extern void erlang_init(const char *syslog_facility_name);
 extern void erlang_start(int do_create);
-extern int  erlang_prepoll(int nfds, struct pollfd **fdsp, time_t *tout);
-extern int  erlang_postpoll(int nfds, struct pollfd *fds);
+extern int  erlang_prepoll(struct aprxpolls *app);
+extern int  erlang_postpoll(struct aprxpolls *app);
 #define ERLANG_RX 0
 #define ERLANG_TX 1
 extern void erlang_add(const void *refp, const char *portname, int rx_or_tx, int bytes, int packets);
@@ -96,7 +107,6 @@ extern void erlang_set(const void *refp, const char *portname, int bytes_per_min
 extern int erlangsyslog;
 extern int erlanglog1min;
 extern const char *erlang_backingstore;
-
 
 /* The   struct erlangline  is shared in between the aprx, and
    erlang reporter application: aprx-erl */
@@ -106,7 +116,6 @@ struct erlang_rxtxbytepkt {
 	long	bytes_rx, bytes_tx;
 	time_t	update;
 };
-
 
 struct erlangline {
 	const void *refp;
@@ -140,10 +149,13 @@ struct erlanghead {
 	int	linecount;
 	time_t	last_update;
 
+	pid_t	server_pid;
+	time_t	start_time;
+
 	double	align_filler;
 };
 
-#define ERLANGLINE_STRUCT_VERSION ((1<<16)|sizeof(struct erlangline))
+#define ERLANGLINE_STRUCT_VERSION ((2<<16)|sizeof(struct erlangline))
 
 extern struct erlangline **ErlangLines;
 extern int                 ErlangLinesCount;

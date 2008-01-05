@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -204,6 +204,12 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	    printf("%s:%d: RFLOG = '%s'\n", cfgfilename, linenum, param1);
 
 	  rflogfile = strdup(param1);
+
+	} else if (strcmp(name, "pidfile") == 0) {
+	  if (debug)
+	    printf("%s:%d: PIDFILE = '%s'\n", cfgfilename, linenum, param1);
+
+	  pidfile = strdup(param1);
 
 	} else if (strcmp(name, "erlangfile") == 0) {
 	  if (debug)
