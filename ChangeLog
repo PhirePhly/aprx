@@ -1,5 +1,12 @@
 2008-01-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* Makefile:
+	    Radical revisioning, Best Current Practice
+
+	* aprx.c:
+	    Write aprx.pid  file in all cases, not only when starting
+	    as daemon.
+
 	* version 0.13
 
 	* aprx.h, aprx.c, erlang.c, aprx-stat.c:
