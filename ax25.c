@@ -68,6 +68,13 @@ static int ax25_fmtaddress(char *dest, const unsigned char *src, int markflag)
 }
 
 
+/*
+ * ax25_filter_add() -- adds configured regular expressions
+ *                      into forbidden patterns list.
+ * 
+ * These are actually processed on TNC2 format text line, and not
+ * AX.25 datastream per se.
+ */
 void ax25_filter_add(const char *p1, const char *p2)
 {
 	int rc;
@@ -130,10 +137,60 @@ void ax25_filter_add(const char *p1, const char *p2)
 	}
 }
 
+static const char *tnc2_verify_callsign_format(const char *t, int starok)
+{
+	const char *s = t;
 
-static int ax25_forbidden_source_stationid(const char *t)
+	for ( ; *s; ++s ) {
+	  /* Valid station-id charset is:  [A-Z0-9] */
+	  int c = *s;
+	  if (! (('A' <= c && c <= 'Z') ||
+		 ('0' <= c && c <= '9'))) {
+	    /* Not A-Z, 0-9 */
+	    break;
+	  }
+	}
+	/* Now *s can be any of: '>,*-:' */
+	if (*s == '-') {
+	  /* Minus and digits.. */
+	  ++s;
+	  if ('1' <= *s && *s <= '9')
+	    ++s;
+	  if ('0' <= *s && *s <= '9')
+	    ++s;
+	}
+
+	if (*s == '*' /* && starok */) /* Star is present at way too many
+					  SRC and DEST addresses, it is not
+					  limited to VIA fields :-(  */
+	  ++s;
+
+	if (s == t) {
+	  if (debug)
+	    printf("callsign format verify got bad character: '%c' in string: '%.20s'\n",
+		   *s, t);
+	  return NULL; /* Too short ? */
+	}
+
+	if (*s != '>' && *s != ',' && *s != ':') {
+	  /* Terminates badly.. */
+	  if (debug)
+	    printf("callsign format verify got bad character: '%c' in string: '%.20s'\n",
+		   *s, t);
+	  return NULL;
+	}
+
+	return s;
+}
+
+static const char *tnc2_forbidden_source_stationid(const char *t)
 {
 	int i;
+	const char *s;
+
+	s = tnc2_verify_callsign_format(t, 0);
+	if (!s)
+	  return NULL;
 
 	if (memcmp("WIDE",t,4)   == 0 || /* just plain wrong setting */
 	    memcmp("RELAY",t,5)  == 0 || /* just plain wrong setting */
@@ -142,50 +199,60 @@ static int ax25_forbidden_source_stationid(const char *t)
 	    memcmp("TCPXX",t,5)  == 0 || /* just plain wrong setting */
 	    memcmp("N0CALL",t,6) == 0 || /* TNC default setting */
 	    memcmp("NOCALL",t,6) == 0 ) /* TNC default setting */
-	  return 1;
+	  return NULL;
 
 	for (i = 0; i < sourceregscount; ++i) {
 	  int stat = regexec(sourceregs[i], t, 0, NULL, 0);
 	  if (stat == 0)
-	    return 1; /* MATCH! */
+	    return NULL; /* MATCH! */
 	}
 
-	return 0;
+	return s;
 }
 
-static int ax25_forbidden_destination_stationid(const char *t)
+static const char *tnc2_forbidden_destination_stationid(const char *t)
 {
 	int i;
+	const char *s;
+
+	s = tnc2_verify_callsign_format(t, 0);
+	if (!s)
+	  return NULL;
 
 	for (i = 0; i < destinationregscount; ++i) {
 	  int stat = regexec(destinationregs[i], t, 0, NULL, 0);
 	  if (stat == 0)
-	    return 1; /* MATCH! */
+	    return NULL; /* MATCH! */
 	}
 
-	return 0;
+	return s;
 }
 
-static int ax25_forbidden_via_stationid(const char *t)
+static const char * tnc2_forbidden_via_stationid(const char *t)
 {
 	int i;
+	const char *s;
+
+	s = tnc2_verify_callsign_format(t, 1);
+	if (!s)
+	  return NULL;
 
 	if (memcmp("RFONLY",t,6) == 0 ||
 	    memcmp("NOGATE",t,6) == 0 ||
 	    memcmp("TCPIP",t,5)  == 0 ||
 	    memcmp("TCPXX",t,5)  == 0)
-	  return 1;
+	  return NULL;
 
 	for (i = 0; i < viaregscount; ++i) {
 	  int stat = regexec(viaregs[i], t, 0, NULL, 0);
 	  if (stat == 0)
-	    return 1; /* MATCH! */
+	    return NULL; /* MATCH! */
 	}
 
-	return 0;
+	return s;
 }
 
-static int ax25_forbidden_data(const char *t)
+static int tnc2_forbidden_data(const char *t)
 {
 	int i;
 
@@ -207,6 +274,7 @@ static int ax25_forbidden_data(const char *t)
 void tnc2_rxgate(char *tnc2buf, int discard)
 {
 	char *t, *t0;
+	const char *s;
 
  redo_frame_filter:;
 
@@ -220,21 +288,33 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	 * next if ($axpath =~ m/^RELAY/io);
 	 * next if ($axpath =~ m/^TRACE/io);
 	 */
-	if (ax25_forbidden_source_stationid(t))
+	s = tnc2_forbidden_source_stationid(t);
+	if (s)
+	  t = (char*)s;
+	else
 	  discard = 1; /* Forbidden in source fields.. */
 
 	/*  SOURCE>DESTIN,VIA,VIA:payload */
 
-	while (*t && *t != '>') ++t;
-	if (*t) ++t;
+	if (*t == '>') {
+	  ++t;
+	} else {
+	  discard = 1;
+	}
 
-	if (ax25_forbidden_destination_stationid(t))
+	s = tnc2_forbidden_destination_stationid(t);
+	if (s)
+	  t = (char*)s;
+	else
 	  discard = 1;
 
-	while (1) {
-	  while (*t && (*t != ',' && *t != ':')) ++t;
+	while (*t) {
 	  if (*t == ':') break;
-	  if (*t == ',') ++t;
+	  if (*t == ',') {
+	    ++t; 
+	  } else {
+	    discard = 1;
+	  }
 
 	  /*
 	   *  next if ($axpath =~ m/RFONLY/io); # Has any of these in via fields..
@@ -243,8 +323,12 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	   *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
 	   */
 
-	  if (ax25_forbidden_via_stationid(t))
+	  s = tnc2_forbidden_via_stationid(t);
+	  if (!s) {
 	    discard = 1; /* Forbidden in via fields.. */
+	    ++t;
+	  } else
+	    t = (char*)s;
 
 
 	}
@@ -259,7 +343,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	/* Now 't' points to data.. */
 
 
-	if (ax25_forbidden_data(t))
+	if (tnc2_forbidden_data(t))
 	  discard = 1;
 
 	/* Will not relay messages that begin with '?' char: */
@@ -318,6 +402,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	t += strlen(t); /* To the end of the string */
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
+
 
 	if (!discard)
 	  discard = aprsis_queue(tnc2buf, t0, t-t0);  /* Send it.. */
