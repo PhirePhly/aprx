@@ -22,8 +22,7 @@ CFLAGS=	-g -O3  -Wall $(DEFS)
 
 
 SBINDIR=/usr/sbin/
-MANDIR=/usr/share/man/
-CFGDIR=/etc/
+MANDIR=/usr/share/man
 
 LIBS=	# Nothing special needed!
 HDRS=		aprx.h
@@ -38,7 +37,7 @@ install: all
 	install -c -m 755 aprx-stat $(SBINDIR)
 	install -c -m 644 aprx.8 $(MANDIR)/man8/
 	install -c -m 644 aprx-stat.8 $(MANDIR)/man8/
-	: install -c -m 644 aprx.conf $(CFGDIR)
+	: install -c -m 644 aprx.conf $(CFGFILE)
 
 clean:
 	rm -f *~ *.o aprx aprx-stat *.ps *.8 *.html *.pdf
