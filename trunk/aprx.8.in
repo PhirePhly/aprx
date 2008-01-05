@@ -4,7 +4,12 @@
 .B aprx
 \- A receive-only APRS iGate application,
 .SH SYNOPSIS
-aprx [\-d[\-d]] [\-e] [\-v] [\-l syslogfacility] [\-f /etc/aprx.conf]
+.B aprx
+.RB [ \-d [ \-d ]]
+.RB [ \-e ]
+.RB [ \-v ]
+.RB [ \-l " \fIsyslogfacilityname\fR]"
+.RB [ \-f " \fI@CFGFILE@\fR]"
 .SH DESCRIPTION
 .B aprx
 is a
@@ -14,8 +19,7 @@ APRS iGate application with minimum system support technology requirements.
 .IP \(bu 3
 Can listen KISS-TNCs on ordinary serial ports (real ones, or USB ones, all
 work as long as they respond to normal UNIX serial port ioctl()s.)
-Maximum number of separate serial ports used for radio modem communication
-is 16, limit is easy to increase in source code.
+Number of tty definitions is not limited.
 .IP \(bu 3
 On Linux machine with kernel internal AX.25 protocol support, does want to
 listen on it with promiscuous mode, and in order to use that, must be started
@@ -51,7 +55,8 @@ Drops all
 .I query
 messages ("?").
 .IP \(bu 3
-Opens up all 3rd party messages ("}"), and checks with internal data if it is OK to be gated out to APRS-IS.
+Opens up all 3rd party messages ("}"), and checks the internal data if it is OK
+to be gated out to APRS-IS.
 .IP \(bu 3
 Has built-in "Erlang monitor" mechanism, that logs to syslog a interface
 specific channel occupancy.   Optionally can log to STDOUT and/or to syslog.
@@ -75,7 +80,10 @@ on channel occupancy, alias "Erlang".
 These outputs are sent to STDOUT, which system operator may choose to log elsewere.
 This is independent if the "\-l" option below.
 .TP
-.B "\-l logfacilityname"
+.BI "\-f " "@CFGFILE@"
+Configuration file, given path is built-in default, and can be overridden by the program runner.
+.TP
+.BR "\-l" " \fIsyslogfacilityname\fR"
 Defines
 .RB syslog (3)
 facility code used by the erlang reporter by defining its name.
@@ -107,13 +115,30 @@ Verbose logging of received traffic to STDOUT.
 Lines begin with reception timestamp (UNIX time_t seconds), then TAB,
 and either data as is, or with prefix byte: "*" for "discarded due to data content",
 or possibly "#" for "discarded due to APRS-IS being unreachable".
-.TP
-.B "\-f /etc/aprx.conf"
-Configuration file, given path is built-in default, and can be overridden by the program runner.
 .PP
 Use parameter set 
 .B "\-ddv"
 to test new configuration by running it synchronously to console.
+.PP
+Running the
+.B aprx
+program without any of option flags:
+.BR "\-d" ,
+.BR "\-v" ", or"
+.B "\-e"
+reads possibly given configuration, then automatically backgrounds the process, and writes
+.IR pidfile .
+When the process whose number written in
+.I pidfile
+is then sent a SIGTERM signal, it automatically shuts down itself, and removes the
+.IR pidfile .
+The
+.I pidfile
+can be runtime configured with the
+.BI \-f " @CFGFILE@"
+file, and it has default name of:
+.IR "@VARRUN@/aprx.pid" .
+.PP
 
 .SH CONFIGURATION FILE
 The configuration file is used to setup the program to do its job.
@@ -126,7 +151,10 @@ On the configuration file, following additional notes
 .IP \(bu 2
 Most parameters are singletons, that is, there can be only one.
 .IP \(bu 2
-There can be up to (by default) 16 entries of "serialport".
+There can be up to 10 of "aprsis-server" lines, and each can be followed
+by own "aprsis-heartbeat-timeout".
+.IP \(bu 2
+There can be unlimited number of "serialport" lines.
 .IP \(bu 2
 There can be unlimited number of "netbeacon" lines.
 .IP \(bu 2
@@ -134,7 +162,8 @@ There can be unlimited number of "ax25-filter" lines.
 .IP \(bu 2
 There can be unlimited number of "ax25-rxport" lines.
 .PP
-The configuration file is read upon program start, ever latter.
+The configuration file is read upon program start,
+it is never re-read during process life.
 .nf
 \fC
 #
@@ -190,16 +219,22 @@ The configuration file is read upon program start, ever latter.
 #ax25\-rxport ax0
 #ax25\-rxport ax1
 
+# pidfile is UNIX way to tell that others that this program is
+# running with given process-id number.  This has compiled-in
+# default value of:  pidfile @VARRUN@/aprx.pid
+#
+#pidfile @VARRUN@/aprx.pid
+
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
-#rflog /tmp/aprx\-rf.log
+#rflog @VARLOG@/aprx\-rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS\-IS connection are logged, namely connects and
 # disconnects.
 #
-#aprxlog /tmp/aprx.log
+#aprxlog @VARLOG@/aprx.log
 
 # erlangfile defines a mmap():able binary file, which stores
 # running sums of interfaces upon which the channel erlang
@@ -214,9 +249,9 @@ The configuration file is read upon program start, ever latter.
 # Things go BADLY WRONG if this file can not be created or
 # it is corrupted!
 #
-# Built\-in default value is: /tmp/aprs\-erlang.dat
+# Built\-in default value is: @VARRUN@/aprx.state
 #
-erlangfile /tmp/aprx\-erlang.dat
+erlangfile @VARRUN@/aprx.state
 
 # erlang\-loglevel is config file edition of the "\-l" option
 # pushing erlang data to syslog(3).
@@ -356,3 +391,5 @@ for APRS iGate use in Linux (or of any UNIX) platforms.
 Principal contributors and test users include:
 .IR "Pentti Gronlund, OH3BK" ,
 .IR "Reijo Hakala, OH1GWK" .
+Debian packaging by
+.IR "Kimmo Jukarinen, OH3GNU" .

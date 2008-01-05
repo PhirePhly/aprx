@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -52,7 +52,7 @@ struct serialport {
 					    When wrlen == 0, buffer is empty.			*/
 };
 
-static struct serialport ttys[MAXTTYS];
+static struct serialport *ttys;
 static int  ttyindex; /* How many are defined ? */
 static int  serialport_read_timeout; /* No data in N (> 0) seconds -> close and reopen  */
 
@@ -652,12 +652,13 @@ static void ttyreader_linesetup(struct serialport *S)
 void ttyreader_init(void)
 {
 	int i;
-
+#if 0
 	memset(ttys, 0, sizeof(ttys));
 	for (i = 0; i < MAXTTYS; ++i) {
 	  ttys[i].fd = -1;
 	  ttys[i].ttyname[0] = 0;
 	}
+#endif
 }
 
 
@@ -666,12 +667,12 @@ void ttyreader_init(void)
  *  ttyreader_prepoll()  --  prepare system for next round of polling
  */
 
-int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
+int ttyreader_prepoll(struct aprxpolls *app)
 {
 	int idx = 0; /* returns number of *fds filled.. */
 	int i;
 	struct serialport *S = ttys;
-	struct pollfd *fds = *fdsp;
+	struct pollfd *pfd;
 
 	for (i = 0; i < ttyindex; ++i, ++S) {
 	  if (*S->ttyname == 0) continue; /* No name, no look... */
@@ -679,8 +680,8 @@ int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
 	    /* Not an open TTY, but perhaps waiting ? */
 	    if ((S->wait_until != 0) && (S->wait_until > now)) {
 	      /* .. waiting for future! */
-	      if (*tout > S->wait_until)
-		*tout = S->wait_until;
+	      if (app->next_timeout > S->wait_until)
+		app->next_timeout = S->wait_until;
 	      /* .. but only until our timeout,
 		 if it is sooner than global one. */
 	      continue; /* Waiting on this one.. */
@@ -705,18 +706,15 @@ int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
 	  }
 
 	  /* FD is open, lets mark it for poll read.. */
-	  fds->fd = S->fd;
-	  fds->events = POLLIN|POLLPRI;
-	  fds->revents = 0;
+	  pfd = aprxpolls_new(app);
+	  pfd->fd = S->fd;
+	  pfd->events = POLLIN|POLLPRI;
+	  pfd->revents = 0;
 	  if (S->wrlen > 0 && S->wrlen > S->wrcursor)
-	    fds->events |= POLLOUT;
+	    pfd->events |= POLLOUT;
 
-	  ++fds;
 	  ++idx;
-	  if (idx >= nfds) /* consumed all than there was ? */
-	    break;
 	}
-	*fdsp = fds;
 	return idx;
 }
 
@@ -724,13 +722,13 @@ int ttyreader_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
  *  ttyreader_postpoll()  -- Done polling, what happened ?
  */
 
-int ttyreader_postpoll(int nfds, struct pollfd *fds)
+int ttyreader_postpoll(struct aprxpolls *app)
 {
 	int idx, i;
 
 	struct serialport *S;
 	struct pollfd     *P;
-	for (idx = 0, P = fds; idx < nfds; ++idx, ++P) {
+	for (idx = 0, P = app->polls; idx < app->pollcount; ++idx, ++P) {
 
 	  if (! (P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)))
 	    continue; /* No read event we are interested in... */
@@ -759,8 +757,10 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	/* serialport /dev/ttyUSB123 [19200 [8n1] ] */
 	if (*param1 == 0) return "Bad tty-name";
-	if (ttyindex >= MAXTTYS) return "TOO MANY"; /* Too many, sorry no.. */
 	++ttyindex;
+
+	/* Grow the array as is needed.. */
+	ttys = realloc(ttys, sizeof(*ttys) * (ttyindex));
 
 	tty = & ttys[ttyindex-1];
 
@@ -776,7 +776,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	/* setup termios parameters for this line.. */
 	cfmakeraw(& tty->tio );
 	tty->tio.c_cc[VMIN] = 1;  /* pick at least one char .. */
-	tty->tio.c_cc[VTIME] = 1; /* 0.1 seconds timeout */
+	tty->tio.c_cc[VTIME] = 3; /* 0.3 seconds timeout - 36 chars @ 1200 baud */
 	tty->tio.c_cflag |= (CREAD | CLOCAL);
 
 
@@ -795,6 +795,8 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	cfsetispeed(& tty->tio, baud );
 	cfsetospeed(& tty->tio, baud );
+
+
 
 	config_STRLOWER(str); /* until end of line */
 

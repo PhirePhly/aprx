@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -36,7 +36,7 @@ static float erlang_time_ival_60min = 1.0;
 int erlangsyslog;	/* if set, will log via syslog(3)  */
 int erlanglog1min;	/* if set, will log also "ERLANG1" interval  */
 
-const  char *erlang_backingstore = "/tmp/aprx-erlang.dat";
+const  char *erlang_backingstore = VARRUN "/aprx.state";
 static int erlang_file_fd = -1;
 
 static void *erlang_mmap;
@@ -453,20 +453,20 @@ static void erlang_time_end(void)
 	  fclose(fp);
 }
 
-int erlang_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
+int erlang_prepoll(struct aprxpolls *app)
 {
 
-	if (*tout > erlang_time_end_1min)
-	  *tout = erlang_time_end_1min;
-	if (*tout > erlang_time_end_10min)
-	  *tout = erlang_time_end_10min;
-	if (*tout > erlang_time_end_60min)
-	  *tout = erlang_time_end_60min;
+	if (app->next_timeout > erlang_time_end_1min)
+	  app->next_timeout = erlang_time_end_1min;
+	if (app->next_timeout > erlang_time_end_10min)
+	  app->next_timeout = erlang_time_end_10min;
+	if (app->next_timeout > erlang_time_end_60min)
+	  app->next_timeout = erlang_time_end_60min;
 
 	return 0;
 }
 
-int erlang_postpoll(int nfds, struct pollfd *fds)
+int erlang_postpoll(struct aprxpolls *app)
 {
 	if (
 	    now >= erlang_time_end_1min ||

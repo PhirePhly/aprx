@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -13,6 +13,7 @@
 #include "aprx.h"
 #include <sys/socket.h>
 #include <netdb.h>
+#include <signal.h>
 
 
 /*
@@ -51,6 +52,7 @@ struct aprsis {
 	char	rdline[500];
 };
 
+#define MAXAPRSIS 10 /* 10 should be plenty enough for a iGate ... */
 
 static int AprsIScount;
 static int AprsISindex;
@@ -70,6 +72,12 @@ void aprsis_init(void)
 	  AprsIS[i].server_socket = -1;
 	aprsis_sp = -1;
 }
+
+static void sig_handler(int sig)
+{
+  die_now = 1;
+}
+
 
 
 /*
@@ -218,6 +226,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	int i, n;
 	char *s;
 	char aprsislogincmd[3000];
+	const char *errstr;
 
 	aprsis_close(A);
 
@@ -233,9 +242,22 @@ static void aprsis_reconnect(struct aprsis *A)
 	}
 
 
-	if (!A->H->mycall)
-	  return; /* Will try to reconnect in about 60 seconds.. */
+	if (!A->H->mycall) {
+	  if (verbout)
+	    printf("%ld\tFAIL - MYCALL not defined, no APRSIS connection!\n", (long)now);
+	  if (aprxlogfile) {
+	    FILE *fp = fopen(aprxlogfile,"a");
+	    if (fp) {
+	      char timebuf[60];
+	      struct tm *t = gmtime(&now);
+	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      
+	      fprintf(fp,"%s FAIL - MYCALL not defined, no APRSIS connection!\n", timebuf);
+	    }
+	  }
 
+	  return; /* Will try to reconnect in about 60 seconds.. */
+	}
 
 	memset(&req, 0, sizeof(req));
 	req.ai_socktype = SOCK_STREAM;
@@ -250,6 +272,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 
 	i = getaddrinfo(A->H->server_name, A->H->server_port, &req, &ai);
+	errstr = "address resolution failure";
 
 	if (i != 0) {
 
@@ -259,6 +282,19 @@ static void aprsis_reconnect(struct aprsis *A)
 	  if (ai) freeaddrinfo(ai);
 
 	  aprsis_close(A);
+
+	  if (verbout)
+	    printf("%ld\tFAIL - Connect to %s:%s failed: %s\n", (long)now, A->H->server_name, A->H->server_port, errstr);
+	  if (aprxlogfile) {
+	    FILE *fp = fopen(aprxlogfile,"a");
+	    if (fp) {
+	      char timebuf[60];
+	      struct tm *t = gmtime(&now);
+	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      
+	      fprintf(fp, "%s FAIL - Connect to %s:%s failed: %s\n", timebuf, A->H->server_name, A->H->server_port, errstr);
+	    }
+	  }
 	  return;
 	}
 	
@@ -274,9 +310,12 @@ static void aprsis_reconnect(struct aprsis *A)
 	}
 
 	A->server_socket = socket(a2->ai_family, SOCK_STREAM, 0);
+
+	errstr = "socket formation failed";
 	if (A->server_socket < 0)
 	  goto fail_out;
 
+	errstr = "connection failed";
 	i = connect(A->server_socket, a2->ai_addr, a2->ai_addrlen);
 	if (i < 0)
 	  goto fail_out;
@@ -313,6 +352,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	aprsis_queue_(A, NULL, aprsislogincmd, strlen(aprsislogincmd));
 	beacon_reset();
+
+	return; /* just a place-holder */
 }
 
 
@@ -337,7 +378,15 @@ static int aprsis_sockreadline(struct aprsis *A)
 		       A->H->server_name, A->H->server_port, A->rdline);
 
 	      /* Send the A->rdline content to main program */
-	      send(aprsis_sp, A->rdline, strlen(A->rdline), MSG_NOSIGNAL);
+	      c = send(aprsis_sp, A->rdline, strlen(A->rdline), 0);
+	      /* This may fail with SIGPIPE.. */
+	      if (c < 0 && (errno == EPIPE ||
+			    errno == ECONNRESET ||
+			    errno == ECONNREFUSED ||
+			    errno == ENOTCONN)) {
+		/* death-sentence to us.. */
+		exit(1);
+	      }
 	    }
 	    A->rdlin_len = 0;
 	    continue;
@@ -455,12 +504,12 @@ int aprsis_queue(const char *addr, const char *text, int textlen)
 
 
 
-static int aprsis_prepoll_(int nfds, struct pollfd **fdsp, time_t *tout)
+static int aprsis_prepoll_(struct aprxpolls *app)
 {
 	int idx = 0; /* returns number of *fds filled.. */
 	int i;
 
-	struct pollfd *fds = *fdsp;
+	struct pollfd *pfd;
 
 #if 0
 	if (AprsIScount > 1 && !aprsis_multiconnect)
@@ -490,44 +539,41 @@ static int aprsis_prepoll_(int nfds, struct pollfd **fdsp, time_t *tout)
 
 	  /* FD is open, lets mark it for poll read.. */
 
-	  if (nfds <= 0) continue; /* If we have room! */
+	  pfd = aprxpolls_new(app);
 
-	  fds->fd = A->server_socket;
-	  fds->events = POLLIN|POLLPRI;
-	  fds->revents = 0;
+	  pfd->fd = A->server_socket;
+	  pfd->events = POLLIN|POLLPRI|POLLERR|POLLHUP;
+	  pfd->revents = 0;
 
 	  /* Do we have something for writing ?  */
 	  if (A->wrbuf_len)
-	    fds->events |= POLLOUT;
+	    pfd->events |= POLLOUT;
 
-	  --nfds;
-	  ++fds;
 	  ++idx;
 	}
-
-	*fdsp = fds;
 
 	return idx;
 
 }
 
-static int aprsis_postpoll_(int nfds, struct pollfd *fds)
+static int aprsis_postpoll_(struct aprxpolls *app)
 {
 	int i, a;
+	struct pollfd * pfd = app->polls;
 
-	for (i = 0; i < nfds; ++i, ++fds) {
+	for (i = 0; i < app->pollcount; ++i, ++pfd) {
 	  for (a = 0; a < AprsIScount; ++a) {
 	    struct aprsis *A = & AprsIS[a];
-	    if (fds->fd == A->server_socket && A->server_socket >= 0) {
+	    if (pfd->fd == A->server_socket && A->server_socket >= 0) {
 	      /* This is APRS-IS socket, and we may have some results.. */
 
-	      if (fds->revents & (POLLERR | POLLHUP)) { /* Errors ? */
+	      if (pfd->revents & (POLLERR | POLLHUP)) { /* Errors ? */
 	      close_sockaprsis:;
 		aprsis_close(A);
 		continue;
 	      }
 
-	      if (fds->revents & POLLIN) {  /* Ready for reading */
+	      if (pfd->revents & POLLIN) {  /* Ready for reading */
 		for(;;) {
 		  i = aprsis_sockread(A);
 		  if (i == 0) /* EOF ! */
@@ -536,7 +582,7 @@ static int aprsis_postpoll_(int nfds, struct pollfd *fds)
 		}
 	      }
 
-	      if (fds->revents & POLLOUT) { /* Ready for writing  */
+	      if (pfd->revents & POLLOUT) { /* Ready for writing  */
 		/* Normal queue write processing */
 
 		if (A->wrbuf_len > 0 && A->wrbuf_cur < A->wrbuf_len) {
@@ -581,50 +627,51 @@ static void aprsis_cond_reconnect(void)
 
 
 
-extern struct pollfd polls[MAXPOLLS];
-
 static void aprsis_main(void)
 {
 	int i;
-	struct pollfd *fds;
-	int nfds, nfds2;
+	int ppid = getppid();
+	struct aprxpolls app = { NULL, 0, 0, 0 };
+
+	signal(SIGHUP,  sig_handler);
+	signal(SIGPIPE, sig_handler);
 
 	/* The main loop */
 	while (! die_now) {
-	  time_t next_timeout;
+	  struct pollfd *pfd;
 	  now = time(NULL);
-	  next_timeout = now + 30;
 
 	  aprsis_cond_reconnect();
 
-	  fds = polls;
+	  now = time(NULL); /* may take unpredictable time.. */
 
-	  fds[0].fd = aprsis_sp;
-	  fds[0].events = POLLIN | POLLPRI;
-	  fds[0].revents = 0;
-	  ++fds;
+	  i = getppid();
+	  if (i != ppid) break; /* die now, my parent is gone.. */
+	  if (i == 1) break;    /* a safety fallback case.. */
 
-	  nfds = MAXPOLLS-1;
-	  nfds2 = 1;
+	  aprxpolls_reset(&app);
+	  app.next_timeout = now + 30;
 
+	  pfd = aprxpolls_new(&app);
 
-	  i = aprsis_prepoll_(nfds, &fds, &next_timeout);
-	  nfds2  += i;
-	  nfds   -= i;
+	  pfd->fd = aprsis_sp;
+	  pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+	  pfd->revents = 0;
 
+	  i = aprsis_prepoll_(&app);
 
-	  if (next_timeout <= now)
-	    next_timeout = now + 1; /* Just to be on safe side.. */
+	  if (app.next_timeout <= now)
+	    app.next_timeout = now + 1; /* Just to be on safe side.. */
 
-	  i = poll(polls, nfds2, (next_timeout - now) * 1000);
+	  i = poll(app.polls, app.pollcount, (app.next_timeout - now) * 1000);
 	  now = time(NULL);
 
-	  if (polls[0].revents & (POLLIN|POLLPRI|POLLERR|POLLHUP)) {
+	  if (app.polls[0].revents & (POLLIN|POLLPRI|POLLERR|POLLHUP)) {
 	    /* messaging channel has something for us, if
 	       the channel reports EOF, we exit there and then. */
 	    aprsis_readsp();
 	  }
-	  i = aprsis_postpoll_(nfds2, polls);
+	  i = aprsis_postpoll_(&app);
 	}
 	/* Got "DIE NOW" signal... */
 	exit(0);
@@ -745,25 +792,22 @@ void aprsis_start(void)
 
 
 
-int aprsis_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
+int aprsis_prepoll(struct aprxpolls *app)
 {
 	int idx = 0; /* returns number of *fds filled.. */
 
-	struct pollfd *fds = *fdsp;
+	struct pollfd *pfd;
 
+	pfd = aprxpolls_new(app);
 
-	fds->fd = aprsis_sp; /* APRS-IS communicator server Sub-process */
-	fds->events = POLLIN|POLLPRI;
-	fds->revents = 0;
+	pfd->fd = aprsis_sp; /* APRS-IS communicator server Sub-process */
+	pfd->events = POLLIN|POLLPRI;
+	pfd->revents = 0;
 	
 	/* We react only for reading, if write fails because the socket is
 	   jammed,  that is just too bad... */
 
-	--nfds;
-	++fds;
 	++idx;
-
-	*fdsp = fds;
 
 	return idx;
 
@@ -784,23 +828,24 @@ static int aprsis_comssockread(int fd)
 }
 
 
-int aprsis_postpoll(int nfds, struct pollfd *fds)
+int aprsis_postpoll(struct aprxpolls *app)
 {
 	int i;
+	struct pollfd *pfd = app->polls;
 
-	for (i = 0; i < nfds; ++i, ++fds) {
-	  if (fds->fd == aprsis_sp) {
+	for (i = 0; i < app->pollcount; ++i, ++pfd) {
+	  if (pfd->fd == aprsis_sp) {
 	    /* This is APRS-IS communicator subprocess socket,
 	       and we may have some results.. */
 	    
-	    if (fds->revents & (POLLERR | POLLHUP)) { /* Errors ? */
+	    if (pfd->revents & (POLLERR | POLLHUP)) { /* Errors ? */
 	    close_sockaprsis:;
 	      printf("APRS-IS coms subprocess socket failure from main program side!\n");
 	      continue;
 	    }
 
-	    if (fds->revents & POLLIN) {  /* Ready for reading */
-	      i = aprsis_comssockread(fds->fd);
+	    if (pfd->revents & POLLIN) {  /* Ready for reading */
+	      i = aprsis_comssockread(pfd->fd);
 	      if (i == 0) /* EOF ! */
 		goto close_sockaprsis;
 	      if (i < 0) continue;

@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007                                 *
+ * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -42,19 +42,19 @@ void beacon_set(const char *s)
 	beacon_reset();
 }
 
-int  beacon_prepoll(int nfds, struct pollfd **fdsp, time_t *tout)
+int  beacon_prepoll(struct aprxpolls *app)
 {
 	char **b = beacon_msgs;
 	if (!b) return 0; /* Nothing to do */
 
-	if (beacon_nexttime < *tout)
-	  *tout = beacon_nexttime;
+	if (beacon_nexttime < app->next_timeout)
+	  app->next_timeout = beacon_nexttime;
 
 	return 0; /* No poll descriptors, only time.. */
 }
 
 
-int  beacon_postpoll(int nfds, struct pollfd *fds)
+int  beacon_postpoll(struct aprxpolls *app)
 {
 	char beacontext[1024];
 	char beaconaddr[64];

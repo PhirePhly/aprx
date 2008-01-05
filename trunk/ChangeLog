@@ -1,3 +1,24 @@
+2008-01-05  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* Makefile, aprx.8, aprx.8.in, aprx-stat.8, aprx-stat.8.in,
+	  aprx.conf, aprx.conf.in:
+	    Centralized a bit of configuring into Makefile, generating
+	    files from *.in versions.
+
+	* aprxpolls.c:
+	    Library function used everywhere, part of "eliminate fixed
+	    size preallocations" -task.
+	
+	* aprsis.c:
+	    Debug logging improvements, parent death detection.
+	    Preserved MAXAPRSIS setting - of 10 servers.
+
+	* ttyreader.c:
+	    Unfix the number of TTYs, now can be as many as one wants.
+
+	* config.c, aprx.c, aprx.h, aprx.conf.in, aprx.8.in:
+	    pidfile configuration parameter, and its usage
+
 2008-01-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION, arpx.c, Makefile, aprx.8, aprx.8.in,
