@@ -146,6 +146,7 @@ struct erlangline {
 };
 
 struct erlanghead {
+	char	title[32];
 	int	version;	/* format version			*/
 	int	linecount;
 	time_t	last_update;
@@ -153,10 +154,12 @@ struct erlanghead {
 	pid_t	server_pid;
 	time_t	start_time;
 
+	char	mycall[16];
+
 	double	align_filler;
 };
 
-#define ERLANGLINE_STRUCT_VERSION ((2<<16)|sizeof(struct erlangline))
+#define ERLANGLINE_STRUCT_VERSION ((sizeof(struct erlanghead)<<16)+sizeof(struct erlangline))
 
 extern struct erlanghead  *ErlangHead;
 extern struct erlangline **ErlangLines;

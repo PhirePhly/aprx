@@ -143,6 +143,7 @@ int main(int argc, char * const argv[])
 	  }
 	}
 
+	erlang_start(2); /* reset PID, etc.. */
 
 	/* Must be after config reading ... */
 	aprsis_start();

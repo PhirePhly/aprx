@@ -1,5 +1,9 @@
 2008-01-05  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* aprx.h, aprx.c, erlang.c, aprx-stat.c:
+	    Modifications on shared memory segment head, stores
+	    MYCALL, correct running process PID.
+
 	* INSTALL:
 	    Some text fixes
 
