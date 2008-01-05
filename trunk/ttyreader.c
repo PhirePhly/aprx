@@ -651,8 +651,9 @@ static void ttyreader_linesetup(struct serialport *S)
 
 void ttyreader_init(void)
 {
-	int i;
 #if 0
+	int i;
+
 	memset(ttys, 0, sizeof(ttys));
 	for (i = 0; i < MAXTTYS; ++i) {
 	  ttys[i].fd = -1;
