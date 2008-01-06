@@ -17,11 +17,11 @@ is a
 APRS iGate application with minimum system support technology requirements.
 .PP
 .IP \(bu 3
-Can listen KISS-TNCs on ordinary serial ports (real ones, or USB ones, all
-work as long as they respond to normal UNIX serial port ioctl()s.)
-Number of tty definitions is not limited.
+Can listen TNC2 monitor and KISS speaking TNCs on serial ports at some remote
+server, like cisco router AUX ports (port 4001.)
 .IP \(bu 3
-Can use TCP-stream connected remote serial port servers to connect to KISS-TNCs.
+The serial port can be ordinary host computer port, a USB serial port, or 
+remote port on a server behind the internet.
 .IP \(bu 3
 On Linux machine with kernel internal AX.25 protocol support, does want to
 listen on it with promiscuous mode, and in order to use that, must be started
