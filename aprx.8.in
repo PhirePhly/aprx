@@ -21,6 +21,8 @@ Can listen KISS-TNCs on ordinary serial ports (real ones, or USB ones, all
 work as long as they respond to normal UNIX serial port ioctl()s.)
 Number of tty definitions is not limited.
 .IP \(bu 3
+Can use TCP-stream connected remote serial port servers to connect to KISS-TNCs.
+.IP \(bu 3
 On Linux machine with kernel internal AX.25 protocol support, does want to
 listen on it with promiscuous mode, and in order to use that, must be started
 as
@@ -296,12 +298,14 @@ erlangfile @VARRUN@/aprx.state
 # parameter fields:  first a literal "socket", then literal
 # IP address (IPv4 or IPv6), then literal port number.
 # KISS-protocol parameters are same as with normal serial port.
+# Hostnames are also usable, but not recommended because
+# their resolving is synchronous operation and will stop
+# the service for a while.
 #
-#serialport  socket!12.34.56.78!2001! 1200 8n1 KISS
+#serialport  socket!12.34.56.78!4001! 1200 8n1 KISS
 #
 
-
-# The  netbeacon  option.
+# The  netbeacon  options.
 # Parameter string (in quotes) is sent to network (without quotes)
 # at varying intervals \-\-  1200\-1800 seconds in between restransmits.
 # This interval is intentionally randomized.
@@ -344,6 +348,28 @@ The complex encodings are for possible init-strings of the external devices,
 .PP
 A configuration token without surrounding quotes does not understand the backslash escapes.
 
+
+.SH SERIAL PORTS
+Serial ports can be connected several ways to this program:
+.IP \(bu 2
+Local physical ports in the machine
+.RI ( /dev/ttyS0 )
+.IP \(bu 2
+Local USB serial ports in the machine
+.RI ( /dev/ttyUSB0 )
+.IP \(bu 2
+Remote served serial ports over a TCP stream.
+(\fI"stream!12.34.56.78!4001!"\fR)
+.br
+Implemented to talk with Cisco AUX ports on "range 4000"
+(TCP STREAM, no TELNET escapes)
+.PP
+The serial port name tells what kind of port is in question,
+and while port baud-rate (9600) and character settings (8n1)
+must always be set, they are ignored for the remote connection.
+.PP
+The KISS encapsulation details must also be specified, and they
+are used in all cases.
 
 .SH NOTES: ERLANG
 The
