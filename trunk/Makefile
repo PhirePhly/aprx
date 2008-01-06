@@ -79,7 +79,7 @@ man:		$(MAN)
 .PHONY:		doc html pdf
 doc:		html pdf
 pdf:		$(MAN:=.pdf)
-html:		($MAN:=.html)
+html:		$(MAN:=.html)
 
 # -------------------------------------------------------------------- #
 

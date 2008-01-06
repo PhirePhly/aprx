@@ -132,7 +132,7 @@ pidfile @VARRUN@/aprx.pid
 # IP address (IPv4 or IPv6), then literal port number.
 # KISS-protocol parameters are same as with normal serial port.
 #
-#serialport  socket!12.34.56.78!2001! 1200 8n1 KISS
+#serialport  socket!12.34.56.78!4001! 1200 8n1 KISS
 #
 
 
