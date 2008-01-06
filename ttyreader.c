@@ -10,6 +10,8 @@
 
 
 #include "aprx.h"
+#include <sys/socket.h>
+#include <netdb.h>
 
 
 /* The ttyreader does read TTY ports into a big buffer, and then from there
@@ -37,7 +39,7 @@ struct serialport {
 	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)			*/
   /*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
 
-	char	ttyname[32];	/* "/dev/ttyUSB1234-bar22-xyz7" -- Linux TTY-names can be long.. */
+	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" -- Linux TTY-names can be long.. */
 	char	*initstring;	/* optional init-string to be sent to the TNC, NULL ok	*/
 	int	initlen;	/* .. as it can have even NUL-bytes, length is important! */
 
@@ -599,44 +601,108 @@ static void ttyreader_linesetup(struct serialport *S)
 
 	S->wait_until = 0; /* Zero it just to be safe */
 
-	S->fd = open(S->ttyname, O_RDWR|O_NOCTTY|O_NONBLOCK, 0);
-	if (debug)
-	  printf("%ld\tTTY %s OPEN - ",now,S->ttyname);
-	if (S->fd < 0) { /* Urgh.. an error.. */
-	  S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
-	  if (debug)
-	    printf("FAILED, WAITING %d SECS\n", TTY_OPEN_RETRY_DELAY_SECS);
-	  return;
-	}
-	if (debug)
-	  printf("OK\n");
-
-	i = tcsetattr(S->fd, TCSAFLUSH, &S->tio); /* Flush the serial port queue */
-	if (i < 0) {
-	  close(S->fd);
-	  S->fd = -1;
-	  S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
-	  return;
-	}
-	/* FIXME: ??  Set baud-rates ?
-	   Used system (Linux) has them in   'struct termios'  so they
-	   are now set, but other systems may have different ways..
-	 */
-
 	S->wrlen = S->wrcursor = 0; /* init them at first */
 
-	if (S->initstring != NULL) {
-	  memcpy(S->wrbuf, S->initstring, S->initlen);
-	  S->wrlen = S->initlen;
-	  i = write(S->fd, S->wrbuf, S->wrlen);
-	  if (i > 0) { /* wrote something */
-	    S->wrcursor = i;
-	    erlang_add(S, S->ttyname, ERLANG_TX, i, 0);
-	    if (S->wrcursor >= S->wrlen)
-	      S->wrlen = S->wrcursor = 0;  /* wrote all */
-	  }
-	}
+	if (memcmp(S->ttyname,"socket!",7) != 0) {
 
+	  S->fd = open(S->ttyname, O_RDWR|O_NOCTTY|O_NONBLOCK, 0);
+	  if (debug)
+	    printf("%ld\tTTY %s OPEN - ",now,S->ttyname);
+	  if (S->fd < 0) { /* Urgh.. an error.. */
+	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
+	    if (debug)
+	      printf("FAILED, WAITING %d SECS\n", TTY_OPEN_RETRY_DELAY_SECS);
+	    return;
+	  }
+	  if (debug)
+	    printf("OK\n");
+	  
+	  /* Set attributes, and flush the serial port queue */
+	  i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
+
+	  if (i < 0) {
+	    close(S->fd);
+	    S->fd = -1;
+	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
+	    return;
+	  }
+	  /* FIXME: ??  Set baud-rates ?
+	     Used system (Linux) has them in   'struct termios'  so they
+	     are now set, but other systems may have different ways..
+	  */
+
+	  if (S->initstring != NULL) {
+	    memcpy(S->wrbuf, S->initstring, S->initlen);
+	    S->wrlen = S->initlen;
+	    i = write(S->fd, S->wrbuf, S->wrlen);
+	    if (i > 0) { /* wrote something */
+	      S->wrcursor = i;
+	      erlang_add(S, S->ttyname, ERLANG_TX, i, 0);
+	      if (S->wrcursor >= S->wrlen)
+		S->wrlen = S->wrcursor = 0;  /* wrote all */
+	    }
+	  }
+	} else { /* socket connection to remote TTY.. */
+	  /*   "socket!hostname-or-ip!port!opt-parameters" */
+	  char *par = strdup(S->ttyname);
+	  char *host = NULL, *port = NULL, *opts = NULL;
+	  struct addrinfo req, *ai;
+	  int i;
+
+	  if (debug)
+	    printf("socket connect() preparing: %s\n", par);
+
+	  for(;;) {
+	    host = strchr(par,'!');
+	    if (host) ++host;
+	    else break; /* Found no '!' ! */
+	    port = strchr(host,'!');
+	    if (port) *port++ = 0;
+	    else break; /* Found no '!' ! */
+	    opts = strchr(port,'!');
+	    if (opts) *opts++ = 0;
+	    break;
+	  }
+
+	  if (!port) {
+	    /* Still error condition.. no port data */
+	  }
+
+	  memset(&req, 0, sizeof(req));
+	  req.ai_socktype = SOCK_STREAM;
+	  req.ai_protocol = IPPROTO_TCP;
+	  req.ai_flags    = 0;
+#if 1
+	  req.ai_family   = AF_UNSPEC;  /* IPv4 and IPv6 are both OK */
+#else
+	  req.ai_family   = AF_INET;    /* IPv4 only */
+#endif
+	  ai = NULL;
+
+	  i = getaddrinfo(host, port, &req, &ai);
+
+	  if (ai) {
+	    S->fd = socket(ai->ai_family, SOCK_STREAM, 0);
+	    if (S->fd >= 0) {
+
+	      fd_nonblockingmode(S->fd);
+
+	      i = connect(S->fd, ai->ai_addr, ai->ai_addrlen);
+	      if ((i != 0) && (errno != EINPROGRESS)) {
+		/* non-blocking connect() yeilds EINPROGRESS,
+		   anything else and we fail entirely...      */
+		if (debug)
+		  printf("ttyreader socket connect call failed: %d : %s\n",
+			 errno, strerror(errno));
+		close(S->fd);
+		S->fd = -1;
+	      }
+	    }
+
+	    freeaddrinfo(ai);
+	  }
+	  free(par);
+	}
 
 	S->last_read_something = now; /* mark the timeout for future.. */
 
@@ -676,7 +742,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 
 	for (i = 0; i < ttyindex; ++i, ++S) {
-	  if (*S->ttyname == 0) continue; /* No name, no look... */
+	  if (!S->ttyname) continue; /* No name, no look... */
 	  if (S->fd < 0) {
 	    /* Not an open TTY, but perhaps waiting ? */
 	    if ((S->wait_until != 0) && (S->wait_until > now)) {
@@ -771,8 +837,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	tty->linetype  = LINETYPE_KISS;           /* default */
 	tty->kissstate = KISSSTATE_SYNCHUNT;
 
-	strncpy(tty->ttyname, param1, sizeof(tty->ttyname));
-	tty->ttyname[sizeof(tty->ttyname)-1] = 0;
+	tty->ttyname = strdup(param1);
 
 	/* setup termios parameters for this line.. */
 	cfmakeraw(& tty->tio );
