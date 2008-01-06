@@ -284,7 +284,8 @@ static void aprsis_reconnect(struct aprsis *A)
 	  aprsis_close(A);
 
 	  if (verbout)
-	    printf("%ld\tFAIL - Connect to %s:%s failed: %s\n", (long)now, A->H->server_name, A->H->server_port, errstr);
+	    printf("%ld\tFAIL - Connect to %s:%s failed: %s\n",
+		   (long)now, A->H->server_name, A->H->server_port, errstr);
 	  if (aprxlogfile) {
 	    FILE *fp = fopen(aprxlogfile,"a");
 	    if (fp) {

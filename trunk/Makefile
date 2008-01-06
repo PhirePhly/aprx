@@ -108,7 +108,7 @@ distclean: clean
 # include object depencies if available
 -include $(OBJS:.o=.d)
 
-%.o: %.c aprx.h VERSION Makefile
+%.o: %.c VERSION Makefile
 	$(CC) $(CFLAGS) -c $<
 	@$(CC) -MM $(CFLAGS) $< > $(@:.o=.d)
 
