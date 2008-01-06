@@ -118,10 +118,12 @@ Lines begin with reception timestamp (UNIX time_t seconds), then TAB,
 and either data as is, or with prefix byte: "*" for "discarded due to data content",
 or possibly "#" for "discarded due to APRS-IS being unreachable".
 .PP
+.SS DEBUGGING SYSTEM
 Use parameter set 
 .B "\-ddv"
 to test new configuration by running it synchronously to console.
 .PP
+.SS NORMAL OPERATION
 Running the
 .B aprx
 program without any of option flags:
@@ -153,8 +155,9 @@ On the configuration file, following additional notes
 .IP \(bu 2
 Most parameters are singletons, that is, there can be only one.
 .IP \(bu 2
-There can be up to 10 of "aprsis-server" lines, and each can be followed
-by own "aprsis-heartbeat-timeout".
+There can be unlimited number of "aprsis-server" lines, and each
+can be followed by own "aprsis-heartbeat-timeout", and "aprsis-filter"
+lines.
 .IP \(bu 2
 There can be unlimited number of "serialport" lines.
 .IP \(bu 2
@@ -180,9 +183,9 @@ it is never re-read during process life.
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
-# There can be up to 4 system definitions without code modification,
-# they are used in round\-robin fashion.  Heartbeat and filter
-# definitions must follow each server definition.
+# There can be as many definitions as you want, and they will be
+# used in round\-robin fashion.  Heartbeat and filter definitions
+# must follow each server definition.
 #
 #aprsis\-server    rotate.aprs.net  14580
 

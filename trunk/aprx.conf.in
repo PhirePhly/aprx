@@ -9,11 +9,11 @@
 #mycall           N0CALL-1
 
 # APRS-IS server name and portnumber.
-# Every reconnect does re-resolve the name to IP address.
-# There can be up to 4 system definitions without code modification,
-# they are used in round-robin fashion.  Heartbeat and filter
-# definitions must follow each server definition.
-#
+# Every reconnect does re\-resolve the name to IP address.
+# There can be as many definitions as you want, and they will be
+# used in round\-robin fashion.  Heartbeat and filter definitions
+# must follow each server definition.
+
 #aprsis-server    finland.aprs2.net  14580
 #aprsis-server    rotate.aprs.net    14580
 
