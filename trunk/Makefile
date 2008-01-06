@@ -26,7 +26,7 @@ LDFLAGS=	-g -Wall
 
 INSTALL=	/usr/bin/install
 INSTALL_PROGRAM=$(INSTALL)  -m 755
-INSTALL_DATA=	$(INSTALL)      -m 644
+INSTALL_DATA=	$(INSTALL)  -m 644
 
 # -------------------------------------------------------------------- #
 # no user serviceable parts below 

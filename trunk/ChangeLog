@@ -1,5 +1,7 @@
 2008-01-06  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* version 0.14
+
 	* ttyreader.c, aprx.conf.in, aprx.8.in:
 	    Support TNC2 monitor format on reception.
 
