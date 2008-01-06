@@ -137,7 +137,7 @@ dist:
 	# Special for maintainer only..
 	if [ ! -d ../../$(VERSION)-svn$(SVNVERSION) ] ; then mkdir ../../$(VERSION)-svn$(SVNVERSION) ; fi
 	cp -p * ../../$(VERSION)-svn$(SVNVERSION)/
-	cd ../../$(VERSION)-svn$(SVNVERSION) && make clean
+	cd ../../$(VERSION)-svn$(SVNVERSION) && make distclean
 	cd ../.. && tar czvf $(VERSION)-svn$(SVNVERSION).tar.gz $(VERSION)-svn$(SVNVERSION)
 
 # -------------------------------------------------------------------- #
