@@ -1,0 +1,30 @@
+
+		     APRX   0.14
+
+		  	TODO
+
+- config file reading
+   - Mostly done
+
+- manual (man-pages exist)
+
+- configure -script ?
+
+- "make install"
+  - Sort of one exists..
+
+- system integration bits, like init-scripts..
+  - Debian Linux
+  - Fedora Linux
+  - ...
+
+- bidirectional relaying capability with areal filters ??
+  (that would make this a full-blown aprsd / aprsdigi replacement..)
+
+- aprx-stat  tool:
+  - exists for extracting data out of erlang datasets
+  - need to improve its output formats ?
+  - possibly to run suid-root ?
+
+
+by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007,2008

@@ -1,0 +1,209 @@
+.TH aprx\-stat 8 "@DATEVERSION@"
+.LO 8
+.SH NAME
+.B aprx\-stat
+\- statistics utility for
+.BR aprx (8)
+.SH SYNOPSIS
+.B aprx\-stat
+.RB [ \-t ]
+.RB [ \-f " \fI@VARRUN@/aprx.state\fR]
+.RB { \-S | \-x | \-X }
+.SH DESCRIPTION
+.B aprx\-stat
+is a statistics utility for
+.BR aprx (8)
+program.
+
+.SH OPTIONS
+The
+.B aprx\-stat
+has following runtime options:
+.TP
+.B "\-f \fI@VARRUN@/aprx.state\fR"
+Turn on verbose debugging, outputs data to STDOUT.
+.TP
+.B "\-S"
+SNMP data mode, current counter and gauge values.
+.TP
+.B "\-t"
+Use UNIX
+.I time_t
+for timestamps, instead of human readable text format.
+.TP
+.B "\-x"
+Lattest of extended historical gauge values.
+This gives for each input interface
+.RS
+.IP \(bu 2
+SNMP data
+.IP \(bu 2
+last 90 of 1 minute values,
+.IP \(bu 2
+10 of 10 minute values,
+.IP \(bu 2
+3 of 60 minute values.
+.RE
+.TP
+.B "\-X"
+Full extended historical gauge values.
+This gives all the contents of historical value data ring-buffers.
+.RS
+.IP \(bu 2
+SNMP data
+.IP \(bu 2
+1 minute resolution: 24 hours
+.IP \(bu 2
+10 minute resolution: 7 days
+.IP \(bu 2
+60 minute resolution: 3 months
+.RE
+
+.SH SNMP DATA OUTPUT
+For each interface feeding AX.25 packets and/or KISS frames to this program,
+there are following kind of 
+.nf
+\fC
+SNMP  /dev/ttyUSB1   798282 11088   0  0     3
+SNMP  ax0   798282 11088   0  0     7
+SNMP  ax1   798282 11088   0  0     94
+.fi
+.PP
+where columns are:
+.IP \(bu 2
+"SNMP" - keyword
+.IP \(bu 2
+Interface (AX.25 IF name, or serial port device name)
+.IP \(bu 2
+Received byte counter
+.IP \(bu 2
+Received KISS frame (packet) counter
+.IP \(bu 2
+Transmitted byte counter (will stay zero)
+.IP \(bu 2
+Transmitted KISS frame counter  (will stay zero)
+.IP \(bu 2
+Age in seconds of last update of this statistics.
+
+.SH EXTENDED DATA OUTPUT
+Extended data output gives formatted historical periodic accumulates of interface traffic
+counters, and Erlang value estimates based on that.
+.PP
+.nf
+\fC
+
+SNMP  /dev/ttyUSB1   816675 11332   0  0     15
+
+1min data
+2007-12-24 14:10  /dev/ttyUSB1  1m    374    6      0    0   0.047  0.000
+2007-12-24 14:09  /dev/ttyUSB1  1m    377    5      0    0   0.047  0.000
+2007-12-24 14:08  /dev/ttyUSB1  1m    347    5      0    0   0.043  0.000
+2007-12-24 14:07  /dev/ttyUSB1  1m    140    2      0    0   0.018  0.000
+\(bu\(bu\(bu
+
+10min data
+2007-12-24 14:10  /dev/ttyUSB1 10m   3829   55      0    0   0.048  0.000
+2007-12-24 14:00  /dev/ttyUSB1 10m   2182   28      0    0   0.027  0.000
+2007-12-24 13:50  /dev/ttyUSB1 10m   3205   44      0    0   0.040  0.000
+2007-12-24 13:40  /dev/ttyUSB1 10m   3811   50      0    0   0.048  0.000
+\(bu\(bu\(bu
+
+60min data
+2007-12-24 14:00  /dev/ttyUSB1 60m  22510  295      0    0   0.047  0.000
+2007-12-24 13:00  /dev/ttyUSB1 60m  24886  347      0    0   0.052  0.000
+\(bu\(bu\(bu
+.fi
+.PP
+The output repeats for all interfaces.
+.PP
+The SNMP dataset is given in the beginning, and described above.
+Then each extended output line has following fields:
+.IP \(bu 2
+Timestamp is two fields, date and time (in minute resolution) is in UTC.
+.IP \(bu 2
+Alternate timestamp format is UNIX
+.I time_t
+as an integer, counting seconds from epoch, and as single field.
+.IP \(bu 2
+Interface name is same as in SNMP case.
+.IP \(bu 2
+Data qualifier tells what integration period the data is valid for:
+.IR 1m ", " 10m ", " 60m .
+.IP \(bu 2
+Counter of received bytes on interface (including KISS flags etc.)
+.IP \(bu 2
+Counter of received frames.
+.IP \(bu 2
+Counter of transmitted bytes on interface
+.IP \(bu 2
+Counter of transmitted frames.
+.IP \(bu 2
+Reception
+.I Erlang 
+value estimate.
+.IP \(bu 2
+Transmission
+.I Erlang
+value estimate.
+.PP
+.SH TODO
+.SH BUGS
+.SH SEE ALSO
+.BR aprx (8)
+
+.SH CONFIGURATION FILE
+There is no configuration file.
+
+.SH NOTES: ERLANG
+The
+.I Erlang
+is telecom measurement of channel occupancy, and in this application sense
+it does tell how much traffic there is on the radio channel.
+.PP
+Most radio transmitters are not aware of all transmitters on channel,
+and thus there can happen a collision causing loss of both messages.
+The higher the channel activity, the more likely that collision is.
+For further details, refer to statistical mathematics books, or perhaps
+on Wikipedia.
+.PP
+In order to measure channel activity, the
+.B aprx
+program suite has these built-in statistics counter and summary estimators.
+.PP
+The
+.I Erlag
+value that the estimators present are likely somewhat
+.I underestimating
+the true channel occupancy simply because it calculates estimate of channel
+bit transmit rate, and thus a per-minute character capacity.
+It does not know true frequency of bit-stuffing events of the HDLC framing,
+nor each transmitter pre- and port frame PTT times. The transmitters need to
+stabilize their transmit oscillators in many cases, which may take up to
+around 500 ms!
+The counters are not aware of this preamble-, nor postamble-times.
+.PP
+The HDLC bit stuffing ratio is guessed to be 8.2 bits for each 8 bits of payload.
+
+
+.SH NOTES: SUID ROOT
+This program needs probably to be run as
+.I "suid\-root" 
+!
+It is considered safe to do so, as this checks that the
+.B "\-f"
+parameter file is of correct "magic value", and will not try to create
+it if it does not exist, nor modify that file under any circumstances,
+nor reveal content of "wrong magic kind" of file.
+
+.SH AUTHOR
+This little piece was written by
+.I "Matti Aarnio, OH2MQK"
+during a dark and rainy fall and winter of 2007\-2008 after a number
+of discussions grumbling about current breed of available software
+for APRS iGate use in Linux (or of any UNIX) platforms.
+.PP
+Principal contributors and test users include:
+.IR "Pentti Gronlund, OH3BK" ,
+.IR "Reijo Hakala, OH1GWK" .
+Debian packaging by
+.IR "Kimmo Jukarinen, OH3GNU" .
