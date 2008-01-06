@@ -1,5 +1,5 @@
 
-		APRX    v0.13
+		APRX    v0.14
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -9,7 +9,10 @@ A receive-only APRS-IS "i-gate" with following properties:
    - Is receive-only  (future may, or may not, have Rx/Tx behaviour)
 
    - Can receive data from multiple receivers/modems on local machine
-     serial ports
+     serial ports, both classical and USB.
+
+   - Can receive data from remote TCP stream connectable serial ports
+     over the internet.
 
    - Understands on serial ports:
        - several KISS protocol variants, plain basic KISS preferred
