@@ -52,12 +52,10 @@ struct aprsis {
 	char	rdline[500];
 };
 
-#define MAXAPRSIS 10 /* 10 should be plenty enough for a iGate ... */
-
 static int AprsIScount;
 static int AprsISindex;
-static struct aprsis AprsIS[MAXAPRSIS];
-static struct aprsis_host AISh[MAXAPRSIS];
+static struct aprsis      **AprsIS;
+static struct aprsis_host **AISh;
 static int AIShcount;
 static int AIShindex;
 static int aprsis_multiconnect;
@@ -67,9 +65,6 @@ static int aprsis_sp; /* up & down talking socket(pair),
 
 void aprsis_init(void)
 {
-	int i;
-	for (i = 0; i < MAXAPRSIS; ++i)
-	  AprsIS[i].server_socket = -1;
 	aprsis_sp = -1;
 }
 
@@ -232,12 +227,12 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	if (!aprsis_multiconnect) {
 	  if (!A->H) {
-	    A->H = & AISh[0];
+	    A->H = AISh[0];
 	  } else {
 	    ++AIShindex;
 	    if (AIShindex >= AIShcount)
 	      AIShindex = 0;
-	    A->H = &AISh[AIShindex];
+	    A->H = AISh[AIShindex];
 	  }
 	}
 
@@ -469,7 +464,7 @@ static void aprsis_readsp(void)
 	/* Now queue the thing! */
 
 	for (i = 0; i < AprsIScount; ++i)
-	  aprsis_queue_(& AprsIS[i], addr, text, textlen);
+	  aprsis_queue_(AprsIS[i], addr, text, textlen);
 }
 
 int aprsis_queue(const char *addr, const char *text, int textlen)
@@ -518,7 +513,7 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 #endif
 
 	for (i = 0; i < AprsIScount; ++i) {
-	  struct aprsis *A = & AprsIS[i];
+	  struct aprsis *A = AprsIS[i];
 
 	  if (A->last_read == 0) A->last_read = now; /* mark it non-zero.. */
 
@@ -564,7 +559,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
 	  for (a = 0; a < AprsIScount; ++a) {
-	    struct aprsis *A = & AprsIS[a];
+	    struct aprsis *A = AprsIS[a];
 	    if (pfd->fd == A->server_socket && A->server_socket >= 0) {
 	      /* This is APRS-IS socket, and we may have some results.. */
 
@@ -600,7 +595,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 
 	      } /* .. POLLOUT */
 	    } /* .. if fd == server_socket */
-	  } /* .. MAXPARSIS .. */
+	  } /* .. AprsIScount .. */
 	} /* .. for .. nfds .. */
 	return 1; /* there was something we did, maybe.. */
 }
@@ -611,14 +606,14 @@ static void aprsis_cond_reconnect(void)
 	if (aprsis_multiconnect) {
 	  int i;
 	  for (i = 0; i < AprsIScount; ++i) {
-	    struct aprsis *A = & AprsIS[i];
+	    struct aprsis *A = AprsIS[i];
 	    if (A->server_socket < 0 &&
 		A->next_reconnect <= now) {
 	      aprsis_reconnect(A);
 	    }
 	  }
 	} else {
-	  struct aprsis *AIS = & AprsIS[AprsISindex];
+	  struct aprsis *AIS = AprsIS[AprsISindex];
 	  if (AIS->server_socket < 0 &&
 	      AIS->next_reconnect <= now) {
 	    aprsis_reconnect(AIS);
@@ -690,10 +685,15 @@ void aprsis_add_server(const char *server, const char *port)
 
 	if (aprsis_multiconnect) {
 
-	  if (AprsIScount >= MAXAPRSIS) return; /* Too many, no room.. */
+	  A = malloc(sizeof(*A));
+	  H = malloc(sizeof(*H));
 
-	  A = & AprsIS[AprsIScount];
-	  H = &AISh[AIShcount];
+	  AprsIS = realloc(AprsIS, sizeof(AprsIS[0]) * (AprsIScount+1));
+	  AISh   = realloc(AISh,   sizeof(AISh[0]) * (AIShcount+1));
+
+	  AprsIS[AprsIScount] = A;
+	  AISh[AIShcount] = H;
+
 	  A->H = H;
 
 	  ++AprsIScount;
@@ -703,10 +703,14 @@ void aprsis_add_server(const char *server, const char *port)
 
 	  if (AprsIScount == 0) AprsIScount = 1;
 
-	  if (AIShcount >= MAXAPRSIS) return; /* Too many, no room.. */
+	  A = malloc(sizeof(*A));
+	  H = malloc(sizeof(*H));
 
-	  A = & AprsIS[AprsIScount];
-	  H = &AISh[AIShcount];
+	  AprsIS = realloc(AprsIS, sizeof(AprsIS[0]) * (AprsIScount+1));
+	  AISh   = realloc(AISh,   sizeof(AISh[0]) * (AIShcount+1));
+
+	  AprsIS[AprsIScount] = A;
+	  AISh[AIShcount] = H;
 
 	  ++AIShcount;
 	  /* No inc on AprsIScount */
@@ -728,7 +732,7 @@ void aprsis_set_heartbeat_timeout(const int tout)
 	struct aprsis_host *H;
 
 	if (i > 0) --i;
-	H = & AISh[i];
+	H = AISh[i];
 
 	H->heartbeat_monitor_timeout = tout;
 }
@@ -744,7 +748,7 @@ void aprsis_set_filter(const char *filter)
 	struct aprsis_host *H;
 
 	if (i > 0) --i;
-	H = & AISh[i];
+	H = AISh[i];
 
 	H->filterparam = strdup(filter);
 }
@@ -755,7 +759,7 @@ void aprsis_set_mycall(const char *mycall)
 	struct aprsis_host *H;
 
 	if (i > 0) --i;
-	H = & AISh[i];
+	H = AISh[i];
 
 	H->mycall = strdup(mycall);
 }

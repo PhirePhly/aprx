@@ -52,7 +52,8 @@ PROGAPRX=	aprx
 PROGSTAT=	$(PROGAPRX)-stat
 
 LIBS=	# Nothing special needed!
-OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o netax25.o erlang.o aprxpolls.o
+OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o	\
+		netax25.o erlang.o aprxpolls.o
 OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
 
 # man page sources, will be installed as $(PROGAPRX).8 / $(PROGSTAT).8
@@ -89,7 +90,9 @@ install: all
 	$(INSTALL_PROGRAM) $(PROGSTAT) $(DESTDIR)$(SBINDIR)/$(PROGSTAT)
 	$(INSTALL_DATA) $(MANAPRX) $(DESTDIR)$(MANDIR)/man8/$(PROGAPRX).8
 	$(INSTALL_DATA) $(MANSTAT) $(DESTDIR)$(MANDIR)/man8/$(PROGSTAT).8
-	: $(INSTALL_DATA) aprx.conf $(DESTDIR)$(CFGFILE)
+	if [ ! -f  $(DESTDIR)$(CFGFILE) ] ; then \
+		$(INSTALL_DATA) aprx.conf $(DESTDIR)$(CFGFILE) ; \
+	else true ; fi
 
 .PHONY: clean
 clean:
@@ -135,9 +138,14 @@ aprx.conf: % : %.in VERSION Makefile
 .PHONY: dist
 dist:
 	# Special for maintainer only..
-	if [ ! -d ../../$(VERSION)-svn$(SVNVERSION) ] ; then mkdir ../../$(VERSION)-svn$(SVNVERSION) ; fi
+	if [ ! -d ../../$(VERSION)-svn$(SVNVERSION) ] ;		\
+	then							\
+		mkdir ../../$(VERSION)-svn$(SVNVERSION) ;	\
+	fi
 	cp -p * ../../$(VERSION)-svn$(SVNVERSION)/
-	cd ../../$(VERSION)-svn$(SVNVERSION) && make distclean
-	cd ../.. && tar czvf $(VERSION)-svn$(SVNVERSION).tar.gz $(VERSION)-svn$(SVNVERSION)
+	echo "$(VERSION)-svn$(SVNVERSION)" > ../../$(VERSION)-svn$(SVNVERSION)/VERSION
+	cd ../../$(VERSION)-svn$(SVNVERSION)/ && make distclean
+	cd ../.. && 	\
+	tar czvf $(VERSION)-svn$(SVNVERSION).tar.gz $(VERSION)-svn$(SVNVERSION)
 
 # -------------------------------------------------------------------- #

@@ -1,3 +1,16 @@
+2008-01-07  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* aprsis.c, ttyreader.c, aprx.8.in, aprx.conf.in:
+	    Remove last vestiges of program having any hardwired limits
+	    on number of anything.  There are (of course) lots of
+	    parameters that are singletons, but all multiples are
+	    now unlimited (within memory limits..)
+
+	* Makefile:
+	    "make install"  does install the  CFGFILE (aprx.conf)
+	    if it does not have to overwrite the thing.
+	    "make dist" is even more interesting beast..
+
 2008-01-06  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
 	* version 0.14
