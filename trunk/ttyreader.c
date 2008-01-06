@@ -24,17 +24,18 @@ struct serialport {
 	time_t	wait_until;
 	time_t  last_read_something; /* Used by serial port functionality watchdog	*/
 
-	int	linetype;	/* 0: KISS,  2: TNC2 monitor, 3: AEA TNC monitor	*/
+	int	linetype;
 #define LINETYPE_KISS 0		/* all KISS variants without CRC on line		*/
 #define LINETYPE_KISSSMACK 1	/* KISS/SMACK variants with CRC on line			*/
 #define LINETYPE_KISSBPQCRC 2	/* BPQCRC - really XOR sum of data bytes, also "AEACRC"	*/
 
-#define LINETYPE_TNC2 4		/* text line from TNC2 in monitor mode -- incomplete	*/
+#define LINETYPE_TNC2 16	/* text line from TNC2 in monitor mode                  */
+#define LINETYPE_AEA  17	/* not implemented...                                   */
 
 	int	kissstate;	/* state for KISS frame reader, also for line collector */
-#define KISSSTATE_SYNCHUNT 0
+#define KISSSTATE_SYNCHUNT   0
 #define KISSSTATE_COLLECTING 1
-#define KISSSTATE_KISSFESC  2
+#define KISSSTATE_KISSFESC   2
 
 	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)			*/
   /*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
@@ -362,19 +363,17 @@ static int ttyreader_pullkiss(struct serialport *S)
 	return 0;
 }
 
-#if 0
 /*
  *  ttyreader_pulltnc2()  --  process a line of text by calling TNC2 UI Monitor analyzer
  */
 
 static int ttyreader_pulltnc2(struct serialport *S)
 {
-	int i;
+	/* S->rdline[] has text line without line ending CR/LF chars   */
+	tnc2_rxgate((char*)(S->rdline), 0);
 
-	
 	return 0;
 }
-#endif
 
 #if 0
 /*
@@ -414,7 +413,6 @@ static int ttyreader_pullaea(struct serialport *S)
 #endif
 
 
-#if 0
 /*
  *  ttyreader_pulltext()  -- process a line of text from the serial port..
  */
@@ -453,8 +451,10 @@ static int ttyreader_pulltext(struct serialport *S)
 
 	      if (S->linetype == LINETYPE_TNC2) {
 		ttyreader_pulltnc2(S);
+#if 0
 	      } else {  /* .. it is LINETYPE_AEA ? */
 		ttyreader_pullaea(S);
+#endif
 	      }
 	    }
 	    S->rdlinelen = 0;
@@ -475,7 +475,6 @@ static int ttyreader_pulltext(struct serialport *S)
 
 	return 0; /* not reached */
 }
-#endif
 
 
 /*
@@ -569,12 +568,15 @@ static void ttyreader_lineread(struct serialport *S)
 
 	  ttyreader_pullkiss(S);
 
+
+	} else if (S->linetype == LINETYPE_TNC2
 #if 0
-	} else if (S->linetype == LINETYPE_TNC2 ||
-		   S->linetype == LINETYPE_AEA) {
+		   ||S->linetype == LINETYPE_AEA
+#endif
+		   ) {
 
 	  ttyreader_pulltext(S);
-#endif
+
 	} else {
 	  close(S->fd); /* Urgh ?? Bad linetype value ?? */
 	  S->fd = -1;
@@ -892,6 +894,8 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	    tty->linetype = LINETYPE_KISSSMACK;  /* KISS with SMACK / CRC16 */
 	  } else if (strcmp(param1, "poll") == 0) {
 	    /* FIXME: Some systems want polling... */
+	  } else if (strcmp(param1, "tnc2") == 0) {
+	    tty->linetype = LINETYPE_TNC2;      /* TNC2 monitor */
 	  } else if (strcmp(param1, "initstring") == 0) {
 	    param1 = str;
 	    str = config_SKIPTEXT (str);
@@ -909,7 +913,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 }
 
 
-#if 0
+#if 0  /* some sample strings.. */
 void ttyreader_initstring(const char *param)
 {
 	  if (debug)

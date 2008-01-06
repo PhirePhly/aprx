@@ -1,6 +1,9 @@
 2008-01-06  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
 	* ttyreader.c, aprx.conf.in, aprx.8.in:
+	    Support TNC2 monitor format on reception.
+
+	* ttyreader.c, aprx.conf.in, aprx.8.in:
 	    Overload the "serialport" configuration option with a mechanism
 	    to define a IP-literal addressable remote TCP port somewhere
 	    with e.g. KISS TNC on it.
