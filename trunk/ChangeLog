@@ -1,5 +1,11 @@
 2008-01-07  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* ttyreader.c:
+	    Support case of _no_ serialports (reading only via AX.25 net)
+
+	* Makefile, logrotate.aprx.in:
+	    Put aprx logs on /var/log/aprx/,  and have monthly rotate.
+
 	* debian/*, Makefile:
 	    Debian package building infrastructure
 

@@ -85,7 +85,7 @@ html:		$(MAN:=.html)
 
 # -------------------------------------------------------------------- #
 
-.PHONY:	install
+.PHONY:	install install-deb
 install: all
 	$(INSTALL_PROGRAM) $(PROGAPRX) $(DESTDIR)$(SBINDIR)/$(PROGAPRX)
 	$(INSTALL_PROGRAM) $(PROGSTAT) $(DESTDIR)$(SBINDIR)/$(PROGSTAT)
@@ -95,11 +95,15 @@ install: all
 		$(INSTALL_DATA) aprx.conf $(DESTDIR)$(CFGFILE) ; \
 	else true ; fi
 
+install-deb: install  logrotate.aprx
+	-mkdir -m 755 -p $(DESTDIR)$(VARLOG)
+	$(INSTALL_DATA) logrotate.aprx $(DESTDIR)/etc/logrotate.d/aprx
+
 .PHONY: clean
 clean:
 	rm -f $(PROGAPRX) $(PROGSTAT)	\
 	      $(MAN) $(MAN:=.html) $(MAN:=.ps) $(MAN:=.pdf)	\
-	      aprx.conf	\
+	      aprx.conf	 logrotate.aprx  \
 	      $(OBJS)	\
 	      $(OBJS:.o=.d)
 
@@ -125,7 +129,7 @@ $(MAN:=.ps): %.ps : %
 $(MAN:=.pdf): %.pdf : %.ps
 	ps2pdf $<
 
-$(MAN)	\
+logrotate.aprx $(MAN)	\
 aprx.conf: % : %.in VERSION Makefile
 	perl -ne "s{\@DATEVERSION\@}{$(VERSION) - $(DATE)}g;	\
 	          s{\@VARRUN\@}{$(VARRUN)}g;			\

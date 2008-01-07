@@ -56,7 +56,7 @@ struct serialport {
 };
 
 static struct serialport **ttys;
-static int  ttyindex; /* How many are defined ? */
+static int  ttycount; /* How many are defined ? */
 static int  serialport_read_timeout; /* No data in N (> 0) seconds -> close and reopen  */
 
 #define TTY_OPEN_RETRY_DELAY_SECS 30
@@ -732,10 +732,11 @@ int ttyreader_prepoll(struct aprxpolls *app)
 {
 	int idx = 0; /* returns number of *fds filled.. */
 	int i;
-	struct serialport *S = ttys[0];
+	struct serialport *S;
 	struct pollfd *pfd;
 
-	for (i = 0; i < ttyindex; ++i, S = ttys[i]) {
+	for (i = 0; i < ttycount; ++i) {
+	  S = ttys[i];
 	  if (!S->ttyname) continue; /* No name, no look... */
 	  if (S->fd < 0) {
 	    /* Not an open TTY, but perhaps waiting ? */
@@ -794,7 +795,8 @@ int ttyreader_postpoll(struct aprxpolls *app)
 	  if (! (P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)))
 	    continue; /* No read event we are interested in... */
 
-	  for (i = 0, S = ttys[0]; i < ttyindex; ++i, S = ttys[i]) {
+	  for (i = 0; i < ttycount; ++i) {
+	    S = ttys[i];
 	    if (S->fd != P->fd) continue; /* Not this one ? */
 	    /* It is this one! */
 
@@ -818,16 +820,14 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	/* serialport /dev/ttyUSB123 [19200 [8n1] ] */
 	if (*param1 == 0) return "Bad tty-name";
-	++ttyindex;
 
 	/* Grow the array as is needed.. - this is array of pointers,
 	   not array of blocks so that memory allocation does not
 	   grow into way too big chunks. */
-	ttys = realloc(ttys, sizeof(void*) * (ttyindex));
+	ttys = realloc(ttys, sizeof(void*) * (ttycount+1));
 
 	tty = malloc(sizeof(*tty));
-
-	ttys[ttyindex-1] = tty;
+	ttys[ttycount++] = tty;
 
 	tty->fd = -1;
 	tty->wait_until = now - 1; /* begin opening immediately */
