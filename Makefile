@@ -9,7 +9,7 @@
 
 # target paths
 VARRUN=		/var/run	# directory for aprx.state and pid-file
-VARLOG=		/var/log	# directory for direct logfiles
+VARLOG=		/var/log/aprx	# directory for direct logfiles
 CFGFILE=	/etc/aprx.conf	# default configuration file
 SBINDIR=	/usr/sbin/	# installation path for programs
 MANDIR=		/usr/share/man	# installation path for manual pages
