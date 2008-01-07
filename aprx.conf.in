@@ -69,7 +69,7 @@ pidfile @VARRUN@/aprx.pid
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
-#rflog @VARLOG@/aprx-rf.log
+#rflog @VARLOG@/rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS-IS connection are logged, namely connects and
