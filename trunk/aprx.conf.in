@@ -1,0 +1,161 @@
+#
+#  Sample configuration file for the APRX  -- an Rx-only APRS iGate
+#
+#
+
+# The  mycall  parameter: 
+# Station call-id used for relaying APRS frames into APRS-IS.
+#
+#mycall           N0CALL-1
+
+# APRS-IS server name and portnumber.
+# Every reconnect does re\-resolve the name to IP address.
+# There can be as many definitions as you want, and they will be
+# used in round\-robin fashion.  Heartbeat and filter definitions
+# must follow each server definition.
+
+#aprsis-server    finland.aprs2.net  14580
+#aprsis-server    rotate.aprs.net    14580
+
+# Some APRS-IS servers tell every about 20 seconds to all contact
+# ports that they are there and alive. Others are just silent.
+# Enable only if the server you use does present heartbeat.
+# Recommended value 3*"heartbeat" + some  -> 120 (seconds)
+#
+#aprsis-heartbeat-timeout   120
+
+
+# APRS-IS server may support some filter commands.  Although this
+# program does not transmit out to RF, filter rules can be used to
+# ensure that there is sufficient dataflow from APRS-IS server to
+# this program that it very likely will not timeout within network
+# monitoring timeout..
+#
+#aprsis-filter "some filter specs in quotes"
+
+# Additional APRS-IS servers can be entered, by repeating following
+# three configuration entries as many times as are needed.
+#
+#aprsis-server            rotate.aprs.net 14580
+#aprsis-heartbeat-timeout 120
+#aprsis-filter            "some filter specs in quotes"
+
+# AX.25 filters block selected messages matching on selected regular
+# expressions.  The expressions are case sensitive, and AX.25 address
+# elements are in all uppercase text.  There can be unlimited number
+# of patterns, type fields are four: "source", "destination", "via",
+# and "data".  These patterns can be used in addition to built-in
+# hard-coded reject rules listed in documentation.
+#
+#ax25-filter source      "^NOCALL"
+#ax25-filter destination "^NOCALL"
+#ax25-filter via         "^NOGATE"
+#ax25-filter data        "^\\?"
+
+# ax25-rxport limits reception on listed AX.25 ports, if system
+# happens to use AX.25 ports also for other purposes than APRS.
+# If this option is not used, all reception ports are accepted.
+# Number of port definitions here is unlimited.
+#
+#ax25-rxport ax0
+#ax25-rxport ax1
+
+# pidfile is UNIX way to tell that others that this program is
+# running with given process-id number.  This has compiled-in
+# default value of:  pidfile @VARRUN@/aprx.pid
+#
+pidfile @VARRUN@/aprx.pid
+
+# rflog defines a rotatable file into which all RF-received packets
+# are logged.
+#
+#rflog @VARLOG@/rf.log
+
+# aprxlog defines a rotatable file into which most important 
+# events on APRS-IS connection are logged, namely connects and
+# disconnects.
+#
+#aprxlog @VARLOG@/aprx.log
+
+# erlangfile defines a mmap():able binary file, which stores
+# running sums of interfaces upon which the channel erlang
+# estimator runs, and collects data.
+# Depending on the system, it may be running on a filesystem
+# that actually retains data over reboots, or it may not.
+# With this backing store, the system does not loose cumulating
+# erlang data over the current period, if the restart is quick,
+# and does not stradle any exact minute.
+# (Do restarts at 15 seconds over an even minute..)
+# This file is around 0.5 MB per each interface talking APRS.
+# Things go BADLY WRONG if this file can not be created or
+# it is corrupted!
+#
+# Built-in default value is: @VARRUN@/aprx.state
+#
+#erlangfile @VARRUN@/aprx.state
+
+# erlang-loglevel is config file edition of the "-l" option
+# pushing erlang data to syslog(3).
+# Valid values are (possibly) following: NONE, LOG_DAEMON,
+# LOG_FTP, LOG_LPR, LOG_MAIL, LOG_NEWS, LOG_USER, LOG_UUCP,
+# LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4,
+# LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.  If the parameter value is
+# not acceptable, list of accepted values are printed at startup.
+#
+#erlang-loglevel NONE
+
+# erlang-log1min option logs to syslog/file also 1 minute
+# interval data from the program. (In addition to 10m and 60m.)
+#
+#erlang-log1min
+
+# The  serialport  option.  Parameters are:
+#   - /dev/ttyUSB1    -- tty device
+#   - 19200           -- baud rate, supported ones are:
+#                        1200, 2400, 4800, 9600, 19200, 38400
+#   - 8n1             -- 8-bits, no parity, one stop-bit,
+#                        no other supported modes
+#   - KISS/XORSUM/BPQCRC/SMACK/CRC16  -- KISS mode variants
+#     TNC2            -- non-KISS text format variant
+#
+#
+#serialport   /dev/ttyUSB0  19200 8n1    KISS
+#serialport   /dev/ttyUSB1  19200 8n1    TNC2
+
+# Additional/alternate options for the "serialport" line.
+#
+# "initstring" is of two parts, the keyword, and then a string.
+#    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
+#
+#  "KISS"                  - plain basic KISS mode
+#  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
+#  "SMACK" alias "CRC16"   - KISS with better CRC
+#  "TNC2"                  - TNC2 monitor format
+
+
+# The  serialport  option is overloaded also with connection
+# to remote socket beyond which is a binary transparent 
+# connection to a serial port.  The remote host side is
+# configured by a string with exclamation marks in between
+# parameter fields:  first a literal "socket", then literal
+# IP address (IPv4 or IPv6), then literal port number.
+# KISS-protocol parameters are same as with normal serial port.
+#
+#serialport  socket!12.34.56.78!4001! 1200 8n1 KISS
+#serialport  socket!12.34.56.78!4002! 1200 8n1 TNC2
+#
+
+
+
+# The  netbeacon  option.
+# Parameter string (in quotes) is sent to network (without quotes)
+# at varying intervals --  1200-1800 seconds in between restransmits.
+# This interval is intentionally randomized.
+# Multiple netbeacons are evenly distributed for each time period,
+# or at least 3 seconds apart.  First netbeacon is sent to network
+# 30 seconds after connection to APRS-IS.
+#
+# There can be multiple netbeacon options.
+# Symbol  R&   is for "rx-only iGate"
+#
+#netbeacon  "!6016.35NR02506.36E&aprx - an Rx-only 'iGate'"
