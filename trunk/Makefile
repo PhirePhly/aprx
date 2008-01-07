@@ -97,6 +97,7 @@ install: all
 
 install-deb: install  logrotate.aprx
 	-mkdir -m 755 -p $(DESTDIR)$(VARLOG)
+	-mkdir -p $(DESTDIR)/etc/logrotate.d/aprx
 	$(INSTALL_DATA) logrotate.aprx $(DESTDIR)/etc/logrotate.d/aprx
 
 .PHONY: clean
