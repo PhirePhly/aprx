@@ -614,7 +614,8 @@ static void aprsis_cond_reconnect(void)
 	  }
 	} else {
 	  struct aprsis *AIS = AprsIS[AprsISindex];
-	  if (AIS->server_socket < 0 &&
+	  if (AIS && /* First time around it may trip.. */
+	      AIS->server_socket < 0 &&
 	      AIS->next_reconnect <= now) {
 	    aprsis_reconnect(AIS);
 	  }
@@ -680,7 +681,7 @@ static void aprsis_main(void)
 
 void aprsis_add_server(const char *server, const char *port)
 {
-	struct aprsis *A;
+	struct aprsis      *A;
 	struct aprsis_host *H;
 
 	if (aprsis_multiconnect) {
@@ -689,10 +690,10 @@ void aprsis_add_server(const char *server, const char *port)
 	  H = malloc(sizeof(*H));
 
 	  AprsIS = realloc(AprsIS, sizeof(AprsIS[0]) * (AprsIScount+1));
-	  AISh   = realloc(AISh,   sizeof(AISh[0]) * (AIShcount+1));
+	  AISh   = realloc(AISh,   sizeof(AISh[0])   * (AIShcount+1));
 
 	  AprsIS[AprsIScount] = A;
-	  AISh[AIShcount] = H;
+	  AISh[AIShcount]     = H;
 
 	  A->H = H;
 
@@ -701,15 +702,18 @@ void aprsis_add_server(const char *server, const char *port)
 
 	} else { /* not multiconnect */
 
-	  if (AprsIScount == 0) AprsIScount = 1;
+	  if (AprsIScount == 0) {
+	    AprsIScount = 1;
 
-	  A = malloc(sizeof(*A));
+	    A = malloc(sizeof(*A));
+	    AprsIS = realloc(AprsIS, sizeof(AprsIS[0]) * (AprsIScount+1));
+	    AprsIS[0] = A;  /* Always index 0 */
+	  }
+	  else
+	    A = AprsIS[0]; /* Always index 0 */
+
 	  H = malloc(sizeof(*H));
-
-	  AprsIS = realloc(AprsIS, sizeof(AprsIS[0]) * (AprsIScount+1));
-	  AISh   = realloc(AISh,   sizeof(AISh[0]) * (AIShcount+1));
-
-	  AprsIS[AprsIScount] = A;
+	  AISh            = realloc(AISh,   sizeof(AISh[0]) * (AIShcount+1));
 	  AISh[AIShcount] = H;
 
 	  ++AIShcount;
