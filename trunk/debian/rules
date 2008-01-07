@@ -47,8 +47,8 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/aprx.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/aprx install-deb
-
+	$(MAKE) DESTDIR=$(CURDIR)/debian/aprx logrotate.aprx install
+	cp logrotate.aprx debian/aprx.logrotate
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -64,7 +64,7 @@ binary-arch: build install
 #	dh_install
 #	dh_installmenu
 #	dh_installdebconf	
-#	dh_installlogrotate
+	dh_installlogrotate
 #	dh_installemacsen
 #	dh_installpam
 #	dh_installmime
