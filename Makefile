@@ -95,10 +95,8 @@ install: all
 		$(INSTALL_DATA) aprx.conf $(DESTDIR)$(CFGFILE) ; \
 	else true ; fi
 
-install-deb: install  logrotate.aprx
-	-mkdir -m 755 -p $(DESTDIR)$(VARLOG)
-	-mkdir -p $(DESTDIR)/etc/logrotate.d/aprx
-	$(INSTALL_DATA) logrotate.aprx $(DESTDIR)/etc/logrotate.d/aprx
+#install-deb: install logrotate.aprx
+#	$(INSTALL_DATA) logrotate.aprx debian/aprx.logrotate
 
 .PHONY: clean
 clean:
