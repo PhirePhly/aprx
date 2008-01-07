@@ -1,5 +1,11 @@
 2008-01-07  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* erlang.c:
+	    Do not double-open the state backingstore file
+
+	* aprsis.c:
+	    Remember to close the opened log files.
+
 	* ttyreader.c:
 	    Support case of _no_ serialports (reading only via AX.25 net)
 

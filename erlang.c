@@ -227,9 +227,11 @@ static int erlang_backingstore_open(int do_create)
 	  return -1;
 	}
 
-	erlang_file_fd = open(erlang_backingstore, O_RDWR, 0644); /* Presume: it exists! */
-	if ((erlang_file_fd < 0) && do_create && (errno == ENOENT)) {
-	  erlang_file_fd = open(erlang_backingstore, O_RDWR|O_CREAT|O_EXCL, 0644);
+	if (erlang_file_fd < 0) {
+	  erlang_file_fd = open(erlang_backingstore, O_RDWR, 0644); /* Presume: it exists! */
+	  if ((erlang_file_fd < 0) && do_create && (errno == ENOENT)) {
+	    erlang_file_fd = open(erlang_backingstore, O_RDWR|O_CREAT|O_EXCL, 0644);
+	  }
 	}
 	if (erlang_file_fd < 0) {
 	  fprintf(stderr,"open of '%s' for erlang_backingstore file failed!  errno=%d: %s\n",
