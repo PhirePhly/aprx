@@ -1,0 +1,254 @@
+
+			Protocols spoken by APRX
+
+There are a few protocols spoken by the APRX:
+
+      1) APRS-IS interchange
+
+      2) Proprietary monitoring via shared memory segment
+
+      3) APRX-APRXC linkage
+
+
+APRS-IS interchange
+
+	This protocol is fairly simple.
+
+	    http://wiki.ham.fi/IGate_properties
+
+
+
+			APRS iGate Common Properties
+
+	Communication is over TCP streams of text lines terminating
+        at CR+LF pair.    No CR or LF is permitted inside the text
+        line, however.
+
+	APRS-IS user authentication:
+
+	    user USERID pass PASSCODE vers VERS STRINGS  \
+	    	  filter FILTER STRINGS
+
+        where 'USERID' is uppercase callsign plus possible "-SSID" tail.
+	The 'PASSCODE' is calculated with semi-secret algorithm out of
+	the uppercase callsign characters without '-' and SSID tail.
+	The 'VERS STRINGS' are free to be anything, except string 'filter',
+	and the 'FILTER STRINGS' are explained in document:
+	   http://www.aprs-is.net/ServerCmds.htm
+	   http://www.aprs-is.net/javAPRSSrvr/javaprsfilter.htm
+
+
+	Messages:
+
+	Lines beginning with '#' character are line noise (usually
+	something that the server replies..)
+
+
+	After successfull login, communication carries "TNC2" format
+	APRS messages.  Namely text encoding of AX.25 UI frames in
+	what became known as "TNC2 monitor style":
+
+	    SOURCE>DESTIN:payload
+	    SOURCE>DESTIN,VIA,VIA:payload
+
+	The SOURCE, DESTIN, and VIA fields are AX.25 address fields,
+        and have "-SSID" value annexed if the SSID is not zero.
+	Also in VIA-fields, if the "HAS BEEN DIGIPEATED" bit is set
+	(AX.25 v2 protocol feature) a star ('*') character is appended.
+        VIA-fields are separated by comma (',') from DESTIN, and each
+        other.
+
+	A double-colon (':') separates address data from payload.
+	The payload is passed _AS_IS_ without altering any message
+	content bytes, however ending at first CR or LF character
+	encountered in the packet.
+
+
+			APRS-RX iGate Basic Rules
+
+
+	Packets with source addresses:  NOCALL*, N0CALL*, WIDE*, TRACE*,
+        TCP*, are dropped and not relayed to APRS-IS.
+
+	Packets with VIA addresses: RFONLY, NOGATE, TCPIP, TCPXX are not
+        to be relayed to APRS-IS.  Sometimes the VIA fields have '*' on
+	their tails.
+
+	Packets with payload beginning with character '?' are not to be
+	relayed to APRS-IS.
+
+	Packets with payload beginning with character '}' are so called
+	3rd-party frames, and they are to be re-processed starting from
+	character following the '}' character.
+
+
+	When packet is sent to APRS-IS, the address gets appended
+	either a "q-construct", or equivalent:
+
+                ,qAR,gatecallsign
+		,gatecallsign,I
+
+	The "qAR" et.al. are explained at: http://www.aprs-is.net/q.htm
+
+
+			APRS-TX iGate has additional rules:
+
+	Specifically forbidden to relay to RF is "qAX", maybe some others too.
+	(See: http://www.aprs-is.net/q.htm)
+
+	If the packet VIA-path received from APRS-IS contains TCPXX,
+	NOGATE, RFONLY, then the packet is to be dropped, and not relayed
+	to radio network.  (Note: TCPIP is permitted.)
+
+	Packets relayed from APRS-IS to radio must use so called 3rd-party
+	format.  Signature is '}' character.
+
+	Rules on re-sending recently heard packets are a bit more complex,
+	and are covered adequately in above referenced document.
+
+
+
+
+
+Proprietary monitoring mechanism
+
+	There is a tool for monitoring channel activity.
+	See  aprx-stat(8)
+
+
+
+APRX-APRX linkage
+
+	(For a feature in planning...)
+
+
+	With introduction of APRX-Cluster (APRXC) mode, multiple APRX
+	instances are used as remote attachments to TNCs, and one central
+	system runs more complicated business logic deciding which messages
+	to pass where, what beacons to send, etc.  The central business-logic
+	server runs also connection with APRS-IS, and all things that it
+	implies.
+
+	Actually the APRX-Cluster-Server is APRX program version with
+	embedded Perl for business logic.  Some very flexibly configurable
+	APRS digi software has practical limitations of what the config
+	can do.
+
+	Environmental pre-requisite: APRXC and APRX nodes are in NTP sync!
+
+	The Protocol:
+
+	Communication is of text lines over TCP stream, they are canonic
+	Internet format ending with CRLF pairs.  However no embedded CR,
+	nor LF is permitted.
+
+	(detail under study: UDP frames, or SCTP SEQPACKET ?)
+
+	The protocol is bidirectional, and is intended to be connected from
+	edge systems to cluster server.  Upon receiving a connection the
+	server sends a greeting containing time-varying string.  This will
+	be used by the connecting party to do authentication in APOP-style.
+
+	The timestamps in this protocol are "U" format:
+	    sprintf(timestamp, "U%ld", (long)time(NULL));
+	which is to say, integer presentation of UNIX internal time in whole
+	seconds.
+
+
+	In following ">>" mean data sent by central system and received by
+	the edge, whereas "<<" means data sent by edge system to central
+	system.
+
+		<< (connection formation from edge to the server)
+
+		>> <timestamp> Hello <++counter> some greeting string
+
+		<< <timestamp> LOGIN <userid> <authenticator>
+
+		>> <timestamp> OK
+
+		<< <timestamp> SERVICE <ifname> <speed> { RX | TX <areaspecifiers> }
+
+		>> <timestamp> OK
+
+	The <authenticator> is formed by hex (lower case) encoding of 16 byte
+	MD5() checksum over the whole greeting string (sans CRLF), plus userid,
+	plus shared plaintext password.
+
+	Replies can also be "FAIL", if "LOGIN" or "SERVICE" is somehow bad.
+
+	The  <ifname> is local interface name in given node.  The <speed> is
+	radio channel bitrate.  The <areaspecifiers> are filter statements
+	in APRS-IS style.
+
+
+	The edge system compares every received timestamp (aside of the
+	login-sequence above) with its internal time reference, and if
+	the time varies more than 3 seconds from expected, the received
+	frame is discarded.
+
+	If APRXC Server notes that the time stamp it received is more than
+	3 seconds in future or in past, it rejects the message.
+	(This does not apply to ERLANG verbs.)
+
+	The APRXC server acknowledges every received message with:
+
+		>> <timestamp> OK
+
+	Link idle jabber is by done by both systems by sending "TIME" verbs.
+	They are sent every 20 seconds since previous transmit of anything
+	on the connection, and if either notes that link has not received
+	anything for 120 seconds, the link is considered to be down, closed,
+	and re-initiated.
+
+		<< <timestamp> TIME
+		>> <timestamp> OK
+
+		>> <timestamp> TIME
+		<< <timestamp> OK
+
+	Either system can initiate the "heartbeat", sometimes even both
+	may send the TIME verbs at the same time, but both are not required
+	to do so.
+
+
+	The edge system sends received APRS frames to the central system
+	in "TNC2" format in a command:
+
+		<< <timestamp> APRS <ifname> <TNC2frame>
+
+	The <TNC2frame> is the data received from radio as is without any
+	APRS-IS -type additional parameters inserted into address field.
+
+
+	When central system wants that a TX capable edge system transmits
+	something, it sends following message:
+
+		>> <timestamp> APRSTX <ifname> <TNC2frame>
+
+	the edge system will transmit the frame as is (the APRXC will format
+	the message to be ready for transmit.)  If the edge system can not
+	transmit on given interface, it reports:
+
+		<< <timestamp> FAILTX <ifname>
+
+	which results from APRXC and/or APRX software bug listing/flagging
+	non-tx-interface to be tx-interface..  Otherwise it acks the packet
+	with "OK" message.
+
+		<< <timestamp> OK
+
+	Edge systems send 1 minute ERLANG data to central system with verb:
+
+		<< <timestamp> ERLANG <ifname>  <rxbytes> <rxpackets> \
+		              <txbytes> <txpackets> [ <rxerlang> <txerlang> ]
+		>> <timestamp> OK
+
+	(Long line is folded in UNIX-style in this documentation.
+	 Data is ACKed with OK.)
+
+	The APRXC collates these to 1 minute, 10 minute and 60 minute datasets
+	of given timestamp.  The measured erlang-values are optional, if edge
+        system can produce truthfull ones.
+
+	The time-series collation database is persistent, for example RRD.
