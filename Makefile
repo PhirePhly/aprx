@@ -43,6 +43,7 @@ MANDIR:=$(strip $(MANDIR))
 VERSION:=$(shell cat VERSION)
 SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
 DATE:=$(shell date +"%Y %B %d")
+RFCDATE:=$(shell date -R)
 
 DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
 	 -DVARLOG="\"$(VARLOG)\"" -DCFGFILE="\"$(CFGFILE)\""
@@ -135,17 +136,27 @@ aprx.conf: % : %.in VERSION Makefile
 
 # -------------------------------------------------------------------- #
 
+DISTVERSION:=$(VERSION).svn$(SVNVERSION)
+DISTTARGET:=../../$(DISTVERSION)
 .PHONY: dist
 dist:
 	# Special for maintainer only..
-	if [ ! -d ../../$(VERSION)-svn$(SVNVERSION) ] ;		\
-	then							\
-		mkdir ../../$(VERSION)-svn$(SVNVERSION) ;	\
+	if [ ! -d $(DISTTARGET) ] ; then	\
+		mkdir $(DISTTARGET) ;		\
 	fi
-	cp -p * ../../$(VERSION)-svn$(SVNVERSION)/
-	echo "$(VERSION)-svn$(SVNVERSION)" > ../../$(VERSION)-svn$(SVNVERSION)/VERSION
-	cd ../../$(VERSION)-svn$(SVNVERSION)/ && make distclean
+	tar cf - --exclude=.svn --exclude=*~ . | (cd $(DISTTARGET) ; tar xf -)
+	echo "$(DISTVERSION)" > $(DISTTARGET)/VERSION
+	perl -ne "\$$ver = '$(DISTVERSION)'; 	\
+		  \$$ver =~ tr/0-9.//cd;	\
+		  \$$ver .= '-1';		\
+		  s{\@VERSION\@}{\$$ver}g;	\
+		  s{\@RFCDATE\@}{$(RFCDATE)}g;	\
+		  print;"			\
+		  < $(DISTTARGET)/debian/changelog.release	\
+		  > $(DISTTARGET)/debian/changelog
+	rm -f $(DISTTARGET)/debian/changelog.release
+	make -C $(DISTTARGET) distclean
 	cd ../.. && 	\
-	tar czvf $(VERSION)-svn$(SVNVERSION).tar.gz $(VERSION)-svn$(SVNVERSION)
+	tar czvf $(DISTVERSION).tar.gz $(DISTVERSION)
 
 # -------------------------------------------------------------------- #

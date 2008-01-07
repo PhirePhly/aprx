@@ -33,6 +33,13 @@
 #
 #aprsis-filter "some filter specs in quotes"
 
+# Additional APRS-IS servers can be entered, by repeating following
+# three configuration entries as many times as are needed.
+#
+#aprsis-server            rotate.aprs.net 14580
+#aprsis-heartbeat-timeout 120
+#aprsis-filter            "some filter specs in quotes"
+
 # AX.25 filters block selected messages matching on selected regular
 # expressions.  The expressions are case sensitive, and AX.25 address
 # elements are in all uppercase text.  There can be unlimited number
@@ -108,13 +115,14 @@ pidfile @VARRUN@/aprx.pid
 #                        1200, 2400, 4800, 9600, 19200, 38400
 #   - 8n1             -- 8-bits, no parity, one stop-bit,
 #                        no other supported modes
-#   - KISS/XORSUM/BPQCRC/SMACK/CRC16  -- KISS mode
+#   - KISS/XORSUM/BPQCRC/SMACK/CRC16  -- KISS mode variants
+#     TNC2            -- non-KISS text format variant
 #
-# There can be up to 16 serialport definitions in this file!
 #
-#serialport   /dev/ttyUSB1  19200 8n1    KISS
+#serialport   /dev/ttyUSB0  19200 8n1    KISS
+#serialport   /dev/ttyUSB1  19200 8n1    TNC2
 
-# Additional options for the "serialport" line.
+# Additional/alternate options for the "serialport" line.
 #
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
@@ -134,6 +142,7 @@ pidfile @VARRUN@/aprx.pid
 # KISS-protocol parameters are same as with normal serial port.
 #
 #serialport  socket!12.34.56.78!4001! 1200 8n1 KISS
+#serialport  socket!12.34.56.78!4002! 1200 8n1 TNC2
 #
 
 
