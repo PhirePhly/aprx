@@ -1,5 +1,12 @@
 2008-01-07  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* debian/*, Makefile:
+	    Debian package building infrastructure
+
+	* aprx.8.in, aprx.conf.in:
+	    A bit elaboration on how to add multiple entries of
+	    aprsis-server, and  serialport  definitions.
+
 	* aprsis.c, ttyreader.c, aprx.8.in, aprx.conf.in:
 	    Remove last vestiges of program having any hardwired limits
 	    on number of anything.  There are (of course) lots of

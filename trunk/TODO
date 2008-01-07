@@ -1,14 +1,10 @@
-
-		     APRX   0.14
+		     APRX   0.15
 
 		  	TODO
 
-- config file reading
-   - Mostly done
+- configure -script ?
 
 - manual (man-pages exist)
-
-- configure -script ?
 
 - "make install"
   - Sort of one exists..
