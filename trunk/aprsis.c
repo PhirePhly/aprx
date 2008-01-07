@@ -102,6 +102,7 @@ static void aprsis_close(struct aprsis *A)
 	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
 	    fprintf(fp,"%s CLOSE APRSIS %s:%s\n", timebuf, A->H->server_name,A->H->server_port);
+	    fclose(fp);
 	  }
 	}
 }
@@ -248,6 +249,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	      
 	      fprintf(fp,"%s FAIL - MYCALL not defined, no APRSIS connection!\n", timebuf);
+	      fclose(fp);
 	    }
 	  }
 
@@ -289,6 +291,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	      
 	      fprintf(fp, "%s FAIL - Connect to %s:%s failed: %s\n", timebuf, A->H->server_name, A->H->server_port, errstr);
+	      fclose(fp);
 	    }
 	  }
 	  return;
@@ -330,6 +333,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
 	    fprintf(fp,"%s CONNECT APRSIS %s:%s\n", timebuf, A->H->server_name, A->H->server_port);
+	    fclose(fp);
 	  }
 	}
 
