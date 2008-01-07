@@ -1,5 +1,7 @@
 2008-01-07  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* version 0.15
+
 	* erlang.c:
 	    Do not double-open the state backingstore file
 
