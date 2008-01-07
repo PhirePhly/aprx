@@ -160,3 +160,11 @@ dist:
 	tar czvf $(DISTVERSION).tar.gz $(DISTVERSION)
 
 # -------------------------------------------------------------------- #
+
+.PHONY: make-deb
+
+make-deb:
+	dpkg-buildpackage -b -us -uc -rfakeroot
+
+
+# -------------------------------------------------------------------- #
