@@ -12,7 +12,7 @@ if [ -f /etc/default/$NAME ] ; then
 	. /etc/default/$NAME
 fi
 
-if [ "$RUNAPRX" != "yes" ];then
+if [ "$STARTAPRX" != "yes" ];then
 	echo "Starting of $NAME not enabled in /etc/default/$NAME."
 	exit 0
 fi
