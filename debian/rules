@@ -37,6 +37,7 @@ clean:
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) clean
+	rm -f debian/aprx.logrotate
 
 	dh_clean 
 

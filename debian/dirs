@@ -1,5 +1,5 @@
 etc/
 usr/sbin
 usr/share/man/man8
-var/log
+var/log/aprx
 var/run
