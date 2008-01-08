@@ -103,8 +103,8 @@ extern int  erlang_prepoll(struct aprxpolls *app);
 extern int  erlang_postpoll(struct aprxpolls *app);
 #define ERLANG_RX 0
 #define ERLANG_TX 1
-extern void erlang_add(const void *refp, const char *portname, int rx_or_tx, int bytes, int packets);
-extern void erlang_set(const void *refp, const char *portname, int bytes_per_minute);
+extern void erlang_add(const void *refp, const char *portname, int subport, int rx_or_tx, int bytes, int packets);
+extern void erlang_set(const void *refp, const char *portname, int subport, int bytes_per_minute);
 extern int erlangsyslog;
 extern int erlanglog1min;
 extern const char *erlang_backingstore;
@@ -121,7 +121,8 @@ struct erlang_rxtxbytepkt {
 struct erlangline {
 	const void *refp;
 	int	index;
-	char name[32];
+	char    name[31];
+	unsigned char subport;
 	time_t	last_update;
 
 	int     erlang_capa;	/* bytes, 1 minute			*/

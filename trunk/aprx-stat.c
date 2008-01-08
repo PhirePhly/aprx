@@ -31,8 +31,9 @@ void erlang_snmp(void)
 	for (i = 0; i < ErlangLinesCount; ++i) {
 	  struct erlangline *E = ErlangLines[i];
 
-	  printf("%s   %ld %ld   %ld  %ld     %d\n",
-		 E->name,
+	  printf("%s", E->name);
+	  if (E->subport) printf("_%d", E->subport);
+	  printf("   %ld %ld   %ld  %ld     %d\n",
 		 E->SNMP.bytes_rx, E->SNMP.packets_rx,
 		 E->SNMP.bytes_tx, E->SNMP.packets_tx,
 		 (int)(now - E->last_update));
@@ -59,8 +60,9 @@ void erlang_xml(int topmode)
 	  char logtime[40];
 	  struct tm *wallclock;
 
-	  printf("\nSNMP  %s   %ld %ld   %ld  %ld     %d\n",
-		 E->name,
+	  printf("\nSNMP  %s", E->name);
+	  if (E->subport) printf("_%d", E->subport);
+	  printf("   %ld %ld   %ld  %ld     %d\n",
 		 E->SNMP.bytes_rx, E->SNMP.packets_rx,
 		 E->SNMP.bytes_tx, E->SNMP.packets_tx,
 		 (int)(now - E->last_update));
@@ -77,8 +79,10 @@ void erlang_xml(int topmode)
 	      wallclock = gmtime(&E->e1[k].update);
 	      strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
 	    }
-	    printf("%s  %s %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
-		   logtime, E->name, 1,
+	    printf("%s  %s", logtime, E->name);
+	    if (E->subport) printf("_%d", E->subport);
+	    printf(" %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
+		   1,
 		   E->e1[k].bytes_rx,  E->e1[k].packets_rx,
 		   E->e1[k].bytes_tx,  E->e1[k].packets_tx,
 		   (float)E->e1[k].bytes_rx/(float)E->erlang_capa,
@@ -98,8 +102,10 @@ void erlang_xml(int topmode)
 	      wallclock = gmtime(&E->e10[k].update);
 	      strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
 	    }
-	    printf("%s  %s %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
-		   logtime, E->name, 10,
+	    printf("%s  %s", logtime, E->name);
+	    if (E->subport) printf("_%d", E->subport);
+	    printf(" %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
+		   10,
 		   E->e10[k].bytes_rx,  E->e10[k].packets_rx,
 		   E->e10[k].bytes_tx,  E->e10[k].packets_tx,
 		   (float)E->e10[k].bytes_rx/((float)E->erlang_capa*10.0),
@@ -119,15 +125,15 @@ void erlang_xml(int topmode)
 	      wallclock = gmtime(&E->e60[k].update);
 	      strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
 	    }
-	    printf("%s  %s %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
-		   logtime, E->name, 60,
+	    printf("%s  %s", logtime, E->name);
+	    if (E->subport) printf("_%d", E->subport);
+	    printf(" %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
+		   60,
 		   E->e60[k].bytes_rx,  E->e60[k].packets_rx,
 		   E->e60[k].bytes_tx,  E->e60[k].packets_tx,
 		   (float)E->e60[k].bytes_rx/((float)E->erlang_capa*60.0),
 		   (float)E->e60[k].bytes_tx/((float)E->erlang_capa*60.0));
 	  }
-
-
 
 	}
 

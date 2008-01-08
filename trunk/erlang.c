@@ -243,7 +243,7 @@ static int erlang_backingstore_open(int do_create)
 }
 
 
-static struct erlangline *erlang_findline(const void *refp, const char *portname, int bytes_per_minute)
+static struct erlangline *erlang_findline(const void *refp, const char *portname, int subport, int bytes_per_minute)
 {
 	int i;
 	struct erlangline *E = NULL;
@@ -257,7 +257,8 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	  for (i=0; i < ErlangLinesCount; ++i) {
 	    if (refp && (refp != ErlangLines[i]->refp))
 	      continue; /* Was not this.. */
-	    if (!refp && (strcmp(portname, ErlangLines[i]->name) != 0))
+	    if (!refp && (strcmp(portname, ErlangLines[i]->name) != 0) &&
+		ErlangLines[i]->subport == subport)
 	      continue; /* Was not this.. */
 	    /* HOO-RAY!  It is this one! */
 	    E = ErlangLines[i];
@@ -279,6 +280,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	  E->refp = refp;
 	  strncpy(E->name, portname, sizeof(E->name)-1);
 	  E->name[sizeof(E->name)-1] = 0;
+	  E->subport = subport;
 
 	  E->erlang_capa = bytes_per_minute;
 	  E->index = ErlangLinesCount-1;
@@ -294,17 +296,17 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 /*
  *  erlang_set()
  */
-void erlang_set(const void *refp, const char *portname, int bytes_per_minute)
+void erlang_set(const void *refp, const char *portname, int subport, int bytes_per_minute)
 {
-	erlang_findline(refp, portname, bytes_per_minute);
+	erlang_findline(refp, portname, subport, bytes_per_minute);
 }
 
 /*
  *  erlang_add()
  */
-void erlang_add(const void *refp, const char *portname, int rx_or_tx, int bytes, int packets)
+void erlang_add(const void *refp, const char *portname, int subport, int rx_or_tx, int bytes, int packets)
 {
-	struct erlangline *E = erlang_findline(refp, portname, (int)((1200.0*60)/8.2));
+	struct erlangline *E = erlang_findline(refp, portname, subport, (int)((1200.0*60)/8.2));
 	if (!E) return;
 
 	if (rx_or_tx == ERLANG_RX) {
