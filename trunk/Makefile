@@ -95,9 +95,6 @@ install: all
 		$(INSTALL_DATA) aprx.conf $(DESTDIR)$(CFGFILE) ; \
 	else true ; fi
 
-#install-deb: install logrotate.aprx
-#	$(INSTALL_DATA) logrotate.aprx debian/aprx.logrotate
-
 .PHONY: clean
 clean:
 	rm -f $(PROGAPRX) $(PROGSTAT)	\
@@ -128,8 +125,7 @@ $(MAN:=.ps): %.ps : %
 $(MAN:=.pdf): %.pdf : %.ps
 	ps2pdf $<
 
-logrotate.aprx $(MAN)	\
-aprx.conf: % : %.in VERSION Makefile
+logrotate.aprx $(MAN) aprx.conf: % : %.in VERSION Makefile
 	perl -ne "s{\@DATEVERSION\@}{$(VERSION) - $(DATE)}g;	\
 	          s{\@VARRUN\@}{$(VARRUN)}g;			\
 	          s{\@VARLOG\@}{$(VARLOG)}g;			\
@@ -143,6 +139,10 @@ DISTVERSION:=$(VERSION).svn$(SVNVERSION)
 DISTTARGET:=../../$(DISTVERSION)
 .PHONY: dist
 dist:
+	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then				\
+		echo "Mixed or modified tree ($(SVNVERSION)), refusing to build release." ;	\
+		exit 1 ;									\
+	fi
 	# Special for maintainer only..
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
