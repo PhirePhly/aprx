@@ -137,7 +137,7 @@ int netax25_postpoll(struct aprxpolls *app)
 	     * "+10" is a magic constant for trying to estimate channel
 	     * occupation overhead
 	     */
-	    erlang_add(NULL, sa.sa_data, ERLANG_RX, rcvlen+10, 1);
+	    erlang_add(NULL, sa.sa_data, 0, ERLANG_RX, rcvlen+10, 1);
 
 	    ax25_to_tnc2(rxbuf[0], rxbuf+1, rcvlen-1);
 

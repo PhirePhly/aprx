@@ -159,9 +159,8 @@ int  crc16_calc(unsigned char *buf, int n)
 static int ttyreader_kissprocess(struct serialport *S)
 {
 	int i;
-	int cmdbyte;
-
-	cmdbyte = S->rdline[0];
+	int cmdbyte = S->rdline[0];
+	int tncid   = (cmdbyte >> 4) & 0x0F;
 
 	/* --
 	 * C0 00
@@ -203,6 +202,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 	if ((S->linetype == LINETYPE_KISSSMACK) &&
 	    ((cmdbyte & 0x8F) == 0x80)) {
 
+	  tncid &= 0x07; /* Chop off top bit */
+
 	  /* It is SMACK frame -- KISS with CRC16 at the tail.
 	     Now we ignore the TNC-id number field.
 	     Verify the CRC.. */
@@ -233,7 +234,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 	/* printf("\n"); */
 
 	ax25_to_tnc2(cmdbyte, S->rdline+1, S->rdlinelen-1);
-	erlang_add(S, S->ttyname, ERLANG_RX, 0, 1); /* Account one packet */
+	erlang_add(S, S->ttyname, tncid, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
 
 	return 0;
 }
@@ -372,6 +373,8 @@ static int ttyreader_pulltnc2(struct serialport *S)
 	/* S->rdline[] has text line without line ending CR/LF chars   */
 	tnc2_rxgate((char*)(S->rdline), 0);
 
+	erlang_add(S, S->ttyname, 0, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
+
 	return 0;
 }
 
@@ -495,7 +498,7 @@ static void ttyreader_linewrite(struct serialport *S)
 	i = write(S->fd, S->wrbuf + S->wrcursor, len);
 	if (i > 0) {  /* wrote something */
 	  S->wrcursor += i;
-	  erlang_add(S, S->ttyname, ERLANG_TX, i, 0);
+	  erlang_add(S, S->ttyname, 0, ERLANG_TX, i, 0);
 	  len = S->wrlen - S->wrcursor;
 	  if (len == 0) {
 	    S->wrcursor = S->wrlen = 0; /* wrote all ! */
@@ -552,7 +555,6 @@ static void ttyreader_lineread(struct serialport *S)
 
 	  /* Some data has been accumulated ! */
 	  S->rdlen += i;
-	  erlang_add(S, S->ttyname, ERLANG_RX, i, 0);
 	  S->last_read_something = now;
 	}
 
@@ -639,7 +641,7 @@ static void ttyreader_linesetup(struct serialport *S)
 	    i = write(S->fd, S->wrbuf, S->wrlen);
 	    if (i > 0) { /* wrote something */
 	      S->wrcursor = i;
-	      erlang_add(S, S->ttyname, ERLANG_TX, i, 0);
+	      erlang_add(S, S->ttyname, 0, ERLANG_TX, i, 0);
 	      if (S->wrcursor >= S->wrlen)
 		S->wrlen = S->wrcursor = 0;  /* wrote all */
 	    }
@@ -903,7 +905,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 
 	/* Use side-effect: this defines the tty into erlang accounting */
-	erlang_set(tty, tty->ttyname, (int)((1200.0*60)/8.2)); /* Magic constant for channel capa.. */
+	erlang_set(tty, tty->ttyname, 0, (int)((1200.0*60)/8.2)); /* Magic constant for channel capa.. */
 
 	return NULL;
 }
