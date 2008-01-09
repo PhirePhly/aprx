@@ -1,3 +1,11 @@
+2008-01-10  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* aprx.h, aprx.c, config.c, erlang.c, aprx.8.in, aprx.conf.in,
+	  aprx-stat.c:
+	    Add (and document) option for logging erlang data on separate
+	    file without any runtime options or need to divert stdout
+	    or syslog anywhere.
+
 2008-01-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, ttyreader.c, erlang.c, netax25.c, aprx-stat.c:
