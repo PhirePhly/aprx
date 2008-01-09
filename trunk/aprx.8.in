@@ -274,6 +274,11 @@ erlangfile @VARRUN@/aprx.state
 #
 #erlang\-loglevel NONE
 
+# erlanglog defines a rotatable file into which erlang data
+# is written in text form.
+#
+#erlanglog @VARLOG@/erlang.log
+
 # erlang\-log1min option logs to syslog/file also 1 minute
 # interval data from the program. (In addition to 10m and 60m.)
 #

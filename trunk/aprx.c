@@ -17,14 +17,14 @@ time_t now; /* this is globally used */
 int debug;
 int verbout;
 int erlangout;
-char *rflogfile;
-char *aprxlogfile;
+const char *rflogfile;
+const char *aprxlogfile;
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
 #endif
 
-char *pidfile = VARRUN "/aprx.pid";
+const char *pidfile = VARRUN "/aprx.pid";
 
 int die_now;
 

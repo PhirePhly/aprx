@@ -193,12 +193,6 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	  aprxlogfile = strdup(param1);
 
-	} else if (strcmp(name, "aprxlog-erlang") == 0) {
-	  if (debug)
-	    printf("%s:%d: APRXLOG-ERLANG\n", cfgfilename, linenum);
-
-	  erlangout = 2;
-
 	} else if (strcmp(name, "rflog") == 0) {
 	  if (debug)
 	    printf("%s:%d: RFLOG = '%s'\n", cfgfilename, linenum, param1);
@@ -221,6 +215,12 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	  if (debug)
 	    printf("%s:%d: ERLANG-LOGLEVEL = '%s'\n", cfgfilename, linenum, param1);
 	  erlang_init(param1);
+
+	} else if (strcmp(name, "erlanglog") == 0) {
+	  if (debug)
+	    printf("%s:%d: ERLANGLOG = '%s'\n", cfgfilename, linenum, param1);
+
+	  erlanglogfile = strdup(param1);
 
 	} else if (strcmp(name, "erlang-log1min") == 0) {
 	  if (debug)

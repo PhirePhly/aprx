@@ -14,7 +14,7 @@
 time_t now;
 int erlangout;
 int epochtime;
-char *aprxlogfile; /* linkage dummy */
+const char *aprxlogfile; /* linkage dummy */
 const char *mycall; /* linkage dummy */
 
 void erlang_snmp(void)

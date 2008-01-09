@@ -94,7 +94,7 @@ pidfile @VARRUN@/aprx.pid
 #
 #erlangfile @VARRUN@/aprx.state
 
-# erlang-loglevel is config file edition of the "-l" option
+# erlang-loglevel is config file version of the "-l" option
 # pushing erlang data to syslog(3).
 # Valid values are (possibly) following: NONE, LOG_DAEMON,
 # LOG_FTP, LOG_LPR, LOG_MAIL, LOG_NEWS, LOG_USER, LOG_UUCP,
@@ -103,6 +103,11 @@ pidfile @VARRUN@/aprx.pid
 # not acceptable, list of accepted values are printed at startup.
 #
 #erlang-loglevel NONE
+
+# erlanglog defines a rotatable file into which erlang data
+# is written in text form.
+#
+#erlanglog @VARLOG@/erlang.log
 
 # erlang-log1min option logs to syslog/file also 1 minute
 # interval data from the program. (In addition to 10m and 60m.)

@@ -50,9 +50,10 @@ extern time_t now;
 extern int    debug;
 extern int    verbout;
 extern int    erlangout;
-extern char *rflogfile;
-extern char *aprxlogfile;
-extern char *pidfile;
+extern const char *rflogfile;
+extern const char *aprxlogfile;
+extern const char *erlanglogfile;
+extern const char *pidfile;
 
 
 /* ttyreader.c */
