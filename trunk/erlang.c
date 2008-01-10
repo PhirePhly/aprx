@@ -379,8 +379,8 @@ static void erlang_time_end(void)
 
 	    if (erlanglog1min) {
 	      sprintf(msgbuf,
-		      "ERLANG%-2d %s%s %s Raw Bytes/Pkts Rx %6ld %3ld  Tx %6ld %3ld  - %5.3f %5.3f",
-		      1,E->name, subport, logtime,
+		      "ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+		      1,E->name, subport,
 		      E->erl1m.bytes_rx, E->erl1m.packets_rx,
 		      E->erl1m.bytes_tx, E->erl1m.packets_tx,
 		      ((float)E->erl1m.bytes_rx/(float)E->erlang_capa*erlang_time_ival_1min),
@@ -416,8 +416,8 @@ static void erlang_time_end(void)
 	    *subport = 0;
 	    if (E->subport) sprintf(subport, "_%d", E->subport);
 	    sprintf(msgbuf,
-		    "ERLANG%-2d %s%s %s Raw Bytes/Pkts Rx %6ld %3ld  Tx %6ld %3ld  - %5.3f %5.3f",
-		    10,E->name, subport, logtime,
+		    "ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+		    10,E->name, subport,
 		    E->erl10m.bytes_rx, E->erl10m.packets_rx,
 		    E->erl10m.bytes_tx, E->erl10m.packets_tx,
 		    ((float)E->erl10m.bytes_rx/((float)E->erlang_capa*10.0*erlang_time_ival_10min)),
@@ -452,8 +452,8 @@ static void erlang_time_end(void)
 	    *subport = 0;
 	    if (E->subport) sprintf(subport, "_%d", E->subport);
 	    sprintf(msgbuf,
-		    "ERLANG%-2d %s%s %s Raw Bytes/Pkts Rx %6ld %3ld  Tx %6ld %3ld  - %5.3f %5.3f",
-		    60,E->name, subport, logtime,
+		    "ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+		    60,E->name, subport,
 		    E->erl60m.bytes_rx,  E->erl60m.packets_rx,
 		    E->erl60m.bytes_tx,  E->erl60m.packets_tx,
 		    ((float)E->erl60m.bytes_rx/((float)E->erlang_capa*60.0*erlang_time_ival_60min)),
