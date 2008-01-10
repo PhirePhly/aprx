@@ -1,5 +1,7 @@
 2008-01-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* version 0.16
+
 	* erlang.c:
 	    Make the logged data narrower - to usually fit in 80 char lines.
 
