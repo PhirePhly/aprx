@@ -129,20 +129,6 @@ int main(int argc, char * const argv[])
 	  /* child and error cases continue on main program.. */
 	}
 
-	/* In all cases we close STDIN/FD=0.. */
-	close(0);
-	/* .. and replace it with reading from /dev/null.. */
-	open("/dev/null", O_RDONLY, 0);
-	/* Leave STDOUT and STDERR open */
-
-	if (!foreground) {
-	  /* when daemoning, we close also stdout and stderr.. */
-	  close(1);close(2);
-	  /* .. and replace them with writing to /dev/null.. */
-	  open("/dev/null", O_WRONLY, 0);
-	  open("/dev/null", O_WRONLY, 0);
-	}
-
 	if (1) {
 	  /* Open the pidfile, if you can.. */
 	  FILE *pf = fopen(pidfile,"w");
@@ -161,6 +147,25 @@ int main(int argc, char * const argv[])
 
 
 	erlang_start(2); /* reset PID, etc.. */
+
+	/* Do following as late as possible.. */
+
+	/* In all cases we close STDIN/FD=0.. */
+	close(0);
+	/* .. and replace it with reading from /dev/null.. */
+	open("/dev/null", O_RDONLY, 0);
+	/* Leave STDOUT and STDERR open */
+
+	if (!foreground) {
+	  /* when daemoning, we close also stdout and stderr.. */
+	  close(1);close(2);
+	  /* .. and replace them with writing to /dev/null.. */
+	  open("/dev/null", O_WRONLY, 0);
+	  open("/dev/null", O_WRONLY, 0);
+	}
+
+	/* .. but not latter than this. */
+
 
 	/* Must be after config reading ... */
 	aprsis_start();
