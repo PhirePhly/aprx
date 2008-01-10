@@ -3,6 +3,8 @@
 	* aprx.c:
 	    Always close STDIN from reading, and replace it with
 	    a file handle opened on /dev/null.
+	    When daemoning, close also STDOUT and STDERR, and
+	    replace them with handles writing to /dev/null.
 
 	* aprx.h, aprx.c, config.c, erlang.c, aprx.8.in, aprx.conf.in,
 	  aprx-stat.c:
