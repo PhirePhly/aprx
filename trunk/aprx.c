@@ -129,6 +129,13 @@ int main(int argc, char * const argv[])
 	  /* child and error cases continue on main program.. */
 	}
 
+	/* In all cases we close STDIN/FD=0.. */
+	close(0);
+	/* .. and replace it with reading from /dev/null.. */
+	open("/dev/null", O_RDONLY, 0);
+	/* Leave STDOUT and STDERR open */
+
+
 	if (1) {
 	  /* Open the pidfile, if you can.. */
 	  FILE *pf = fopen(pidfile,"w");
