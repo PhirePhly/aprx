@@ -135,6 +135,13 @@ int main(int argc, char * const argv[])
 	open("/dev/null", O_RDONLY, 0);
 	/* Leave STDOUT and STDERR open */
 
+	if (!foreground) {
+	  /* when daemoning, we close also stdout and stderr.. */
+	  close(1);close(2);
+	  /* .. and replace them with writing to /dev/null.. */
+	  open("/dev/null", O_WRONLY, 0);
+	  open("/dev/null", O_WRONLY, 0);
+	}
 
 	if (1) {
 	  /* Open the pidfile, if you can.. */
