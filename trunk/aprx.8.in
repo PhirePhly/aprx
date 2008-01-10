@@ -17,26 +17,34 @@ is a
 APRS iGate application with minimum system support technology requirements.
 .PP
 .IP \(bu 3
-Can listen "TNC2 monitor" and "KISS" speaking TNCs on serial ports at some remote
-server, like cisco router AUX ports (port 4001.)
+Does not require machine to have any other software in it, than things in libc.
+In particular no special AX.25 libraries at all, nor widgets or even
+C++ runtime.
+.IP \(bu 3
+Can listen "TNC2 monitor" and "KISS" speaking TNCs on serial ports.
 .IP \(bu 3
 The serial port can be ordinary host computer port, a USB serial port, or 
-remote port on a server behind the internet.
+remote port on a remote server behind the internet, like cisco router AUX
+ports (port 4001, TCP STREAM without TELNET escapes.)
 .IP \(bu 3
-On Linux machine with kernel internal AX.25 protocol support, does want to
-listen on it with promiscuous mode, and in order to use that, must be started
+Does not require machine to have AX.25 protocol support internally!
+(Thus this works also on e.g. BSD machines without PF\_AX25 sockets.)
+.IP \(bu 3
+On Linux machine with kernel internal AX.25 protocol support, does listen
+on it with promiscuous mode, and in order to use that, must be started
 as
 .I root
 user.
 The AX.25 socket listening is
 .I not
 configurable, it is always on in Linux systems.
+This listening does not need "libax25" to function.
 .IP \(bu 3
-Does not require machine to have AX.25 protocol support internally!
-(Thus this works also on e.g. BSD machines without PF\_AX25 sockets.)
-.IP \(bu 3
-Does not require machine to have any other software in it, than things in libc.
-In particular no special AX.25 libraries at all, nor widgets or even C++ runtime.
+Not running the program as root is a viable option at least against
+remote serial port servers.  One must change local serial port ownership
+(if any are used) to userid that runs the program and possibly do several
+changes of file paths in configuration file beginning with its location
+(startup parameter).  How that is done is up to the user of this program.
 .IP \(bu 3
 Connects with one callsign-ssid pair to APRS-IS core for all received radio
 ports.
