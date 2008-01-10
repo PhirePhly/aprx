@@ -1,5 +1,9 @@
 2008-01-10  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
 
+	* aprx.c:
+	    Always close STDIN from reading, and replace it with
+	    a file handle opened on /dev/null.
+
 	* aprx.h, aprx.c, config.c, erlang.c, aprx.8.in, aprx.conf.in,
 	  aprx-stat.c:
 	    Add (and document) option for logging erlang data on separate
