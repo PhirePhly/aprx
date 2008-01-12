@@ -1,5 +1,10 @@
 2008-01-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, configure, Makefile.in, Makefile, config.h.in,
+	  install-sh, rpm/aprx.spec.in, debian/rules:
+	    Had to add minimalistic  configure  script into system for
+	    the RPM multi-target compilation to work. 
+
 	* Makefile, rpm/aprx.spec.in, rpm/aprx.default, rpm/aprx.init:
 	    RPM package build framework, including init and logrotate -scripts
 

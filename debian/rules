@@ -15,7 +15,7 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
-
+	./configure --prefix= --exec-prefix=  --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/libexec --datadir=/usr/share --sysconfdir=/etc --localstatedir=/var --libdir=/usr/%_lib --includedir=/usr/include --infodir=/usr/info --mandir=%{_mandir}  CC="gcc" AFLAGS="--noexecstack" LDFLAGS="-z noexecstack"
 	touch configure-stamp
 
 

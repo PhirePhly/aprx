@@ -10,20 +10,19 @@
 # target paths
 VARRUN=		/var/run	# directory for aprx.state and pid-file
 VARLOG=		/var/log/aprx	# directory for direct logfiles
-CFGFILE=	/etc/aprx.conf	# default configuration file
-SBINDIR=	/usr/sbin/	# installation path for programs
-MANDIR=		/usr/share/man	# installation path for manual pages
+CFGFILE=	@sysconfdir@/aprx.conf	# default configuration file
+SBINDIR=	@sbindir@	# installation path for programs
+MANDIR=		@mandir@	# installation path for manual pages
 
 # -------------------------------------------------------------------- #
 
 # Compiler and flags
-CC=		gcc 
-CFLAGS=		${xCFLAGS:-"-g -O3 -Wall"} $(DEFS)
+CC=		@CC@
+CFLAGS=		@CFLAGS@ $(DEFS)
 
 # Linker and flags
-LD=		$(CC)
-LDFLAGS=	-g -Wall ${xLDFLAGS:-}
-AFLAGS=		${xAFLAGS:-}
+LD=		@CC@
+LDFLAGS=	@LDFLAGS@
 
 INSTALL=	/usr/bin/install
 INSTALL_PROGRAM=$(INSTALL)  -m 755
@@ -44,7 +43,6 @@ MANDIR:=$(strip $(MANDIR))
 VERSION:=$(shell cat VERSION)
 SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
 DATE:=$(shell date +"%Y %B %d")
-DATE0:=$(shell date +"%a %b %d %Y")
 RFCDATE:=$(shell date -R)
 
 DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
@@ -72,10 +70,10 @@ MAN=		$(MANAPRX) $(MANSTAT)
 all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf
 
 $(PROGAPRX):	$(OBJSAPRX) VERSION Makefile
-		$(CC) -o $@ $(CFLAGS) $(OBJSAPRX) $(LIBS)
+		$(CC) $(CFLAGS) -o $@ $(OBJSAPRX) $(LIBS)
 
 $(PROGSTAT):	$(OBJSSTAT) VERSION Makefile
-		$(CC) -o $@ $(CFLAGS) $(OBJSSTAT) $(LIBS)
+		$(CC) $(CFLAGS) -o $@ $(OBJSSTAT) $(LIBS)
 
 .PHONY:		man
 man:		$(MAN)
