@@ -160,7 +160,7 @@ dist:
 		  > $(DISTTARGET)/debian/changelog
 	rm -f $(DISTTARGET)/debian/changelog.release
 	perl -ne "s{\@VERSION\@}{$(RPMVERSION)}g;	\
-		  s{\@RFCDATE\@}{$(RFCDATE)}g;		\
+		  s{\@DATE0\@}{$(DATE0)}g;		\
 		  print;"				\
 		  < $(DISTTARGET)/rpm/aprx.spec.in	\
 		  > $(DISTTARGET)/rpm/aprx.spec
