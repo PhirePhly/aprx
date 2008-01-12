@@ -1,3 +1,8 @@
+2008-01-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile, rpm/aprx.spec.in, rpm/aprx.default, rpm/aprx.init:
+	    RPM package build framework, including init and logrotate -scripts
+
 2008-01-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* version 0.16
