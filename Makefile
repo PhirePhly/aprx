@@ -137,6 +137,7 @@ logrotate.aprx $(MAN) aprx.conf: % : %.in VERSION Makefile
 
 DISTVERSION:=$(VERSION).svn$(SVNVERSION)
 DISTTARGET:=../../$(DISTVERSION)
+RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e '/aprx-//')
 .PHONY: dist
 dist:
 	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then				\
@@ -158,8 +159,14 @@ dist:
 		  < $(DISTTARGET)/debian/changelog.release	\
 		  > $(DISTTARGET)/debian/changelog
 	rm -f $(DISTTARGET)/debian/changelog.release
-	make -C $(DISTTARGET) distclean
+	perl -ne "s{\@VERSION\@}{$(RPMVERSION)}g;	\
+		  s{\@RFCDATE\@}{$(RFCDATE)}g;		\
+		  print;"				\
+		  < $(DISTTARGET)/rpm/aprx.spec.in	\
+		  > $(DISTTARGET)/rpm/aprx.spec
+	rm -f $(DISTTARGET)/rpm/aprx.spec.in
 	cd ../.. && 	\
+	make -C $(DISTTARGET) distclean
 	tar czvf $(DISTVERSION).tar.gz $(DISTVERSION)
 
 # -------------------------------------------------------------------- #
