@@ -1,5 +1,9 @@
 2008-01-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, configure, debian/rules, rpm/aprx.spec.in,
+	  rpm/aprx.init, Makefile, config.h.in:
+	    More RPM / configure rework.
+
 	* configure.in, configure, Makefile.in, Makefile, config.h.in,
 	  install-sh, rpm/aprx.spec.in, debian/rules:
 	    Had to add minimalistic  configure  script into system for

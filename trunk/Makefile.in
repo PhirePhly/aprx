@@ -16,6 +16,10 @@ MANDIR=		@mandir@	# installation path for manual pages
 
 # -------------------------------------------------------------------- #
 
+srcdir = @srcdir@
+VPATH = @srcdir@
+@SET_MAKE@
+
 # Compiler and flags
 CC=		@CC@
 CFLAGS=		@CFLAGS@ $(DEFS)
@@ -24,7 +28,7 @@ CFLAGS=		@CFLAGS@ $(DEFS)
 LD=		@CC@
 LDFLAGS=	@LDFLAGS@
 
-INSTALL=	/usr/bin/install
+INSTALL=	$(srcdir)/install-sh
 INSTALL_PROGRAM=$(INSTALL)  -m 755
 INSTALL_DATA=	$(INSTALL)  -m 644
 
@@ -106,6 +110,8 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -f *~ *.o *.d
+	rm -f config.log config.status config.h
+	rm -rf autom4te.cache
 
 # -------------------------------------------------------------------- #
 
@@ -171,10 +177,12 @@ dist:
 
 # -------------------------------------------------------------------- #
 
-.PHONY: make-deb
+.PHONY: make-deb make-rpm
 
 make-deb:
 	dpkg-buildpackage -b -us -uc -rfakeroot
 
+make-rpm: # actually just a reminder of how to do it..
+	rpmbuild --target i386 -ta ../../$(DISTVERSION).tar.gz 
 
 # -------------------------------------------------------------------- #
