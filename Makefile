@@ -43,6 +43,7 @@ MANDIR:=$(strip $(MANDIR))
 VERSION:=$(shell cat VERSION)
 SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
 DATE:=$(shell date +"%Y %B %d")
+DATE0:=$(shell date)
 RFCDATE:=$(shell date -R)
 
 DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
