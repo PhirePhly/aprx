@@ -43,7 +43,7 @@ MANDIR:=$(strip $(MANDIR))
 VERSION:=$(shell cat VERSION)
 SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
 DATE:=$(shell date +"%Y %B %d")
-DATE0:=$(shell date)
+DATE0:=$(shell date +"%a %b %d %Y")
 RFCDATE:=$(shell date -R)
 
 DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
@@ -142,8 +142,8 @@ RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
 .PHONY: dist
 dist:
 	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then				\
-		echo "Mixed or modified tree ($(SVNVERSION)), refusing to build release." ;	\
-		exit 1 ;									\
+		echo "Mixed or modified tree ($(SVNVERSION)), ARE YOU SURE ??." ;		\
+		echo -n "Y/^C ? "; read var ;							\
 	fi
 	# Special for maintainer only..
 	if [ ! -d $(DISTTARGET) ] ; then	\
