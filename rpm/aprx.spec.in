@@ -59,5 +59,3 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Sat Jan 12 2008 Matti Aarnio - OH2MQK - KP20NG <oh2mqk@sral.fi> - 
 - RPM framework added
-* @DATE0@ 
-- Lattest "make dist" ran
