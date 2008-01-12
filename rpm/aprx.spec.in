@@ -1,0 +1,63 @@
+Summary: Hamradio APRS Receive-Only iGate: APRx
+Name: aprx
+Version: @VERSION@
+Release: 1
+License: BSD
+Group: Hamradio
+URL: http://ham.zmailer.org/oh2mqk/aprx/
+Source0: %{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+
+%description
+
+%prep
+echo begin prep
+%setup -q
+echo end prep
+
+%build
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+
+mkdir -p $RPM_BUILD_ROOT/usr/sbin
+mkdir -p $RPM_BUILD_ROOT/etc/init.d
+mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
+mkdir -p $RPM_BUILD_ROOT/etc/sysconfig
+mkdir -p $RPM_BUILD_ROOT/var/log/aprx
+mkdir -p $RPM_BUILD_ROOT%{_mandir}/man8
+
+make install DESTDIR=$RPM_BUILD_ROOT
+
+make logrotate.aprx
+install -m 644 logrotate.aprx   $RPM_BUILD_ROOT/etc/logrotate.d/aprx
+install -m 755 rpm/aprx.init    $RPM_BUILD_ROOT/etc/init.d/aprx
+install -m 755 rpm/aprx.default $RPM_BUILD_ROOT/etc/sysconfig/aprx
+
+gzip -9 $RPM_BUILD_ROOT/%{_mandir}/man8/*
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root,-)
+%doc LICENSE README INSTALL TODO
+%doc ChangeLog
+%dir /var/log/aprx
+%config(noreplace) /etc/aprx.conf
+%config(noreplace) /etc/init.d/aprx
+%config(noreplace) /etc/sysconfig/aprx
+%config(noreplace) /etc/logrotate.d/aprx
+/usr/sbin/aprx
+/usr/sbin/aprx-stat
+%doc %{_mandir}/man8/aprx.8.gz
+%doc %{_mandir}/man8/aprx-stat.8.gz
+
+
+%changelog
+* Sat Jan 12 2008 Matti Aarnio - OH2MQK - KP20NG <oh2mqk@sral.fi> - 
+- RPM framework added
+* @DATE0@ 
+- Lattest "make dist" ran
