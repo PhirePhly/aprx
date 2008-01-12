@@ -137,7 +137,7 @@ logrotate.aprx $(MAN) aprx.conf: % : %.in VERSION Makefile
 
 DISTVERSION:=$(VERSION).svn$(SVNVERSION)
 DISTTARGET:=../../$(DISTVERSION)
-RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e '/aprx-//')
+RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
 .PHONY: dist
 dist:
 	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then				\
