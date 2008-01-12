@@ -165,8 +165,8 @@ dist:
 		  < $(DISTTARGET)/rpm/aprx.spec.in	\
 		  > $(DISTTARGET)/rpm/aprx.spec
 	rm -f $(DISTTARGET)/rpm/aprx.spec.in
-	cd ../.. && 	\
 	make -C $(DISTTARGET) distclean
+	cd ../.. && 	\
 	tar czvf $(DISTVERSION).tar.gz $(DISTVERSION)
 
 # -------------------------------------------------------------------- #
