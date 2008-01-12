@@ -11,21 +11,24 @@
 VARRUN=		/var/run	# directory for aprx.state and pid-file
 VARLOG=		/var/log/aprx	# directory for direct logfiles
 CFGFILE=	/etc/aprx.conf	# default configuration file
-SBINDIR=	/usr/sbin/	# installation path for programs
+SBINDIR=	/usr/sbin	# installation path for programs
 MANDIR=		/usr/share/man	# installation path for manual pages
 
 # -------------------------------------------------------------------- #
 
+srcdir = .
+
+
+
 # Compiler and flags
-CC=		gcc 
-CFLAGS=		${xCFLAGS:-"-g -O3 -Wall"} $(DEFS)
+CC=		gcc
+CFLAGS=		-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m32 -march=i386 -mtune=generic -fasynchronous-unwind-tables $(DEFS)
 
 # Linker and flags
-LD=		$(CC)
-LDFLAGS=	-g -Wall ${xLDFLAGS:-}
-AFLAGS=		${xAFLAGS:-}
+LD=		gcc
+LDFLAGS=	
 
-INSTALL=	/usr/bin/install
+INSTALL=	$(srcdir)/install-sh
 INSTALL_PROGRAM=$(INSTALL)  -m 755
 INSTALL_DATA=	$(INSTALL)  -m 644
 
@@ -44,7 +47,6 @@ MANDIR:=$(strip $(MANDIR))
 VERSION:=$(shell cat VERSION)
 SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
 DATE:=$(shell date +"%Y %B %d")
-DATE0:=$(shell date +"%a %b %d %Y")
 RFCDATE:=$(shell date -R)
 
 DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
@@ -72,10 +74,10 @@ MAN=		$(MANAPRX) $(MANSTAT)
 all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf
 
 $(PROGAPRX):	$(OBJSAPRX) VERSION Makefile
-		$(CC) -o $@ $(CFLAGS) $(OBJSAPRX) $(LIBS)
+		$(CC) $(CFLAGS) -o $@ $(OBJSAPRX) $(LIBS)
 
 $(PROGSTAT):	$(OBJSSTAT) VERSION Makefile
-		$(CC) -o $@ $(CFLAGS) $(OBJSSTAT) $(LIBS)
+		$(CC) $(CFLAGS) -o $@ $(OBJSSTAT) $(LIBS)
 
 .PHONY:		man
 man:		$(MAN)
@@ -108,6 +110,8 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -f *~ *.o *.d
+	rm -f config.log config.status config.h
+	rm -rf autom4te.cache
 
 # -------------------------------------------------------------------- #
 
@@ -173,10 +177,12 @@ dist:
 
 # -------------------------------------------------------------------- #
 
-.PHONY: make-deb
+.PHONY: make-deb make-rpm
 
 make-deb:
 	dpkg-buildpackage -b -us -uc -rfakeroot
 
+make-rpm: # actually just a reminder of how to do it..
+	rpmbuild --target i386 -ta ../../$(DISTVERSION).tar.gz 
 
 # -------------------------------------------------------------------- #

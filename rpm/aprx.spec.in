@@ -20,8 +20,7 @@ echo end prep
 #autoheader
 #autoconf
 HARDWARE=`uname -m`
-export CFLAGS="$RPM_OPT_FLAGS"
-./configure --prefix= --exec-prefix=  --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/libexec --datadir=/usr/share --sysconfdir=/etc --localstatedir=/var --libdir=/usr/%_lib --includedir=/usr/include --infodir=/usr/info --mandir=%{_mandir}  CC="gcc" AFLAGS="--noexecstack" LDFLAGS="-z noexecstack"
+./configure --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=%{_mandir}  CC="gcc" CFLAGS="$RPM_OPT_FLAGS" AFLAGS="--noexecstack" LDFLAGS="-z noexecstack"
 
 make
 

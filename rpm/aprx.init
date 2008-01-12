@@ -24,7 +24,7 @@
 
 # defaults
 
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/sbin/aprx
 NAME=aprx
 DESC="aprx igate"
