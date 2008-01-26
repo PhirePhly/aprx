@@ -271,7 +271,7 @@ static int tnc2_forbidden_data(const char *t)
  * It does presume that the record is in a buffer that can be written on!
  */
 
-void tnc2_rxgate(char *tnc2buf, int discard)
+void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 {
 	char *t, *t0;
 	const char *s;
@@ -354,7 +354,9 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	if (*t == '}' && !discard) {
 	  /* DEBUG OUTPUT TO STDOUT ! */
 	  if (verbout) {
-	    printf("%ld\t#", (long)now);
+	    printf("%ld\t%s", (long)now, portname);
+	    if (tncid) printf("_%d", tncid);
+	    printf("\t#");
 	    printf("%s:%s\n", tnc2buf, t0);
 	  }
 	  if (rflogfile) {
@@ -364,8 +366,9 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	      struct tm *t = gmtime(&now);
 	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
-	      fprintf(fp, "%s #",timebuf);
-	      fprintf(fp, "%s:%s\n", tnc2buf, t0);
+	      fprintf(fp, "%s %s",timebuf, portname);
+	      if (tncid) fprintf(fp, "_%d", tncid);
+	      fprintf(fp, " #%s:%s\n", tnc2buf, t0);
 	      fclose(fp);
 	    }
 	  }
@@ -376,7 +379,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	  goto  redo_frame_filter;
 	  /* Could do as well:
 
-	     tnc2_rxgate(t+1, discard);
+	     tnc2_rxgate(portname, tncid, t+1, discard);
 	     return;
 
 	   */
@@ -411,7 +414,9 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 
 	/* DEBUG OUTPUT TO STDOUT ! */
 	if (verbout) {
-	  printf("%ld\t", (long)now);
+	  printf("%ld\t%s", (long)now, portname);
+	  if (tncid) printf("_%d", tncid);
+	  printf("\t");
 	  if (discard<0) { printf("*"); };
 	  if (discard>0) { printf("#"); };
 	  printf("%s:%s\n", tnc2buf, t0);
@@ -424,7 +429,9 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 	    struct tm *t = gmtime(&now);
 	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
-	    fprintf(fp, "%s ",timebuf);
+	    fprintf(fp, "%s %s",timebuf, portname);
+	    if (tncid) fprintf(fp, "_%d", tncid);
+	    fprintf(fp, " ");
 	    if (discard < 0) { fprintf(fp, "*"); }
 	    if (discard > 0) { fprintf(fp, "#"); }
 	    fprintf(fp, "%s:%s\n", tnc2buf, t0);
@@ -435,7 +442,7 @@ void tnc2_rxgate(char *tnc2buf, int discard)
 }
 
 
-void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
+void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned char *frame, const int framelen)
 {
 	int i, j;
 	const unsigned char *s = frame;
@@ -514,5 +521,5 @@ void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen)
 	}
 	*t = 0;
 
-	tnc2_rxgate(tnc2buf, discard);
+	tnc2_rxgate(portname, tncid, tnc2buf, discard);
 }

@@ -22,7 +22,7 @@ srcdir = .
 
 # Compiler and flags
 CC=		gcc
-CFLAGS=		-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m32 -march=i386 -mtune=generic -fasynchronous-unwind-tables $(DEFS)
+CFLAGS=		-g -O2 $(DEFS)
 
 # Linker and flags
 LD=		gcc

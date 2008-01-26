@@ -1,3 +1,22 @@
+2008-01-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Version 0.17
+	
+	* config.c, ttyreader.c, aprx.conf.in, aprx.8.in:
+	    Call the "serialport"  now with name "radio".
+	    (Also old one works, so old config does not break.)
+
+	* aprx.h, netax25.c, ax25.c, ttyreader.c:
+	    Pass port name down to tnc2_rxgate() function where
+	    it is used in rf.log outputs.  A distributed multi-
+	    receiver setup log is somewhat .. odd looking when
+	    most receivers get same packet.
+
+	* logrotate.arpx.in:
+	    Rotate weekly, and compress immediately.
+	    Monthly turned out to be too much for "embedded"
+	    OH1GSM-1 system.
+
 2008-01-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* configure.in, configure, debian/rules, rpm/aprx.spec.in,

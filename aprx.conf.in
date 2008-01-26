@@ -47,10 +47,10 @@
 # and "data".  These patterns can be used in addition to built-in
 # hard-coded reject rules listed in documentation.
 #
-#ax25-filter source      "^NOCALL"
-#ax25-filter destination "^NOCALL"
-#ax25-filter via         "^NOGATE"
-#ax25-filter data        "^\\?"
+#ax25-reject-filter source      "^NOCALL"
+#ax25-reject-filter destination "^NOCALL"
+#ax25-reject-filter via         "^NOGATE"
+#ax25-reject-filter data        "^\\?"
 
 # ax25-rxport limits reception on listed AX.25 ports, if system
 # happens to use AX.25 ports also for other purposes than APRS.
@@ -114,7 +114,7 @@ pidfile @VARRUN@/aprx.pid
 #
 #erlang-log1min
 
-# The  serialport  option.  Parameters are:
+# The  radio serial  option.  Parameters are:
 #   - /dev/ttyUSB1    -- tty device
 #   - 19200           -- baud rate, supported ones are:
 #                        1200, 2400, 4800, 9600, 19200, 38400
@@ -124,13 +124,25 @@ pidfile @VARRUN@/aprx.pid
 #     TNC2            -- non-KISS text format variant
 #
 #
-#serialport   /dev/ttyUSB0  19200 8n1    KISS
-#serialport   /dev/ttyUSB1  19200 8n1    TNC2
+#radio serial   /dev/ttyUSB0  19200 8n1    KISS
+#radio serial   /dev/ttyUSB1  19200 8n1    TNC2
 
-# Additional/alternate options for the "serialport" line.
+# Additional/alternate options for the "radio" line.
 #
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
+#
+# "alias NAME" sets name used in statistics displays.
+#    If none are given, then it will use physical port name.
+#
+# "timeout 900" sets a timeout monitor (in seconds) to make
+#    reopen/reconnect if the (tcp) connection to radio has
+#    failed somehow and nothing is heard. Local serial ports
+#    do not (in general) need this.  At APRS silent sites
+#    this may cause repeated reconnects, but it should not
+#    harm either.  At busy sites this will handle reconnect
+#    gracefully in case of network failures, and timeout
+#    value can be shortened.
 #
 #  "KISS"                  - plain basic KISS mode
 #  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
@@ -138,18 +150,15 @@ pidfile @VARRUN@/aprx.pid
 #  "TNC2"                  - TNC2 monitor format
 
 
-# The  serialport  option is overloaded also with connection
-# to remote socket beyond which is a binary transparent 
-# connection to a serial port.  The remote host side is
-# configured by a string with exclamation marks in between
-# parameter fields:  first a literal "socket", then literal
-# IP address (IPv4 or IPv6), then literal port number.
+# The  radio tcp  option defines a connection to remote socket
+# beyond which is a binary transparent connection to a serial
+# port.  The parameter fields:  literal IP address (IPv4 or IPv6),
+# then literal port number, and finally protocol mode.
 # KISS-protocol parameters are same as with normal serial port.
 #
-#serialport  socket!12.34.56.78!4001! 1200 8n1 KISS
-#serialport  socket!12.34.56.78!4002! 1200 8n1 TNC2
+#radio tcp  12.34.56.78  4001  KISS  alias Rx5 timeout 900
+#radio tcp  12.34.56.78  4002  TNC2  alias Rx6 timeout 300
 #
-
 
 
 # The  netbeacon  option.

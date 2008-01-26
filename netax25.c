@@ -139,7 +139,7 @@ int netax25_postpoll(struct aprxpolls *app)
 	     */
 	    erlang_add(NULL, sa.sa_data, 0, ERLANG_RX, rcvlen+10, 1);
 
-	    ax25_to_tnc2(rxbuf[0], rxbuf+1, rcvlen-1);
+	    ax25_to_tnc2(sa.sa_data, 0, rxbuf[0], rxbuf+1, rcvlen-1);
 
 	  }
 	}

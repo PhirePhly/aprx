@@ -1,10 +1,8 @@
 @VARLOG@/rf.log @VARLOG@/aprx.log  @VARLOG@/erlang.log {
-	monthly
-	rotate 12
+	weekly
+	rotate 4
 	compress
-	delaycompress
 	missingok
 	notifempty
 	create 644 root adm
 }
-

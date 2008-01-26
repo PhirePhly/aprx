@@ -23,10 +23,11 @@ struct serialport {
 
 	time_t	wait_until;
 	time_t  last_read_something; /* Used by serial port functionality watchdog	*/
+	int	read_timeout;	/* seconds						*/
 
 	int	linetype;
-#define LINETYPE_KISS 0		/* all KISS variants without CRC on line		*/
-#define LINETYPE_KISSSMACK 1	/* KISS/SMACK variants with CRC on line			*/
+#define LINETYPE_KISS       0	/* all KISS variants without CRC on line		*/
+#define LINETYPE_KISSSMACK  1	/* KISS/SMACK variants with CRC on line			*/
 #define LINETYPE_KISSBPQCRC 2	/* BPQCRC - really XOR sum of data bytes, also "AEACRC"	*/
 
 #define LINETYPE_TNC2 16	/* text line from TNC2 in monitor mode                  */
@@ -41,6 +42,7 @@ struct serialport {
   /*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
 
 	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" -- Linux TTY-names can be long.. */
+	const char *ttyalias;
 	char	*initstring;	/* optional init-string to be sent to the TNC, NULL ok	*/
 	int	initlen;	/* .. as it can have even NUL-bytes, length is important! */
 
@@ -57,7 +59,6 @@ struct serialport {
 
 static struct serialport **ttys;
 static int  ttycount; /* How many are defined ? */
-static int  serialport_read_timeout; /* No data in N (> 0) seconds -> close and reopen  */
 
 #define TTY_OPEN_RETRY_DELAY_SECS 30
 
@@ -233,8 +234,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 	/* printf("\n"); */
 
-	ax25_to_tnc2(cmdbyte, S->rdline+1, S->rdlinelen-1);
-	erlang_add(S, S->ttyname, tncid, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
+	ax25_to_tnc2(S->ttyalias, tncid, cmdbyte, S->rdline+1, S->rdlinelen-1);
+	erlang_add(S, S->ttyalias, tncid, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
 
 	return 0;
 }
@@ -371,9 +372,9 @@ static int ttyreader_pullkiss(struct serialport *S)
 static int ttyreader_pulltnc2(struct serialport *S)
 {
 	/* S->rdline[] has text line without line ending CR/LF chars   */
-	tnc2_rxgate((char*)(S->rdline), 0);
+  tnc2_rxgate(S->ttyalias, 0, (char*)(S->rdline), 0);
 
-	erlang_add(S, S->ttyname, 0, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
+	erlang_add(S, S->ttyalias, 0, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
 
 	return 0;
 }
@@ -498,7 +499,7 @@ static void ttyreader_linewrite(struct serialport *S)
 	i = write(S->fd, S->wrbuf + S->wrcursor, len);
 	if (i > 0) {  /* wrote something */
 	  S->wrcursor += i;
-	  erlang_add(S, S->ttyname, 0, ERLANG_TX, i, 0);
+	  erlang_add(S, S->ttyalias, 0, ERLANG_TX, i, 0);
 	  len = S->wrlen - S->wrcursor;
 	  if (len == 0) {
 	    S->wrcursor = S->wrlen = 0; /* wrote all ! */
@@ -607,7 +608,7 @@ static void ttyreader_linesetup(struct serialport *S)
 
 	S->wrlen = S->wrcursor = 0; /* init them at first */
 
-	if (memcmp(S->ttyname,"socket!",7) != 0) {
+	if (memcmp(S->ttyname,"tcp!",4) != 0) {
 
 	  S->fd = open(S->ttyname, O_RDWR|O_NOCTTY|O_NONBLOCK, 0);
 	  if (debug)
@@ -641,13 +642,13 @@ static void ttyreader_linesetup(struct serialport *S)
 	    i = write(S->fd, S->wrbuf, S->wrlen);
 	    if (i > 0) { /* wrote something */
 	      S->wrcursor = i;
-	      erlang_add(S, S->ttyname, 0, ERLANG_TX, i, 0);
+	      erlang_add(S, S->ttyalias, 0, ERLANG_TX, i, 0);
 	      if (S->wrcursor >= S->wrlen)
 		S->wrlen = S->wrcursor = 0;  /* wrote all */
 	    }
 	  }
 	} else { /* socket connection to remote TTY.. */
-	  /*   "socket!hostname-or-ip!port!opt-parameters" */
+	  /*   "tcp!hostname-or-ip!port!opt-parameters" */
 	  char *par = strdup(S->ttyname);
 	  char *host = NULL, *port = NULL, *opts = NULL;
 	  struct addrinfo req, *ai;
@@ -762,8 +763,8 @@ int ttyreader_prepoll(struct aprxpolls *app)
 	    continue;
 
 	  /* FD is open, check read/idle timeout ... */
-	  if ((serialport_read_timeout > 0) &&
-	      (now > (S->last_read_something + serialport_read_timeout))) {
+	  if ((S->read_timeout > 0) &&
+	      (now > (S->last_read_something + S->read_timeout))) {
 	    close(S->fd); /* Close and mark for re-open */
 	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
 	    continue;
@@ -819,9 +820,17 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	int i;
 	speed_t baud;
 	struct serialport *tty;
+	int tcpport = 0;
 
-	/* serialport /dev/ttyUSB123 [19200 [8n1] ] */
-	if (*param1 == 0) return "Bad tty-name";
+	/*
+	   serialport /dev/ttyUSB123 [19200 [8n1]]
+	   radio serial /dev/ttyUSB123  [19200 [8n1]]  KISS
+	   radio tcp 12.34.56.78 4001 KISS
+
+	*/
+
+	if (*param1 == 0) return "Bad mode keyword";
+	if (*param2 == 0) return "Bad tty-name/param";
 
 	/* Grow the array as is needed.. - this is array of pointers,
 	   not array of blocks so that memory allocation does not
@@ -829,6 +838,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	ttys = realloc(ttys, sizeof(void*) * (ttycount+1));
 
 	tty = malloc(sizeof(*tty));
+	memset(tty, 0, sizeof(*tty));
 	ttys[ttycount++] = tty;
 
 	tty->fd = -1;
@@ -839,12 +849,60 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	tty->ttyname = strdup(param1);
 
+	if (memcmp(param1,"socket!",7) == 0) {
+	  /* Uh oh..  old style..
+	     Convert to:  tcp!12.34.56.78!4001!
+	   */
+	  sprintf((char*)(tty->ttyname),"tcp!%s", param1+7);
+	  tcpport = 1;
+
+	  if (debug)
+	    printf(".. old style socket!\n");
+
+	}
+	if (*param1 == '/') {
+	  /* Old style  'serialport /dev/... */
+
+	  if (debug)
+	    printf("..old style /... device\n");
+
+	}
+	if (strcmp(param1,"serial") == 0) {
+	  /* New style! */
+	  free((char*)(tty->ttyname));
+	  tty->ttyname = strdup(param2);
+
+	  param2 = str;		/* baudrate */
+	  str = config_SKIPTEXT (str);
+	  str = config_SKIPSPACE (str);
+
+	  if (debug)
+	    printf(".. new style serial:  '%s' '%s' '%s'..\n", tty->ttyname, param2, str);
+
+	}
+	if (strcmp(param1,"tcp") == 0) {
+	  /* New style! */
+	  int len;
+	  param1 = param2;
+	  param2 = str;
+	  str = config_SKIPTEXT (str);
+	  str = config_SKIPSPACE (str);
+
+	  if (debug)
+	    printf(".. new style tcp!:  '%s' '%s' '%s'..\n", param1, param2, str);
+
+	  len = strlen(param1) + strlen(param2) + 8;
+	  free((char*)(tty->ttyname));
+	  tty->ttyname = malloc(len);
+	  sprintf((char*)(tty->ttyname),"tcp!%s!%s!", param1, param2);
+	  tcpport = 1;
+	}
+
 	/* setup termios parameters for this line.. */
 	cfmakeraw(& tty->tio );
 	tty->tio.c_cc[VMIN] = 1;  /* pick at least one char .. */
 	tty->tio.c_cc[VTIME] = 3; /* 0.3 seconds timeout - 36 chars @ 1200 baud */
 	tty->tio.c_cflag |= (CREAD | CLOCAL);
-
 
 
 	i = atol(param2);  /* serial port speed - baud rate */
@@ -856,20 +914,30 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	case 9600:  baud = B9600;   break;
 	case 19200: baud = B19200;  break;
 	case 38400: baud = B38400;  break;
-	default: return "Bad baud rate"; break;
+	default:
+	  if (!tcpport)
+	    return "Bad baud rate";
+	  i = -1;
+	  break;
 	}
 
 	cfsetispeed(& tty->tio, baud );
 	cfsetospeed(& tty->tio, baud );
 
 
-
 	config_STRLOWER(str); /* until end of line */
 
+	if (i  < 0) {
+	  /* No real baud-rate value */
+	  param1 = param2;
 
-	param1 = str;		/* serial port databits-parity-stopbits */
-	str = config_SKIPTEXT (str);
-	str = config_SKIPSPACE (str);
+	} else {
+	  /* Baud-rate value consumed */
+
+	  param1 = str;		/* serial port databits-parity-stopbits */
+	  str = config_SKIPTEXT  (str);
+	  str = config_SKIPSPACE (str);
+	}
 
 	/* FIXME:  analyze correct serial port data and parity format settings,
 	   now hardwired to 8-n-1 */
@@ -877,7 +945,7 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	/* Optional parameters */
 	while (*str != 0) {
 	  param1 = str;
-	  str = config_SKIPTEXT (str);
+	  str = config_SKIPTEXT  (str);
 	  str = config_SKIPSPACE (str);
 
 	  if (strcmp(param1, "kiss") == 0) {
@@ -892,6 +960,16 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	    tty->linetype = LINETYPE_KISSSMACK;  /* KISS with SMACK / CRC16 */
 	  } else if (strcmp(param1, "poll") == 0) {
 	    /* FIXME: Some systems want polling... */
+	  } else if (strcmp(param1, "alias") == 0) {
+	    param1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    tty->ttyalias = strdup(param1);
+	  } else if (strcmp(param1, "timeout") == 0) {
+	    param1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    tty->read_timeout = atol(param1);
 	  } else if (strcmp(param1, "tnc2") == 0) {
 	    tty->linetype = LINETYPE_TNC2;      /* TNC2 monitor */
 	  } else if (strcmp(param1, "initstring") == 0) {
@@ -903,9 +981,13 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 
 	}
 
+	if (!tty->ttyalias)
+	  tty->ttyalias = tty->ttyname;
+
+
 
 	/* Use side-effect: this defines the tty into erlang accounting */
-	erlang_set(tty, tty->ttyname, 0, (int)((1200.0*60)/8.2)); /* Magic constant for channel capa.. */
+	erlang_set(tty, tty->ttyalias, 0, (int)((1200.0*60)/8.2)); /* Magic constant for channel capa.. */
 
 	return NULL;
 }

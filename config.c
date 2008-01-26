@@ -112,7 +112,7 @@ void config_STRLOWER(char *s)
 
 static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 {
-	char *name, *param1, *param2;
+static	char *name, *param1, *param2;
 
 	name = strchr(str, '\n');	/* The trailing newline chopper ... */
 	if (name)
@@ -123,16 +123,18 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	name = str;
 	str = config_SKIPTEXT (str);
+	str = config_SKIPSPACE (str);
 	config_STRLOWER(name);
 
-	str = config_SKIPSPACE (str);
 	param1 = str;
 
 	str = config_SKIPTEXT (str);
-
 	str = config_SKIPSPACE (str);
+
 	param2 = str;
+
 	str = config_SKIPTEXT (str);
+	str = config_SKIPSPACE (str);
 
 
 	if (strcmp(name, "mycall") == 0) {
@@ -171,7 +173,13 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	} else if (strcmp(name, "ax25-filter") == 0) {
 	  if (debug)
-	    printf("%s:%d: AX25-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
+	    printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
+
+	  ax25_filter_add(param1,param2);
+
+	} else if (strcmp(name, "ax25-reject-filter") == 0) {
+	  if (debug)
+	    printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
 
 	  ax25_filter_add(param1,param2);
 
@@ -229,9 +237,14 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	  erlanglog1min = 1;
 
 	} else if (strcmp(name, "serialport") == 0) {
-	  const char *s = ttyreader_serialcfg(param1, param2, str);
 	  if (debug)
-	    printf("%s:%d: SERIALPORT = %s %s %s..  %s\n", cfgfilename, linenum, param1, param2, str, s ? s : "");
+	    printf("%s:%d: SERIALPORT = %s %s %s..\n", cfgfilename, linenum, param1, param2, str);
+	  const char *s = ttyreader_serialcfg(param1, param2, str);
+
+	} else if (strcmp(name, "radio") == 0) {
+	  if (debug)
+	    printf("%s:%d: RADIO = %s %s %s..\n", cfgfilename, linenum, param1, param2, str);
+	  const char *s = ttyreader_serialcfg(param1, param2, str);
 
 	} else {
 	  printf("%s:%d: Unknown config keyword: '%s'\n", cfgfilename, linenum, param1);
