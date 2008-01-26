@@ -156,10 +156,6 @@ int netax25_postpoll(struct aprxpolls *app)
 	      if (!ok) return -1; /* No match :-(  */
 	    }
 
-
-	    /* TODO: POSSIBLY: Limit the list of interfaces we accept
-	       the packets from ! */
-
 	    /* Now: actual AX.25 frame reception,
 	       and transmit via ax25_to_tnc2() ! */
 
