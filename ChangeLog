@@ -6,7 +6,7 @@
 	    Use that for reception reports, logs, filters etc.
 	    Reason: port names given in /etc/ax25/axports do not
 	    persist at all!  Even clean system boot may yield
-	    different port names.
+	    different port names than what the file lists.
 
 	* Version 0.17
 
