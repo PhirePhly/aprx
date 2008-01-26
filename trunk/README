@@ -66,5 +66,6 @@ A receive-only APRS-IS "i-gate" with following properties:
      to be: 20*60/3 = 400.  All will be sent, but the cycle will just take
      longer.
 
+   - Source code is at SVN repository: http://repo.ham.fi/svn/aprx
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007,2008
