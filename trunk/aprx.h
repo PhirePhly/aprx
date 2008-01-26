@@ -63,8 +63,8 @@ extern void ttyreader_init (void);
 extern const char *ttyreader_serialcfg(char *param1, char *param2, char *str);
 
 /* ax25.c */
-extern void  tnc2_rxgate(char *tnc2buf, int discard);
-extern void  ax25_to_tnc2(int cmdbyte, const unsigned char *frame, const int framelen);
+extern void  tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard);
+extern void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned char *frame, const int framelen);
 extern void  ax25_filter_add(const char *p1, const char *p2);
 
 /* aprsis.c */
