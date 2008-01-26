@@ -3,7 +3,7 @@
 	* netax25.c, aprx.conf.in, aprx.8.in:
 	    For each AX.25 socket received packet, query reception
 	    interface address and reformat it to TNC2 format.
-	    Use that for reception reports, filters etc.
+	    Use that for reception reports, logs, filters etc.
 	    Reason: port names given in /etc/ax25/axports do not
 	    persist at all!  Even clean system boot mail yield
 	    different port names.
