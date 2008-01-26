@@ -1,7 +1,15 @@
 2008-01-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* Version 0.17
-	
+
+	* INSTALL, README:
+	    Minor edits
+
+	* configure.in, Makefile.in, debian/rules, rpm/aprx.spec.in,
+	  Makefile:
+	    A bit more coherency on make system regarding linking.
+	    Remove generated  Makefile.  (Keep generated  configure !)
+
 	* config.c, ttyreader.c, aprx.conf.in, aprx.8.in:
 	    Call the "serialport"  now with name "radio".
 	    (Also old one works, so old config does not break.)

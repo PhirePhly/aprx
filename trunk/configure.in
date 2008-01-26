@@ -15,6 +15,14 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 
+
+dnl AC_PATH_PROG(LD, ld, ld)dnl
+if test -z "$LD" ; then
+  LD="$CC"
+fi
+AC_SUBST(LD,"$LD")
+
+
 dnl Checks for libraries.
 
 dnl Checks for library functions.

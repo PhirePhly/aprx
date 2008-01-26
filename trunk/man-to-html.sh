@@ -1,5 +1,10 @@
 #! /bin/sh
 
+## man-page to HTML format converter, when existing ones
+## were seriously unacceptable form...
+##
+## By Matti Aarnio, OH2MQK, <oh2mqk@sral.fi>, about 1995
+
 unset LC_CTYPE
 
 LANG=en_US

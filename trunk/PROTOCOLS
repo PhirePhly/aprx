@@ -233,7 +233,7 @@ APRX-APRX linkage
 		<< <timestamp> FAILTX <ifname>
 
 	which results from APRXC and/or APRX software bug listing/flagging
-	non-tx-interface to be tx-interface..  Otherwise it acks the packet
+	tx-interface to be non-tx-interface..  Otherwise it acks the packet
 	with "OK" message.
 
 		<< <timestamp> OK
