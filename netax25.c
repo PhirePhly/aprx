@@ -82,6 +82,33 @@ int netax25_prepoll(struct aprxpolls *app)
 	return 1;
 }
 
+static int ax25_fmtaddress(char *dest, const unsigned char *src)
+{
+	int i, c;
+
+	/* We really should verify that  */
+
+	/* 6 bytes of station callsigns in shifted ASCII format.. */
+	for (i = 0; i < 6; ++i,++src) {
+	  c = *src;
+	  if (c & 1) return (-(int)(c));  /* Bad address-end flag ? */
+
+	  /* Don't copy spaces or 0 bytes */
+	  if (c != 0 && c != 0x40)
+	    *dest++ = c >> 1;
+	}
+	/* 7th byte carries SSID et.al. bits */
+	c = *src;
+	if ((c >> 1) % 16) { /* don't print SSID==0 value */
+	  dest += sprintf(dest, "-%d", (c >> 1) % 16);
+	}
+
+	*dest = 0;
+
+	return c;
+}
+
+
 int netax25_postpoll(struct aprxpolls *app)
 {
 	struct sockaddr sa;
@@ -91,6 +118,7 @@ int netax25_postpoll(struct aprxpolls *app)
 	int rcvlen;
 	int i;
 	struct pollfd *pfd = app->polls;
+	char ifaddress[10];
 
 	if (rx_socket < 0) return 0;
 
@@ -104,11 +132,23 @@ int netax25_postpoll(struct aprxpolls *app)
 	      return -1; /* No more at this time.. */
 	    }
 
+	    /* Query AX.25 if address from whence this came in.. */
+	    strcpy(ifr.ifr_name, sa.sa_data);
+	    if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
+		|| ifr.ifr_hwaddr.sa_family != AF_AX25) {
+	      /* not AX.25 so ignore this packet .. */
+	      continue; /* there may be more on this socket */
+	    }
+	    /* OK, AX.25 address.  Print it out in text. */
+	    ax25_fmtaddress(ifaddress, ifr.ifr_hwaddr.sa_data);
+
+
 	    if (ax25rxports) {
-	      /* We have a list of AX.25 ports where we limit the reception from! */
+	      /* We have a list of AX.25 ports (callsigns) where we limit
+		 the reception from! */
 	      int j, ok = 0;
 	      for (j = 0; j < ax25rxportscount; ++j) {
-		if (strcmp(sa.sa_data, ax25rxports[j]) == 0) {
+		if (strcmp(ifaddress, ax25rxports[j]) == 0) {
 		  ok = 1; /* Found match ! */
 		  break;
 		}
@@ -116,16 +156,6 @@ int netax25_postpoll(struct aprxpolls *app)
 	      if (!ok) return -1; /* No match :-(  */
 	    }
 
-	    if (sa.sa_family == AF_AX25) {
-	      ;
-	    } else if (rx_protocol == ETH_P_ALL) { /* promiscuous mode ? */
-	      strcpy(ifr.ifr_name, sa.sa_data);
-	      if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
-		  || ifr.ifr_hwaddr.sa_family != AF_AX25) {
-		/* not AX25 so ignore this packet .. */
-		continue; /* there may be more on this socket */
-	      }
-	    }
 
 	    /* TODO: POSSIBLY: Limit the list of interfaces we accept
 	       the packets from ! */
@@ -137,9 +167,9 @@ int netax25_postpoll(struct aprxpolls *app)
 	     * "+10" is a magic constant for trying to estimate channel
 	     * occupation overhead
 	     */
-	    erlang_add(NULL, sa.sa_data, 0, ERLANG_RX, rcvlen+10, 1);
+	    erlang_add(NULL, ifaddress, 0, ERLANG_RX, rcvlen+10, 1);
 
-	    ax25_to_tnc2(sa.sa_data, 0, rxbuf[0], rxbuf+1, rcvlen-1);
+	    ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf+1, rcvlen-1);
 
 	  }
 	}

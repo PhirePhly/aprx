@@ -52,13 +52,13 @@
 #ax25-reject-filter via         "^NOGATE"
 #ax25-reject-filter data        "^\\?"
 
-# ax25-rxport limits reception on listed AX.25 ports, if system
-# happens to use AX.25 ports also for other purposes than APRS.
+# ax25-rxport limits reception on listed AX.25 ports (their cal lsigns),
+# if system happens to use AX.25 ports also for other purposes than APRS.
 # If this option is not used, all reception ports are accepted.
 # Number of port definitions here is unlimited.
 #
-#ax25-rxport ax0
-#ax25-rxport ax1
+#ax25-rxport NoCALL
+#ax25-rxport N0CALL
 
 # pidfile is UNIX way to tell that others that this program is
 # running with given process-id number.  This has compiled-in
