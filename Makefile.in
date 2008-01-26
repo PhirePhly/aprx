@@ -25,7 +25,7 @@ CC=		@CC@
 CFLAGS=		@CFLAGS@ $(DEFS)
 
 # Linker and flags
-LD=		@CC@
+LD=		@LD@
 LDFLAGS=	@LDFLAGS@
 
 INSTALL=	$(srcdir)/install-sh
@@ -56,7 +56,7 @@ DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
 PROGAPRX=	aprx
 PROGSTAT=	$(PROGAPRX)-stat
 
-LIBS=	# Nothing special needed!
+LIBS=		@LIBS@	# Nothing special needed in general case!
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o	\
 		netax25.o erlang.o aprxpolls.o
 OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
@@ -74,10 +74,10 @@ MAN=		$(MANAPRX) $(MANSTAT)
 all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf
 
 $(PROGAPRX):	$(OBJSAPRX) VERSION Makefile
-		$(CC) $(CFLAGS) -o $@ $(OBJSAPRX) $(LIBS)
+		$(LD) $(LDFLAGS) -o $@ $(OBJSAPRX) $(LIBS)
 
 $(PROGSTAT):	$(OBJSSTAT) VERSION Makefile
-		$(CC) $(CFLAGS) -o $@ $(OBJSSTAT) $(LIBS)
+		$(LD) $(LDFLAGS) -o $@ $(OBJSSTAT) $(LIBS)
 
 .PHONY:		man
 man:		$(MAN)
@@ -140,6 +140,10 @@ logrotate.aprx $(MAN) aprx.conf: % : %.in VERSION Makefile
 	 < $< > $@
 
 # -------------------------------------------------------------------- #
+
+#
+# Following is for the original author only...
+#
 
 DISTVERSION:=$(VERSION).svn$(SVNVERSION)
 DISTTARGET:=../../$(DISTVERSION)

@@ -625,6 +625,7 @@ OBJEXT
 CPP
 GREP
 EGREP
+LD
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -3038,6 +3039,14 @@ fi
 
 
 
+if test -z "$LD" ; then
+  LD="$CC"
+fi
+LD="$LD"
+
+
+
+
 
 
 ac_config_files="$ac_config_files Makefile"
@@ -3705,11 +3714,12 @@ OBJEXT!$OBJEXT$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
+LD!$LD$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 50; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 51; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
