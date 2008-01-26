@@ -5,7 +5,7 @@
 	    interface address and reformat it to TNC2 format.
 	    Use that for reception reports, logs, filters etc.
 	    Reason: port names given in /etc/ax25/axports do not
-	    persist at all!  Even clean system boot mail yield
+	    persist at all!  Even clean system boot may yield
 	    different port names.
 
 	* Version 0.17
