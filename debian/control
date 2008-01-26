@@ -2,12 +2,12 @@ Source: aprx
 Section: hamradio
 Priority: extra
 Maintainer: HAM APRX release  maintenance <aprx@ham>
-Build-Depends: debhelper (>= 5)
+Build-Depends: debhelper (>= 4)
 Standards-Version: 3.7.2
 
 Package: aprx
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}
 Description: A receive-only APRS igate
  Aprx is a receive-only (ie. RF to NET only) APRS igate.
  It supports multiple KISS-TNCs on serial ports  and listening 
