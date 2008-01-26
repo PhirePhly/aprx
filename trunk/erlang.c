@@ -128,10 +128,12 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	fstat(erlang_file_fd, &st);
 
 	erlang_mmap_size = st.st_size;
-	erlang_mmap      = mmap(NULL, erlang_mmap_size, PROT_READ|PROT_WRITE, MAP_SHARED, erlang_file_fd, 0);
+	erlang_mmap      = mmap(NULL, erlang_mmap_size, PROT_READ|(do_create ? PROT_WRITE : 0),
+				MAP_SHARED, erlang_file_fd, 0);
 	if (erlang_mmap == MAP_FAILED) {
 	  erlang_mmap = NULL;
-	  fprintf(stderr,"Erlang-file mmap() failed, fd=%d, errno=%d: %s\n", erlang_file_fd, errno, strerror(errno));
+	  fprintf(stderr,"Erlang-file mmap() failed, fd=%d, errno=%d: %s\n",
+		  erlang_file_fd, errno, strerror(errno));
 	}
 
 	if (erlang_mmap) {
@@ -197,7 +199,8 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	    }
 
 	    add_count = 0;
-	    EF->head.linecount = new_count;
+	    if (do_create)
+	      EF->head.linecount = new_count;
 	    ErlangLinesCount   = new_count;
 
 	    goto redo_open; /* redo mapping */
@@ -229,7 +232,7 @@ static int erlang_backingstore_open(int do_create)
 	}
 
 	if (erlang_file_fd < 0) {
-	  erlang_file_fd = open(erlang_backingstore, O_RDWR, 0644); /* Presume: it exists! */
+	  erlang_file_fd = open(erlang_backingstore, do_create ? O_RDWR : O_RDONLY, 0644); /* Presume: it exists! */
 	  if ((erlang_file_fd < 0) && do_create && (errno == ENOENT)) {
 	    erlang_file_fd = open(erlang_backingstore, O_RDWR|O_CREAT|O_EXCL, 0644);
 	  }

@@ -328,7 +328,7 @@ erlangfile @VARRUN@/aprx.state
 #  "SMACK" alias "CRC16"   \- KISS with better CRC
 #  "TNC2"                  \- TNC2 monitor format
 
-# The  \fBradio tcp\fC  option defines a connection to remote socket
+# The  radio tcp   option defines a connection to remote socket
 # beyond which is a binary transparent connection to a serial
 # port.  The parameter fields:  literal IP address (IPv4 or IPv6),
 # then literal port number, and finally protocol mode.
@@ -432,7 +432,7 @@ stabilize their transmit oscillators in many cases, which may take up to
 around 500 ms!
 The counters are not aware of this preamble-, nor postamble-times.
 .PP
-The HDLC bit stuffing ratio is guessed to be 8.2 bits for each 8 bits of payload.
+The HDLC bit stuffing ratio is guessed to be 1:1.025 (1 extra bit every 5 bytes)
 
 .SH NOTES: PROGRAM NAME
 Initially this program had name
