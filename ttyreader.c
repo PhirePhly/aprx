@@ -19,42 +19,50 @@
 
 
 struct serialport {
-	char	fd;		/* UNIX fd of the port					*/
+	char	fd;		/* UNIX fd of the port			*/
 
 	time_t	wait_until;
-	time_t  last_read_something; /* Used by serial port functionality watchdog	*/
-	int	read_timeout;	/* seconds						*/
+	time_t  last_read_something; /* Used by serial port functionality
+					watchdog */
+	int	read_timeout;	/* seconds				*/
 
 	int	linetype;
-#define LINETYPE_KISS       0	/* all KISS variants without CRC on line		*/
-#define LINETYPE_KISSSMACK  1	/* KISS/SMACK variants with CRC on line			*/
-#define LINETYPE_KISSBPQCRC 2	/* BPQCRC - really XOR sum of data bytes, also "AEACRC"	*/
+#define LINETYPE_KISS       0	/* all KISS variants without CRC on line*/
+#define LINETYPE_KISSSMACK  1	/* KISS/SMACK variants with CRC on line	*/
+#define LINETYPE_KISSBPQCRC 2	/* BPQCRC - really XOR sum of data bytes,
+				   also "AEACRC"			*/
 
-#define LINETYPE_TNC2 16	/* text line from TNC2 in monitor mode                  */
-#define LINETYPE_AEA  17	/* not implemented...                                   */
+#define LINETYPE_TNC2 16	/* text line from TNC2 in monitor mode  */
+#define LINETYPE_AEA  17	/* not implemented...                   */
 
-	int	kissstate;	/* state for KISS frame reader, also for line collector */
+	int	kissstate;	/* state for KISS frame reader,
+				   also for line collector		*/
 #define KISSSTATE_SYNCHUNT   0
 #define KISSSTATE_COLLECTING 1
 #define KISSSTATE_KISSFESC   2
 
-	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)			*/
+	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)	*/
   /*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
 
-	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" -- Linux TTY-names can be long.. */
+	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" --
+				   Linux TTY-names can be long.. 	*/
 	const char *ttyalias;
-	char	*initstring;	/* optional init-string to be sent to the TNC, NULL ok	*/
-	int	initlen;	/* .. as it can have even NUL-bytes, length is important! */
+	char	*initstring;	/* optional init-string to be sent to
+				   the TNC, NULL OK			*/
+	int	initlen;	/* .. as it can have even NUL-bytes,
+				   length is important!			*/
 
-	unsigned char rdbuf[1000];	/* buffering area for raw stream read			*/
-	int	rdlen, rdcursor;	/* rdlen = last byte in buffer, rdcursor = next to read.
-					   When rdlen == 0, buffer is empty.			*/
-	unsigned char rdline[330];	/* processed into lines/records				*/
-	int	rdlinelen;		/* length of this record				*/
+	unsigned char rdbuf[1000]; /* buffering area for raw stream read*/
+	int	rdlen, rdcursor;/* rdlen = last byte in buffer,
+				   rdcursor = next to read.
+				   When rdlen == 0, buffer is empty.	*/
+	unsigned char rdline[330];/* processed into lines/records	*/
+	int	rdlinelen;	/* length of this record		*/
 
-	unsigned char wrbuf[1000];	/* buffering area for raw stream read			*/
-	int	wrlen, wrcursor;	/* wrlen = last byte in buffer, wrcursor = next to write.
-					    When wrlen == 0, buffer is empty.			*/
+	unsigned char wrbuf[1000];/* buffering area for raw stream read	*/
+	int	wrlen, wrcursor;/* wrlen = last byte in buffer,
+				   wrcursor = next to write.
+				   When wrlen == 0, buffer is empty.	*/
 };
 
 static struct serialport **ttys;
@@ -278,20 +286,22 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 	/* Phases:
 	   kissstate == 0: hunt for KISS_FEND, discard everything before it.
-	   kissstate != 0: reading has globbed up preceding KISS_FENDs ("HDLC flags")
-	                   and the cursor is in front of a frame
+	   kissstate != 0: reading has globbed up preceding KISS_FENDs
+	   		   ("HDLC flags") and the cursor is in front of a frame
 	*/
 
-	/* There are TNCs that use "shared flags" - only one FEND in between data frames. */
+	/* There are TNCs that use "shared flags" - only one FEND in between
+	   data frames. */
 
 	if (S->kissstate == KISSSTATE_SYNCHUNT) {
 	  /* Hunt for KISS_FEND, discard everything until then! */
 	  int c;
 	  for (;;) {
 	    c = ttyreader_getc(S);
-	    if (c < 0) return c;    /* Out of buffer, stay in state,
-				     return latter when there is some refill */
-	    if (c == KISS_FEND)   /* Found the sync-byte !  change state! */
+	    if (c < 0) return c; /* Out of buffer, stay in state,
+				    return latter when there is some
+				    refill */
+	    if (c == KISS_FEND)	 /* Found the sync-byte !  change state! */
 	      break;
 	  }
 	  S->kissstate = KISSSTATE_COLLECTING;
@@ -305,7 +315,8 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 	  for (;;) {
 	    c = ttyreader_getc(S);
-	    if (c < 0) return c; /* Out of input stream, exit now, come back latter.. */
+	    if (c < 0) return c; /* Out of input stream, exit now,
+				    come back latter.. */
 
 	    /* printf(" %02X", c);
 	       if (c == KISS_FEND) { printf("\n");fflush(stdout); }  */
@@ -350,7 +361,9 @@ static int ttyreader_pullkiss(struct serialport *S)
 	    }
 
 
-	    if (S->rdlinelen >= (sizeof(S->rdline)-3)) { /* Too long !  Way too long ! */
+	    if (S->rdlinelen >= (sizeof(S->rdline)-3)) {
+	      /* Too long !  Way too long ! */
+
 	      S->kissstate = KISSSTATE_SYNCHUNT;  /* Sigh.. discard it. */
 	      S->rdlinelen = 0;
 	      continue;
@@ -366,7 +379,8 @@ static int ttyreader_pullkiss(struct serialport *S)
 }
 
 /*
- *  ttyreader_pulltnc2()  --  process a line of text by calling TNC2 UI Monitor analyzer
+ *  ttyreader_pulltnc2()  --  process a line of text by calling
+ *				TNC2 UI Monitor analyzer
  */
 
 static int ttyreader_pulltnc2(struct serialport *S)
@@ -381,7 +395,8 @@ static int ttyreader_pulltnc2(struct serialport *S)
 
 #if 0
 /*
- * ttyreader_pullaea()  --  process a line of text by calling AEA MONITOR 1 analyzer
+ * ttyreader_pullaea()  --  process a line of text by calling
+ * 			    AEA MONITOR 1 analyzer
  */
 
 static int ttyreader_pullaea(struct serialport *S)
@@ -398,7 +413,9 @@ static int ttyreader_pullaea(struct serialport *S)
 	  }
 	}
 
-	/* FIXME: re-arrange the  S->rdline2  contained AX25 address tokens and flags..
+	/* FIXME: re-arrange the  S->rdline2  contained AX25 address tokens 
+	   and flags..
+
 	   perl code:
 	      @addrs = split('>', $rdline2);
 	      $out = shift @addrs; # pop first token in sequence
@@ -430,8 +447,10 @@ static int ttyreader_pulltext(struct serialport *S)
 	  c = ttyreader_getc(S);
 	  if (c < 0) return c;   /* Out of input.. */
 
-	  /* S->kissstate != 0: read data into S->rdline, == 0: discard data until CR|LF.
-	     Zero-size read line is discarded as well (only CR|LF on input frame)  */
+	  /* S->kissstate != 0: read data into S->rdline,
+			  == 0: discard data until CR|LF.
+	     Zero-size read line is discarded as well
+	     (only CR|LF on input frame)  */
 
 	  if (S->kissstate == KISSSTATE_SYNCHUNT) {
 	    /* Looking for CR or LF.. */
@@ -514,7 +533,8 @@ static void ttyreader_linewrite(struct serialport *S)
 
 
 /*
- *  ttyreader_lineread()  --  read what there is into our buffer, and process the buffer..
+ *  ttyreader_lineread()  --  read what there is into our buffer,
+ *			      and process the buffer..
  */
 
 static void ttyreader_lineread(struct serialport *S)
@@ -548,7 +568,8 @@ static void ttyreader_lineread(struct serialport *S)
 	    S->fd = -1;
 	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
 	    if (debug)
-	      printf("%ld\tTTY %s EOF - CLOSED, WAITING %d SECS\n",now,S->ttyname,TTY_OPEN_RETRY_DELAY_SECS);
+	      printf("%ld\tTTY %s EOF - CLOSED, WAITING %d SECS\n",
+		     now, S->ttyname, TTY_OPEN_RETRY_DELAY_SECS);
 	    return;
 	  }
 	  if (i < 0) /* EAGAIN or whatever.. */
@@ -877,7 +898,8 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	  str = config_SKIPSPACE (str);
 
 	  if (debug)
-	    printf(".. new style serial:  '%s' '%s' '%s'..\n", tty->ttyname, param2, str);
+	    printf(".. new style serial:  '%s' '%s' '%s'..\n",
+		   tty->ttyname, param2, str);
 
 	}
 	if (strcmp(param1,"tcp") == 0) {
@@ -889,7 +911,8 @@ const char *ttyreader_serialcfg(char *param1, char *param2, char *str )
 	  str = config_SKIPSPACE (str);
 
 	  if (debug)
-	    printf(".. new style tcp!:  '%s' '%s' '%s'..\n", param1, param2, str);
+	    printf(".. new style tcp!:  '%s' '%s' '%s'..\n",
+		   param1, param2, str);
 
 	  len = strlen(param1) + strlen(param2) + 8;
 	  free((char*)(tty->ttyname));
