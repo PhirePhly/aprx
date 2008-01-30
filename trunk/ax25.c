@@ -408,7 +408,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 
 
 	if (!discard)
-	  discard = aprsis_queue(tnc2buf, t0, t-t0);  /* Send it.. */
+	  discard = aprsis_queue(tnc2buf, portname, t0, t-t0);  /* Send it.. */
 	else
 	  discard = -1;
 

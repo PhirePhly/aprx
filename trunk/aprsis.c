@@ -79,7 +79,7 @@ static void sig_handler(int sig)
  *Close APRS-IS server_socket, clean state..
  */
 
-static void aprsis_close(struct aprsis *A)
+static void aprsis_close(struct aprsis *A, const char *why)
 {
 	if (A->server_socket >= 0)
 	  close(A->server_socket);  /* close, and flush write buffers */
@@ -93,7 +93,7 @@ static void aprsis_close(struct aprsis *A)
 	if (!A->H) return; /* Not connected, nor defined.. */
 
 	if (verbout)
-	  printf("%ld\tCLOSE APRSIS %s:%s\n",(long)now, A->H->server_name,A->H->server_port);
+	  printf("%ld\tCLOSE APRSIS %s:%s %s\n",(long)now, A->H->server_name,A->H->server_port, why ? why : "");
 	if (aprxlogfile) {
 	  FILE *fp = fopen(aprxlogfile,"a");
 	  if (fp) {
@@ -101,7 +101,7 @@ static void aprsis_close(struct aprsis *A)
 	    struct tm *t = gmtime(&now);
 	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 
-	    fprintf(fp,"%s CLOSE APRSIS %s:%s\n", timebuf, A->H->server_name,A->H->server_port);
+	    fprintf(fp,"%s CLOSE APRSIS %s:%s %s\n", timebuf, A->H->server_name,A->H->server_port, why ? why : "");
 	    fclose(fp);
 	  }
 	}
@@ -111,7 +111,7 @@ static void aprsis_close(struct aprsis *A)
 /*
  *  aprsis_queue_() - internal routine - queue data to specific APRS-IS instance
  */
-static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, int textlen)
+static int aprsis_queue_(struct aprsis *A, const char *addr, const char *gwcall, const char *text, int textlen)
 {
 	int i;
 	char addrbuf[1000];
@@ -136,7 +136,8 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char *text, i
 
 	addrlen = 0;
 	if (addr)
-	  addrlen = sprintf(addrbuf, "%s,qAR,%s:", addr, A->H->mycall);
+	  addrlen = sprintf(addrbuf, "%s,qAR,%s:", addr,
+			    (gwcall && *gwcall) ? gwcall : A->H->mycall);
 	len = addrlen + textlen;
 
 
@@ -224,7 +225,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	char aprsislogincmd[3000];
 	const char *errstr;
 
-	aprsis_close(A);
+	aprsis_close(A, "reconnect");
 
 	if (!aprsis_multiconnect) {
 	  if (!A->H) {
@@ -278,7 +279,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	  if (ai) freeaddrinfo(ai);
 
-	  aprsis_close(A);
+	  aprsis_close(A, "fail on connect");
 
 	  if (verbout)
 	    printf("%ld\tFAIL - Connect to %s:%s failed: %s\n",
@@ -350,7 +351,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	A->last_read = now;
 
-	aprsis_queue_(A, NULL, aprsislogincmd, strlen(aprsislogincmd));
+	aprsis_queue_(A, NULL, "", aprsislogincmd, strlen(aprsislogincmd));
 	beacon_reset();
 
 	return; /* just a place-holder */
@@ -370,8 +371,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 	    if (A->rdlin_len > 0) {
 	      A->rdline[A->rdlin_len] = 0;
 	      /* */
-	      if (A->rdline[0] != '#') /* Not only a comment! */
-		A->last_read = now;  /* Time stamp me ! */
+	      A->last_read = now;  /* Time stamp me ! */
 	      
 	      if (debug > 1)
 		printf("%ld\t<< %s:%s >> %s\n", now,
@@ -428,8 +428,7 @@ static int aprsis_sockread(struct aprsis *A)
 	  A->rdbuf_len += i;
 
 	  /* we just ignore the readback.. but do time-stamp the event */
-	  if (! A->H->filterparam)
-	    A->last_read = now;
+	  A->last_read = now;
 
 	  aprsis_sockreadline(A);
 	}
@@ -437,14 +436,22 @@ static int aprsis_sockread(struct aprsis *A)
 	return i;
 }
 
+struct aprsis_tx_msg_head {
+	time_t	then;
+	int	addrlen;
+	int	gwlen;
+	int	textlen;
+};
+
 static void aprsis_readsp(void)
 {
 	int i;
 	char buf[10000];
 	const char *addr;
+	const char *gwcall;
 	const char *text;
 	int textlen;
-	time_t then;
+	struct aprsis_tx_msg_head head;
 
 	i = recv(aprsis_sp, buf, sizeof(buf), 0);
 	if (i == 0) { /* EOF ! */
@@ -455,39 +462,52 @@ static void aprsis_readsp(void)
 	}
 	buf[i] = 0; /* String Termination NUL byte */
 
-	memcpy(&then, buf, sizeof(then));
-	if (then + 10 < now) return; /* Too old, discard */
-	addr = buf+sizeof(then);
-	text = addr;
-	while (*text && text < (buf+sizeof(buf))) ++text;
-	++text; /* skip over the 0 byte in between addr and message text */
-	/* now we have text content.. */
-	textlen = i - (text - buf);
-	if (textlen < 0) return; /* BAD! */
+	memcpy(&head, buf, sizeof(head));
+	if (head.then + 10 < now) return; /* Too old, discard */
+	addr = buf+sizeof(head);
+
+	gwcall = addr + head.addrlen + 1;
+
+	text = gwcall + head.gwlen + 1;
+
+	textlen = head.textlen;
+	if (textlen <= 2) return; /* BAD! */
 	
 	/* Now queue the thing! */
 
 	for (i = 0; i < AprsIScount; ++i)
-	  aprsis_queue_(AprsIS[i], addr, text, textlen);
+	  aprsis_queue_(AprsIS[i], addr, gwcall, text, textlen);
 }
 
-int aprsis_queue(const char *addr, const char *text, int textlen)
+int aprsis_queue(const char *addr, const char *gwcall, const char *text, int textlen)
 {
 	static char *buf; /* Dynamically allocated buffer... */
 	static int buflen;
-	int len, i;
+	int i, len = strlen(gwcall);
 	char *p;
+	struct aprsis_tx_msg_head head;
 
-	if (textlen + strlen(addr) + 30 > buflen) {
-	  buflen = textlen + strlen(addr) + 30;
+	if (len + textlen + strlen(addr) + 30 > buflen) {
+	  buflen = len + textlen + strlen(addr) + 30;
 	  buf = realloc(buf, buflen);
 	}
 
-	memcpy(buf, &now, sizeof(now));
-	p = buf+sizeof(now);
+	head.then = now;
+	head.addrlen = strlen(addr);
+	head.gwlen   = strlen(gwcall);
+	head.textlen = textlen+2;  /* We add line terminating \r\n  pair. */
+
+	memcpy(buf, &head, sizeof(head));
+	p = buf+sizeof(head);
+
 	p += sprintf(p, "%s", addr);
-	++p; /* string terminating 0 byte */
-	p += sprintf(p, "%s\r\n", text);
+	*++p = 0; /* string terminating 0 byte */
+	p += sprintf(p, "%s", gwcall);
+	*++p = 0; /* string terminating 0 byte */
+	memcpy(p, text, textlen);
+	p += textlen;
+	memcpy(p, "\r\n", 2);
+	p += 2;
 	len = p - buf;
 
 	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL); /* No SIGPIPE if the
@@ -533,7 +553,7 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 	     * There is a heart-beat ticking every 20 or so seconds.
 	     */
 
-	    aprsis_close(A);
+	    aprsis_close(A, "heartbeat timeout");
 	  }
 
 
@@ -569,7 +589,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 
 	      if (pfd->revents & (POLLERR | POLLHUP)) { /* Errors ? */
 	      close_sockaprsis:;
-		aprsis_close(A);
+		aprsis_close(A, "postpoll EOF et al.");
 		continue;
 	      }
 

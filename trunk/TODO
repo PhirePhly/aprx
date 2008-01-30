@@ -1,4 +1,4 @@
-		     APRX   0.16
+		     APRX   0.18
 
 		  	TODO
 
@@ -15,6 +15,8 @@
   - ...
 
 - OpenTRAC support ?  (UI, PID=0x77)
+
+- "radio NN ... KISS .." to support multiple TNCs, and more esoteric
 
 - bidirectional relaying capability with areal filters ??
   (that would make this a full-blown aprsd / aprsdigi replacement..)

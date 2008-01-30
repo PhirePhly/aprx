@@ -311,7 +311,8 @@ erlangfile @VARRUN@/aprx.state
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\\xC0\\xC0\\xFF\\xC0\\r\\nMO 0\\rKISS $01\\r"
 #
-# "alias NAME" sets name used in statistics displays.
+# "callsign NAME" sets callsign used in statistics displays,
+#    and when the message is sent to APRS-IS.
 #    If none are given, then it will use physical port name.
 #
 # "timeout 900" sets a timeout monitor (in seconds) to make
@@ -385,6 +386,8 @@ A configuration token without surrounding quotes does not understand the backsla
 .SH RADIO PORTS
 Radio ports can be connected several ways to this program:
 .IP \(bu 2
+AX.25 network interfaced ports (Linux, kissattach et al.)
+.IP \(bu 2
 Local serial ports in the machine
 .RI ( " radio serial /dev/ttyS0 " )
 .IP \(bu 2
@@ -403,6 +406,13 @@ must always be set, they are ignored for the remote connection.
 .PP
 The KISS encapsulation details must also be specified, and they
 are used in all cases.
+.PP
+The
+.I callsign
+option sets port specific callsign when relaying to APRS-IS.
+Default is the 'mycall'.
+(BUG: on MULTI-KISS mode all TNCs on given radio port get same callsign,
+this does not apply on AX.25 ports!)
 
 .SH NOTES: ERLANG
 The
