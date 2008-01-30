@@ -275,7 +275,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	if (!E) {
 
 	  /* Allocate a new one */
-	  erlang_backingstore_grow(0, 1);
+	  erlang_backingstore_grow(1, 1);
 	  if (!ErlangLines) return NULL; /* D'uh! */
 
 	  E = ErlangLines[ErlangLinesCount-1]; /* Last one is the lattest.. */

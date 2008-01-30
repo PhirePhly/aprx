@@ -24,17 +24,27 @@ void beacon_reset(void)
 						   from the beginning */
 }
 
-void beacon_set(const char *s)
+void beacon_set(const char *p1, char *str)
 {
 	int i;
+	const char *for_ = mycall;
+
+	if (strcmp(p1,"for") == 0) {
+
+	  for_ = str;
+	  str = config_SKIPTEXT (str);
+	  str = config_SKIPSPACE (str);
+
+	  p1 = str;
+	  str = config_SKIPTEXT (str);
+	  str = config_SKIPSPACE (str);
+	}
 
 	/* realloc() works also when old ptr is NULL */
 	beacon_msgs = realloc(beacon_msgs,
 			      sizeof(char*) * (beacon_msgs_count+3));
 
-	i = strlen(s) + 2;
-	beacon_msgs[beacon_msgs_count] = malloc(i);
-	strcpy(beacon_msgs[beacon_msgs_count], s);
+	beacon_msgs[beacon_msgs_count] = strdup(p1);
 
 	++beacon_msgs_count;
 	beacon_msgs[beacon_msgs_count] = NULL;
@@ -77,6 +87,9 @@ int  beacon_postpoll(struct aprxpolls *app)
 	beacon_nexttime += beacon_increment;
 
 	if (!mycall) return 0; /* No mycall !  hoh... */
+
+	/* --- now the business of sending ... */
+
 	sprintf(beaconaddr, "%s>APRS", mycall);
 	/* sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]); */
 	txtlen = sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]);
@@ -84,7 +97,7 @@ int  beacon_postpoll(struct aprxpolls *app)
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(beaconaddr, beacontext, txtlen);
+	aprsis_queue(beaconaddr, "", beacontext, txtlen);
 
 	return 0;
 }

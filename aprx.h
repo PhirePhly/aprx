@@ -60,7 +60,7 @@ extern const char *pidfile;
 extern int  ttyreader_prepoll (struct aprxpolls *);
 extern int  ttyreader_postpoll (struct aprxpolls *);
 extern void ttyreader_init (void);
-extern const char *ttyreader_serialcfg(char *param1, char *param2, char *str);
+extern const char *ttyreader_serialcfg(char *param1, char *str);
 
 /* ax25.c */
 extern void  tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard);
@@ -73,14 +73,14 @@ extern void aprsis_set_heartbeat_timeout(const int tout);
 extern void aprsis_set_filter(const char *filter);
 extern void aprsis_set_mycall(const char *filter);
 
-extern int  aprsis_queue(const char *addr, const char *text, int textlen);
+extern int  aprsis_queue(const char *addr, const char *gwcall, const char *text, int textlen);
 extern int  aprsis_prepoll(struct aprxpolls *app);
 extern int  aprsis_postpoll(struct aprxpolls *app);
 extern void aprsis_init(void);
 extern void aprsis_start(void);
 
 /* beacon.c */
-extern void beacon_set(const char *s);
+extern void beacon_set(const char *s, char *);
 extern void beacon_reset(void);
 extern int  beacon_prepoll(struct aprxpolls *app);
 extern int  beacon_postpoll(struct aprxpolls *app);
@@ -89,13 +89,14 @@ extern int  beacon_postpoll(struct aprxpolls *app);
 extern void netax25_init(void);
 extern int  netax25_prepoll(struct aprxpolls *);
 extern int  netax25_postpoll(struct aprxpolls *);
-extern void netax25_addport(const char *portname);
+extern void netax25_addport(const char *portname, char *str);
 
 /* config.c */
 extern void  readconfig(const char *cfgfile);
 extern char *config_SKIPSPACE(char *Y);
 extern char *config_SKIPTEXT(char *Y);
 extern void  config_STRLOWER(char *Y);
+extern void  config_STRUPPER(char *Y);
 
 /* erlang.c */
 extern void erlang_init(const char *syslog_facility_name);

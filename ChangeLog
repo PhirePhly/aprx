@@ -1,3 +1,39 @@
+2008-01-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsis.c:
+	    Spotted watchdog doing reconnects every 2 minutes
+	    (like it is supposed to be), and realized that
+	    it really should not care what the server says,
+	    just that server is saying something...
+
+	* erlang.c:
+	    A bug in backing-store map protection logic.
+
+	* aprx.c:
+	    See if pidfile exists.  If it does and the start
+	    is not for foreground, refuse to run if process
+	    given in the pidfile does exist.
+
+	* aprx.8.in, config.c, netax25.c, ttyreader.c, aprsis.c,
+	  aprx.h, ax25.c, aprx.conf.in, beacon.c:
+	    New "callsign" config parameter for "radio serial" ports.
+	    messages received from given port are sent out using that
+	    callsign.    Revamp the whole config parsing.
+
+	* aprsis.c:
+	    Smarter main-loop to aprs-is loop  message pass preparation
+	    and usage codes -- pass a struct block as message leader.
+
+	* ttyreader.c, netax25.c, aprsis, ax25.c, beacon.c, aprx.h:
+	    Pass explicite parameter towards the APRSIS telling, which
+	    callsign (radio receiver) the message came in from.
+
+	* aprx.h, config.c, ttyreader.c, beacon.c:
+	    Rework config parameter line parsing.  Just one param is
+	    processed by the main config reader loop, any further are
+	    tasks of the individual subroutines (ttyreader, beacon)
+
+
 2008-01-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* erlang.c:

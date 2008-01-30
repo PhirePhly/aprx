@@ -110,9 +110,20 @@ void config_STRLOWER(char *s)
 	}
 }
 
+void config_STRUPPER(char *s)
+{
+	int c;
+	for ( ; *s; ++s ) {
+	  c = *s;
+	  if ('a' <= c && c <= 'z') {
+	    *s = c + ('A' - 'a');
+	  }
+	}
+}
+
 static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 {
-static	char *name, *param1, *param2;
+	char *name, *param1;
 
 	name = strchr(str, '\n');	/* The trailing newline chopper ... */
 	if (name)
@@ -131,23 +142,18 @@ static	char *name, *param1, *param2;
 	str = config_SKIPTEXT (str);
 	str = config_SKIPSPACE (str);
 
-	param2 = str;
-
-	str = config_SKIPTEXT (str);
-	str = config_SKIPSPACE (str);
-
-
 	if (strcmp(name, "mycall") == 0) {
 	  mycall = strdup(param1);
 	  if (debug)
-	    printf("%s:%d: MYCALL = '%s'\n", cfgfilename, linenum, mycall);
+	    printf("%s:%d: MYCALL = '%s' '%s'\n",
+		   cfgfilename, linenum, mycall, str);
 
 	} else if (strcmp(name, "aprsis-server") == 0) {
-	  aprsis_add_server(param1, param2);
+	  aprsis_add_server(param1, str);
 
 	  if (debug)
-	    printf("%s:%d: APRSIS-SERVER = '%s':'%s'\n", cfgfilename, linenum,
-		   param1, param2);
+	    printf("%s:%d: APRSIS-SERVER = '%s':'%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	} else if (strcmp(name, "aprsis-heartbeat-timeout") == 0) {
 	  int i = atoi(param1);
@@ -156,98 +162,116 @@ static	char *name, *param1, *param2;
 	  aprsis_set_heartbeat_timeout(i);
 
 	  if (debug)
-	    printf("%s:%d: APRSIS-HEARTBEAT-TIMEOUT = '%d'\n", cfgfilename, linenum, i);
+	    printf("%s:%d: APRSIS-HEARTBEAT-TIMEOUT = '%d' '%s'\n",
+		   cfgfilename, linenum, i, str);
 
 	} else if (strcmp(name, "aprsis-filter") == 0) {
 	  aprsis_set_filter(param1);
 
 	  if (debug)
-	    printf("%s:%d: APRSIS-FILTER = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	} else if (strcmp(name, "aprsis-mycall") == 0) {
-	  /* Do not use! - multi APRSIS connection thing, which is also "do not use" item.. */
+	  /* Do not use! - multi APRSIS connection thing,
+	     which is also "do not use" item.. */
 	  aprsis_set_mycall(param1);
 
 	  if (debug)
-	    printf("%s:%d: APRSIS-MYCALL = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: APRSIS-MYCALL = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	} else if (strcmp(name, "ax25-filter") == 0) {
 	  if (debug)
-	    printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
+	    printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
-	  ax25_filter_add(param1,param2);
+	  ax25_filter_add(param1,str);
 
 	} else if (strcmp(name, "ax25-reject-filter") == 0) {
 	  if (debug)
-	    printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n", cfgfilename, linenum, param1, param2);
+	    printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
-	  ax25_filter_add(param1,param2);
+	  ax25_filter_add(param1,str);
 
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 	  if (debug)
-	    printf("%s:%d: AX25-RXPORT '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
-	  netax25_addport(param1);
+	  netax25_addport(param1, str);
 
 	} else if (strcmp(name, "netbeacon") == 0) {
-	  beacon_set(param1);
+	  beacon_set(param1, str);
 
 	  if (debug)
-	    printf("%s:%d: NETBEACON = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: NETBEACON = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	} else if (strcmp(name, "aprxlog") == 0) {
 	  if (debug)
-	    printf("%s:%d: APRXLOG = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: APRXLOG = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	  aprxlogfile = strdup(param1);
 
 	} else if (strcmp(name, "rflog") == 0) {
 	  if (debug)
-	    printf("%s:%d: RFLOG = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: RFLOG = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	  rflogfile = strdup(param1);
 
 	} else if (strcmp(name, "pidfile") == 0) {
 	  if (debug)
-	    printf("%s:%d: PIDFILE = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: PIDFILE = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	  pidfile = strdup(param1);
 
 	} else if (strcmp(name, "erlangfile") == 0) {
 	  if (debug)
-	    printf("%s:%d: ERLANGFILE = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: ERLANGFILE = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 
 	  erlang_backingstore = strdup(param1);
 
 	} else if (strcmp(name, "erlang-loglevel") == 0) {
 	  if (debug)
-	    printf("%s:%d: ERLANG-LOGLEVEL = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: ERLANG-LOGLEVEL = '%s' '%s'\n",
+		   cfgfilename, linenum, param1, str);
 	  erlang_init(param1);
 
 	} else if (strcmp(name, "erlanglog") == 0) {
 	  if (debug)
-	    printf("%s:%d: ERLANGLOG = '%s'\n", cfgfilename, linenum, param1);
+	    printf("%s:%d: ERLANGLOG = '%s'\n",
+		   cfgfilename, linenum, param1);
 
 	  erlanglogfile = strdup(param1);
 
 	} else if (strcmp(name, "erlang-log1min") == 0) {
 	  if (debug)
-	    printf("%s:%d: ERLANG-LOG1MIN\n", cfgfilename, linenum);
+	    printf("%s:%d: ERLANG-LOG1MIN\n",
+		   cfgfilename, linenum);
 
 	  erlanglog1min = 1;
 
 	} else if (strcmp(name, "serialport") == 0) {
 	  if (debug)
-	    printf("%s:%d: SERIALPORT = %s %s %s..\n", cfgfilename, linenum, param1, param2, str);
-	  const char *s = ttyreader_serialcfg(param1, param2, str);
+	    printf("%s:%d: SERIALPORT = %s %s..\n",
+		   cfgfilename, linenum, param1, str);
+	  const char *s = ttyreader_serialcfg(param1, str);
 
 	} else if (strcmp(name, "radio") == 0) {
 	  if (debug)
-	    printf("%s:%d: RADIO = %s %s %s..\n", cfgfilename, linenum, param1, param2, str);
-	  const char *s = ttyreader_serialcfg(param1, param2, str);
+	    printf("%s:%d: RADIO = %s %s..\n",
+		   cfgfilename, linenum, param1, str);
+	  const char *s = ttyreader_serialcfg(param1, str);
 
 	} else {
-	  printf("%s:%d: Unknown config keyword: '%s'\n", cfgfilename, linenum, param1);
+	  printf("%s:%d: Unknown config keyword: '%s' '%s'\n",
+		 cfgfilename, linenum, param1, str);
 	}
 }
 

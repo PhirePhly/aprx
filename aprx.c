@@ -117,8 +117,30 @@ int main(int argc, char * const argv[])
 	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
 
 	if ((debug || verbout) && !mycall) {
-	  fprintf(stderr,"NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
+	  fprintf(stderr,"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	}
+
+	if (!foreground) {
+	  /* See if pidfile exists ? */
+	  FILE *pf = fopen(pidfile,"r");
+	  if (pf) { /* See if the pid exists ? */
+	    int rc, er;
+	    int pid = -1;
+	    fscanf(pf, "%d", &pid);
+	    fclose(pf);
+
+	    if (pid > 0) {
+	      rc = kill(pid, 0);
+	      er = errno;
+
+	      if ((rc == 0) || (er == EPERM)) {
+		fprintf(stderr,"APRX: PIDFILE '%s' EXISTS, AND PROCESSID %d INDICATED THERE EXISTS TOO. FURTHER INSTANCES CAN ONLY BE RUN ON FOREGROUND!\n", pidfile, pid);
+		exit(1);
+	      }
+	    }
+	  }
+	}
+
 
 	if (!foreground) {
 	  int pid = fork();
@@ -131,6 +153,7 @@ int main(int argc, char * const argv[])
 
 	if (1) {
 	  /* Open the pidfile, if you can.. */
+
 	  FILE *pf = fopen(pidfile,"w");
 
 	  setsid(); /* Happens or not ... */

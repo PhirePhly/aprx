@@ -132,7 +132,8 @@ pidfile @VARRUN@/aprx.pid
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
 #
-# "alias NAME" sets name used in statistics displays.
+# "callsign NAME" sets callsign used in statistics displays,
+#    and when the message is sent to APRS-IS.
 #    If none are given, then it will use physical port name.
 #
 # "timeout 900" sets a timeout monitor (in seconds) to make

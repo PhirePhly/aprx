@@ -32,7 +32,7 @@ static int rx_protocol = ETH_P_ALL;
 static char **ax25rxports;
 static int    ax25rxportscount;
 
-void netax25_addport(const char *portname)
+void netax25_addport(const char *portname, char *str)
 {
 	ax25rxports = realloc(ax25rxports, sizeof(void*)*(ax25rxportscount+1));
 	ax25rxports[ax25rxportscount] = strdup(portname);
