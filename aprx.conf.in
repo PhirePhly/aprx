@@ -4,7 +4,9 @@
 #
 
 # The  mycall  parameter: 
-# Station call-id used for relaying APRS frames into APRS-IS.
+# Station callsignSSID used for relaying APRS frames into APRS-IS.
+# This value MUST NOT match any possible AX.25 interface in
+# the system!
 #
 #mycall           N0CALL-1
 
@@ -52,7 +54,7 @@
 #ax25-reject-filter via         "^NOGATE"
 #ax25-reject-filter data        "^\\?"
 
-# ax25-rxport limits reception on listed AX.25 ports (their cal lsigns),
+# ax25-rxport limits reception on listed AX.25 ports (their callsigns),
 # if system happens to use AX.25 ports also for other purposes than APRS.
 # If this option is not used, all reception ports are accepted.
 # Number of port definitions here is unlimited.

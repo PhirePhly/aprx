@@ -10,11 +10,20 @@
 
 #include "aprx.h"
 
-static time_t beacon_nexttime;
-static int    beacon_increment;
-static char **beacon_msgs;
+struct beaconmsg {
+	const char *destaddr;
+	const char *msg;
+};
+
+static struct beaconmsg **beacon_msgs;
+
 static int    beacon_msgs_count;
 static int    beacon_msgs_cursor;
+
+
+static time_t beacon_nexttime;
+static int    beacon_increment;
+
 
 
 void beacon_reset(void)
@@ -29,6 +38,12 @@ void beacon_set(const char *p1, char *str)
 	int i;
 	const char *for_ = mycall;
 
+	struct beaconmsg *bm = malloc(sizeof(*bm));
+	if (!bm) return; /* sigh.. */
+	memset(bm, 0, sizeof(*bm));
+
+	bm->destaddr = mycall;
+
 	if (strcmp(p1,"for") == 0) {
 
 	  for_ = str;
@@ -38,15 +53,17 @@ void beacon_set(const char *p1, char *str)
 	  p1 = str;
 	  str = config_SKIPTEXT (str);
 	  str = config_SKIPSPACE (str);
+
+	  bm->destaddr = strdup(for_);
 	}
+
+	bm->msg = strdup(p1);
 
 	/* realloc() works also when old ptr is NULL */
 	beacon_msgs = realloc(beacon_msgs,
-			      sizeof(char*) * (beacon_msgs_count+3));
+			      sizeof(bm) * (beacon_msgs_count+3));
 
-	beacon_msgs[beacon_msgs_count] = strdup(p1);
-
-	++beacon_msgs_count;
+	beacon_msgs[beacon_msgs_count++] = bm;
 	beacon_msgs[beacon_msgs_count] = NULL;
 
 	beacon_reset();
@@ -54,8 +71,7 @@ void beacon_set(const char *p1, char *str)
 
 int  beacon_prepoll(struct aprxpolls *app)
 {
-	char **b = beacon_msgs;
-	if (!b) return 0; /* Nothing to do */
+	if (!beacon_msgs) return 0; /* Nothing to do */
 
 	if (beacon_nexttime < app->next_timeout)
 	  app->next_timeout = beacon_nexttime;
@@ -69,6 +85,7 @@ int  beacon_postpoll(struct aprxpolls *app)
 	char beacontext[1024];
 	char beaconaddr[64];
 	int txtlen;
+	struct beaconmsg *bm;
 
 	if (!beacon_msgs) return 0; /* Nothing to do */
 
@@ -90,14 +107,16 @@ int  beacon_postpoll(struct aprxpolls *app)
 
 	/* --- now the business of sending ... */
 
-	sprintf(beaconaddr, "%s>APRS", mycall);
+	bm = beacon_msgs[beacon_msgs_cursor++];
+
+	sprintf(beaconaddr, "%s>APRS", bm->destaddr);
 	/* sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]); */
-	txtlen = sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]);
+	txtlen = strlen(bm->msg);
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(beaconaddr, "", beacontext, txtlen);
+	aprsis_queue(beaconaddr, mycall, bm->msg, txtlen);
 
 	return 0;
 }

@@ -1,3 +1,36 @@
+2008-02-03  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* configure.in, netax25.c, 
+	    autodetect header <pty.h>, and libutil function openpty().
+	
+	* netax25.c, aprx.h, aprx.c:
+	    Rearranged  netax25 module initing - to happen _latter_.
+	
+	* ttyreader.c, aprx.h, netax25.c:
+	    kissencoder() function
+
+	* ttyreader.c, aprx.h, netax25.c:
+	    On Linux, use openpty() to create an AX.25pseudo-device on
+	    which we then can push AX.25 format packets received from
+	    non-AX.25 interfaces.  This will itself also _ignore_ packets
+	    received from this created interface.
+
+	* beacon.c:
+	    "for" attribute for beacon messages, thus this system
+	    can claim to be sending the beacons on behalf of others.
+
+	* ax25.c, aprx.h:
+	    parse_ax25addr() function.
+
+	* config.c, aprx.8.in, aprx.conf.in:
+	    The mycall parameter must be all uppercase AX.25 valid
+	    callsign, and must not be same as any other callsign
+	    in system internal AX.25 network.  (This is meaningful
+	    only on Linux systems..)
+
+	* Makefile.in:
+	    Just some cleanup
+
 2008-01-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprsis.c:

@@ -101,15 +101,13 @@ install: all
 
 .PHONY: clean
 clean:
-	rm -f $(PROGAPRX) $(PROGSTAT)	\
-	      $(MAN) $(MAN:=.html) $(MAN:=.ps) $(MAN:=.pdf)	\
-	      aprx.conf	 logrotate.aprx  \
-	      $(OBJS)	\
-	      $(OBJS:.o=.d)
+	rm -f $(PROGAPRX) $(PROGSTAT)
+	rm -f $(MAN) $(MAN:=.html) $(MAN:=.ps) $(MAN:=.pdf)	\
+	rm -f aprx.conf	 logrotate.aprx
+	rm -f *~ *.o *.d
 
 .PHONY: distclean
 distclean: clean
-	rm -f *~ *.o *.d
 	rm -f config.log config.status config.h
 	rm -rf autom4te.cache
 
@@ -150,11 +148,11 @@ DISTTARGET:=../../$(DISTVERSION)
 RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
 .PHONY: dist
 dist:
-	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then				\
-		echo "Mixed or modified tree ($(SVNVERSION)), ARE YOU SURE ??." ;		\
-		echo -n "Y/^C ? "; read var ;							\
+	# Special for the source maintainer only..
+	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then	    \
+	  echo "Mixed or modified tree ($(SVNVERSION)), ARE YOU SURE ??." ; \
+	  echo -n "Y/^C ? "; read var ;					    \
 	fi
-	# Special for maintainer only..
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
 	fi
