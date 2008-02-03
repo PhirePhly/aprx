@@ -14,9 +14,6 @@
 
 #include "aprx.h"
 
-// TODO: Requires autoconfig sensing that the system really does have
-//       AX.25 headers available ?   Or does it ?
-
 #include <sys/socket.h>
 
 #ifdef PF_AX25  /* PF_AX25 exists -- highly likely a Linux system ! */
@@ -26,8 +23,144 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
+
+#if defined(HAVE_OPENPTY)
+#ifdef HAVE_PTY_H
+#include <pty.h>
+#endif
+
+static int pty_master = -1;
+static int pty_slave = -1;
+
+static void netax25_openpty(void)
+{
+	int rc;
+	int disc;
+	struct termios tio;
+	char devname[64];
+	unsigned char ax25call[7];
+	struct ifreq ifr;
+	int fd = -1;
+
+	if (!mycall) return; /* No mycall, no ptys! */
+
+	rc = openpty(&pty_master, &pty_slave, devname, NULL, NULL);
+
+	if (debug)
+	  printf("openpty() rc=%d name='%s' master=%d slave=%d\n",
+		 rc, devname, pty_master, pty_slave);
+
+	if (rc != 0 || pty_slave < 0) {
+	error_exit:;
+	  if (pty_master >= 0)
+	    close(pty_master);
+	  pty_master = -1;
+	  if (pty_slave >= 0)
+	    close(pty_slave);
+	  pty_slave = -1;
+	  if (fd >= 0)
+	    close(fd);
+	  return; /* D'uh.. */
+	}
+
+	/* setup termios parameters for this line.. */
+	cfmakeraw(& tio );
+	tio.c_cc[VMIN] = 1;  /* pick at least one char .. */
+	tio.c_cc[VTIME] = 3; /* 0.3 seconds timeout - 36 chars @ 1200 baud */
+	tio.c_cflag |= (CREAD | CLOCAL);
+	cfsetispeed(& tio, B38400 ); /* Pseudo-tty -- pseudo speed */
+	cfsetospeed(& tio, B38400 );
+	rc = tcsetattr(pty_slave, TCSANOW, &tio);
+	if (rc < 0) goto error_exit;
+
+	/* The pty_slave will get N_AX25 discipline attached on itself.. */
+	disc = N_AX25;
+	rc = ioctl(pty_slave, TIOCSETD, &disc);
+	if (rc < 0) goto error_exit;
+	
+	rc = ioctl(pty_slave, SIOCGIFNAME, devname);
+	if (rc < 0) goto error_exit;
+
+	/* Convert mycall[] to AX.25 format callsign */
+	parse_ax25addr(ax25call, mycall, 0x60);
+	rc = ioctl(pty_slave, SIOCSIFHWADDR, ax25call);
+	if (rc < 0) goto error_exit;
+
+	/* Now set encapsulation.. */
+	disc = 4;
+	rc = ioctl(pty_slave, SIOCSIFENCAP, &disc);
+	if (rc < 0) goto error_exit;
+
+	/* Then final tricks to start the interface... */
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (rc < 0) goto error_exit;
+
+	strcpy(ifr.ifr_name, devname);
+	
+#if 0 /* This interface does not need IP address at all.. */
+	ifr.ifr_addr.sa_family = AF_INET;
+	ifr.ifr_addr.sa_data[0] = 0;
+	ifr.ifr_addr.sa_data[1] = 0;
+	ifr.ifr_addr.sa_data[2] = 127;
+	ifr.ifr_addr.sa_data[3] = 0;
+	ifr.ifr_addr.sa_data[4] = 0;
+	ifr.ifr_addr.sa_data[5] = 127;
+	ifr.ifr_addr.sa_data[6] = 0;
+
+	rc = ioctl(fd, SIOCSIFADDR, &ifr);
+	if (rc < 0) goto error_exit;
+
+	ifr.ifr_addr.sa_data[2] = 255;
+	ifr.ifr_addr.sa_data[3] = 255;
+	ifr.ifr_addr.sa_data[4] = 255;
+	ifr.ifr_addr.sa_data[5] = 255;
+	rc = ioctl(fd, SIOCSIFNETMASK, &ifr);
+	if (rc < 0) goto error_exit;
+#endif
+
+	ifr.ifr_mtu = 512;
+	rc = ioctl(fd, SIOCSIFMTU, &ifr);
+	if (rc < 0) goto error_exit;
+
+	ifr.ifr_flags = IFF_UP | IFF_RUNNING | IFF_NOARP;
+	rc = ioctl(fd, SIOCSIFFLAGS, &ifr);
+	if (rc < 0) goto error_exit;
+	
+	close(fd);
+
+	/* OK, we write and read on pty_master, the pty_slave is now
+	   attached on kernel side AX.25 interface with call: mycall */
+
+	return;
+}
+
+void netax25_sendax25(const void *ax25, int ax25len)
+{
+	int rc;
+	unsigned char ax25buf[1000];
+
+	/* kissencoder() takes AX.25 frame, and adds framing + cmd-byte */
+	rc = kissencoder(ax25buf, sizeof(ax25buf), ax25, ax25len, 0, 0);
+	if (rc < 0) return;
+	ax25len = rc;
+
+	rc = write(pty_master, ax25buf, ax25len);
+
+	if (debug > 1)
+	  printf("write(pty_master) len=%d rc=%d\n",ax25len,rc);
+}
+
+#else
+static void netax25_openpty(void)
+{
+}
+
+void netax25_sendax25(const void *ax25, int ax25len)
+{
+}
+#endif /* HAVE_OPENPTY */
+
 static int rx_socket;
-static int rx_protocol = ETH_P_ALL;
 
 static char **ax25rxports;
 static int    ax25rxportscount;
@@ -39,13 +172,24 @@ void netax25_addport(const char *portname, char *str)
 	++ax25rxportscount;
 }
 
+/* Nothing much in early init */
 void netax25_init(void)
 {
-	int i;
+}
 
-	rx_protocol = ETH_P_AX25; /* Choosing ETH_P_ALL would pick also outbound
-				     packets, but also all of the ethernet traffic..
-				     ETH_P_AX25 picks only inbound-at-ax25-devices
+/* .. but all things in late start.. */
+void netax25_start(void)
+{
+	int i;
+	int rx_protocol;
+
+	netax25_openpty();
+
+
+	rx_protocol = ETH_P_AX25; /* Choosing ETH_P_ALL would pick also
+				     outbound packets, but also all of
+				     the ethernet traffic..  ETH_P_AX25
+				     picks only inbound-at-ax25-devices
 				     ..packets.  */
 
 	rx_socket = socket(PF_PACKET, SOCK_PACKET, htons(rx_protocol));
@@ -64,7 +208,6 @@ void netax25_init(void)
 
 	if (rx_socket >= 0)
 	  fd_nonblockingmode(rx_socket);
-
 }
 
 int netax25_prepoll(struct aprxpolls *app)
@@ -132,7 +275,7 @@ int netax25_postpoll(struct aprxpolls *app)
 	      return -1; /* No more at this time.. */
 	    }
 
-	    /* Query AX.25 if address from whence this came in.. */
+	    /* Query AX.25 for the address from whence this came in.. */
 	    strcpy(ifr.ifr_name, sa.sa_data);
 	    if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
 		|| ifr.ifr_hwaddr.sa_family != AF_AX25) {
@@ -141,6 +284,12 @@ int netax25_postpoll(struct aprxpolls *app)
 	    }
 	    /* OK, AX.25 address.  Print it out in text. */
 	    ax25_fmtaddress(ifaddress, ifr.ifr_hwaddr.sa_data);
+
+	    if (debug > 1)
+	      printf("Received frame from '%s' len %d\n",ifaddress,rcvlen);
+
+	    if (strcmp(ifaddress, mycall) == 0)
+	      continue; /* We drop our own packets */
 
 
 	    if (ax25rxports) {
@@ -153,7 +302,7 @@ int netax25_postpoll(struct aprxpolls *app)
 		  break;
 		}
 	      }
-	      if (!ok) return -1; /* No match :-(  */
+	      if (!ok) continue; /* No match :-(  */
 	    }
 
 	    /* Now: actual AX.25 frame reception,

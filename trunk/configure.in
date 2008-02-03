@@ -23,10 +23,15 @@ fi
 AC_SUBST(LD,"$LD")
 
 
+dnl Check for headers.
+AC_CHECK_HEADERS(pty.h)
+
 dnl Checks for libraries.
 
 dnl Checks for library functions.
-
+AC_CHECK_FUNCS(openpty,,
+	       AC_CHECK_LIB(util, openpty,
+			    [AC_DEFINE(HAVE_OPENPTY)] [LIBS="$LIBS -lutil"]))
 
 dnl Output files
 AC_CONFIG_FILES([Makefile])

@@ -192,6 +192,7 @@ int main(int argc, char * const argv[])
 
 	/* Must be after config reading ... */
 	aprsis_start();
+	netax25_start();
 
 	/* The main loop */
 

@@ -8,6 +8,7 @@
  *                                                                  *
  * **************************************************************** */
 
+#include "config.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -61,11 +62,15 @@ extern int  ttyreader_prepoll (struct aprxpolls *);
 extern int  ttyreader_postpoll (struct aprxpolls *);
 extern void ttyreader_init (void);
 extern const char *ttyreader_serialcfg(char *param1, char *str);
+extern int kissencoder(void *, int, const void *, int, int, int);
 
 /* ax25.c */
 extern void  tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard);
 extern void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned char *frame, const int framelen);
 extern void  ax25_filter_add(const char *p1, const char *p2);
+
+extern int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags);
+
 
 /* aprsis.c */
 extern void aprsis_add_server(const char *server, const char *port);
@@ -90,6 +95,7 @@ extern void netax25_init(void);
 extern int  netax25_prepoll(struct aprxpolls *);
 extern int  netax25_postpoll(struct aprxpolls *);
 extern void netax25_addport(const char *portname, char *str);
+extern void netax25_sendax25(const void *ax25, int ax25len);
 
 /* config.c */
 extern void  readconfig(const char *cfgfile);

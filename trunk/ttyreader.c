@@ -71,6 +71,14 @@ static int  ttycount; /* How many are defined ? */
 #define TTY_OPEN_RETRY_DELAY_SECS 30
 
 
+/* KISS protocol encoder/decoder specials */
+
+#define KISS_FEND  (0xC0)
+#define KISS_FESC  (0xDB)
+#define KISS_TFEND (0xDC)
+#define KISS_TFESC (0xDD)
+
+
 /*
  *  ttyreader_kissprocess()  --  the S->rdline[]  array has a KISS frame after
  *  KISS escape decode.  The frame begins with KISS command byte, then
@@ -163,7 +171,39 @@ int  crc16_calc(unsigned char *buf, int n)
   return crc;
 }
 
+int kissencoder(void *kissbuf, int kissspace,
+		const void *pktbuf, int pktlen,
+		int tncid, int modeflags)
+/* TODO: modeflags for anything but basic KISS */
+{
+	unsigned char *kb = kissbuf;
+	unsigned char *ke = kb + kissspace -3;
+	const unsigned char *pkt = pktbuf;
+	int i;
 
+	/* Expect the KISS buffer to be at least ... 6 bytes.. */
+
+	*kb++ = KISS_FEND;
+	*kb++ = (tncid & 0x0F) << 4;
+	for (i = 0; i < pktlen && kb < ke; ++i, ++pkt) {
+	  /* todo: add here crc-calculators.. */
+	  if (*pkt == KISS_FEND) {
+	    *kb++ = KISS_FESC;
+	    *kb++ = KISS_TFEND;
+	  } else {
+	    *kb++ = *pkt;
+	    if (*pkt == KISS_FESC)
+	      *kb++ = KISS_TFESC;
+	  }
+	}
+	if (kb < ke) {
+	  *kb++ = KISS_FEND;
+	  return (kb - (unsigned char *)(kissbuf));
+	} else {
+	  /* Didn't fit in... */
+	  return 0;
+	}
+}
 
 static int ttyreader_kissprocess(struct serialport *S)
 {
@@ -194,6 +234,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 	  /* printf(" ..bad CMD byte\n"); */
 	  return -1;
 	}
+
+#if 0
+	/* Send the frame without cmdbyte ... */
+	netax25_sendax25(S->rdline+1, S->rdlinelen-1);
+#endif
 
 	/* Are we excepting BPQ "CRC" (XOR-sum of data) */
 	if (S->linetype == LINETYPE_KISSBPQCRC) {
@@ -270,11 +315,6 @@ static int ttyreader_getc(struct serialport *S)
 /*
  * ttyreader_pullkiss()  --  pull KISS (or KISS+CRC) frame, and call KISS processor
  */
-
-#define KISS_FEND  (0xC0)
-#define KISS_FESC  (0xDB)
-#define KISS_TFEND (0xDC)
-#define KISS_TFESC (0xDD)
 
 static int ttyreader_pullkiss(struct serialport *S)
 {

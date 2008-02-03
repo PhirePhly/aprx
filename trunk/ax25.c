@@ -38,7 +38,7 @@ static int       dataregscount;
  * --
  */
 
-static int ax25_fmtaddress(char *dest, const unsigned char *src, int markflag)
+static int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src, int markflag)
 {
 	int i, c;
 
@@ -442,6 +442,49 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 }
 
 
+int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
+{
+        int i   = 0;
+        int ssid = 0;
+        char c;
+
+        while (i < 6) {
+	  c = *text;
+
+	  if (c == '-' || c == '\0')
+	    break;
+	  
+	  ax25[i] = c << 1;
+
+	  ++text;
+	  ++i;
+        }
+
+        while (i < 6) {
+	  ax25[i] = ' ' << 1;
+	  ++i;
+        }
+
+        if (*text != '\0') {
+	  ++text;
+	  if (sscanf(text, "%d", &ssid) != 1 || ssid < 0 || ssid > 15) {
+	    return -1;
+	  }
+        }
+
+        ax25[6] = (ssid << 1) | ssidflags;
+
+        return 0;
+}
+
+/* Convert TNC2 monitor text format to binary AX.25 packet */
+
+void tnc2_to_ax25()
+{
+}
+
+/* Convert the binary packet to TNC2 monitor text format  */
+
 void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned char *frame, const int framelen)
 {
 	int i, j;
@@ -468,14 +511,14 @@ void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned 
 
 
 	*t = 0;
-	i = ax25_fmtaddress(t, frame+7, 0); /* source */
+	i = ax25_to_tnc2_fmtaddress(t, frame+7, 0); /* source */
 	if (i < 0)
 	  discard = 1; /* Bad format */
 
 	t += strlen(t);
 	*t++ = '>';
 
-	j = ax25_fmtaddress(t, frame+0, 0); /* destination */
+	j = ax25_to_tnc2_fmtaddress(t, frame+0, 0); /* destination */
 	if (i < 0)
 	  discard = 1; /* Bad format */
 
@@ -487,7 +530,7 @@ void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned 
 
 	  for ( ; s < e;) {
 	    *t++ = ','; /* separator char */
-	    i = ax25_fmtaddress(t, s, 1);
+	    i = ax25_to_tnc2_fmtaddress(t, s, 1);
 	    if (i < 0) {
 	      discard = 1; /* Bad format */
 	      break;

@@ -143,6 +143,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 	str = config_SKIPSPACE (str);
 
 	if (strcmp(name, "mycall") == 0) {
+	  config_STRUPPER(param1);
 	  mycall = strdup(param1);
 	  if (debug)
 	    printf("%s:%d: MYCALL = '%s' '%s'\n",

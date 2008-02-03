@@ -185,6 +185,8 @@ it is never re-read during process life.
 
 # The  mycall  parameter: 
 # Station call\-id used for relaying APRS frames into APRS\-IS.
+# This value MUST NOT match any possible AX.25 interface in
+# the system!
 #
 #mycall           N0CALL\-1
 
@@ -447,7 +449,7 @@ The HDLC bit stuffing ratio is guessed to be 1:1.025 (1 extra bit every 5 bytes)
 .SH NOTES: PROGRAM NAME
 Initially this program had name
 .IR aprsg-ng ,
-which was same as another (less low-tech C++ approach) had.
+which was too close to another (a less low-tech C++ approach) program had.
 
 .SH BUGS
 The
