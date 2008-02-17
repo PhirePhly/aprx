@@ -8,7 +8,7 @@
 # This value MUST NOT match any possible AX.25 interface in
 # the system!
 #
-#mycall           N0CALL-1
+#mycall           N0CALL-15
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
@@ -126,8 +126,8 @@ pidfile @VARRUN@/aprx.pid
 #     TNC2            -- non-KISS text format variant
 #
 #
-#radio serial   /dev/ttyUSB0  19200 8n1    KISS
-#radio serial   /dev/ttyUSB1  19200 8n1    TNC2
+#radio serial   /dev/ttyUSB0  19200 8n1    KISS  callsign N0CALL-14
+#radio serial   /dev/ttyUSB1  19200 8n1    TNC2  callsign N0CALL-13
 
 # Additional/alternate options for the "radio" line.
 #
@@ -159,8 +159,8 @@ pidfile @VARRUN@/aprx.pid
 # then literal port number, and finally protocol mode.
 # KISS-protocol parameters are same as with normal serial port.
 #
-#radio tcp  12.34.56.78  4001  KISS  alias Rx5 timeout 900
-#radio tcp  12.34.56.78  4002  TNC2  alias Rx6 timeout 300
+#radio tcp  12.34.56.78  4001  KISS  timeout 900 callsign N0CALL-12
+#radio tcp  12.34.56.78  4002  TNC2  timeout 300 callsign N0CALL-11
 #
 
 
@@ -168,11 +168,21 @@ pidfile @VARRUN@/aprx.pid
 # Parameter string (in quotes) is sent to network (without quotes)
 # at varying intervals --  1200-1800 seconds in between restransmits.
 # This interval is intentionally randomized.
+#
 # Multiple netbeacons are evenly distributed for each time period,
 # or at least 3 seconds apart.  First netbeacon is sent to network
 # 30 seconds after connection to APRS-IS.
 #
 # There can be multiple netbeacon options.
-# Symbol  R&   is for "rx-only iGate"
+# The parameter sets can vary:
+#  a) traditional "just a string" (but in quotes)
+#  b) 'for nnn-n raw "string"'
+#  c) 'for nnn-n symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
+# The c) form flags on some of possible syntax errors in parameters.
+# It will also create only "!" type messages.
 #
-#netbeacon  "!6016.35NR02506.36E&aprx - an Rx-only 'iGate'"
+# Symbol  R&   is for "Rx-only iGate"
+#
+#netbeacon  "!6016.35NR02506.36E&aprx - an Rx-only iGate"
+#netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"
+#netbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx - an Rx-only iGate"

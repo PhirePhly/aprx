@@ -86,6 +86,8 @@ char * config_SKIPTEXT ( char *Y )
 	    if (*Y != 0)
 	      ++Y;
 	  }
+	  if (*Y == endc)
+	    ++Y;
 	  *O = 0; /* String end */
 	  /* STOP at the tail-end " */
 	} else {

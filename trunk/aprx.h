@@ -96,6 +96,7 @@ extern int  netax25_prepoll(struct aprxpolls *);
 extern int  netax25_postpoll(struct aprxpolls *);
 extern void netax25_addport(const char *portname, char *str);
 extern void netax25_sendax25(const void *ax25, int ax25len);
+extern void netax25_sendax25_tnc2(const void *tnc2, int tnc2len, int is3rdparty);
 
 /* config.c */
 extern void  readconfig(const char *cfgfile);

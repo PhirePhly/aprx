@@ -1,4 +1,21 @@
-2008-02-03  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+2008-02-18  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* VERSION: aprx-0.18
+
+	* aprx.8.in, aprx.conf.in, beacon.c:
+	    New syntax to define netbeacons.  Also support older methods.
+
+	* config.c:
+	    Bug in  config_SKIPTEXT  quoted string termination scanning.
+
+	* netax25.c, aprsis.c, aprx.h:
+	    Removing dead code, hooks for future "TNC2 -> AX.25"
+
+	* ttyreader.c:
+	    Send received KISS frames to system internal AX.25 network,
+	    if host has such (such as Linux)
+
+2008-02-03  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* configure.in, netax25.c, 
 	    autodetect header <pty.h>, and libutil function openpty().
