@@ -235,11 +235,6 @@ static int ttyreader_kissprocess(struct serialport *S)
 	  return -1;
 	}
 
-#if 0
-	/* Send the frame without cmdbyte ... */
-	netax25_sendax25(S->rdline+1, S->rdlinelen-1);
-#endif
-
 	/* Are we excepting BPQ "CRC" (XOR-sum of data) */
 	if (S->linetype == LINETYPE_KISSBPQCRC) {
 	  /* TODO: in what conditions the "CRC" is calculated and when not ? */
@@ -287,6 +282,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 	/* printf("\n"); */
 
+
+	/* Send the frame without cmdbyte to internal AX.25 network */
+	netax25_sendax25(S->rdline+1, S->rdlinelen-1);
+
+	/* Send the frame to APRS-IS */
 	ax25_to_tnc2(S->ttycallsign, tncid, cmdbyte, S->rdline+1, S->rdlinelen-1);
 	erlang_add(S, S->ttycallsign, tncid, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
 
@@ -426,7 +426,11 @@ static int ttyreader_pullkiss(struct serialport *S)
 static int ttyreader_pulltnc2(struct serialport *S)
 {
 	/* S->rdline[] has text line without line ending CR/LF chars   */
-  tnc2_rxgate(S->ttycallsign, 0, (char*)(S->rdline), 0);
+	tnc2_rxgate(S->ttycallsign, 0, (char*)(S->rdline), 0);
+
+	/* Send the frame to internal AX.25 network */
+	netax25_sendax25_tnc2(S->rdline, S->rdlinelen, 0);
+
 
 	erlang_add(S, S->ttycallsign, 0, ERLANG_RX, S->rdlinelen, 1); /* Account one packet */
 

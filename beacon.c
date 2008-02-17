@@ -37,27 +37,150 @@ void beacon_set(const char *p1, char *str)
 {
 	int i;
 	const char *for_ = mycall;
+	char *buf = alloca(strlen(p1)+strlen(str?str:"")+10);
+	char *code = NULL;
+	char *lat  = NULL;
+	char *lon  = NULL;
+	char *comment = NULL;
 
+	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
 	if (!bm) return; /* sigh.. */
 	memset(bm, 0, sizeof(*bm));
 
 	bm->destaddr = mycall;
 
-	if (strcmp(p1,"for") == 0) {
+	if (debug)
+	  printf("NETBEACON parameters: ");
 
-	  for_ = str;
-	  str = config_SKIPTEXT (str);
-	  str = config_SKIPSPACE (str);
+	while (*p1) {
 
-	  p1 = str;
-	  str = config_SKIPTEXT (str);
-	  str = config_SKIPSPACE (str);
+	  if (strcmp(p1,"for") == 0) {
 
-	  bm->destaddr = strdup(for_);
+	    for_ = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    
+	    bm->destaddr = strdup(for_);
+
+	    if (debug)
+	      printf("for '%s' ", for_ );
+
+	  } else if (strcmp(p1, "lat") == 0) {
+	    /*  ddmm.mmN   */
+
+	    lat = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+
+	    if (debug)
+	      printf("lat '%s' ", lat );
+
+	  } else if (strcmp(p1, "lon") == 0) {
+	    /*  dddmm.mmE  */
+
+	    lon = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+
+	    if (debug)
+	      printf("lon '%s' ", lon );
+
+	  } else if (strcmp(p1, "symbol") == 0) {
+	    /*   R&    */
+
+	    code = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+
+	    if (debug)
+	      printf("symbol '%s' ", code );
+
+	  } else if (strcmp(p1, "comment") == 0) {
+	    /* text up to .. 40 chars */
+
+	    comment = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+	    
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+
+	    if (debug)
+	      printf("comment '%s' ", comment );
+
+	  } else if (strcmp(p1, "raw") == 0) {
+
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+
+	    bm->msg = strdup(p1);
+
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+
+	    if (debug)
+	      printf("raw '%s' ", bm->msg );
+
+	  } else {
+
+	    /* Unknown keyword, a raw message ? */
+	    bm->msg = strdup(p1);
+
+	    if (debug)
+	      printf("raw '%s' ", bm->msg );
+
+	    break;
+	  }
+
+	}
+	if (debug)
+	  printf("\n");
+
+	if (!bm->msg) {
+	  /* Not raw packet, perhaps composite ? */
+	  if (code && strlen(code) == 2 && lat && strlen(lat) == 8 &&
+	      lon  && strlen(lon) == 9) {
+	    sprintf(buf, "!%s%c%s%c", lat, code[0], lon, code[1]);
+	    if (comment)
+	      strcat(buf, comment);
+	    bm->msg = strdup(buf);
+	  } else {
+	    if (debug) {
+	      if (!code || (code && strlen(code) != 2))
+		printf(" .. NETBEACON definition failure; symbol parameter missing or wrong size\n");
+	      if (!lat || (lat && strlen(lat) != 8))
+		printf(" .. NETBEACON definition failure; lat(itude) parameter missing or wrong size\n");
+	      if (!lon || (lon && strlen(lon) != 9))
+		printf(" .. NETBEACON definition failure; lon(gitude) parameter missing or wrong size\n");
+	    }
+	    /* parse failure, abandon the alloc too */
+	    free(bm);
+	    return;
+	  }
 	}
 
-	bm->msg = strdup(p1);
+	if (debug)
+	  printf("NETBEACON  FOR '%s'  '%s'\n", bm->destaddr, bm->msg);
 
 	/* realloc() works also when old ptr is NULL */
 	beacon_msgs = realloc(beacon_msgs,

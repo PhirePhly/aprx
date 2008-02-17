@@ -305,8 +305,8 @@ erlangfile @VARRUN@/aprx.state
 #     TNC2            \-\- non\-KISS text format variant
 #
 #
-#radio serial /dev/ttyUSB0  19200 8n1    KISS
-#radio serial /dev/ttyUSB1  19200 8n1    TNC2
+#radio serial /dev/ttyUSB0  19200 8n1    KISS  callsign N0CALL-14
+#radio serial /dev/ttyUSB1  19200 8n1    TNC2  callsign N0CALL-13
 
 # Additional/alternate options for the "radio" line.
 #
@@ -337,8 +337,8 @@ erlangfile @VARRUN@/aprx.state
 # then literal port number, and finally protocol mode.
 # KISS-protocol parameters are same as with normal serial port.
 #
-#radio tcp  12.34.56.78  4001  KISS  alias Rx5  timeout 300
-#radio tcp  12.34.56.78  4002  TNC2  alias Rx6  timeout 900
+#radio tcp  12.34.56.78  4001  KISS  timeout 300  callsign N0CALL-12
+#radio tcp  12.34.56.78  4002  TNC2  timeout 900  callsign N0CALL-11
 #
 
 # The  netbeacon  options.
@@ -346,11 +346,23 @@ erlangfile @VARRUN@/aprx.state
 # at varying intervals \-\-  1200\-1800 seconds in between restransmits.
 # This interval is intentionally randomized.
 #
+# Multiple netbeacons are evenly distributed for each time period,
+# or at least 3 seconds apart.  First netbeacon is sent to network
+# 30 seconds after connection to APRS-IS.
+#
 # There can be multiple netbeacon options.
+# The parameter sets can vary:
+#  a) traditional "just a string" (but in quotes)
+#  b) 'for nnn-n raw "string"'
+#  c) 'for nnn-n symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
+# The c) form flags on some of possible syntax errors in parameters.
+# It will also create only "!" type messages.
+#
 # Symbol  R&   is for "rx\-only iGate"
 #
-#netbeacon  "!6016.35NR02506.36E&aprx Rx\-only 'iGate'"
-
+#netbeacon  "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"
+#netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"
+#netbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx \- an Rx\-only iGate"
 \fR
 .fi
 .PP
@@ -412,9 +424,88 @@ are used in all cases.
 The
 .I callsign
 option sets port specific callsign when relaying to APRS-IS.
-Default is the 'mycall'.
+Default is the "mycall" entry value.
 (BUG: on MULTI-KISS mode all TNCs on given radio port get same callsign,
 this does not apply on AX.25 ports!)
+
+.SH NETBEACON definitions
+Because classical netbeacon definitions are difficult in extreme, and it is way too
+easy to make typo mistakes, this program has couple new ways to define them:
+.IP \(bu 2
+The new way to define netbeacons, however do note that these will be only
+messages of type "!":
+
+.nf
+\fCnetbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E"\fR
+\fC       comment "aprx - an Rx-only iGate" \fR
+.fi
+
+(the line is folded for this document)
+
+.IP \(bu 2
+Classical definition of raw APRS packet, albeit given in quotes.
+The "for" callsign will be that of "mycall" parameter:
+
+.nf
+\fCnetbeacon "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+.fi
+
+.IP \(bu 2
+Semi-clasical definition of raw APRS packet:
+
+.nf
+\fCnetbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+.fi
+.PP
+The fields and parameters:
+.IP for 8
+The
+.I optional
+"for" parameter tells callsign which is claimed as this particular beacon source.
+It must be valid AX.25 callsign in text format.
+When this "for" parameter is not given, value of "mycall" configuration entry is used.
+
+.IP symbol 8
+The "symbol" parameter is two character code, which for Rx-only iGate is pair: "R&"
+
+.IP lat 8
+This defines
+.I latitude
+coordinate (that is: north/south.)
+It is expected to be of format: "ddmm.mmN" where "dd" defines
+.I two digits
+of
+.I degrees
+of latitude, and "mm.mm" defines two digits + decimal dot + two digits of
+.I minutes
+of latitude.
+Then comes literal "N" or "S" indicating hemisphere.
+
+.IP lon 8
+This defines
+.I longitude
+coordinate (that is: east/west.)
+It is expected to be of format: "dddmm.mmE" where "ddd" defines
+.I three digits
+of
+.I degrees
+of longitude, and "mm.mm" defines two digits + decimal dot + two digits of
+.I minutes
+of longitude.
+Then comes literal "E" or "W" indicating hemisphere.
+
+.IP comment 8
+Defines commentary tail on the message.
+
+.IP raw 8
+Defines whole packet in raw AX.25 text format.
+
+.PP
+The symbol/lat/lon/comment-format supports only "!"-type APRS messages
+for beacons.
+It splits input into small slices that are a bit simpler to validate
+(see "DEBUGGING SYSTEM" above)
+
 
 .SH NOTES: ERLANG
 The

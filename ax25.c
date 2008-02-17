@@ -406,11 +406,12 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-
 	if (!discard)
 	  discard = aprsis_queue(tnc2buf, portname, t0, t-t0);  /* Send it.. */
 	else
 	  discard = -1;
+
+
 
 	/* DEBUG OUTPUT TO STDOUT ! */
 	if (verbout) {
@@ -505,7 +506,6 @@ void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned 
 	}
 
 
-
 	/* Phase 1: scan address fields. */
 	/* Source and Destination addresses must be printed in altered order.. */
 
@@ -563,6 +563,11 @@ void  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte, const unsigned 
 	  *t++ = c;
 	}
 	*t = 0;
+
+	/* 
+	   if (!discard)
+	   aprsdigi(tnc2buf, portname, t0, t-t0);
+	*/
 
 	tnc2_rxgate(portname, tncid, tnc2buf, discard);
 }

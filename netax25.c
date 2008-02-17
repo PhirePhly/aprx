@@ -97,27 +97,6 @@ static void netax25_openpty(void)
 
 	strcpy(ifr.ifr_name, devname);
 	
-#if 0 /* This interface does not need IP address at all.. */
-	ifr.ifr_addr.sa_family = AF_INET;
-	ifr.ifr_addr.sa_data[0] = 0;
-	ifr.ifr_addr.sa_data[1] = 0;
-	ifr.ifr_addr.sa_data[2] = 127;
-	ifr.ifr_addr.sa_data[3] = 0;
-	ifr.ifr_addr.sa_data[4] = 0;
-	ifr.ifr_addr.sa_data[5] = 127;
-	ifr.ifr_addr.sa_data[6] = 0;
-
-	rc = ioctl(fd, SIOCSIFADDR, &ifr);
-	if (rc < 0) goto error_exit;
-
-	ifr.ifr_addr.sa_data[2] = 255;
-	ifr.ifr_addr.sa_data[3] = 255;
-	ifr.ifr_addr.sa_data[4] = 255;
-	ifr.ifr_addr.sa_data[5] = 255;
-	rc = ioctl(fd, SIOCSIFNETMASK, &ifr);
-	if (rc < 0) goto error_exit;
-#endif
-
 	ifr.ifr_mtu = 512;
 	rc = ioctl(fd, SIOCSIFMTU, &ifr);
 	if (rc < 0) goto error_exit;
@@ -150,12 +129,20 @@ void netax25_sendax25(const void *ax25, int ax25len)
 	  printf("write(pty_master) len=%d rc=%d\n",ax25len,rc);
 }
 
+/* Have to convert incoming TNC2 format messge to AX.25.. */
+void netax25_sendax25_tnc2(const void *ax25, int ax25len, int is3rdparty)
+{
+}
+
 #else
 static void netax25_openpty(void)
 {
 }
 
 void netax25_sendax25(const void *ax25, int ax25len)
+{
+}
+void netax25_sendax25_tnc2(const void *ax25, int ax25len)
 {
 }
 #endif /* HAVE_OPENPTY */
