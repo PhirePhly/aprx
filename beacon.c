@@ -66,6 +66,9 @@ void beacon_set(const char *p1, char *str)
 
 	while (*p1) {
 
+	  /* if (debug)
+	       printf("p1='%s' ",p1); */
+
 	  if (strcmp(p1,"for") == 0) {
 
 	    for_ = str;
@@ -168,6 +171,14 @@ void beacon_set(const char *p1, char *str)
 
 	  } else {
 
+#if 0
+	    if (debug)
+	      printf("Unknown keyword: '%s'", p1);
+
+	    p1 = str;
+	    str = config_SKIPTEXT (str);
+	    str = config_SKIPSPACE (str);
+#else
 	    /* Unknown keyword, a raw message ? */
 	    bm->msg = strdup(p1);
 
@@ -175,6 +186,7 @@ void beacon_set(const char *p1, char *str)
 	      printf("raw '%s' ", bm->msg );
 
 	    break;
+#endif
 	  }
 
 	}

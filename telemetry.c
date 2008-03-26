@@ -17,7 +17,7 @@ int    telemetry_seq;
 int  telemetry_prepoll(struct aprxpolls *app)
 {
 	if (telemetry_time == 0)
-		telemetry_time = now + telemetry_interval;
+		telemetry_time = now + 30;
 
 	if (app->next_timeout > telemetry_time)
 		app->next_timeout = telemetry_time;
@@ -67,7 +67,10 @@ int  telemetry_postpoll(struct aprxpolls *app)
 	  }
 	  k = (int)(20.0 / erlcapa * (float)erlmax );
 	  if (k > 255) k = 255;
-	  s += sprintf( s,"%03d", k );
+	  s += sprintf( s,"%03d,", k );
+
+	  /* Tail filler */
+	  s += sprintf( s,"000,000,000,00000000" );
 
 	  /* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
