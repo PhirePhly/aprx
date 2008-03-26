@@ -354,7 +354,7 @@ void erlang_add(const void *refp, const char *portname, int subport, int rx_or_t
 
 
 /*
- *  erlang_time_end() - process erlang measurement intercal time end event
+ *  erlang_time_end() - process erlang measurement interval time end event
  */
 static void erlang_time_end(void)
 {

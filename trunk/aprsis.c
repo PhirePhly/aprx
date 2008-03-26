@@ -344,9 +344,9 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	/* We do at first sync writing of login, and such.. */
 	s = aprsislogincmd;
-	s += sprintf(s, "user %s pass %d vers %s", A->H->mycall, aprspass(A->H->mycall), version);
+	s += sprintf(s, "user %s pass %d vers %s %s", A->H->mycall, aprspass(A->H->mycall), swname, swversion);
 	if (A->H->filterparam)
-	  s+= sprintf(s, "filter %s", A->H->filterparam);
+	  s+= sprintf(s, " filter %s", A->H->filterparam);
 	strcpy(s,"\r\n");
 
 	A->last_read = now;

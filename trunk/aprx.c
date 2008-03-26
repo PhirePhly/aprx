@@ -28,7 +28,8 @@ const char *pidfile = VARRUN "/aprx.pid";
 
 int die_now;
 
-const char *version = APRXVERSION;
+const char *swname    = "aprx";
+const char *swversion = APRXVERSION;
 
 
 static void sig_handler(int sig)
@@ -39,7 +40,7 @@ static void sig_handler(int sig)
 static void usage(void)
 {
 	printf("aprx: [-d][-d][-e][-v][-l logfacility] [-f %s]\n", CFGFILE);
-	printf("    version: %s\n", version);
+	printf("    version: %s\n", swversion);
 	printf("    -f %s:  where the configuration is\n", CFGFILE);
 	printf("    -v:  Outputs textual format of received packets, and data on STDOUT.\n");
 	printf("    -e:  Outputs raw ERLANG-report lines on SYSLOG.\n");
@@ -208,6 +209,7 @@ int main(int argc, char * const argv[])
 	  i = beacon_prepoll(&app);
 	  i = netax25_prepoll(&app);
 	  i = erlang_prepoll(&app);
+	  i = telemetry_prepoll(&app);
 
 	  if (app.next_timeout <= now)
 	    app.next_timeout = now + 1; /* Just to be on safe side.. */
@@ -221,6 +223,7 @@ int main(int argc, char * const argv[])
 	  i = netax25_postpoll(&app);
 	  i = aprsis_postpoll(&app);
 	  i = erlang_postpoll(&app);
+	  i = telemetry_postpoll(&app);
 
 	}
 
