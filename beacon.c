@@ -25,6 +25,17 @@ static time_t beacon_nexttime;
 static int    beacon_increment;
 
 
+int validate_callsign_input(const char *s)
+{
+	int i;
+	return 0; /* zero for OK */
+}
+
+int validate_degmin_input(const char *s, int maxdeg)
+{
+	int i;
+	return 0; /* zero for OK */
+}
 
 void beacon_reset(void)
 {
@@ -60,7 +71,13 @@ void beacon_set(const char *p1, char *str)
 	    for_ = str;
 	    str = config_SKIPTEXT (str);
 	    str = config_SKIPSPACE (str);
-	    
+
+	    if (debug)
+	      printf("for '%s' ", for_);
+	    if (validate_callsign_input(for_)) {
+	      ;
+	    }
+
 	    p1 = str;
 	    str = config_SKIPTEXT (str);
 	    str = config_SKIPSPACE (str);
@@ -76,6 +93,10 @@ void beacon_set(const char *p1, char *str)
 	    lat = str;
 	    str = config_SKIPTEXT (str);
 	    str = config_SKIPSPACE (str);
+
+	    if (validate_degmin_input(lat, 90)) {
+	      ;
+	    }
 	    
 	    p1 = str;
 	    str = config_SKIPTEXT (str);
@@ -90,6 +111,10 @@ void beacon_set(const char *p1, char *str)
 	    lon = str;
 	    str = config_SKIPTEXT (str);
 	    str = config_SKIPSPACE (str);
+	    
+	    if (validate_degmin_input(lat, 180)) {
+	      ;
+	    }
 	    
 	    p1 = str;
 	    str = config_SKIPTEXT (str);

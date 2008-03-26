@@ -45,7 +45,8 @@ extern int die_now;
 
 extern int fd_nonblockingmode(int fd);
 
-extern const char *version;
+extern const char *swname;
+extern const char *swversion;
 
 extern time_t now;
 extern int    debug;
