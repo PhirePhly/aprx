@@ -111,10 +111,16 @@ extern void erlang_init(const char *syslog_facility_name);
 extern void erlang_start(int do_create);
 extern int  erlang_prepoll(struct aprxpolls *app);
 extern int  erlang_postpoll(struct aprxpolls *app);
-#define ERLANG_RX 0
-#define ERLANG_TX 1
-extern void erlang_add(const void *refp, const char *portname, int subport, int rx_or_tx, int bytes, int packets);
+
+typedef enum {
+	ERLANG_RX,
+	ERLANG_DROP,
+	ERLANG_TX
+} ErlangMode;
+
+extern void erlang_add(const void *refp, const char *portname, int subport, ErlangMode erl, int bytes, int packets);
 extern void erlang_set(const void *refp, const char *portname, int subport, int bytes_per_minute);
+
 extern int erlangsyslog;
 extern int erlanglog1min;
 extern const char *erlang_backingstore;
@@ -123,8 +129,8 @@ extern const char *erlang_backingstore;
    erlang reporter application: aprx-erl */
 
 struct erlang_rxtxbytepkt {
-	long	packets_rx, packets_tx;
-	long	bytes_rx, bytes_tx;
+	long	packets_rx, packets_rxdrop  /* , packets_tx */ ;
+	long	bytes_rx, bytes_rxdrop /* , bytes_tx */;
 	time_t	update;
 };
 

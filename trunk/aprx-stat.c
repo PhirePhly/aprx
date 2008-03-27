@@ -35,7 +35,8 @@ void erlang_snmp(void)
 	  if (E->subport) printf("_%d", E->subport);
 	  printf("   %ld %ld   %ld  %ld     %d\n",
 		 E->SNMP.bytes_rx, E->SNMP.packets_rx,
-		 E->SNMP.bytes_tx, E->SNMP.packets_tx,
+		 E->SNMP.bytes_rxdrop, E->SNMP.packets_rxdrop,
+		 /* E->SNMP.bytes_tx, E->SNMP.packets_tx, */
 		 (int)(now - E->last_update));
 	}
 }
@@ -64,7 +65,8 @@ void erlang_xml(int topmode)
 	  if (E->subport) printf("_%d", E->subport);
 	  printf("   %ld %ld   %ld  %ld     %d\n",
 		 E->SNMP.bytes_rx, E->SNMP.packets_rx,
-		 E->SNMP.bytes_tx, E->SNMP.packets_tx,
+		 E->SNMP.bytes_rxdrop, E->SNMP.packets_rxdrop,
+		 /* E->SNMP.bytes_tx, E->SNMP.packets_tx, */
 		 (int)(now - E->last_update));
 
 	  printf("\n1min data\n");
@@ -84,9 +86,12 @@ void erlang_xml(int topmode)
 	    printf(" %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
 		   1,
 		   E->e1[k].bytes_rx,  E->e1[k].packets_rx,
-		   E->e1[k].bytes_tx,  E->e1[k].packets_tx,
+		   E->e1[k].bytes_rxdrop,  E->e1[k].packets_rxdrop,
+		   /* E->e1[k].bytes_tx,  E->e1[k].packets_tx, */
 		   (float)E->e1[k].bytes_rx/(float)E->erlang_capa,
-		   (float)E->e1[k].bytes_tx/(float)E->erlang_capa);
+		   (float)E->e1[k].bytes_rxdrop/(float)E->erlang_capa
+		   /* (float)E->e1[k].bytes_tx/(float)E->erlang_capa */
+		   );
 	  }
 
 
@@ -107,9 +112,12 @@ void erlang_xml(int topmode)
 	    printf(" %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
 		   10,
 		   E->e10[k].bytes_rx,  E->e10[k].packets_rx,
-		   E->e10[k].bytes_tx,  E->e10[k].packets_tx,
+		   E->e10[k].bytes_rxdrop,  E->e10[k].packets_rxdrop,
+		   /* E->e10[k].bytes_tx,  E->e10[k].packets_tx, */
 		   (float)E->e10[k].bytes_rx/((float)E->erlang_capa*10.0),
-		   (float)E->e10[k].bytes_tx/((float)E->erlang_capa*10.0));
+		   (float)E->e10[k].bytes_rxdrop/((float)E->erlang_capa*10.0)
+		   /* (float)E->e10[k].bytes_tx/((float)E->erlang_capa*10.0) */
+		   );
 	  }
 
 
@@ -130,9 +138,12 @@ void erlang_xml(int topmode)
 	    printf(" %2dm  %5ld  %3ld  %5ld  %3ld   %5.3f  %5.3f\n",
 		   60,
 		   E->e60[k].bytes_rx,  E->e60[k].packets_rx,
-		   E->e60[k].bytes_tx,  E->e60[k].packets_tx,
+		   E->e60[k].bytes_rxdrop,  E->e60[k].packets_rxdrop,
+		   /* E->e60[k].bytes_tx,  E->e60[k].packets_tx, */
 		   (float)E->e60[k].bytes_rx/((float)E->erlang_capa*60.0),
-		   (float)E->e60[k].bytes_tx/((float)E->erlang_capa*60.0));
+		   (float)E->e60[k].bytes_rxdrop/((float)E->erlang_capa*60.0)
+		   /* (float)E->e60[k].bytes_tx/((float)E->erlang_capa*60.0) */
+		   );
 	  }
 
 	}

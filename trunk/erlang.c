@@ -297,6 +297,7 @@ static struct erlangline *erlang_findline(const void *refp, const char *portname
 	return E;
 }
 
+
 /*
  *  erlang_set()
  */
@@ -308,12 +309,12 @@ void erlang_set(const void *refp, const char *portname, int subport, int bytes_p
 /*
  *  erlang_add()
  */
-void erlang_add(const void *refp, const char *portname, int subport, int rx_or_tx, int bytes, int packets)
+void erlang_add(const void *refp, const char *portname, int subport, ErlangMode erl, int bytes, int packets)
 {
 	struct erlangline *E = erlang_findline(refp, portname, subport, (int)((1200.0*60)/8.2));
 	if (!E) return;
 
-	if (rx_or_tx == ERLANG_RX) {
+	if (erl == ERLANG_RX) {
 	  E->SNMP.bytes_rx       += bytes;
 	  E->SNMP.packets_rx     += packets;
 	  E->SNMP.update          = now;
@@ -331,8 +332,8 @@ void erlang_add(const void *refp, const char *portname, int subport, int rx_or_t
 	  E->erl60m.packets_rx   += packets;
 	  E->erl60m.update        = now;
 	}
-
-	if (rx_or_tx == ERLANG_TX) {
+#if 0
+	if (erl == ERLANG_TX) {
 	  E->SNMP.bytes_tx       += bytes;
 	  E->SNMP.packets_tx     += packets;
 	  E->SNMP.update          = now;
@@ -349,6 +350,25 @@ void erlang_add(const void *refp, const char *portname, int subport, int rx_or_t
 	  E->erl60m.bytes_tx     += bytes;
 	  E->erl60m.packets_tx   += packets;
 	  E->erl60m.update        = now;
+	}
+#endif
+	if (erl == ERLANG_DROP) {
+	  E->SNMP.bytes_rxdrop   += bytes;
+	  E->SNMP.packets_rxdrop += packets;
+	  E->SNMP.update          = now;
+	  E->last_update          = now;
+
+	  E->erl1m.bytes_rxdrop   += bytes;
+	  E->erl1m.packets_rxdrop += packets;
+	  E->erl1m.update          = now;
+
+	  E->erl10m.bytes_rxdrop += bytes;
+	  E->erl10m.packets_rxdrop += packets;
+	  E->erl10m.update          = now;
+
+	  E->erl60m.bytes_rxdrop   += bytes;
+	  E->erl60m.packets_rxdrop += packets;
+	  E->erl60m.update          = now;
 	}
 }
 
@@ -385,9 +405,11 @@ static void erlang_time_end(void)
 		      "ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
 		      1,E->name, subport,
 		      E->erl1m.bytes_rx, E->erl1m.packets_rx,
-		      E->erl1m.bytes_tx, E->erl1m.packets_tx,
+		      E->erl1m.bytes_rxdrop, E->erl1m.packets_rxdrop,
+		      /* E->erl1m.bytes_tx, E->erl1m.packets_tx, */
 		      ((float)E->erl1m.bytes_rx/(float)E->erlang_capa*erlang_time_ival_1min),
-		      ((float)E->erl1m.bytes_tx/(float)E->erlang_capa*erlang_time_ival_1min)
+		      ((float)E->erl1m.bytes_rxdrop/(float)E->erlang_capa*erlang_time_ival_1min)
+		      /* ((float)E->erl1m.bytes_tx/(float)E->erlang_capa*erlang_time_ival_1min) */
 		      );
 	      if (fp)
 		fprintf(fp,"%s %s\n", logtime, msgbuf);
@@ -405,8 +427,10 @@ static void erlang_time_end(void)
 
 	    E->erl1m.bytes_rx   = 0;
 	    E->erl1m.packets_rx = 0;
-	    E->erl1m.bytes_tx   = 0;
-	    E->erl1m.packets_tx = 0;
+	    E->erl1m.bytes_rxdrop   = 0;
+	    E->erl1m.packets_rxdrop = 0;
+	    /* E->erl1m.bytes_tx = 0; */
+	    /* E->erl1m.packets_tx = 0; */
 	  }
 	  erlang_time_ival_1min = 1.0;
 	}
@@ -422,9 +446,11 @@ static void erlang_time_end(void)
 		    "ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
 		    10,E->name, subport,
 		    E->erl10m.bytes_rx, E->erl10m.packets_rx,
-		    E->erl10m.bytes_tx, E->erl10m.packets_tx,
+		    E->erl10m.bytes_rxdrop, E->erl10m.packets_rxdrop,
+		    /* E->erl10m.bytes_tx, E->erl10m.packets_tx, */
 		    ((float)E->erl10m.bytes_rx/((float)E->erlang_capa*10.0*erlang_time_ival_10min)),
-		    ((float)E->erl10m.bytes_tx/((float)E->erlang_capa*10.0*erlang_time_ival_10min))
+		    ((float)E->erl10m.bytes_rxdrop/((float)E->erlang_capa*10.0*erlang_time_ival_10min))
+		    /* ((float)E->erl10m.bytes_tx/((float)E->erlang_capa*10.0*erlang_time_ival_10min)) */
 		    );
 	    if (fp)
 	      fprintf(fp,"%s %s\n", logtime, msgbuf);
@@ -441,8 +467,10 @@ static void erlang_time_end(void)
 
 	    E->erl10m.bytes_rx   = 0;
 	    E->erl10m.packets_rx = 0;
-	    E->erl10m.bytes_tx   = 0;
-	    E->erl10m.packets_tx = 0;
+	    E->erl10m.bytes_rxdrop   = 0;
+	    E->erl10m.packets_rxdrop = 0;
+	    /* E->erl10m.bytes_tx   = 0;
+	       E->erl10m.packets_tx = 0; */
 	  }
 	  erlang_time_ival_10min = 1.0;
 	}
@@ -458,9 +486,11 @@ static void erlang_time_end(void)
 		    "ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
 		    60,E->name, subport,
 		    E->erl60m.bytes_rx,  E->erl60m.packets_rx,
-		    E->erl60m.bytes_tx,  E->erl60m.packets_tx,
+		    E->erl60m.bytes_rxdrop,  E->erl60m.packets_rxdrop,
+		    /* E->erl60m.bytes_tx,  E->erl60m.packets_tx, */
 		    ((float)E->erl60m.bytes_rx/((float)E->erlang_capa*60.0*erlang_time_ival_60min)),
-		    ((float)E->erl60m.bytes_tx/((float)E->erlang_capa*60.0*erlang_time_ival_60min))
+		    ((float)E->erl60m.bytes_rxdrop/((float)E->erlang_capa*60.0*erlang_time_ival_60min))
+		    /* ((float)E->erl60m.bytes_tx/((float)E->erlang_capa*60.0*erlang_time_ival_60min)) */
 		    );
 	    if (fp)
 	      fprintf(fp,"%s %s\n", logtime, msgbuf);
@@ -477,8 +507,10 @@ static void erlang_time_end(void)
 
 	    E->erl60m.bytes_rx   = 0;
 	    E->erl60m.packets_rx = 0;
-	    E->erl60m.bytes_tx   = 0;
-	    E->erl60m.packets_tx = 0;
+	    E->erl60m.bytes_rxdrop   = 0;
+	    E->erl60m.packets_rxdrop = 0;
+	    /* E->erl60m.bytes_tx   = 0;
+	       E->erl60m.packets_tx = 0; */
 	  }
 	  erlang_time_ival_60min = 1.0;
 	}

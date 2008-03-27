@@ -7,7 +7,7 @@
 .SH SYNOPSIS
 .B aprx\-stat
 .RB [ \-t ]
-.RB [ \-f " \fI@VARRUN@/aprx.state\fR]
+.RB [ \-f \fI@VARRUN@/aprx.state\fR]
 .RB { \-S | \-x | \-X }
 .SH DESCRIPTION
 .B aprx\-stat
@@ -77,11 +77,15 @@ Interface (AX.25 IF name, or serial port device name)
 .IP \(bu 2
 Received byte counter
 .IP \(bu 2
-Received KISS frame (packet) counter
+Received frame (packet) counter
 .IP \(bu 2
-Transmitted byte counter (will stay zero)
+.\" Transmitted byte counter (will stay zero)
+.I Dropped
+byte counter
 .IP \(bu 2
-Transmitted KISS frame counter  (will stay zero)
+.\" Transmitted frame counter (will stay zero)
+.I Dropped
+frame counter
 .IP \(bu 2
 Age in seconds of last update of this statistics.
 
@@ -134,15 +138,18 @@ Counter of received bytes on interface (including KISS flags etc.)
 .IP \(bu 2
 Counter of received frames.
 .IP \(bu 2
-Counter of transmitted bytes on interface
+.\" Counter of transmitted bytes on interface
+Counter of dropped bytes.
 .IP \(bu 2
-Counter of transmitted frames.
+.\" Counter of transmitted frames.
+Counter of dropped frames.
 .IP \(bu 2
 Reception
 .I Erlang 
 value estimate.
 .IP \(bu 2
-Transmission
+.\" Transmission
+Dropped bytes
 .I Erlang
 value estimate.
 .PP
