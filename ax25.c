@@ -411,6 +411,8 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 	else
 	  discard = -1;
 
+	if (discard > 0)
+	  erlang_add(NULL, portname, tncid, ERLANG_DROP, (int)(t-t0), 1);
 
 
 	/* DEBUG OUTPUT TO STDOUT ! */

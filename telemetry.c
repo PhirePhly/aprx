@@ -57,36 +57,59 @@ int  telemetry_postpoll(struct aprxpolls *app)
 	  s += sprintf( s,"%03d,", k );
 
 	  erlmax = 0;
-	  k = E->e1_cursor;
-	  t = E->e1_max; if (t > 2) t = 2; /* Up to 2 of 10 minute samples */
+	  k = E->e10_cursor;
+	  t = E->e10_max; if (t > 2) t = 2; /* Up to 2 of 10 minute samples */
 	  erlcapa = E->erlang_capa;
 	  for (j = 0; j < t; ++j) {
-	    --k; if (k < 0) k = E->e1_max-1;
-	    if (E->e1[k].bytes_rx > erlmax)
-	      erlmax = E->e1[k].bytes_rx;
+	    --k; if (k < 0) k = E->e10_max-1;
+	    if (E->e10[k].bytes_rx > erlmax)
+	      erlmax = E->e10[k].bytes_rx;
 	  }
 	  k = (int)(20.0 / erlcapa * (float)erlmax );
 	  if (k > 255) k = 255;
 	  s += sprintf( s,"%03d,", k );
 
+	  erlmax = 0;
+	  k = E->e1_cursor;
+	  t = E->e1_max; if (t > 20) t = 20; /* Up to 2 of 10 minute samples */
+	  for (j = 0; j < t; ++j) {
+	    --k; if (k < 0) k = E->e1_max-1;
+	    erlmax += E->e1[k].packets_rx;
+	  }
+	  s += sprintf( s,"%03d,", erlmax );
+
+	  erlmax = 0;
+	  k = E->e1_cursor;
+	  t = E->e1_max; if (t > 20) t = 20; /* Up to 2 of 10 minute samples */
+	  for (j = 0; j < t; ++j) {
+	    --k; if (k < 0) k = E->e1_max-1;
+	    erlmax += E->e1[k].packets_rxdrop;
+	  }
+	  s += sprintf( s,"%03d,", erlmax );
+
 	  /* Tail filler */
-	  s += sprintf( s,"000,000,000,00000000" );
+	  s += sprintf( s,"000,00000000" );
 
 	  /* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	  /* Send those (net)beacons.. */
 	  aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
 
-	  s = buf + sprintf( buf, ":%-9s:PARM.Max1m,Max10m", E->name );
-	  aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
+	  if ((telemetry_seq % 128) == 0) {
 
-	  s = buf + sprintf( buf, ":%-9s:UNIT.Erlang,Erlang", E->name );
-	  aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
+	    /* Send at start, and every about 2 days.. */
 
-	  s = buf + sprintf( buf, ":%-9s:EQNS.0,0.005,0,0,0.005,0", E->name );
-	  aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
+	    s = buf + sprintf( buf, ":%-9s:PARM.Max1m,Max10m,RxPkts,DropRxPkts", E->name );
+	    aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
 
+	    s = buf + sprintf( buf, ":%-9s:UNIT.Erlang,Erlang,count,count", E->name );
+	    aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
+
+	    s = buf + sprintf( buf, ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0", E->name );
+	    aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
+	  }
+
+	  ++telemetry_seq;
 
 	}
-	++telemetry_seq;
 }
