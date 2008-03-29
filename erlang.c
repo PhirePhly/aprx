@@ -219,12 +219,24 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	}
 #else /* ... EMBEDDED ... */
 	struct erlang_file *EF;
+	int i;
 
 	if (add_count > 0 || !erlang_mmap) {
 		ErlangLinesCount += add_count;
 		erlang_mmap = realloc( erlang_mmap, sizeof(*EF) +
 				       ErlangLinesCount * sizeof(struct erlangline) );
 	}
+
+	EF = erlang_mmap;
+	ErlangHead = & EF->head;
+
+	/* Ok, successfull open, correct linecount */
+	ErlangLines  = (void*)realloc((void*)ErlangLines, (ErlangLinesCount+1)*sizeof(void*));
+
+	for (i = 0; i < ErlangLinesCount; ++i) {
+	  ErlangLines[i] = &EF->lines[i];
+	}
+
 #endif
 	return -1; /* D'uh..  something failed! */
 }
