@@ -1,3 +1,28 @@
+2008-03-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION:
+	    0.21
+
+	* telemetry.c:
+	    New "send Erlang data as telemetry packets to APRS-IS"
+	    subsystem.
+
+	* aprsis.c:
+	    Fix the APRS-IS network login protocol.  There are TWO
+	    parameter strings after the "vers" keyword.
+
+	* configure.in, Makefile.in, erlang.c:
+	    Support compilation as embedded target.  Then the erlang
+	    datasets are not off-loadable to the memory mapped files,
+	    rather they are very small in-memory tables.
+
+	* erlang.c, aprx.h, telemetry.c, ax25.c, aprx-stat.c:
+	    Support for telemetry sending out info on received packets.
+
+	* beacon.c:
+	    Improve input validation.
+	
+
 2008-02-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION: aprx-0.18

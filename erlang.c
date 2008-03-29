@@ -50,7 +50,7 @@ int                 ErlangLinesCount;
 
 struct erlang_file {
 	struct erlanghead	head;
-	struct erlangline	lines[2];
+	struct erlangline	lines[0];
 };
 
 static void erlang_backingstore_startops(void)
@@ -67,6 +67,7 @@ static void erlang_backingstore_startops(void)
 
 static int erlang_backingstore_grow(int do_create, int add_count)
 {
+#ifndef EMBEDDED
 	struct stat st;
 	char buf[256];
 	int new_size, pagesize  = sysconf(_SC_PAGE_SIZE);
@@ -135,7 +136,6 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	  fprintf(stderr,"Erlang-file mmap() failed, fd=%d, errno=%d: %s\n",
 		  erlang_file_fd, errno, strerror(errno));
 	}
-
 	if (erlang_mmap) {
 
 	  int i, rc, l;
@@ -217,20 +217,25 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 
 	  return 0; /* OK ! */
 	}
+#else /* ... EMBEDDED ... */
+	struct erlang_file *EF;
 
-	
-
-
+	if (add_count > 0 || !erlang_mmap) {
+		ErlangLinesCount += add_count;
+		erlang_mmap = realloc( erlang_mmap, sizeof(*EF) +
+				       ErlangLinesCount * sizeof(struct erlangline) );
+	}
+#endif
 	return -1; /* D'uh..  something failed! */
 }
 
 static int erlang_backingstore_open(int do_create)
 {
+#ifndef EMBEDDED
 	if (!erlang_backingstore) {
 	  fprintf(stderr,"erlang_backingstore not defined!\n");
 	  return -1;
 	}
-
 	if (erlang_file_fd < 0) {
 	  erlang_file_fd = open(erlang_backingstore, do_create ? O_RDWR : O_RDONLY, 0644); /* Presume: it exists! */
 	  if ((erlang_file_fd < 0) && do_create && (errno == ENOENT)) {
@@ -242,7 +247,7 @@ static int erlang_backingstore_open(int do_create)
 		 erlang_backingstore, errno, strerror(errno));
 	  return -1;
 	}
-
+#endif
 	return erlang_backingstore_grow(do_create, 0); /* Just open */
 }
 

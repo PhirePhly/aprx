@@ -1,5 +1,5 @@
 
-		APRX    v0.19
+		APRX    v0.21
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -67,5 +67,9 @@ A receive-only APRS-IS "i-gate" with following properties:
      longer.
 
    - Source code is at SVN repository: http://repo.ham.fi/svn/aprx
+
+   - This program is also compilable as "EMBEDDED" target without
+     any statistics buffer required at the system disk (or RAM-disk).
+
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007,2008
