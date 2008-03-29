@@ -33,6 +33,11 @@ AC_CHECK_FUNCS(openpty,,
 	       AC_CHECK_LIB(util, openpty,
 			    [AC_DEFINE(HAVE_OPENPTY)] [LIBS="$LIBS -lutil"]))
 
+dnl Check for user options
+AC_ARG_WITH(embedded, [  --with-embedded  When desiring to target as embedded],
+		      [AC_SUBST(EMBEDDED,"-DEMBEDDED")])
+
+
 dnl Output files
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
