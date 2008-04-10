@@ -18,28 +18,34 @@
    to packet frames depending on what is attached...  */
 
 
+typedef enum {
+  LINETYPE_KISS,       	/* all KISS variants without CRC on line*/
+  LINETYPE_KISSSMACK,  	/* KISS/SMACK variants with CRC on line	*/
+  LINETYPE_KISSBPQCRC,	/* BPQCRC - really XOR sum of data bytes,
+			   also "AEACRC"			*/
+  LINETYPE_TNC2,       	/* text line from TNC2 in monitor mode  */
+  LINETYPE_AEA	/* not implemented...                   */
+} LineType;
+
+typedef enum {
+  KISSSTATE_SYNCHUNT,
+  KISSSTATE_COLLECTING,
+  KISSSTATE_KISSFESC
+} KissState;
+
+
 struct serialport {
-	char	fd;		/* UNIX fd of the port			*/
+	int	fd;		/* UNIX fd of the port			*/
 
 	time_t	wait_until;
 	time_t  last_read_something; /* Used by serial port functionality
 					watchdog */
 	int	read_timeout;	/* seconds				*/
 
-	int	linetype;
-#define LINETYPE_KISS       0	/* all KISS variants without CRC on line*/
-#define LINETYPE_KISSSMACK  1	/* KISS/SMACK variants with CRC on line	*/
-#define LINETYPE_KISSBPQCRC 2	/* BPQCRC - really XOR sum of data bytes,
-				   also "AEACRC"			*/
+	LineType linetype;
 
-#define LINETYPE_TNC2 16	/* text line from TNC2 in monitor mode  */
-#define LINETYPE_AEA  17	/* not implemented...                   */
-
-	int	kissstate;	/* state for KISS frame reader,
+	KissState kissstate;	/* state for KISS frame reader,
 				   also for line collector		*/
-#define KISSSTATE_SYNCHUNT   0
-#define KISSSTATE_COLLECTING 1
-#define KISSSTATE_KISSFESC   2
 
 	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)	*/
   /*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
