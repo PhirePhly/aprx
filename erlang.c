@@ -47,6 +47,7 @@ static int   erlang_mmap_size;
 struct erlanghead  *ErlangHead;
 struct erlangline **ErlangLines;
 int                 ErlangLinesCount;
+int                 erlang_data_is_nonshared; /* In embedded target.. */
 
 struct erlang_file {
 	struct erlanghead	head;
@@ -67,14 +68,19 @@ static void erlang_backingstore_startops(void)
 
 static int erlang_backingstore_grow(int do_create, int add_count)
 {
+	struct erlang_file *EF;
+	int i;
 #ifndef EMBEDDED
 	struct stat st;
 	char buf[256];
 	int new_size, pagesize  = sysconf(_SC_PAGE_SIZE);
 	int doing_init = 0;
 
+	if (erlang_data_is_nonshared)
+	  goto embedded_only;
+
 	if (erlang_file_fd < 0) {
-	  return -1;
+	  goto embedded_only;
 	}
 
 	fstat(erlang_file_fd, &st);
@@ -133,13 +139,13 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 				MAP_SHARED, erlang_file_fd, 0);
 	if (erlang_mmap == MAP_FAILED) {
 	  erlang_mmap = NULL;
-	  fprintf(stderr,"Erlang-file mmap() failed, fd=%d, errno=%d: %s\n",
-		  erlang_file_fd, errno, strerror(errno));
+	  syslog(LOG_ERR, "Erlang-file mmap() failed, fd=%d, errno=%d: %s",
+		 erlang_file_fd, errno, strerror(errno));
 	}
 	if (erlang_mmap) {
 
-	  int i, rc, l;
-	  struct erlang_file *EF = erlang_mmap;
+	  int rc, l;
+	  EF = erlang_mmap;
 
 	  ErlangHead = & EF->head;
 
@@ -159,10 +165,11 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	      munmap(erlang_mmap, erlang_mmap_size);
 	      erlang_mmap = NULL;
 	      erlang_mmap_size = 0;
-	      fprintf(stderr,"Erlang-file has bad magic in it, not opening! Not modifying!\n");
+	      syslog(LOG_ERR,"Erlang-file has bad magic in it, not opening! Not modifying!");
 	      close (erlang_file_fd);
 	      erlang_file_fd = -1;
-	      return -1; /* BAD BAD ! */
+
+	      goto embedded_only; /* BAD BAD ! */
 	    }
 	  }
 
@@ -195,7 +202,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	      munmap(erlang_mmap, erlang_mmap_size);
 	      erlang_mmap = NULL;
 
-	      return -1; /* BAD BAD ! */
+	      goto embedded_only; /* BAD BAD ! */
 	    }
 
 	    add_count = 0;
@@ -217,9 +224,10 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 
 	  return 0; /* OK ! */
 	}
-#else /* ... EMBEDDED ... */
-	struct erlang_file *EF;
-	int i;
+#endif /* ... EMBEDDED ... */
+
+ embedded_only:;
+	erlang_data_is_nonshared = 1;
 
 	if (add_count > 0 || !erlang_mmap) {
 		ErlangLinesCount += add_count;
@@ -234,10 +242,9 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	ErlangLines  = (void*)realloc((void*)ErlangLines, (ErlangLinesCount+1)*sizeof(void*));
 
 	for (i = 0; i < ErlangLinesCount; ++i) {
-	  ErlangLines[i] = &EF->lines[i];
+		ErlangLines[i] = &EF->lines[i];
 	}
 
-#endif
 	return -1; /* D'uh..  something failed! */
 }
 
@@ -245,19 +252,19 @@ static int erlang_backingstore_open(int do_create)
 {
 #ifndef EMBEDDED
 	if (!erlang_backingstore) {
-	  fprintf(stderr,"erlang_backingstore not defined!\n");
-	  return -1;
+	  syslog(LOG_ERR,"erlang_backingstore not defined!");
+	  erlang_data_is_nonshared = 1;
 	}
-	if (erlang_file_fd < 0) {
+	if (erlang_file_fd < 0 && erlang_backingstore) {
 	  erlang_file_fd = open(erlang_backingstore, do_create ? O_RDWR : O_RDONLY, 0644); /* Presume: it exists! */
 	  if ((erlang_file_fd < 0) && do_create && (errno == ENOENT)) {
 	    erlang_file_fd = open(erlang_backingstore, O_RDWR|O_CREAT|O_EXCL, 0644);
 	  }
 	}
 	if (erlang_file_fd < 0) {
-	  fprintf(stderr,"open of '%s' for erlang_backingstore file failed!  errno=%d: %s\n",
+	  syslog(LOG_ERR,"Open of '%s' for erlang_backingstore file failed!  errno=%d: %s",
 		 erlang_backingstore, errno, strerror(errno));
-	  return -1;
+	  erlang_data_is_nonshared = 1;
 	}
 #endif
 	return erlang_backingstore_grow(do_create, 0); /* Just open */

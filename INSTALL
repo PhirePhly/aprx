@@ -1,9 +1,10 @@
-          INSTALL of  APRX 0.18
+          INSTALL of  APRX 0.22
 
 A rough-cut version of the installation instructions
 
-  1) possibly adjust  Makefile  or perhaps just
-     define overrider values for "make" command
+  1) Start with  ./configure  --parameters
+     For a small memory system without writable /tmp
+     you have to use  --with-embedded   option.
 
   2) Cleanliness is good start:
 

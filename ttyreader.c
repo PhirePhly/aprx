@@ -837,6 +837,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
 	  if ((S->read_timeout > 0) &&
 	      (now > (S->last_read_something + S->read_timeout))) {
 	    close(S->fd); /* Close and mark for re-open */
+	    S->fd = -1;
 	    S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
 	    continue;
 	  }
