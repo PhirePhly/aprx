@@ -93,6 +93,7 @@ extern int  beacon_postpoll(struct aprxpolls *app);
 
 /* netax25.c */
 extern void netax25_init(void);
+extern void netax25_start(void);
 extern int  netax25_prepoll(struct aprxpolls *);
 extern int  netax25_postpoll(struct aprxpolls *);
 extern void netax25_addport(const char *portname, char *str);
@@ -111,6 +112,10 @@ extern void erlang_init(const char *syslog_facility_name);
 extern void erlang_start(int do_create);
 extern int  erlang_prepoll(struct aprxpolls *app);
 extern int  erlang_postpoll(struct aprxpolls *app);
+
+/* telemetry.c */
+extern int  telemetry_prepoll(struct aprxpolls *app);
+extern int  telemetry_postpoll(struct aprxpolls *app);
 
 typedef enum {
 	ERLANG_RX,
