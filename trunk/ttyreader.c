@@ -28,7 +28,7 @@ typedef enum {
 } LineType;
 
 typedef enum {
-  KISSSTATE_SYNCHUNT,
+  KISSSTATE_SYNCHUNT = 0,
   KISSSTATE_COLLECTING,
   KISSSTATE_KISSFESC
 } KissState;
