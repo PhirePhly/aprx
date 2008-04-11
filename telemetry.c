@@ -110,10 +110,8 @@ int  telemetry_postpoll(struct aprxpolls *app)
 	    s = buf + sprintf( buf, ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0", E->name );
 	    aprsis_queue( beaconaddr, mycall, buf, (int)(s-buf) );
 	  }
-
-	  ++telemetry_seq;
-
 	}
+	++telemetry_seq;
 
 	return 0;
 }
