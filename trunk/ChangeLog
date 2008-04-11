@@ -1,3 +1,14 @@
+2008-04-11  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* VERSION:
+	    0.22:
+
+	* erlang.c:
+	    Auto-embed the erlang-dataset if backing-store open fails.
+
+	* ttyreader.c:
+	    Mark closed socket as closed.
+
 2008-03-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION:
