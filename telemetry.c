@@ -21,6 +21,8 @@ int  telemetry_prepoll(struct aprxpolls *app)
 
 	if (app->next_timeout > telemetry_time)
 		app->next_timeout = telemetry_time;
+
+	return 0;
 }
 
 int  telemetry_postpoll(struct aprxpolls *app)
@@ -76,7 +78,7 @@ int  telemetry_postpoll(struct aprxpolls *app)
 	    --k; if (k < 0) k = E->e1_max-1;
 	    erlmax += E->e1[k].packets_rx;
 	  }
-	  s += sprintf( s,"%03d,", erlmax );
+	  s += sprintf( s,"%03d,", (int)erlmax );
 
 	  erlmax = 0;
 	  k = E->e1_cursor;
@@ -85,7 +87,7 @@ int  telemetry_postpoll(struct aprxpolls *app)
 	    --k; if (k < 0) k = E->e1_max-1;
 	    erlmax += E->e1[k].packets_rxdrop;
 	  }
-	  s += sprintf( s,"%03d,", erlmax );
+	  s += sprintf( s,"%03d,", (int)erlmax );
 
 	  /* Tail filler */
 	  s += sprintf( s,"000,00000000" );
@@ -112,4 +114,6 @@ int  telemetry_postpoll(struct aprxpolls *app)
 	  ++telemetry_seq;
 
 	}
+
+	return 0;
 }

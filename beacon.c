@@ -242,7 +242,6 @@ int  beacon_prepoll(struct aprxpolls *app)
 
 int  beacon_postpoll(struct aprxpolls *app)
 {
-	char beacontext[1024];
 	char beaconaddr[64];
 	int txtlen;
 	struct beaconmsg *bm;
@@ -270,7 +269,6 @@ int  beacon_postpoll(struct aprxpolls *app)
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
 	sprintf(beaconaddr, "%s>APRS", bm->destaddr);
-	/* sprintf(beacontext, "%s", beacon_msgs[beacon_msgs_cursor++]); */
 	txtlen = strlen(bm->msg);
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
