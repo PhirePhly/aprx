@@ -106,6 +106,7 @@ extern char *config_SKIPSPACE(char *Y);
 extern char *config_SKIPTEXT(char *Y);
 extern void  config_STRLOWER(char *Y);
 extern void  config_STRUPPER(char *Y);
+extern int   validate_callsign_input(char *callsign);
 
 /* erlang.c */
 extern void erlang_init(const char *syslog_facility_name);

@@ -25,12 +25,6 @@ static time_t beacon_nexttime;
 static int    beacon_increment;
 
 
-int validate_callsign_input(const char *s)
-{
-	int i;
-	return 0; /* zero for OK */
-}
-
 int validate_degmin_input(const char *s, int maxdeg)
 {
 	int i;
@@ -46,7 +40,6 @@ void beacon_reset(void)
 
 void beacon_set(const char *p1, char *str)
 {
-	int i;
 	const char *for_ = mycall;
 	char *buf = alloca(strlen(p1)+strlen(str?str:"")+10);
 	char *code = NULL;
@@ -77,7 +70,8 @@ void beacon_set(const char *p1, char *str)
 
 	    if (debug)
 	      printf("for '%s' ", for_);
-	    if (validate_callsign_input(for_)) {
+
+	    if (validate_callsign_input((char*)for_)) {
 	      ;
 	    }
 

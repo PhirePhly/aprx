@@ -36,6 +36,24 @@ char *config_SKIPDIGIT ( char *Y)
 }
 #endif
 
+int validate_callsign_input( char *callsign )
+{
+	int i = strlen(callsign);
+
+	/* If longer than 9 chars, break at 9 ... */
+	callsign[i > 9 ? 9 : i] = 0;
+
+	if (i > 9) /* .. and complain! */
+		return 1;
+
+	if (i > 3 && (callsign[i-1] == '0' && callsign[i-2] == '-')) {
+		callsign[i-2] = 0;
+		/* If tailed with "-0" SSID, chop it off.. */
+	}
+
+	return 0;
+}
+
 /* SKIPTEXT:
  *
  *  Detect "/' -> scan until matching double quote
@@ -146,6 +164,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename, int linenum)
 
 	if (strcmp(name, "mycall") == 0) {
 	  config_STRUPPER(param1);
+	  validate_callsign_input(param1);
 	  mycall = strdup(param1);
 	  if (debug)
 	    printf("%s:%d: MYCALL = '%s' '%s'\n",
