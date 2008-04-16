@@ -70,7 +70,7 @@ void aprsis_init(void)
 
 static void sig_handler(int sig)
 {
-  die_now = 1;
+	die_now = 1;
 }
 
 
@@ -199,12 +199,12 @@ static int aprspass(const char *mycall)
 	int a = 0, h = 29666, c;
 
 	for ( ; *mycall ; ++mycall ) {
-	  c = 0xFF & *mycall;
-	  if (!(( '0' <= c && c <= '9' ) ||
-		( 'A' <= c && c <= 'Z' )))
-	    break;
-	  h ^= ((0xFF & *mycall) * (a ? 1 : 256));
-	  a = !a;
+		c = 0xFF & *mycall;
+		if (!(( '0' <= c && c <= '9' ) ||
+		      ( 'A' <= c && c <= 'Z' )))
+			break;
+		h ^= ((0xFF & *mycall) * (a ? 1 : 256));
+		a = !a;
 	}
 	return h;
 }
@@ -219,7 +219,7 @@ static int aprspass(const char *mycall)
 
 static void aprsis_reconnect(struct aprsis *A)
 {
-	struct addrinfo req, *ai, *a2;
+	struct addrinfo req, *ai, *a, *ap[21];
 	int i, n;
 	char *s;
 	char aprsislogincmd[3000];
@@ -228,33 +228,33 @@ static void aprsis_reconnect(struct aprsis *A)
 	aprsis_close(A, "reconnect");
 
 	if (!aprsis_multiconnect) {
-	  if (!A->H) {
-	    A->H = AISh[0];
-	  } else {
-	    ++AIShindex;
-	    if (AIShindex >= AIShcount)
-	      AIShindex = 0;
-	    A->H = AISh[AIShindex];
-	  }
+		if (!A->H) {
+			A->H = AISh[0];
+		} else {
+			++AIShindex;
+			if (AIShindex >= AIShcount)
+				AIShindex = 0;
+			A->H = AISh[AIShindex];
+		}
 	}
 
 
 	if (!A->H->mycall) {
-	  if (verbout)
-	    printf("%ld\tFAIL - MYCALL not defined, no APRSIS connection!\n", (long)now);
-	  if (aprxlogfile) {
-	    FILE *fp = fopen(aprxlogfile,"a");
-	    if (fp) {
-	      char timebuf[60];
-	      struct tm *t = gmtime(&now);
-	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-	      
-	      fprintf(fp,"%s FAIL - MYCALL not defined, no APRSIS connection!\n", timebuf);
-	      fclose(fp);
-	    }
-	  }
+		if (verbout)
+			printf("%ld\tFAIL - MYCALL not defined, no APRSIS connection!\n", (long)now);
+		if (aprxlogfile) {
+			FILE *fp = fopen(aprxlogfile,"a");
+			if (fp) {
+				char timebuf[60];
+				struct tm *t = gmtime(&now);
+				strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+				
+				fprintf(fp,"%s FAIL - MYCALL not defined, no APRSIS connection!\n", timebuf);
+				fclose(fp);
+			}
+		}
 
-	  return; /* Will try to reconnect in about 60 seconds.. */
+		return; /* Will try to reconnect in about 60 seconds.. */
 	}
 
 	memset(&req, 0, sizeof(req));
@@ -275,67 +275,88 @@ static void aprsis_reconnect(struct aprsis *A)
 	if (i != 0) {
 
 	fail_out:;
-	  /* Discard stuff and redo latter.. */
+		/* Discard stuff and redo latter.. */
 
-	  if (ai) freeaddrinfo(ai);
+		if (ai) freeaddrinfo(ai);
+		
+		aprsis_close(A, "fail on connect");
 
-	  aprsis_close(A, "fail on connect");
-
-	  if (verbout)
-	    printf("%ld\tFAIL - Connect to %s:%s failed: %s\n",
-		   (long)now, A->H->server_name, A->H->server_port, errstr);
-	  if (aprxlogfile) {
-	    FILE *fp = fopen(aprxlogfile,"a");
-	    if (fp) {
-	      char timebuf[60];
-	      struct tm *t = gmtime(&now);
-	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-	      
-	      fprintf(fp, "%s FAIL - Connect to %s:%s failed: %s\n", timebuf, A->H->server_name, A->H->server_port, errstr);
-	      fclose(fp);
-	    }
-	  }
-	  return;
+		if (verbout)
+			printf( "%ld\tFAIL - Connect to %s:%s failed: %s\n",
+				(long)now, A->H->server_name, A->H->server_port, errstr );
+		if (aprxlogfile) {
+			FILE *fp = fopen(aprxlogfile,"a");
+			if (fp) {
+				char timebuf[60];
+				struct tm *t = gmtime(&now);
+				strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+				
+				fprintf( fp, "%s FAIL - Connect to %s:%s failed: %s\n",
+					 timebuf, A->H->server_name, A->H->server_port, errstr);
+				fclose(fp);
+			}
+		}
+		return;
 	}
 	
 	/* Count the addresses */
-	for (n = 0, a2 = ai; a2; a2 = a2->ai_next, ++n)
-	  ;
+	for (n = 0, a = ai; a; a = a->ai_next, ++n) {
+		if (n < 20)
+			ap[n] = a;
+		else
+			break;
+	}
+	ap[n] = NULL;
 
-	a2 = ai;
-	if (n > 1) {  /* more than one ?  choose one at random.. */
-	  n = rand() % n;
-	  for ( ; n > 0; a2 = a2->ai_next, --n )
-	    ;
+	if (n > 1) {  /* more than one ?  choose one at random as the first address,
+			 then go through the address list in new sequence. */
+		n = rand() % n;
+		if (n > 0) {
+			a = ap[n];
+			ap[n] = ap[0];
+			ap[0] = a;
+		}
 	}
 
-	A->server_socket = socket(a2->ai_family, SOCK_STREAM, 0);
+	for ( n = 0; ( a = ap[n] ) && A->server_socket < 0; ++n ) {
 
-	errstr = "socket formation failed";
+		A->server_socket = socket(a->ai_family, a->ai_socktype, a->ai_protocol);
+
+		errstr = "socket formation failed";
+		if (A->server_socket < 0)
+			continue;
+
+		errstr = "connection failed";
+		i = connect(A->server_socket, a->ai_addr, a->ai_addrlen);
+
+		if (i < 0) {
+			/* If connection fails, try next possible address */
+			close(A->server_socket);
+			A->server_socket = -1;
+			continue;
+		}
+	}
+
 	if (A->server_socket < 0)
-	  goto fail_out;
-
-	errstr = "connection failed";
-	i = connect(A->server_socket, a2->ai_addr, a2->ai_addrlen);
-	if (i < 0)
-	  goto fail_out;
+		goto fail_out;
 
 	freeaddrinfo(ai);
 	ai = NULL;
 
+
 	now = time(NULL); /* unpredictable time since system did last poll.. */
 	if (verbout)
-	  printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->H->server_name,A->H->server_port);
+		printf("%ld\tCONNECT APRSIS %s:%s\n",(long)now,A->H->server_name,A->H->server_port);
 	if (aprxlogfile) {
-	  FILE *fp = fopen(aprxlogfile,"a");
-	  if (fp) {
-	    char timebuf[60];
-	    struct tm *t = gmtime(&now);
-	    strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-
-	    fprintf(fp,"%s CONNECT APRSIS %s:%s\n", timebuf, A->H->server_name, A->H->server_port);
-	    fclose(fp);
-	  }
+		FILE *fp = fopen(aprxlogfile,"a");
+		if (fp) {
+			char timebuf[60];
+			struct tm *t = gmtime(&now);
+			strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+			
+			fprintf(fp,"%s CONNECT APRSIS %s:%s\n", timebuf, A->H->server_name, A->H->server_port);
+			fclose(fp);
+		}
 	}
 
 
@@ -346,7 +367,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	s = aprsislogincmd;
 	s += sprintf(s, "user %s pass %d vers %s %s", A->H->mycall, aprspass(A->H->mycall), swname, swversion);
 	if (A->H->filterparam)
-	  s+= sprintf(s, " filter %s", A->H->filterparam);
+		s+= sprintf(s, " filter %s", A->H->filterparam);
 	strcpy(s,"\r\n");
 
 	A->last_read = now;
