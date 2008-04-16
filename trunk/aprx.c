@@ -13,7 +13,7 @@
 /* Bits used only in the main program.. */
 #include <signal.h>
 
-time_t now; /* this is globally used */
+time_t now;			/* this is globally used */
 int debug;
 int verbout;
 int erlangout;
@@ -28,18 +28,19 @@ const char *pidfile = VARRUN "/aprx.pid";
 
 int die_now;
 
-const char *swname    = "aprx";
+const char *swname = "aprx";
 const char *swversion = APRXVERSION;
 
 
 static void sig_handler(int sig)
 {
-  die_now = 1;
+	die_now = 1;
 }
 
 static void usage(void)
 {
-	printf("aprx: [-d][-d][-e][-v][-l logfacility] [-f %s]\n", CFGFILE);
+	printf("aprx: [-d][-d][-e][-v][-l logfacility] [-f %s]\n",
+	       CFGFILE);
 	printf("    version: %s\n", swversion);
 	printf("    -f %s:  where the configuration is\n", CFGFILE);
 	printf("    -v:  Outputs textual format of received packets, and data on STDOUT.\n");
@@ -47,21 +48,21 @@ static void usage(void)
 	printf("    -l ...: sets syslog FACILITY code for erlang reports, default: LOG_DAEMON\n");
 	printf("    -d:  turn debug printout on, use to verify config file!\n");
 	printf("         twice: prints also interaction with aprs-is system..\n");
-	exit(64); /* EX_USAGE */
+	exit(64);		/* EX_USAGE */
 }
 
 int fd_nonblockingmode(int fd)
 {
 	int __i = fcntl(fd, F_GETFL, 0);
 	if (__i >= 0) {
-	  /* set up non-blocking I/O */
-	  __i |= O_NONBLOCK;
-	  __i = fcntl(fd, F_SETFL, __i);
+		/* set up non-blocking I/O */
+		__i |= O_NONBLOCK;
+		__i = fcntl(fd, F_SETFL, __i);
 	}
 	return __i;
 }
 
-int main(int argc, char * const argv[]) 
+int main(int argc, char *const argv[])
 {
 	int i;
 	const char *cfgfile = "/etc/aprx.conf";
@@ -77,35 +78,36 @@ int main(int argc, char * const argv[])
 	/* Init the poll(2) descriptor array */
 
 	signal(SIGTERM, sig_handler);
-	signal(SIGINT,  sig_handler);
-	signal(SIGHUP,  sig_handler);
+	signal(SIGINT, sig_handler);
+	signal(SIGHUP, sig_handler);
 
 	while ((i = getopt(argc, argv, "def:hl:v?")) != -1) {
-	  switch (i) {
-	  case '?': case 'h':
-	    usage();
-	    break;
-	  case 'd':
-	    ++debug;
-	    ++foreground;
-	    break;
-	  case 'e':
-	    ++erlangout;
-	    ++foreground;
-	    break;
-	  case 'l':
-	    syslog_facility = optarg;
-	    break;
-	  case 'v':
-	    ++verbout;
-	    ++foreground;
-	    break;
-	  case 'f':
-	    cfgfile = optarg;
-	    break;
-	  default:
-	    break;
-	  }
+		switch (i) {
+		case '?':
+		case 'h':
+			usage();
+			break;
+		case 'd':
+			++debug;
+			++foreground;
+			break;
+		case 'e':
+			++erlangout;
+			++foreground;
+			break;
+		case 'l':
+			syslog_facility = optarg;
+			break;
+		case 'v':
+			++verbout;
+			++foreground;
+			break;
+		case 'f':
+			cfgfile = optarg;
+			break;
+		default:
+			break;
+		}
 	}
 
 
@@ -115,62 +117,66 @@ int main(int argc, char * const argv[])
 	aprsis_init();
 
 	erlang_start(1);
-	readconfig(cfgfile); /* TODO: real parametrized cfg file location.. */
+	readconfig(cfgfile);	/* TODO: real parametrized cfg file location.. */
 
 	if ((debug || verbout) && !mycall) {
-	  fprintf(stderr,"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
+		fprintf(stderr,
+			"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	}
 
 	if (!foreground) {
-	  /* See if pidfile exists ? */
-	  FILE *pf = fopen(pidfile,"r");
-	  if (pf) { /* See if the pid exists ? */
-	    int rc, er;
-	    int pid = -1;
-	    fscanf(pf, "%d", &pid);
-	    fclose(pf);
+		/* See if pidfile exists ? */
+		FILE *pf = fopen(pidfile, "r");
+		if (pf) {	/* See if the pid exists ? */
+			int rc, er;
+			int pid = -1;
+			fscanf(pf, "%d", &pid);
+			fclose(pf);
 
-	    if (pid > 0) {
-	      rc = kill(pid, 0);
-	      er = errno;
+			if (pid > 0) {
+				rc = kill(pid, 0);
+				er = errno;
 
-	      if ((rc == 0) || (er == EPERM)) {
-		fprintf(stderr,"APRX: PIDFILE '%s' EXISTS, AND PROCESSID %d INDICATED THERE EXISTS TOO. FURTHER INSTANCES CAN ONLY BE RUN ON FOREGROUND!\n", pidfile, pid);
-		exit(1);
-	      }
-	    }
-	  }
+				if ((rc == 0) || (er == EPERM)) {
+					fprintf(stderr,
+						"APRX: PIDFILE '%s' EXISTS, AND PROCESSID %d INDICATED THERE EXISTS TOO. FURTHER INSTANCES CAN ONLY BE RUN ON FOREGROUND!\n",
+						pidfile, pid);
+					exit(1);
+				}
+			}
+		}
 	}
 
 
 	if (!foreground) {
-	  int pid = fork();
-	  if (pid > 0) {
-	    /* This is parent */
-	    exit(0);
-	  }
-	  /* child and error cases continue on main program.. */
+		int pid = fork();
+		if (pid > 0) {
+			/* This is parent */
+			exit(0);
+		}
+		/* child and error cases continue on main program.. */
 	}
 
 	if (1) {
-	  /* Open the pidfile, if you can.. */
+		/* Open the pidfile, if you can.. */
 
-	  FILE *pf = fopen(pidfile,"w");
+		FILE *pf = fopen(pidfile, "w");
 
-	  setsid(); /* Happens or not ... */
+		setsid();	/* Happens or not ... */
 
-	  if (!pf) {
-	    /* Could not open pidfile! */
-	    fprintf(stderr,"COULD NOT OPEN PIDFILE: '%s'\n", pidfile);
-	    pidfile = NULL;
-	  } else {
-	    fprintf(pf,"%ld\n",(long)getpid());
-	    fclose(pf);
-	  }
+		if (!pf) {
+			/* Could not open pidfile! */
+			fprintf(stderr, "COULD NOT OPEN PIDFILE: '%s'\n",
+				pidfile);
+			pidfile = NULL;
+		} else {
+			fprintf(pf, "%ld\n", (long) getpid());
+			fclose(pf);
+		}
 	}
 
 
-	erlang_start(2); /* reset PID, etc.. */
+	erlang_start(2);	/* reset PID, etc.. */
 
 	/* Do following as late as possible.. */
 
@@ -181,11 +187,12 @@ int main(int argc, char * const argv[])
 	/* Leave STDOUT and STDERR open */
 
 	if (!foreground) {
-	  /* when daemoning, we close also stdout and stderr.. */
-	  close(1);close(2);
-	  /* .. and replace them with writing to /dev/null.. */
-	  open("/dev/null", O_WRONLY, 0);
-	  open("/dev/null", O_WRONLY, 0);
+		/* when daemoning, we close also stdout and stderr.. */
+		close(1);
+		close(2);
+		/* .. and replace them with writing to /dev/null.. */
+		open("/dev/null", O_WRONLY, 0);
+		open("/dev/null", O_WRONLY, 0);
 	}
 
 	/* .. but not latter than this. */
@@ -197,40 +204,40 @@ int main(int argc, char * const argv[])
 
 	/* The main loop */
 
-	while (! die_now ) {
+	while (!die_now) {
 
-	  now = time(NULL);
+		now = time(NULL);
 
-	  aprxpolls_reset(&app);
-	  app.next_timeout = now + 30;
+		aprxpolls_reset(&app);
+		app.next_timeout = now + 30;
 
-	  i = ttyreader_prepoll(&app);
-	  i = aprsis_prepoll(&app);
-	  i = beacon_prepoll(&app);
-	  i = netax25_prepoll(&app);
-	  i = erlang_prepoll(&app);
-	  i = telemetry_prepoll(&app);
+		i = ttyreader_prepoll(&app);
+		i = aprsis_prepoll(&app);
+		i = beacon_prepoll(&app);
+		i = netax25_prepoll(&app);
+		i = erlang_prepoll(&app);
+		i = telemetry_prepoll(&app);
 
-	  if (app.next_timeout <= now)
-	    app.next_timeout = now + 1; /* Just to be on safe side.. */
+		if (app.next_timeout <= now)
+			app.next_timeout = now + 1;	/* Just to be on safe side.. */
 
-	  i = poll(app.polls, app.pollcount, (app.next_timeout - now) * 1000);
-	  now = time(NULL);
+		i = poll(app.polls, app.pollcount,
+			 (app.next_timeout - now) * 1000);
+		now = time(NULL);
 
 
-	  i = beacon_postpoll(&app);
-	  i = ttyreader_postpoll(&app);
-	  i = netax25_postpoll(&app);
-	  i = aprsis_postpoll(&app);
-	  i = erlang_postpoll(&app);
-	  i = telemetry_postpoll(&app);
+		i = beacon_postpoll(&app);
+		i = ttyreader_postpoll(&app);
+		i = netax25_postpoll(&app);
+		i = aprsis_postpoll(&app);
+		i = erlang_postpoll(&app);
+		i = telemetry_postpoll(&app);
 
 	}
 
 	if (pidfile) {
-	  unlink(pidfile);
+		unlink(pidfile);
 	}
 
-	exit (0);
+	exit(0);
 }
-
