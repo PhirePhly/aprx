@@ -51,7 +51,7 @@ int erlang_data_is_nonshared;	/* In embedded target.. */
 
 struct erlang_file {
 	struct erlanghead head;
-	struct erlangline lines[0];
+	struct erlangline lines[1];
 };
 
 static void erlang_backingstore_startops(void)
@@ -188,7 +188,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 			new_size =
 				sizeof(struct erlang_file) +
 				sizeof(struct erlangline) * (new_count -
-							     2);
+							     1);
 
 			if (new_size % pagesize) {
 				new_size /= pagesize;
@@ -248,8 +248,8 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	if (add_count > 0 || !erlang_mmap) {
 		ErlangLinesCount += add_count;
 		erlang_mmap = realloc(erlang_mmap, sizeof(*EF) +
-				      ErlangLinesCount *
-				      sizeof(struct erlangline));
+				      (ErlangLinesCount +
+				       1) * sizeof(struct erlangline));
 	}
 
 	EF = erlang_mmap;
@@ -264,7 +264,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 		ErlangLines[i] = &EF->lines[i];
 	}
 
-	return -1;		/* D'uh..  something failed! */
+	return 0;
 }
 
 static int erlang_backingstore_open(int do_create)
