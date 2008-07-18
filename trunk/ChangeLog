@@ -1,4 +1,29 @@
-2008-04-11  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+2008-07-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* config.c:
+	    Function for validate of callsign input syntax
+
+	* telemetry.c:
+	    Please the compiler a bit, increment the telemetry
+	    sequence number only after all telemetered interfaces
+	    have been reported.
+
+	* aprsis.c:
+	    If there is need to reconnect to APRSIS, pick all possible
+	    IP addresses for it, and use them all.  Also improved
+	    the use of new IP resolver API a bit.
+
+	* ttyreader.c:
+	    Explicitely set "KISSSTATE_SYNCHUNT = 0" in enumeration.
+	    Memory blocks are created with memset() call clearing them.
+
+	* aprx.h, beacon.c:
+	    Compiler pleasing
+
+	* erlang.c:
+	    One-off array size handling, resulted in SEGV...
+
+2008-04-11  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION:
 	    0.22:
