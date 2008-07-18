@@ -1,4 +1,4 @@
-          INSTALL of  APRX 0.22
+          INSTALL of  APRX 0.99
 
 A rough-cut version of the installation instructions
 
@@ -18,9 +18,9 @@ A rough-cut version of the installation instructions
 
          # make install
 
-      with several presumptions about directories
-      fixed into the Makefile (possibly adjustments
-      are required.)
+      with several presumptions about directories fixed
+      into the Makefile (possibly some adjustments are
+      required, depending upon your environment.)
 
   5) Edit the configuration file to match your system:
 
@@ -28,9 +28,6 @@ A rough-cut version of the installation instructions
 
      See the  aprx(8) man-page for more info (man 8 aprx)
 
-  6) Starting the program requires manual job, init-script
-     has not been written for it yet!
-     (trivialish, but not with development priority)
-
-  7) Collect Erlang data, and analyze it using
-     the  aprx-stat(8)  utility...
+  6) Program startup scripts ("init-scripts") exist for
+     couple system environments, others may need manual
+     adapting.
