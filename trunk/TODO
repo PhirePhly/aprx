@@ -17,10 +17,5 @@
 - bidirectional relaying capability with areal filters ??
   (that would make this a full-blown aprsd / aprsdigi replacement..)
 
-- aprx-stat  tool:
-  - exists for extracting data out of erlang datasets
-  - need to improve its output formats ?
-  - possibly to run suid-root ?
-
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007,2008

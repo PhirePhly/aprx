@@ -62,8 +62,8 @@ A receive-only APRS-IS "i-gate" with following properties:
      20 minutes after program start.
 
    - Auxiliary utility  aprx-stat  to pull statistics data out of the
-     shared memory segment
-
+     shared memory segment (essentially obsoleted by direct telemetering
+     the info to APRS-IS.
 
    - The netbeacons are distributed timewise more evenly around the interval,
      and even the interval length is varied at random in between 20 and 30
