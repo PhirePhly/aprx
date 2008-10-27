@@ -244,7 +244,8 @@ static const char *tnc2_forbidden_via_stationid(const char *t)
 
 	if (memcmp("RFONLY", t, 6) == 0 ||
 	    memcmp("NOGATE", t, 6) == 0 ||
-	    memcmp("TCPIP", t, 5) == 0 || memcmp("TCPXX", t, 5) == 0)
+	    memcmp("TCPIP", t, 5)  == 0 ||
+	    memcmp("TCPXX", t, 5)  == 0)
 		return NULL;
 
 	for (i = 0; i < viaregscount; ++i) {
@@ -275,8 +276,7 @@ static int tnc2_forbidden_data(const char *t)
  * It does presume that the record is in a buffer that can be written on!
  */
 
-void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
-		 int discard)
+void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 {
 	char *t, *t0;
 	const char *s;
@@ -296,8 +296,11 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
 	s = tnc2_forbidden_source_stationid(t);
 	if (s)
 		t = (char *) s;
-	else
+	else {
 		discard = 1;	/* Forbidden in source fields.. */
+		if (debug)
+			printf("TNC2 forbidden source stationid: '%.20s'\n", t);
+	}
 
 	/*  SOURCE>DESTIN,VIA,VIA:payload */
 
@@ -305,13 +308,18 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
 		++t;
 	} else {
 		discard = 1;
+		if (debug)
+			printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
 	}
 
 	s = tnc2_forbidden_destination_stationid(t);
 	if (s)
 		t = (char *) s;
-	else
+	else {
 		discard = 1;
+		if (debug)
+			printf("TNC2 forbidden (by REGEX) destination stationid: '%.20s'\n", t);
+	}
 
 	while (*t) {
 		if (*t == ':')
@@ -320,6 +328,8 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
 			++t;
 		} else {
 			discard = 1;
+			if (debug)
+				printf("TNC2 via address syntax bug, wanted ',' or ':', got: '%.20s'\n", t);
 		}
 
 		/*
@@ -332,6 +342,8 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
 		s = tnc2_forbidden_via_stationid(t);
 		if (!s) {
 			discard = 1;	/* Forbidden in via fields.. */
+			if (debug)
+				printf("TNC2 forbidden VIA stationid, got: '%.20s'\n", t);
 			++t;
 		} else
 			t = (char *) s;
@@ -342,19 +354,28 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
 	   the current character is not ':' !  */
 	if (*t == ':') {
 		*t++ = 0;	/* turn it to NUL character */
-	} else
+	} else {
 		discard = 1;
+		if (debug)
+			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
+	}
 	t0 = t;
 
 	/* Now 't' points to data.. */
 
 
-	if (tnc2_forbidden_data(t))
+	if (tnc2_forbidden_data(t)) {
 		discard = 1;
+		if (debug)
+			printf("Forbidden data in TNC2 packet - REGEX match");
+	}
 
 	/* Will not relay messages that begin with '?' char: */
-	if (*t == '?')
+	if (*t == '?') {
 		discard = 1;
+		if (debug)
+			printf("Will not relay packets where payload begins with '?'\n");
+	}
 
 	/* Messages begining with '}' char are 3rd-party frames.. */
 	if (*t == '}' && !discard) {
@@ -417,8 +438,9 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
 
 	if (!discard)
 		discard = aprsis_queue(tnc2buf, portname, t0, t - t0);	/* Send it.. */
-	else
+	else {
 		discard = -1;
+	}
 
 	if (discard > 0)
 		erlang_add(NULL, portname, tncid, ERLANG_DROP,
@@ -536,15 +558,21 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	*t = 0;
 	i = ax25_to_tnc2_fmtaddress(t, frame + 7, 0);	/* source */
-	if (i < 0)
+	if (i < 0) {
 		discard = 1;	/* Bad format */
+		if (debug)
+			printf("Ax25toTNC2: Bad destination address\n");
+	}
 
 	t += strlen(t);
 	*t++ = '>';
 
 	j = ax25_to_tnc2_fmtaddress(t, frame + 0, 0);	/* destination */
-	if (i < 0)
+	if (i < 0) {
 		discard = 1;	/* Bad format */
+		if (debug)
+			printf("Ax25toTNC2: Bad source address\n");
+	}
 
 	t += strlen(t);
 
@@ -557,6 +585,8 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 			i = ax25_to_tnc2_fmtaddress(t, s, 1);
 			if (i < 0) {
 				discard = 1;	/* Bad format */
+				if (debug)
+					printf("Ax25toTNC2: Bad via address\n");
 				break;
 			}
 
