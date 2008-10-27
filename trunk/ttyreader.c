@@ -47,6 +47,9 @@ struct serialport {
 	KissState kissstate;	/* state for KISS frame reader,
 				   also for line collector              */
 
+	time_t smack_probe;	/* if need to send SMACK probe, use this
+				   to limit their transmit frequency.	*/
+
 	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)       */
 	/*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
 
@@ -73,6 +76,8 @@ struct serialport {
 
 static struct serialport **ttys;
 static int ttycount;		/* How many are defined ? */
+
+static void ttyreader_linewrite(struct serialport *S); /* forward declaration */
 
 #define TTY_OPEN_RETRY_DELAY_SECS 30
 
@@ -209,9 +214,8 @@ int crc16_calc(unsigned char *buf, int n)
 	return crc;
 }
 
-int kissencoder(void *kissbuf, int kissspace,
-		const void *pktbuf, int pktlen, int tncid, int modeflags)
-/* TODO: modeflags for anything but basic KISS */
+int kissencoder( void *kissbuf, int kissspace,
+		 const void *pktbuf, int pktlen, int cmdbyte )
 {
 	unsigned char *kb = kissbuf;
 	unsigned char *ke = kb + kissspace - 3;
@@ -221,7 +225,7 @@ int kissencoder(void *kissbuf, int kissspace,
 	/* Expect the KISS buffer to be at least ... 6 bytes.. */
 
 	*kb++ = KISS_FEND;
-	*kb++ = (tncid & 0x0F) << 4;
+	*kb++ = cmdbyte;
 	for (i = 0; i < pktlen && kb < ke; ++i, ++pkt) {
 		/* todo: add here crc-calculators.. */
 		if (*pkt == KISS_FEND) {
@@ -285,8 +289,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 		S->rdlinelen -= 1;	/* remove the sum-byte from tail */
 	}
 	/* Are we expecting SMACK ? */
-	if ((S->linetype == LINETYPE_KISSSMACK) &&
-	    ((cmdbyte & 0x8F) == 0x80)) {
+	if (S->linetype == LINETYPE_KISSSMACK) {
+	    if ((cmdbyte & 0x8F) == 0x80) {
 
 		tncid &= 0x07;	/* Chop off top bit */
 
@@ -300,6 +304,43 @@ static int ttyreader_kissprocess(struct serialport *S)
 		}
 
 		S->rdlinelen -= 2;	/* Chop off the two CRC bytes */
+
+	    } else if ((cmdbyte & 0x0F) == 0x00) {
+	    	/*
+		 * Expecting SMACK, but got plain KISS.
+		 * Send a flow-rate limited probes to TNC to enable
+		 * SMACK -- lets use 30 minutes window...
+		 */
+		if (S->smack_probe < now) {
+		    unsigned char probe[4];
+		    unsigned char kissbuf[12];
+		    int kisslen;
+		    int crc;
+		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
+		    probe[1] = 0;
+		    crc = crc16_calc(probe, 2);
+		    probe[2] =  crc       & 0xFF;  /* low  CRC byte */
+		    probe[3] = (crc >> 8) & 0xFF;  /* high CRC byte */
+
+		    /* Convert the probe packet to KISS frame */
+		    kisslen = kissencoder( kissbuf, sizeof(kissbuf),
+					   probe+1, 4-1, probe[0] );
+
+		    /* Send probe message..  */
+		    if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
+			/* There is enough space in writebuf! */
+
+			memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
+			S->wrlen += kisslen;
+			/* Flush it out..  and if not successfull,
+			   poll(2) will take care of it soon enough.. */
+			ttyreader_linewrite(S);
+
+			S->smack_probe = now + 30*60; /* 30 minutes */
+		    }
+		    /* Else no space to write ?  Huh... */
+		}
+	    }
 	}
 
 	if (S->rdlinelen < 17) {
