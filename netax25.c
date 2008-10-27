@@ -128,7 +128,7 @@ void netax25_sendax25(const void *ax25, int ax25len)
 	unsigned char ax25buf[1000];
 
 	/* kissencoder() takes AX.25 frame, and adds framing + cmd-byte */
-	rc = kissencoder(ax25buf, sizeof(ax25buf), ax25, ax25len, 0, 0);
+	rc = kissencoder(ax25buf, sizeof(ax25buf), ax25, ax25len, 0);
 	if (rc < 0)
 		return;
 	ax25len = rc;
@@ -202,7 +202,8 @@ void netax25_start(void)
 		/* D'uh..  could not open it, report and leave it at that. */
 		if (debug)
 			fprintf(stderr,
-				"aprx: Could not open socket(PF_PACKET,SOCK_PACKET,ETH_P_AX25) for listening.  Errno=%d (%s)\n",
+				"aprx: Could not open socket(PF_PACKET,SOCK_PACKET,ETH_P_AX25) for listening.  Errno=%d (%s)"
+				" -- not a big deal unless you want to receive via AX.25 sockets.\n",
 				i, strerror(i));
 		return;
 	}

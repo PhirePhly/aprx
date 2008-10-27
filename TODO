@@ -7,6 +7,12 @@
   - Fedora Linux
   - ...
 
+- Proper SMACK support on serial port.
+  Receiving SMACK is fine, but proper way to ENABLE it at TNC
+  is to send at first a small DATA packet with properly formatted
+  header byte, and embedded CRC.
+     -- experimental code done on 2008-Oct-28
+
 - OpenTRAC support ?  (UI, PID=0x77)
 
 - "radio NN ... KISS .." to support multiple TNCs,

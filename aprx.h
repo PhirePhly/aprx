@@ -63,7 +63,7 @@ extern int ttyreader_prepoll(struct aprxpolls *);
 extern int ttyreader_postpoll(struct aprxpolls *);
 extern void ttyreader_init(void);
 extern const char *ttyreader_serialcfg(char *param1, char *str);
-extern int kissencoder(void *, int, const void *, int, int, int);
+extern int kissencoder(void *, int, const void *, int, int);
 
 /* ax25.c */
 extern void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
