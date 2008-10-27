@@ -69,9 +69,6 @@ void beacon_set(const char *p1, char *str)
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 
-			if (debug)
-				printf("for '%s' ", for_);
-
 			if (validate_callsign_input((char *) for_)) {
 				;
 			}
