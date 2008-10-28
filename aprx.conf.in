@@ -54,10 +54,9 @@
 #ax25-reject-filter via         "^NOGATE"
 #ax25-reject-filter data        "^\\?"
 
-# ax25-rxport limits reception on listed AX.25 ports (their callsigns),
-# if system happens to use AX.25 ports also for other purposes than APRS.
-# If this option is not used, all reception ports are accepted.
-# Number of port definitions here is unlimited.
+# ax25-rxport  Lists AX.25 ports by their callsigns that in Linux
+#              systems receive APRS packets.  If none are defined,
+#              the AX.25 network receiver is not enabled.
 #
 #ax25-rxport NoCALL
 #ax25-rxport N0CALL
@@ -122,7 +121,7 @@ pidfile @VARRUN@/aprx.pid
 #                        1200, 2400, 4800, 9600, 19200, 38400
 #   - 8n1             -- 8-bits, no parity, one stop-bit,
 #                        no other supported modes
-#   - KISS/XORSUM/BPQCRC/SMACK/CRC16  -- KISS mode variants
+#   - KISS/XORSUM/SMACK -- KISS mode variants
 #     TNC2            -- non-KISS text format variant
 #
 #
@@ -149,7 +148,7 @@ pidfile @VARRUN@/aprx.pid
 #
 #  "KISS"                  - plain basic KISS mode
 #  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
-#  "SMACK" alias "CRC16"   - KISS with better CRC
+#  "SMACK"  alias "CRC16"  - KISS with better CRC
 #  "TNC2"                  - TNC2 monitor format
 
 

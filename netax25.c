@@ -184,6 +184,11 @@ void netax25_start(void)
 
 	netax25_openpty();
 
+	rx_socket = -1;			/* Initialize for early bail-out  */
+
+	if (!ax25rxports) return;	/* No configured receiver ports.
+					   No receiver socket creation. */
+
 
 	rx_protocol = ETH_P_AX25;	/* Choosing ETH_P_ALL would pick also
 					   outbound packets, but also all of

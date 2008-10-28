@@ -21,30 +21,33 @@ Does not require machine to have any other software in it, than things in libc.
 In particular no special AX.25 libraries at all, nor widgets or even
 C++ runtime.
 .IP \(bu 3
-Can listen "TNC2 monitor" and "KISS" speaking TNCs on serial ports.
+Can listen "TNC2 monitor" and "KISS" speaking TNCs on any serial ports.
 .IP \(bu 3
 The serial port can be ordinary host computer port, a USB serial port, or 
 remote port on a remote server behind the internet, like cisco router AUX
 ports (port 4001, TCP STREAM without TELNET escapes.)
 .IP \(bu 3
 Does not require machine to have AX.25 protocol support internally!
-(Thus this works also on e.g. BSD machines without PF\_AX25 sockets.)
+(Thus this works also on e.g. Solaris and BSD machines without PF\_AX25 sockets.)
 .IP \(bu 3
-On Linux machine with kernel internal AX.25 protocol support, does listen
+On Linux machine with kernel internal AX.25 protocol support, can listen
 on it with promiscuous mode, and in order to use that, must be started
 as
 .I root
-user.
+user, and be configured to list interface callsigns that APRS packets are
+coming in.
 The AX.25 socket listening is
 .I not
-configurable, it is always on in Linux systems.
-This listening does not need "libax25" to function.
+configurable, it is always exists in Linux systems, and related
+configuration parameters are ignored in other platforms.
+This socket listening does not need "libax25" to function.
 .IP \(bu 3
 Not running the program as root is a viable option at least against
 remote serial port servers.  One must change local serial port ownership
-(if any are used) to userid that runs the program and possibly do several
-changes of file paths in configuration file beginning with its location
-(startup parameter).  How that is done is up to the user of this program.
+or access-groups (if any are used) to userid that runs the program and
+possibly do several changes of file paths in configuration file beginning
+with its location (startup parameter).
+How that is done is up to the user of this program.
 .IP \(bu 3
 Connects with one callsign-ssid pair to APRS-IS core for all received radio
 ports.
@@ -68,8 +71,13 @@ messages ("?").
 Opens up all 3rd party messages ("}"), and checks the internal data if it is OK
 to be gated out to APRS-IS.
 .IP \(bu 3
-Has built-in "Erlang monitor" mechanism, that logs to syslog a interface
-specific channel occupancy.   Optionally can log to STDOUT and/or to syslog.
+Has built-in "Erlang monitor" mechanism that telemeters each receiving
+interface to APRS-IS.
+It can also syslog the interface specific channel occupancy, and
+optionally can output to STDOUT.
+.IP \(bu 3
+Can be run on systems without writable storage, even with very little storage,
+like on NSLU2, and OpenWrt platforms.
 .PP
 .SH OPTIONS
 The
@@ -232,11 +240,9 @@ it is never re-read during process life.
 #ax25\-filter via         "^NOGATE"
 #ax25\-filter data        "^\\\\?"
 
-# ax25\-rxport limits reception on listed AX.25 ports (their callsigns),
-# in case the system happens to use AX.25 ports also for other purposes
-# than APRS.
-# If this option is not used, all reception ports are accepted.
-# Number of port definitions here is unlimited.
+# ax25\-rxport  Lists AX.25 ports by their callsigns that in Linux
+#              systems receive APRS packets.  If none are defined,
+#              the AX.25 network receiver is not enabled.
 #
 #ax25\-rxport NoCALL
 #ax25\-rxport N0CALL
@@ -301,7 +307,7 @@ erlangfile @VARRUN@/aprx.state
 #                        1200, 2400, 4800, 9600, 19200, 38400
 #   \- 8n1             \-\- 8\-bits, no parity, one stop\-bit,
 #                        no other supported modes
-#   \- KISS/XORSUM/BPQCRC/SMACK/CRC16  \-\- KISS mode variants
+#   \- KISS/XORSUM/SMACK \-\- KISS mode variants
 #     TNC2            \-\- non\-KISS text format variant
 #
 #
@@ -328,7 +334,7 @@ erlangfile @VARRUN@/aprx.state
 #
 #  "KISS"                  \- plain basic KISS mode
 #  "XORSUM" alias "BPQCRC" \- KISS with BPQ "CRC" byte
-#  "SMACK" alias "CRC16"   \- KISS with better CRC
+#  "SMACK"  alias "CRC16"  \- KISS with better CRC
 #  "TNC2"                  \- TNC2 monitor format
 
 # The  radio tcp   option defines a connection to remote socket
@@ -542,15 +548,23 @@ Initially this program had name
 .IR aprsg-ng ,
 which was too close to another (a less low-tech C++ approach) program had.
 
-.SH BUGS
+.SH BUGS/WARTS
 The
 .IR Erlang -monitor
-mechanisms are of rudimentary quality, and can seriously underestimate the channel occupancy.
+mechanisms are of rudimentary quality, and can seriously underestimate
+the channel occupancy.
+.PP
+On SMACK links there is no full-form of multi-TNC support.
+Run with only one TNC on link, its id can be any in 0..7 range.
+.PP
+On serial lines supports really only 8n1 mode, not at all like: 7e1.
+On the other hand, there really is no sensible usage for anything but 8n1...
 
 .SH SEE ALSO
 Couple web sites:
 .IR "http://www.aprs-is.net/" ,
-.I "http://www.aprs2.net/"
+.IR "http://www.aprs2.net/" ,
+.I "http://wiki.ham.fi/Aprx.en"
 .PP
 .BR aprx-stat (8)
 

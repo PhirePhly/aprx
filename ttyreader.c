@@ -47,15 +47,20 @@ struct serialport {
 	KissState kissstate;	/* state for KISS frame reader,
 				   also for line collector              */
 
-	time_t smack_probe;	/* if need to send SMACK probe, use this
+	/* NOTE: The smack_probe is separate on all
+	**       sub-tnc:s on SMACK loop
+	*/
+	time_t smack_probe[8];	/* if need to send SMACK probe, use this
 				   to limit their transmit frequency.	*/
+	int    smack_subids;    /* bitset; 0..7; could use char...	*/
+
 
 	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)       */
 	/*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
 
 	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" --
 				   Linux TTY-names can be long..        */
-	const char *ttycallsign;	/* callsign                             */
+	const char *ttycallsign;/* callsign                             */
 	char *initstring;	/* optional init-string to be sent to
 				   the TNC, NULL OK                     */
 	int initlen;		/* .. as it can have even NUL-bytes,
@@ -294,6 +299,12 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		tncid &= 0x07;	/* Chop off top bit */
 
+		if (!(S->smack_subids & (1 << tncid))) {
+		    if (debug)
+			printf("%ld\tTTY %s tncid %d received SMACK frame, activating SMACK mode\n", now, S->ttyname, tncid);
+		    S->smack_subids |= (1 << tncid);
+		}
+
 		/* It is SMACK frame -- KISS with CRC16 at the tail.
 		   Now we ignore the TNC-id number field.
 		   Verify the CRC.. */
@@ -305,17 +316,20 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		S->rdlinelen -= 2;	/* Chop off the two CRC bytes */
 
-	    } else if ((cmdbyte & 0x0F) == 0x00) {
+	    } else if ((cmdbyte & 0x8F) == 0x00) {
 	    	/*
 		 * Expecting SMACK, but got plain KISS.
 		 * Send a flow-rate limited probes to TNC to enable
 		 * SMACK -- lets use 30 minutes window...
 		 */
-		if (S->smack_probe < now) {
+		tncid &= 0x07;	/* Chop off top bit */
+
+		if (S->smack_probe[tncid] < now) {
 		    unsigned char probe[4];
 		    unsigned char kissbuf[12];
 		    int kisslen;
 		    int crc;
+
 		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
 		    probe[1] = 0;
 		    crc = crc16_calc(probe, 2);
@@ -336,7 +350,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 			   poll(2) will take care of it soon enough.. */
 			ttyreader_linewrite(S);
 
-			S->smack_probe = now + 30*60; /* 30 minutes */
+			S->smack_probe[tncid] = now + 30*60; /* 30 minutes */
+
+			if (debug)
+			    printf("%ld\tTTY %s tncid %d Sending SMACK activation probe packet\n", now, S->ttyname, tncid);
+
 		    }
 		    /* Else no space to write ?  Huh... */
 		}
@@ -789,16 +807,12 @@ static void ttyreader_linesetup(struct serialport *S)
 		 */
 
 		if (S->initstring != NULL) {
-			memcpy(S->wrbuf, S->initstring, S->initlen);
-			S->wrlen = S->initlen;
-			i = write(S->fd, S->wrbuf, S->wrlen);
-			if (i > 0) {	/* wrote something */
-				S->wrcursor = i;
-				erlang_add(S, S->ttycallsign, 0, ERLANG_TX,
-					   i, 0);
-				if (S->wrcursor >= S->wrlen)
-					S->wrlen = S->wrcursor = 0;	/* wrote all */
-			}
+			memcpy(S->wrbuf + S->wrlen, S->initstring, S->initlen);
+			S->wrlen += S->initlen;
+
+			/* Flush it out..  and if not successfull,
+			   poll(2) will take care of it soon enough.. */
+			ttyreader_linewrite(S);
 		}
 	} else {		/* socket connection to remote TTY.. */
 		/*   "tcp!hostname-or-ip!port!opt-parameters" */
@@ -872,6 +886,9 @@ static void ttyreader_linesetup(struct serialport *S)
 	S->rdlen = S->rdcursor = S->rdlinelen = 0;
 	S->kissstate = 0;	/* Zero it, whatever protocol we actually use
 				   will consider it as 'hunt for sync' state. */
+
+	memset( S->smack_probe, 0, sizeof(S->smack_probe) );
+	S->smack_subids = 0;
 }
 
 /*
