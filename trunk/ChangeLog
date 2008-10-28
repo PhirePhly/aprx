@@ -1,4 +1,4 @@
-2008-10-28  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+2008-10-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* netax25.c, aprx.8.in:
 	    Turned upside-down the meaning of  ax25-rxport  config
