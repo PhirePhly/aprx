@@ -1,3 +1,19 @@
+2008-10-28  Matti Aarnio - OH2MQK - KP20NG  <mea@mea.h.zmailer.org>
+
+	* netax25.c, aprx.8.in:
+	    Turned upside-down the meaning of  ax25-rxport  config
+	    parameter.  There is no longer a wild-card receiving
+	    mode in Linux internal AX.25 network receiving.
+	    All APRS receiving interface callsigns must be listed
+	    explicitely.
+
+	* netax25.c, ttyreader.c, aprx.h:
+	    SMACK probe transmits on link that is configured for it.
+	    Also offers some debug messages on SMACK activation.
+
+	* beacon.c, ax25.c:
+	    Cleaning debug printouts
+
 2008-07-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* config.c:
