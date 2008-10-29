@@ -278,6 +278,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 		/* There should NEVER be any other value in the CMD bits
 		   than 0  coming from TNC to host! */
 		/* printf(" ..bad CMD byte\n"); */
+		if (debug)
+			printf("%ld\tTTY %s: Bad CMD byte on KISS frame: %02x\n", now, S->ttyname, cmdbyte);
 		return -1;
 	}
 
@@ -286,22 +288,26 @@ static int ttyreader_kissprocess(struct serialport *S)
 		/* TODO: in what conditions the "CRC" is calculated and when not ? */
 		int xorsum = 0;
 		for (i = 1; i < S->rdlinelen; ++i)
-			xorsum ^= (S->rdline[i]) & 0xFF;
+			xorsum ^= S->rdline[i];
+		xorsum &= 0xFF;
 		if (xorsum != 0) {
-			/*  printf(" .. invalid XOR-sum result\n"); */
+			if (debug)
+				printf("%ld\tTTY %s tncid %d: Received bad BPQCRC: %02x\n", now, S->ttyname, tncid, xorsum);
 			return -1;
 		}
 		S->rdlinelen -= 1;	/* remove the sum-byte from tail */
 	}
 	/* Are we expecting SMACK ? */
 	if (S->linetype == LINETYPE_KISSSMACK) {
+
+	    tncid &= 0x07;	/* Chop off top bit */
+
 	    if ((cmdbyte & 0x8F) == 0x80) {
 
-		tncid &= 0x07;	/* Chop off top bit */
 
 		if (!(S->smack_subids & (1 << tncid))) {
 		    if (debug)
-			printf("%ld\tTTY %s tncid %d received SMACK frame, activating SMACK mode\n", now, S->ttyname, tncid);
+			printf("%ld\tTTY %s tncid %d: Received SMACK frame, activating SMACK mode\n", now, S->ttyname, tncid);
 		    S->smack_subids |= (1 << tncid);
 		}
 
@@ -310,7 +316,9 @@ static int ttyreader_kissprocess(struct serialport *S)
 		   Verify the CRC.. */
 
 		if (crc16_calc(S->rdline + 1, S->rdlinelen - 1) != 0) {
-			/* printf(" ..invalid CRC value\n");  */
+			if (debug)
+				printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC; altcalc=%d\n",
+				       now, S->ttyname, tncid, crc16_calc(S->rdline, S->rdlinelen));
 			return -1;	/* The CRC was invalid.. */
 		}
 
@@ -322,7 +330,6 @@ static int ttyreader_kissprocess(struct serialport *S)
 		 * Send a flow-rate limited probes to TNC to enable
 		 * SMACK -- lets use 30 minutes window...
 		 */
-		tncid &= 0x07;	/* Chop off top bit */
 
 		if (S->smack_probe[tncid] < now) {
 		    unsigned char probe[4];
@@ -332,7 +339,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
 		    probe[1] = 0;
-		    crc = crc16_calc(probe, 2);
+		    crc = crc16_calc(probe+1, 2-1);
 		    probe[2] =  crc       & 0xFF;  /* low  CRC byte */
 		    probe[3] = (crc >> 8) & 0xFF;  /* high CRC byte */
 
@@ -353,7 +360,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 			S->smack_probe[tncid] = now + 30*60; /* 30 minutes */
 
 			if (debug)
-			    printf("%ld\tTTY %s tncid %d Sending SMACK activation probe packet\n", now, S->ttyname, tncid);
+			    printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", now, S->ttyname, tncid);
 
 		    }
 		    /* Else no space to write ?  Huh... */
@@ -373,18 +380,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 	   S->rdline[1..S->rdlinelen-1]
 	 */
 
-	/* ADD?  send(somesocket, S->rdline+1, S->rdlinelen-1)  ??
-	   Send the AX.25 frame to some socket for other processing uses.. */
-
-	/* printf("\n"); */
-
-
 	/* Send the frame without cmdbyte to internal AX.25 network */
 	netax25_sendax25(S->rdline + 1, S->rdlinelen - 1);
 
 	/* Send the frame to APRS-IS */
-	ax25_to_tnc2(S->ttycallsign, tncid, cmdbyte, S->rdline + 1,
-		     S->rdlinelen - 1);
+	ax25_to_tnc2(S->ttycallsign, tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1);
 	erlang_add(S, S->ttycallsign, tncid, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	return 0;
@@ -508,6 +508,8 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 				S->kissstate = KISSSTATE_SYNCHUNT;	/* Sigh.. discard it. */
 				S->rdlinelen = 0;
+				if (debug)
+					printf("%ld\tTTY %s: Too long frame to be KISS..\n", now, S->ttyname);
 				continue;
 			}
 
@@ -1147,16 +1149,20 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			/* default behaviour, ignore */
 		} else if (strcmp(param1, "kiss") == 0) {
 			tty->linetype = LINETYPE_KISS;	/* plain basic KISS */
+
 		} else if (strcmp(param1, "xorsum") == 0) {
 			tty->linetype = LINETYPE_KISSBPQCRC;	/* KISS with BPQ "CRC" */
 		} else if (strcmp(param1, "bpqcrc") == 0) {
 			tty->linetype = LINETYPE_KISSBPQCRC;	/* KISS with BPQ "CRC" */
+
 		} else if (strcmp(param1, "smack") == 0) {
 			tty->linetype = LINETYPE_KISSSMACK;	/* KISS with SMACK / CRC16 */
 		} else if (strcmp(param1, "crc16") == 0) {
 			tty->linetype = LINETYPE_KISSSMACK;	/* KISS with SMACK / CRC16 */
+
 		} else if (strcmp(param1, "poll") == 0) {
 			/* FIXME: Some systems want polling... */
+
 		} else if (strcmp(param1, "callsign") == 0 ||
 			   strcmp(param1, "alias") == 0) {
 			param1 = str;
@@ -1164,13 +1170,16 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			str = config_SKIPSPACE(str);
 			config_STRUPPER(param1);
 			tty->ttycallsign = strdup(param1);
+
 		} else if (strcmp(param1, "timeout") == 0) {
 			param1 = str;
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 			tty->read_timeout = atol(param1);
+
 		} else if (strcmp(param1, "tnc2") == 0) {
 			tty->linetype = LINETYPE_TNC2;	/* TNC2 monitor */
+
 		} else if (strcmp(param1, "initstring") == 0) {
 			param1 = str;
 			str = config_SKIPTEXT(str);
