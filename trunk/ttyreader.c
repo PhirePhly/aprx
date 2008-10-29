@@ -138,6 +138,9 @@ static void ttyreader_linewrite(struct serialport *S); /* forward declaration */
    thus permits up to 8 TNC ports on line.  Top-most bit is always one
    on SMACK frames.
 
+   SMACK runs CRC16 over whole KISS frame buffer, including the CMD byte.
+   The CRC-code is thus _different_ from what will be sent out on radio.
+
 */
 
 
@@ -315,10 +318,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 		   Now we ignore the TNC-id number field.
 		   Verify the CRC.. */
 
-		if (crc16_calc(S->rdline + 1, S->rdlinelen - 1) != 0) {
+		// Whole buffer including CMD-byte!
+		if (crc16_calc(S->rdline, S->rdlinelen) != 0) {
 			if (debug)
-				printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC; altcalc=%d\n",
-				       now, S->ttyname, tncid, crc16_calc(S->rdline, S->rdlinelen));
+				printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC\n",
+				       now, S->ttyname, tncid);
 			return -1;	/* The CRC was invalid.. */
 		}
 
@@ -339,7 +343,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
 		    probe[1] = 0;
-		    crc = crc16_calc(probe+1, 2-1);
+		    crc = crc16_calc(probe, 2);
 		    probe[2] =  crc       & 0xFF;  /* low  CRC byte */
 		    probe[3] = (crc >> 8) & 0xFF;  /* high CRC byte */
 
