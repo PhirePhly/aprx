@@ -5,7 +5,7 @@
 \- A receive-only APRS iGate application,
 .SH SYNOPSIS
 .B aprx
-.RB [ \-d [ d ]]
+.RB [ \-d [ d [ d ]]]
 .RB [ \-e ]
 .RB [ \-v ]
 .RB [ \-l " \fIsyslogfacilityname\fR]"
@@ -91,6 +91,10 @@ Turn on verbose debugging, outputs data to STDOUT.
 the "more debug" mode shows also details of network interaction with
 the APRS-IS network service.
 .TP
+.B "\-ddd"
+the "even more debug" mode shows also detail classification of
+every kind of frame received in KISS variants.
+.TP
 .B "\-e"
 .I "Erlang output"
 prints 10 minute and 60 minute traffic accumulation byte counts, and guestimates
@@ -137,6 +141,8 @@ or possibly "#" for "discarded due to APRS-IS being unreachable".
 .SS DEBUGGING SYSTEM
 Use parameter set 
 .B "\-ddv"
+(or
+.BR "\-dddv" )
 to test new configuration by running it synchronously to console.
 .PP
 .SS NORMAL OPERATION
