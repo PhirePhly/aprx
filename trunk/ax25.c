@@ -276,14 +276,16 @@ static int tnc2_forbidden_data(const char *t)
  * It does presume that the record is in a buffer that can be written on!
  */
 
-void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
+void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, int discard)
 {
 	char *t, *t0;
 	const char *s;
+	const char *e;
 
       redo_frame_filter:;
 
 	t = tnc2buf;
+	e = tnc2buf + tnc2len;
 
 	/* t == beginning of the TNC2 format packet */
 
@@ -297,9 +299,10 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 	if (s)
 		t = (char *) s;
 	else {
-		discard = 1;	/* Forbidden in source fields.. */
+		/* Forbidden in source fields.. */
 		if (debug)
 			printf("TNC2 forbidden source stationid: '%.20s'\n", t);
+		goto discard;
 	}
 
 	/*  SOURCE>DESTIN,VIA,VIA:payload */
@@ -307,18 +310,18 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 	if (*t == '>') {
 		++t;
 	} else {
-		discard = 1;
 		if (debug)
 			printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
+		goto discard;
 	}
 
 	s = tnc2_forbidden_destination_stationid(t);
 	if (s)
 		t = (char *) s;
 	else {
-		discard = 1;
 		if (debug)
 			printf("TNC2 forbidden (by REGEX) destination stationid: '%.20s'\n", t);
+		goto discard;
 	}
 
 	while (*t) {
@@ -327,9 +330,9 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 		if (*t == ',') {
 			++t;
 		} else {
-			discard = 1;
 			if (debug)
 				printf("TNC2 via address syntax bug, wanted ',' or ':', got: '%.20s'\n", t);
+			goto discard;
 		}
 
 		/*
@@ -341,10 +344,10 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 
 		s = tnc2_forbidden_via_stationid(t);
 		if (!s) {
-			discard = 1;	/* Forbidden in via fields.. */
+			/* Forbidden in via fields.. */
 			if (debug)
 				printf("TNC2 forbidden VIA stationid, got: '%.20s'\n", t);
-			++t;
+			goto discard;
 		} else
 			t = (char *) s;
 
@@ -355,9 +358,9 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 	if (*t == ':') {
 		*t++ = 0;	/* turn it to NUL character */
 	} else {
-		discard = 1;
 		if (debug)
 			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
+		goto discard;
 	}
 	t0 = t;
 
@@ -365,20 +368,20 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 
 
 	if (tnc2_forbidden_data(t)) {
-		discard = 1;
 		if (debug)
 			printf("Forbidden data in TNC2 packet - REGEX match");
+		goto discard;
 	}
 
 	/* Will not relay messages that begin with '?' char: */
 	if (*t == '?') {
-		discard = 1;
 		if (debug)
 			printf("Will not relay packets where payload begins with '?'\n");
+		goto discard;
 	}
 
 	/* Messages begining with '}' char are 3rd-party frames.. */
-	if (*t == '}' && !discard) {
+	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
 		if (verbout) {
 			printf("%ld\t%s", (long) now, portname);
@@ -404,15 +407,13 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 		}
 
 		/* Copy the 3rd-party message content into begining of the buffer... */
-		strcpy(tnc2buf, t + 1);
+		++t;				/* Skip the '}'		*/
+		tnc2len = e - t;		/* New length		*/
+		e = tnc2buf + tnc2len;		/* New end pointer	*/
+		memcpy(tnc2buf, t, tnc2len);	/* Move the content	*/
+
 		/* .. and redo the filtering. */
 		goto redo_frame_filter;
-		/* Could do as well:
-
-		   tnc2_rxgate(portname, tncid, t+1, discard);
-		   return;
-
-		 */
 	}
 
 
@@ -436,13 +437,15 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int discard)
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	if (!discard)
-		discard = aprsis_queue(tnc2buf, portname, t0, t - t0);	/* Send it.. */
-	else {
+	discard = aprsis_queue(tnc2buf, portname, t0, e - t0);	/* Send it.. */
+
+	if (0) {
+ discard:;
+
 		discard = -1;
 	}
 
-	if (discard > 0)
+	if (discard)
 		erlang_add(NULL, portname, tncid, ERLANG_DROP,
 			   (int) (t - t0), 1);
 
@@ -541,10 +544,8 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	char tnc2buf[800];
 	char *t = tnc2buf;
+	int tnc2len;
 
-#if 0
-	memset(tnc2buf, 0, sizeof(tnc2buf));	/* DEBUG STUFF */
-#endif
 
 	if (framelen > sizeof(tnc2buf) - 80) {
 		/* Too much ! Too much! */
@@ -609,19 +610,29 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 		return;
 	}
 
-	/* Copy payload - stop at CR or LF chars */
+	/* Copy payload - stop at first LF char */
 	for (; s < e; ++s) {
-		int c = *s;
-		if (c == '\n' || c == '\r' || c == 0)
-			break;
-		*t++ = c;
+		if (*s == '\n') /* Stop at first LF */
+		  break;
+		*t++ = *s;
 	}
 	*t = 0;
+
+	/* Chop off possible immediately trailing CR characters */
+	for ( ;t > tnc2buf; --t ) {
+	    int c = t[-1];
+	    if (c != '\r') {
+		break;
+	    }
+	    t[-1] = 0;
+	}
+
+	tnc2len = t - tnc2buf;
 
 	/* 
 	   if (!discard)
 	   aprsdigi(tnc2buf, portname, t0, t-t0);
 	 */
 
-	tnc2_rxgate(portname, tncid, tnc2buf, discard);
+	tnc2_rxgate(portname, tncid, tnc2buf, tnc2len, discard);
 }

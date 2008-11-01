@@ -299,6 +299,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 			return -1;
 		}
 		S->rdlinelen -= 1;	/* remove the sum-byte from tail */
+		if (debug > 2)
+			printf("%ld\tTTY %s tncid %d: Received OK BPQCRC frame\n", now, S->ttyname, tncid);
 	}
 	/* Are we expecting SMACK ? */
 	if (S->linetype == LINETYPE_KISSSMACK) {
@@ -306,13 +308,16 @@ static int ttyreader_kissprocess(struct serialport *S)
 	    tncid &= 0x07;	/* Chop off top bit */
 
 	    if ((cmdbyte & 0x8F) == 0x80) {
+	        /* SMACK data frame */
 
+		if (debug > 3)
+		    printf("%ld\tTTY %s tncid %d: Received SMACK frame\n", now, S->ttyname, tncid);
 
 		if (!(S->smack_subids & (1 << tncid))) {
 		    if (debug)
-			printf("%ld\tTTY %s tncid %d: Received SMACK frame, activating SMACK mode\n", now, S->ttyname, tncid);
-		    S->smack_subids |= (1 << tncid);
+			printf("%ld\t... marking received SMACK\n", now, S->ttyname, tncid);
 		}
+		S->smack_subids |= (1 << tncid);
 
 		/* It is SMACK frame -- KISS with CRC16 at the tail.
 		   Now we ignore the TNC-id number field.
@@ -330,10 +335,16 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 	    } else if ((cmdbyte & 0x8F) == 0x00) {
 	    	/*
-		 * Expecting SMACK, but got plain KISS.
+		 * Expecting SMACK data, but got plain KISS data.
 		 * Send a flow-rate limited probes to TNC to enable
 		 * SMACK -- lets use 30 minutes window...
 		 */
+
+
+		S->smack_subids &= ~(1 << tncid); // Turn off the SMACK mode indication bit..
+
+		if (debug > 2)
+		    printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", now, S->ttyname, tncid);
 
 		if (S->smack_probe[tncid] < now) {
 		    unsigned char probe[4];
@@ -369,6 +380,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 		    }
 		    /* Else no space to write ?  Huh... */
 		}
+	    } else {
+		// Else...  there should be no other kind data frames
+		if (debug)
+		    printf("%ld\tTTY %s: Bad CMD byte on expected SMACK frame: %02x,  len=%d\n",
+			   now, S->ttyname, cmdbyte, S->rdlinelen);
 	    }
 	}
 
@@ -533,12 +549,11 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 static int ttyreader_pulltnc2(struct serialport *S)
 {
-	/* S->rdline[] has text line without line ending CR/LF chars   */
-	tnc2_rxgate(S->ttycallsign, 0, (char *) (S->rdline), 0);
-
 	/* Send the frame to internal AX.25 network */
 	netax25_sendax25_tnc2(S->rdline, S->rdlinelen, 0);
 
+	/* S->rdline[] has text line without line ending CR/LF chars   */
+	tnc2_rxgate(S->ttycallsign, 0, (char *) (S->rdline), S->rdlinelen, 0);
 
 	erlang_add(S, S->ttycallsign, 0, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
@@ -1203,33 +1218,3 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 
 	return NULL;
 }
-
-
-#if 0				/* some sample strings.. */
-void ttyreader_initstring(const char *param)
-{
-	if (debug)
-		printf("%s:%d: INITSTRING = ....\n", cfgfilename, linenum);
-	/* hard-coded init-string for OH2MQK with old AEA PK-96 ... */
-	switch (ttys[0].linetype) {
-	case LINETYPE_KISS:
-		s = "\xC0\xC0\xFF\xC0\r\rMO 0\rKISS $01\r";
-		break;
-	case LINETYPE_KISSSMACK:	/* SMACK ... */
-		break;
-	case LINETYPE_KISSBPQCRC:
-		s = "\xC0\xC0\xFF\xC0\r\rMO 0\rKISS $0B\r";
-		break;
-	case LINETYPE_TNC2:
-		break;
-	case LINETYPE_AEA:
-		s = "\xC0\xC0\xFF\xC0\xC0\xFF\xC0\xC0\r\r\rMO 1\r";
-		break;
-	default:
-		break;
-	}
-
-	ttys[0].initstring = s;
-	ttys[0].initlen = s ? strlen(s) : 0;
-}
-#endif

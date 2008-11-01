@@ -67,7 +67,7 @@ extern int kissencoder(void *, int, const void *, int, int);
 
 /* ax25.c */
 extern void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
-			int discard);
+			int tnc2len, int discard);
 extern void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 			 const unsigned char *frame, const int framelen);
 extern void ax25_filter_add(const char *p1, const char *p2);

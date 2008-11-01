@@ -134,9 +134,6 @@ void netax25_sendax25(const void *ax25, int ax25len)
 	ax25len = rc;
 
 	rc = write(pty_master, ax25buf, ax25len);
-
-	if (debug > 1)
-		printf("write(pty_master) len=%d rc=%d\n", ax25len, rc);
 }
 
 /* Have to convert incoming TNC2 format messge to AX.25.. */
