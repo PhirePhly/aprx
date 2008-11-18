@@ -315,7 +315,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		if (!(S->smack_subids & (1 << tncid))) {
 		    if (debug)
-			printf("%ld\t... marking received SMACK\n", now, S->ttyname, tncid);
+			printf("%ld\t... marking received SMACK\n", now);
 		}
 		S->smack_subids |= (1 << tncid);
 

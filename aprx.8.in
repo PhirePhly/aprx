@@ -200,9 +200,10 @@ it is never re-read during process life.
 # The  mycall  parameter: 
 # Station call\-id used for relaying APRS frames into APRS\-IS.
 # This value MUST NOT match any possible AX.25 interface in
-# the system!
+# the system!  Ignore this at your own peril...  The Call\-SSIDs
+# SSID value do not need to be numeric 1..15, "\-R1" works too.
 #
-#mycall           N0CALL\-1
+#mycall           N0CALL\-R1
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
@@ -441,8 +442,8 @@ Default is the "mycall" entry value.
 this does not apply on AX.25 ports!)
 
 .SH NETBEACON definitions
-Because classical netbeacon definitions are difficult in extreme, and it is way too
-easy to make typo mistakes, this program has couple new ways to define them:
+Because classical netbeacon definitions are highly error-prone, this program
+has a new way to define them:
 .IP \(bu 2
 The new way to define netbeacons, however do note that these will be only
 messages of type "!":
@@ -455,18 +456,21 @@ messages of type "!":
 (the line is folded for this document)
 
 .IP \(bu 2
-Classical definition of raw APRS packet, albeit given in quotes.
-The "for" callsign will be that of "mycall" parameter:
-
-.nf
-\fCnetbeacon "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
-.fi
-
-.IP \(bu 2
 Semi-clasical definition of raw APRS packet:
 
 .nf
 \fCnetbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+.fi
+
+.IP \(bu 2
+Classical definition of raw APRS packet, albeit given in quotes.
+The "for" callsign will be that of "mycall" parameter, which is
+.B invalid
+for radio network in above recommended form!
+.B Do not use this form!
+
+.nf
+\fCnetbeacon "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
 .fi
 .PP
 The fields and parameters:
@@ -586,3 +590,5 @@ Principal contributors and test users include:
 .IR "Reijo Hakala, OH1GWK" .
 Debian packaging by
 .IR "Kimmo Jukarinen, OH3GNU" .
+Testing of SMACK variant of KISS by
+.IR "Patrick Hertenstein, DL1GHN" .
