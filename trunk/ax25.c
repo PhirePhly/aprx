@@ -286,7 +286,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 
 	t = tnc2buf;
 	e = tnc2buf + tnc2len;
-	t0 = t; /* will be reset to packet content latter.. */
+	t0 = NULL;
 
 	/* t == beginning of the TNC2 format packet */
 
@@ -303,7 +303,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		/* Forbidden in source fields.. */
 		if (debug)
 			printf("TNC2 forbidden source stationid: '%.20s'\n", t);
-		discard = -1;
+		goto discard;
 	}
 
 	/*  SOURCE>DESTIN,VIA,VIA:payload */
@@ -313,7 +313,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 	} else {
 		if (debug)
 		    printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
-		discard = -1;
+		goto discard;
 	}
 
 	s = tnc2_forbidden_destination_stationid(t);
@@ -322,7 +322,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 	else {
 		if (debug)
 			printf("TNC2 forbidden (by REGEX) destination stationid: '%.20s'\n", t);
-		discard = -1;
+		goto discard;
 	}
 
 	while (*t) {
@@ -333,7 +333,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		} else {
 			if (debug)
 				printf("TNC2 via address syntax bug, wanted ',' or ':', got: '%.20s'\n", t);
-			discard = -1;
+			goto discard;
 		}
 
 		/*
@@ -348,7 +348,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 			/* Forbidden in via fields.. */
 			if (debug)
 				printf("TNC2 forbidden VIA stationid, got: '%.20s'\n", t);
-			discard = -1;
+			goto discard;
 		} else
 			t = (char *) s;
 
@@ -361,13 +361,9 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 	} else {
 		if (debug)
 			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
-		discard = -1;
+		goto discard;
 	}
 	t0 = t;
-
-	if (discard) {
-	    goto discard;
-	}
 
 	/* Now 't' points to data.. */
 
@@ -393,7 +389,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 			if (tncid)
 				printf("_%d", tncid);
 			printf("\t#");
-			printf("%s:%s\n", tnc2buf, t0);
+			printf("%s:%s\n", tnc2buf, t0); // t0 is not NULL
 		}
 		if (rflogfile) {
 			FILE *fp = fopen(rflogfile, "a");
@@ -406,7 +402,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 				fprintf(fp, "%s %s", timebuf, portname);
 				if (tncid)
 					fprintf(fp, "_%d", tncid);
-				fprintf(fp, " #%s:%s\n", tnc2buf, t0);
+				fprintf(fp, " #%s:%s\n", tnc2buf, t0); // t0 is not nULL
 				fclose(fp);
 			}
 		}
@@ -450,9 +446,9 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		discard = -1;
 	}
 
-	if (discard)
-		erlang_add(NULL, portname, tncid, ERLANG_DROP,
-			   (int) (t - t0), 1);
+	if (discard) {
+		erlang_add(NULL, portname, tncid, ERLANG_DROP, tnc2len, 1);
+	}
 
 
 	/* DEBUG OUTPUT TO STDOUT ! */
@@ -467,7 +463,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		if (discard > 0) {
 			printf("#");
 		};
-		printf("%s:%s\n", tnc2buf, t0);
+		printf("%s:%s\n", tnc2buf, t0 ? t0 : ""); // t0 can be NULL
 	}
 	if (rflogfile) {
 		FILE *fp = fopen(rflogfile, "a");
@@ -487,7 +483,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 			if (discard > 0) {
 				fprintf(fp, "#");
 			}
-			fprintf(fp, "%s:%s\n", tnc2buf, t0);
+			fprintf(fp, "%s:%s\n", tnc2buf, t0 ? t0 : ""); // t0 can be NULL
 
 			fclose(fp);
 		}
