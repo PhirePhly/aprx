@@ -286,6 +286,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 
 	t = tnc2buf;
 	e = tnc2buf + tnc2len;
+	t0 = t; /* will be reset to packet content latter.. */
 
 	/* t == beginning of the TNC2 format packet */
 
@@ -302,7 +303,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		/* Forbidden in source fields.. */
 		if (debug)
 			printf("TNC2 forbidden source stationid: '%.20s'\n", t);
-		goto discard;
+		discard = -1;
 	}
 
 	/*  SOURCE>DESTIN,VIA,VIA:payload */
@@ -311,8 +312,8 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		++t;
 	} else {
 		if (debug)
-			printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
-		goto discard;
+		    printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
+		discard = -1;
 	}
 
 	s = tnc2_forbidden_destination_stationid(t);
@@ -321,7 +322,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 	else {
 		if (debug)
 			printf("TNC2 forbidden (by REGEX) destination stationid: '%.20s'\n", t);
-		goto discard;
+		discard = -1;
 	}
 
 	while (*t) {
@@ -332,7 +333,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 		} else {
 			if (debug)
 				printf("TNC2 via address syntax bug, wanted ',' or ':', got: '%.20s'\n", t);
-			goto discard;
+			discard = -1;
 		}
 
 		/*
@@ -347,7 +348,7 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 			/* Forbidden in via fields.. */
 			if (debug)
 				printf("TNC2 forbidden VIA stationid, got: '%.20s'\n", t);
-			goto discard;
+			discard = -1;
 		} else
 			t = (char *) s;
 
@@ -360,9 +361,13 @@ void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf, int tnc2len, in
 	} else {
 		if (debug)
 			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
-		goto discard;
+		discard = -1;
 	}
 	t0 = t;
+
+	if (discard) {
+	    goto discard;
+	}
 
 	/* Now 't' points to data.. */
 
@@ -560,7 +565,7 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	*t = 0;
 	i = ax25_to_tnc2_fmtaddress(t, frame + 7, 0);	/* source */
 	if (i < 0) {
-		discard = 1;	/* Bad format */
+		discard = -1;	/* Bad format */
 		if (debug)
 			printf("Ax25toTNC2: Bad destination address\n");
 	}
@@ -570,7 +575,7 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	j = ax25_to_tnc2_fmtaddress(t, frame + 0, 0);	/* destination */
 	if (i < 0) {
-		discard = 1;	/* Bad format */
+		discard = -1;	/* Bad format */
 		if (debug)
 			printf("Ax25toTNC2: Bad source address\n");
 	}
@@ -585,7 +590,7 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 			*t++ = ',';	/* separator char */
 			i = ax25_to_tnc2_fmtaddress(t, s, 1);
 			if (i < 0) {
-				discard = 1;	/* Bad format */
+				discard = -1;	/* Bad format */
 				if (debug)
 					printf("Ax25toTNC2: Bad via address\n");
 				break;

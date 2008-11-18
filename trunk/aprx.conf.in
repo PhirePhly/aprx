@@ -6,9 +6,10 @@
 # The  mycall  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
 # This value MUST NOT match any possible AX.25 interface in
-# the system!
+# the system!  Ignore this at your own peril...  The Call-SSIDs
+# SSID value does not need to be numeric 1..15: "-R1" works too.
 #
-#mycall           N0CALL-15
+#mycall           N0CALL-R1
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
@@ -160,7 +161,6 @@ pidfile @VARRUN@/aprx.pid
 #
 #radio tcp  12.34.56.78  4001  KISS  timeout 900 callsign N0CALL-12
 #radio tcp  12.34.56.78  4002  TNC2  timeout 300 callsign N0CALL-11
-#
 
 
 # The  netbeacon  option.
@@ -174,14 +174,14 @@ pidfile @VARRUN@/aprx.pid
 #
 # There can be multiple netbeacon options.
 # The parameter sets can vary:
-#  a) traditional "just a string" (but in quotes)
+#  a) 'for nnn-n symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
 #  b) 'for nnn-n raw "string"'
-#  c) 'for nnn-n symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
-# The c) form flags on some of possible syntax errors in parameters.
+#  c) traditional "just a string" (but in quotes)
+# The a) form flags on some of possible syntax errors in parameters.
 # It will also create only "!" type messages.
 #
 # Symbol  R&   is for "Rx-only iGate"
 #
-#netbeacon  "!6016.35NR02506.36E&aprx - an Rx-only iGate"
-#netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"
 #netbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"
+#netbeacon  "!6016.35NR02506.36E&aprx - an Rx-only iGate"

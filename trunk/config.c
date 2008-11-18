@@ -289,13 +289,13 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 		if (debug)
 			printf("%s:%d: SERIALPORT = %s %s..\n",
 			       cfgfilename, linenum, param1, str);
-		const char *s = ttyreader_serialcfg(param1, str);
+		ttyreader_serialcfg(param1, str);
 
 	} else if (strcmp(name, "radio") == 0) {
 		if (debug)
 			printf("%s:%d: RADIO = %s %s..\n",
 			       cfgfilename, linenum, param1, str);
-		const char *s = ttyreader_serialcfg(param1, str);
+		ttyreader_serialcfg(param1, str);
 
 	} else {
 		printf("%s:%d: Unknown config keyword: '%s' '%s'\n",
