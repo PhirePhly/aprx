@@ -1013,6 +1013,26 @@ int ttyreader_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
+#ifndef HAVE_CFMAKERAW  /* Extract from FreeBSD termios.c */
+/*
+ * Make a pre-existing termios structure into "raw" mode: character-at-a-time
+ * mode with no characters interpreted, 8-bit data path.
+ */
+void
+cfmakeraw(t)
+	struct termios *t;
+{
+
+	t->c_iflag &= ~(IMAXBEL|IXOFF|INPCK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON|IGNPAR);
+	t->c_iflag |= IGNBRK;
+	t->c_oflag &= ~OPOST;
+	t->c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|ICANON|ISIG|IEXTEN|NOFLSH|TOSTOP|PENDIN);
+	t->c_cflag &= ~(CSIZE|PARENB);
+	t->c_cflag |= CS8|CREAD;
+	t->c_cc[VMIN] = 1;
+	t->c_cc[VTIME] = 0;
+}
+#endif
 
 
 const char *ttyreader_serialcfg(char *param1, char *str)
@@ -1218,3 +1238,4 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 
 	return NULL;
 }
+

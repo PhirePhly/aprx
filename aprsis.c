@@ -71,6 +71,7 @@ void aprsis_init(void)
 static void sig_handler(int sig)
 {
 	die_now = 1;
+	signal(sig, sig_handler);
 }
 
 
@@ -560,6 +561,9 @@ int aprsis_queue(const char *addr, const char *gwcall, const char *text,
 	p += 2;
 	len = p - buf;
 
+#ifndef MSG_NOSIGNAL
+# define MSG_NOSIGNAL 0 /* This exists only on Linux, the  */
+#endif
 	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL);	/* No SIGPIPE if the
 							   receiver is out,
 							   or pipe is full
@@ -720,7 +724,7 @@ static void aprsis_main(void)
 	struct aprxpolls app = { NULL, 0, 0, 0 };
 
 	signal(SIGHUP, sig_handler);
-	signal(SIGPIPE, sig_handler);
+	signal(SIGPIPE, SIG_IGN);
 
 	/* The main loop */
 	while (!die_now) {

@@ -35,6 +35,7 @@ const char *swversion = APRXVERSION;
 static void sig_handler(int sig)
 {
 	die_now = 1;
+	signal(sig, sig_handler);
 }
 
 static void usage(void)
@@ -80,6 +81,7 @@ int main(int argc, char *const argv[])
 	signal(SIGTERM, sig_handler);
 	signal(SIGINT, sig_handler);
 	signal(SIGHUP, sig_handler);
+	signal(SIGPIPE, SIG_IGN);
 
 	while ((i = getopt(argc, argv, "def:hl:v?")) != -1) {
 		switch (i) {

@@ -342,13 +342,32 @@ void netax25_init(void)
 {
 }
 
-int netax25_prepoll(int n, struct pollfd **fdsp, time_t * tp)
+int netax25_prepoll(struct aprxpolls *app)
 {
 	return 0;
 }
 
-int netax25_postpoll(int n, struct pollfd *fds)
+int netax25_postpoll(struct aprxpolls *app)
 {
 	return 0;
 }
+
+void netax25_start(void)
+{
+}
+
+void netax25_addport(const char *portname, char *str)
+{
+}
+
+void netax25_sendax25(const void *ax25, int ax25len)
+{
+}
+
+void netax25_sendax25_tnc2(const void *tnc2, int tnc2len,
+			   int is3rdparty)
+{
+}
+
+
 #endif
