@@ -1,3 +1,11 @@
+2008-12-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, aprsis.c, netax25.c, configure.in, ttyreader.c, Makefile.in:
+	    Compile testing to get this to work on Solaris 10.
+	    Also fixes on PIPE failure handling (corrent SIGPIPE ignoring)
+	    on platforms other than Linux -- and possibly also for Linux.
+	    Now this should drop in to FreeBSD and OS/X as well.
+
 2008-10-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* netax25.c, aprx.8.in:
