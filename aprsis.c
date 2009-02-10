@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2009                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -23,7 +23,7 @@
  *
  * The APRS-IS system connection runs as separate sub-process, once it starts.
  * This way the main-loop is independent from uncertainties of DNS resolving
- * in this part of the code.
+ * delay times in this part of the code.
  *
  */
 
@@ -407,7 +407,8 @@ static int aprsis_sockreadline(struct aprsis *A)
 {
 	int i, c;
 
-	/* reads multiple lines from buffer, last one is left into incomplete state */
+	/* Reads multiple lines from buffer,
+	   Last one is left into incomplete state */
 
 	for (i = A->rdbuf_cur; i < A->rdbuf_len; ++i) {
 		c = 0xFF & (A->rdbuf[i]);
@@ -491,6 +492,11 @@ struct aprsis_tx_msg_head {
 	int textlen;
 };
 
+/*
+ * Read frame from a socket in between main-program and
+ * APRS-IS interface subprogram.  (At APRS-IS side.)
+ * 
+ */
 static void aprsis_readsp(void)
 {
 	int i;
@@ -716,7 +722,10 @@ static void aprsis_cond_reconnect(void)
 }
 
 
-
+/*
+ * Main-loop of subprogram handling communication with
+ * APRS-IS network servers.
+ */
 static void aprsis_main(void)
 {
 	int i;
@@ -903,7 +912,10 @@ void aprsis_start(void)
 
 
 
-
+/*
+ * main-program side pre-poll
+ *
+ */
 int aprsis_prepoll(struct aprxpolls *app)
 {
 	int idx = 0;		/* returns number of *fds filled.. */
@@ -925,6 +937,10 @@ int aprsis_prepoll(struct aprxpolls *app)
 
 }
 
+/*
+ * main-program side reading of aprsis_sp
+ *
+ */
 static int aprsis_comssockread(int fd)
 {
 	int i;
@@ -939,13 +955,16 @@ static int aprsis_comssockread(int fd)
 
 	/* Send the frame to internal AX.25 network */
 	if (i > 0)
-		netax25_sendax25_tnc2(buf, i, 1);
-
+		igate_from_aprsis(buf, i);
 
 	return 1;
 }
 
 
+/*
+ * main-program side post-poll
+ *
+ */
 int aprsis_postpoll(struct aprxpolls *app)
 {
 	int i;

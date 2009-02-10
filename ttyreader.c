@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2009                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -550,10 +550,10 @@ static int ttyreader_pullkiss(struct serialport *S)
 static int ttyreader_pulltnc2(struct serialport *S)
 {
 	/* Send the frame to internal AX.25 network */
-	netax25_sendax25_tnc2(S->rdline, S->rdlinelen, 0);
+	netax25_sendax25_tnc2(S->rdline, S->rdlinelen);
 
 	/* S->rdline[] has text line without line ending CR/LF chars   */
-	tnc2_rxgate(S->ttycallsign, 0, (char *) (S->rdline), S->rdlinelen, 0);
+	igate_to_aprsis(S->ttycallsign, 0, (char *) (S->rdline), S->rdlinelen, 0);
 
 	erlang_add(S, S->ttycallsign, 0, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 

@@ -88,13 +88,16 @@ APRS-IS interchange
                 ,qAR,gatecallsign
 		,gatecallsign,I
 
-	The "qAR" et.al. are explained at: http://www.aprs-is.net/q.htm
+	The "qAR" et.al. are explained at: http://www.aprs-is.net/q.aspx
 
 
 			APRS-TX iGate has additional rules:
 
+	All rules:
+	    http://www.aprs-is.net/IGateDetails.aspx
+
 	Specifically forbidden to relay to RF is "qAX", maybe some others too.
-	(See: http://www.aprs-is.net/q.htm)
+	(See: http://www.aprs-is.net/q.aspx)
 
 	If the packet VIA-path received from APRS-IS contains TCPXX,
 	NOGATE, RFONLY, then the packet is to be dropped, and not relayed
