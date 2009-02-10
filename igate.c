@@ -14,11 +14,6 @@
 #include <regex.h>
 
 
-
-
-
-
-
 static regex_t **sourceregs;
 static int sourceregscount;
 
@@ -500,23 +495,72 @@ static int forbidden_to_gate_addr(const char *s, const int len)
 /*
  * For APRSIS -> APRX -> RF gatewaying.
  * Have to convert incoming TNC2 format messge to AX.25..
+ *
+ * TODO:
+ *  aa) APRS-IS relayed third-party frames are ignored.
+ *
+ *  ac) The message path does not have TCPXX, NOGATE, RFONLY
+ *     in it.
+ *
+ *  a) The receiving station has been heard recently
+ *     within defined range limits, and more recently
+ *     than since given interval N1. (Range as digi-hops
+ *     or coordinates, or both.)
+ *
+ *  b) The sending station has not been heard via RF
+ *     within timer interval N2. (Third-party relayed
+ *     frames are not analyzed for this.)
+ *
+ * [c moved upwards as 'ac']
+ *
+ *  d) the sending station has not been heard via the Internet
+ *     within a predefined time period.
+ *     A station is said to be heard via the Internet if packets
+ *     from the station contain TCPIP* or TCPXX* in the header or
+ *     if gated (3rd-party) packets are seen on RF gated by the
+ *     station and containing TCPIP or TCPXX in the 3rd-party
+ *     header (in other words, the station is seen on RF as being
+ *     an IGate). 
+ *
+ * e)  Gate all packets to RF based on criteria set by the sysop
+ *     (such as callsign, object name, etc.).
+ *
+ * f)  Drop everything else.
+ *
+ *  Paths
+ *
+ * IGates should use the 3rd-party format on RF of
+ * IGATECALL>APRS,GATEPATH}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
+ * where GATEPATH is the path that the gated packet is to follow
+ * on RF. This format will allow IGates to prevent gating the packet
+ * back to APRS-IS.
+ * 
+ * q constructs should never appear on RF.
+ * The I construct should never appear on RF.
+ * Except for within gated packets, TCPIP and TCPXX should not be
+ * used on RF.
  */
-void igate_from_aprsis(const void *ax25, int ax25len)
+
+void igate_from_aprsis(const char *ax25, int ax25len)
 {
 	const char *p = ax25;
 	int colonidx;
 	const char *b;
-	const char *e = p + ax25len;
+	const char *e = p + ax25len; /* string end pointer */
 	char  axbuf[1000]; /* enough and then some more.. */
 
+	if (ax25len > 520) {
+	  /* Way too large a frame... */
+	  return;
+	}
 
-	colonidx = memchr(ax25, ':', ax25len);
+	b = memchr(ax25, ':', ax25len);
+	colonidx = b-ax25;
 	if (colonidx+3 >= ax25len) {
 	  /* Not really any data there.. */
 	  return;
 	}
-
-	b = p + colonidx + 1;
+	++b; /* Skip the ':' */
 
 	/* Check for forbidden things that cause dropping the packet */
 	if (*b == '}') /* Third-party packet from APRS-IS */
@@ -524,48 +568,6 @@ void igate_from_aprsis(const void *ax25, int ax25len)
 
 	if (forbidden_to_gate_addr(p, colonidx))
 		return;
-
-	/*
-	 * TODO:
-	 *  aa) APRS-IS relayed third-party frames are ignored.
-	 *  ac) The message path does not have TCPXX, NOGATE, RFONLY
-	 *     in it.
-	 *  a) The receiving station has been heard recently
-	 *     within defined range limits, and more recently
-	 *     than since given interval N1. (Range as digi-hops
-	 *     or coordinates, or both.)
-	 *  b) The sending station has not been heard via RF
-	 *     within timer interval N2. (Third-party relayed
-	 *     frames are not analyzed for this.)
-	 *
-	 * [c moved upwards]
-	 *
-	 *  d) the sending station has not been heard via the Internet
-	 *     within a predefined time period.
-	 *     A station is said to be heard via the Internet if packets
-	 *     from the station contain TCPIP* or TCPXX* in the header or
-	 *     if gated (3rd-party) packets are seen on RF gated by the
-	 *     station and containing TCPIP or TCPXX in the 3rd-party
-	 *     header (in other words, the station is seen on RF as being
-	 *     an IGate). 
-	 * e)  Gate all packets to RF based on criteria set by the sysop
-	 *     (such as callsign, object name, etc.).
-	 * f)  Drop everything else.
-	 *
-	 *  Paths
-	 *
-	 * IGates should use the 3rd-party format on RF of
-	 * IGATECALL>APRS,GATEPATH}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
-	 * where GATEPATH is the path that the gated packet is to follow
-	 * on RF. This format will allow IGates to prevent gating the packet
-	 * back to APRS-IS.
-	 * 
-	 * q constructs should never appear on RF.
-	 * The I construct should never appear on RF.
-	 * Except for within gated packets, TCPIP and TCPXX should not be
-	 * used on RF.
-	 */
-	
 
 
 	// netax25_sendax25(buf,len);
