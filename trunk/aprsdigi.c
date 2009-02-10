@@ -8,26 +8,9 @@
  *                                                                  *
  * **************************************************************** */
 
-
 #include "aprx.h"
 
 
-/* aprxpolls libary functions.. */
-
-
-void aprxpolls_reset(struct aprxpolls *app)
+void aprsdigi(const char *tnc2buf, const char *portname)
 {
-	app->pollcount = 0;
-}
-
-struct pollfd *aprxpolls_new(struct aprxpolls *app)
-{
-	app->pollcount += 1;
-	if (app->pollcount >= app->pollsize) {
-		app->pollsize += 8;
-		app->polls = realloc(app->polls,
-				     sizeof(struct pollfd *) *
-				     app->pollsize);
-	}
-	return &(app->polls[app->pollcount - 1]);
 }

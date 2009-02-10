@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2009                            *
  *                                                                  *
  * NETAX25:  Listen on (Linux) AX.25 socket and pick all AX.25      *
  *           data packets     ...    actually don't pick those      *
@@ -137,7 +137,7 @@ void netax25_sendax25(const void *ax25, int ax25len)
 }
 
 /* Have to convert incoming TNC2 format messge to AX.25.. */
-void netax25_sendax25_tnc2(const void *ax25, int ax25len, int is3rdparty)
+void netax25_sendax25_tnc2(const void *ax25, int ax25len)
 {
 }
 
@@ -364,8 +364,7 @@ void netax25_sendax25(const void *ax25, int ax25len)
 {
 }
 
-void netax25_sendax25_tnc2(const void *tnc2, int tnc2len,
-			   int is3rdparty)
+void netax25_sendax25_tnc2(const void *tnc2, int tnc2len)
 {
 }
 

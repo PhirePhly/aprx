@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007,2008                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2009                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -66,8 +66,6 @@ extern const char *ttyreader_serialcfg(char *param1, char *str);
 extern int kissencoder(void *, int, const void *, int, int);
 
 /* ax25.c */
-extern void tnc2_rxgate(const char *portname, int tncid, char *tnc2buf,
-			int tnc2len, int discard);
 extern void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 			 const unsigned char *frame, const int framelen);
 extern void ax25_filter_add(const char *p1, const char *p2);
@@ -95,16 +93,6 @@ extern void beacon_reset(void);
 extern int beacon_prepoll(struct aprxpolls *app);
 extern int beacon_postpoll(struct aprxpolls *app);
 
-/* netax25.c */
-extern void netax25_init(void);
-extern void netax25_start(void);
-extern int netax25_prepoll(struct aprxpolls *);
-extern int netax25_postpoll(struct aprxpolls *);
-extern void netax25_addport(const char *portname, char *str);
-extern void netax25_sendax25(const void *ax25, int ax25len);
-extern void netax25_sendax25_tnc2(const void *tnc2, int tnc2len,
-				  int is3rdparty);
-
 /* config.c */
 extern void readconfig(const char *cfgfile);
 extern char *config_SKIPSPACE(char *Y);
@@ -118,6 +106,20 @@ extern void erlang_init(const char *syslog_facility_name);
 extern void erlang_start(int do_create);
 extern int erlang_prepoll(struct aprxpolls *app);
 extern int erlang_postpoll(struct aprxpolls *app);
+
+/* igate.c */
+extern void igate_from_aprsis(const void *ax25, int ax25len);
+extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
+			    int tnc2len, int discard);
+
+/* netax25.c */
+extern void netax25_init(void);
+extern void netax25_start(void);
+extern int netax25_prepoll(struct aprxpolls *);
+extern int netax25_postpoll(struct aprxpolls *);
+extern void netax25_addport(const char *portname, char *str);
+extern void netax25_sendax25(const void *ax25, int ax25len);
+extern void netax25_sendax25_tnc2(const void *tnc2, int tnc2len);
 
 /* telemetry.c */
 extern int telemetry_prepoll(struct aprxpolls *app);
