@@ -13,6 +13,7 @@
 #include "aprx.h"
 #include <regex.h>
 
+static int aprx_tx_igate_enabled;
 
 static regex_t **sourceregs;
 static int sourceregscount;
@@ -26,6 +27,14 @@ static int viaregscount;
 static regex_t **dataregs;
 static int dataregscount;
 
+
+void enable_tx_igate(const char *p1, const char *p2)
+{
+	aprx_tx_igate_enabled = 1;
+	if (debug) {
+	  printf("enable-tx-igate\n");
+	}
+}
 
 /*
  * ax25_filter_add() -- adds configured regular expressions
@@ -549,6 +558,11 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	const char *e = p + ax25len; /* string end pointer */
 	char  axbuf[1000]; /* enough and then some more.. */
 
+	if (!aprx_tx_igate_enabled) {
+	  /* Not enabled */
+	  return;
+	}
+
 	if (ax25len > 520) {
 	  /* Way too large a frame... */
 	  return;
@@ -562,12 +576,20 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	}
 	++b; /* Skip the ':' */
 
+	/* aa) */
 	/* Check for forbidden things that cause dropping the packet */
 	if (*b == '}') /* Third-party packet from APRS-IS */
 		return; /* drop it */
 
+	/* ab) */
 	if (forbidden_to_gate_addr(p, colonidx))
 		return;
+
+	/* a) */
+	/* b) */
+	/* d) */
+	/* e) */
+	/* f) */
 
 
 	// netax25_sendax25(buf,len);
