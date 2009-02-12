@@ -27,6 +27,7 @@ const char *aprxlogfile;
 const char *pidfile = VARRUN "/aprx.pid";
 
 int die_now;
+int log_aprsis;
 
 const char *swname = "aprx";
 const char *swversion = APRXVERSION;
@@ -83,7 +84,7 @@ int main(int argc, char *const argv[])
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
 
-	while ((i = getopt(argc, argv, "def:hl:v?")) != -1) {
+	while ((i = getopt(argc, argv, "def:hLl:v?")) != -1) {
 		switch (i) {
 		case '?':
 		case 'h':
@@ -96,6 +97,9 @@ int main(int argc, char *const argv[])
 		case 'e':
 			++erlangout;
 			++foreground;
+			break;
+		case 'L':
+			log_aprsis = 1;
 			break;
 		case 'l':
 			syslog_facility = optarg;
@@ -203,6 +207,7 @@ int main(int argc, char *const argv[])
 	/* Must be after config reading ... */
 	aprsis_start();
 	netax25_start();
+	telemetry_start();
 
 	/* The main loop */
 

@@ -14,6 +14,17 @@ int telemetry_interval = 20 * 60;	/* 20 minutes */
 time_t telemetry_time;
 int telemetry_seq;
 
+void telemetry_start()
+{
+	/*
+	 * Initialize the sequence start to be highly likely
+	 * different from previous one...  This really should
+	 * be in some persistent database, but this is reasonable
+	 * compromise.
+	 */
+	telemetry_seq = time(NULL);
+}
+
 int telemetry_prepoll(struct aprxpolls *app)
 {
 	if (telemetry_time == 0)
@@ -38,6 +49,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 	telemetry_time += telemetry_interval;
 
+	++telemetry_seq;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 
@@ -138,7 +150,6 @@ int telemetry_postpoll(struct aprxpolls *app)
 				     (int) (s - buf));
 		}
 	}
-	++telemetry_seq;
 
 	return 0;
 }

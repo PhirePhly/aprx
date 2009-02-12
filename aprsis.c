@@ -63,6 +63,8 @@ static int aprsis_sp;		/* up & down talking socket(pair),
 				   parent: write talks down,
 				   child: write talks up. */
 
+extern int log_aprsis;
+
 void aprsis_init(void)
 {
 	aprsis_sp = -1;
@@ -187,7 +189,21 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 		if (debug > 1) {
 			printf("%ld\t<< %s:%s << ", now, A->H->server_name,
 			       A->H->server_port);
-			fwrite(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur), 1, stdout);	/* Does end on  \r\n */
+			fwrite(A->wrbuf + A->wrbuf_cur,
+			       (A->wrbuf_len - A->wrbuf_cur),
+			       1, stdout);	/* Does end on  \r\n */
+		}
+		if (aprxlogfile && log_aprsis) {
+			FILE *fp = fopen(aprxlogfile, "a");
+			if (fp) {
+				fprintf(fp, "%ld\t<< %s:%s << ",
+					now, A->H->server_name,
+					A->H->server_port);
+				fwrite(A->wrbuf + A->wrbuf_cur,
+				       (A->wrbuf_len - A->wrbuf_cur),
+				       1, fp);	/* Does end on  \r\n */
+				fclose(fp);
+			}
 		}
 
 		A->wrbuf_cur += i;
@@ -411,38 +427,51 @@ static int aprsis_sockreadline(struct aprsis *A)
 	   Last one is left into incomplete state */
 
 	for (i = A->rdbuf_cur; i < A->rdbuf_len; ++i) {
-		c = 0xFF & (A->rdbuf[i]);
-		if (c == '\r' || c == '\n') {
-			/* End of line, process.. */
-			if (A->rdlin_len > 0) {
-				A->rdline[A->rdlin_len] = 0;
-				/* */
-				A->last_read = now;	/* Time stamp me ! */
+	    c = 0xFF & (A->rdbuf[i]);
+	    if (c == '\r' || c == '\n') {
+		/* End of line, process.. */
+		if (A->rdlin_len > 0) {
+		    A->rdline[A->rdlin_len] = 0;
+		    /* */
+		    A->last_read = now;	/* Time stamp me ! */
 
-				if (debug > 1)
-					printf("%ld\t<< %s:%s >> %s\n",
-					       now, A->H->server_name,
-					       A->H->server_port,
-					       A->rdline);
-
-				/* Send the A->rdline content to main program */
-				c = send(aprsis_sp, A->rdline,
-					 strlen(A->rdline), 0);
-				/* This may fail with SIGPIPE.. */
-				if (c < 0 && (errno == EPIPE ||
-					      errno == ECONNRESET ||
-					      errno == ECONNREFUSED ||
-					      errno == ENOTCONN)) {
-					/* death-sentence to us.. */
-					exit(1);
-				}
+		    if (debug > 1) {
+		      printf("%ld\t<< %s:%s >> %s\n",
+			     now, A->H->server_name,
+			     A->H->server_port,
+			     A->rdline);
+		    } else {
+			if (aprxlogfile && log_aprsis) {
+			    FILE *fp = fopen(aprxlogfile, "a");
+			    if (fp) {
+				fprintf(fp, "%ld\t<< %s:%s >> ",
+					now, A->H->server_name,
+					A->H->server_port);
+				fwrite(A->rdline, A->rdlin_len, 1, fp);
+				fprintf(fp, "\n");
+				fclose(fp);
+			    }
 			}
-			A->rdlin_len = 0;
-			continue;
+		    }
+
+		    /* Send the A->rdline content to main program */
+		    c = send(aprsis_sp, A->rdline,
+			     strlen(A->rdline), 0);
+		    /* This may fail with SIGPIPE.. */
+		    if (c < 0 && (errno == EPIPE ||
+				  errno == ECONNRESET ||
+				  errno == ECONNREFUSED ||
+				  errno == ENOTCONN)) {
+		      /* death-sentence to us.. */
+		      exit(1);
+		    }
 		}
-		if (A->rdlin_len < sizeof(A->rdline) - 2) {
-			A->rdline[A->rdlin_len++] = c;
-		}
+		A->rdlin_len = 0;
+		continue;
+	    }
+	    if (A->rdlin_len < sizeof(A->rdline) - 2) {
+	      A->rdline[A->rdlin_len++] = c;
+	    }
 	}
 	A->rdbuf_cur = 0;
 	A->rdbuf_len = 0;	/* we ignore line reading */

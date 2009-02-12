@@ -200,6 +200,14 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 			printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
 			       cfgfilename, linenum, param1, str);
 
+	} else if (strcmp(name, "enable-tx-igate") == 0) {
+		
+		enable_tx_igate(param1,str);
+
+		if (debug)
+			printf("%s:%d: ENABLE-TX-IGATE\n",
+			       cfgfilename, linenum);
+
 	} else if (strcmp(name, "aprsis-mycall") == 0) {
 		/* Do not use! - multi APRSIS connection thing,
 		   which is also "do not use" item.. */
