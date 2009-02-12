@@ -122,6 +122,7 @@ extern void netax25_sendax25(const void *ax25, int ax25len);
 extern void netax25_sendax25_tnc2(const void *tnc2, int tnc2len);
 
 /* telemetry.c */
+extern void telemetry_start(void);
 extern int telemetry_prepoll(struct aprxpolls *app);
 extern int telemetry_postpoll(struct aprxpolls *app);
 
@@ -145,7 +146,7 @@ extern const char *erlang_backingstore;
 
 struct erlang_rxtxbytepkt {
 	long packets_rx, packets_rxdrop /* , packets_tx */ ;
-	long bytes_rx, bytes_rxdrop /* , bytes_tx */ ;
+	long bytes_rx,   bytes_rxdrop   /* , bytes_tx   */ ;
 	time_t update;
 };
 

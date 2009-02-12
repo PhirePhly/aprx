@@ -28,6 +28,10 @@ static regex_t **dataregs;
 static int dataregscount;
 
 
+/*
+ * Enable tx-igate functionality.
+ *
+ */
 void enable_tx_igate(const char *p1, const char *p2)
 {
 	aprx_tx_igate_enabled = 1;
@@ -505,6 +509,8 @@ static int forbidden_to_gate_addr(const char *s, const int len)
  * For APRSIS -> APRX -> RF gatewaying.
  * Have to convert incoming TNC2 format messge to AX.25..
  *
+ * See:  http://www.aprs-is.net/IGateDetails.aspx
+ *
  * TODO:
  *  aa) APRS-IS relayed third-party frames are ignored.
  *
@@ -562,6 +568,8 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  /* Not enabled */
 	  return;
 	}
+	if (ax25[0] == '#')
+	  return; // Comment line, timer tick, something such spurious..
 
 	if (ax25len > 520) {
 	  /* Way too large a frame... */
@@ -569,6 +577,10 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	}
 
 	b = memchr(ax25, ':', ax25len);
+	if (b == NULL) {
+	  return; // Huh?  No double-colon on line, it is not proper packet line
+	}
+
 	colonidx = b-ax25;
 	if (colonidx+3 >= ax25len) {
 	  /* Not really any data there.. */
