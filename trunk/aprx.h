@@ -24,6 +24,13 @@
 #include <syslog.h>
 
 
+#define CALLSIGNLEN_MAX 9
+
+#include "cellmalloc.h"
+#include "historydb.h"
+#include "keyhash.h"
+#include "pbuf.h"
+
 #if 0
 #define static			/*ignore statics during debug */
 #endif
@@ -108,6 +115,7 @@ extern int erlang_prepoll(struct aprxpolls *app);
 extern int erlang_postpoll(struct aprxpolls *app);
 
 /* igate.c */
+extern void igate_start(void);
 extern void igate_from_aprsis(const char *ax25, int ax25len);
 extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
 			    int tnc2len, int discard);

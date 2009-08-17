@@ -40,6 +40,16 @@ void enable_tx_igate(const char *p1, const char *p2)
 	}
 }
 
+
+/*
+ * igate start -- make TX-igate allocations and inits
+ */
+void igate_start()
+{
+	if (!aprx_tx_igate_enabled)
+		return;
+}
+
 /*
  * ax25_filter_add() -- adds configured regular expressions
  *                      into forbidden patterns list.
@@ -464,42 +474,28 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 /* ---------------------------------------------------------- */
 
 
+
+
+/* ---------------------------------------------------------- */
+
+
 /*
  * Study APRS-IS received message's address header part
  * to determine if it is not to be relayed back to RF..
  */
-static int forbidden_to_gate_addr(const char *s, const int len)
+static int forbidden_to_gate_addr(const char *s)
 {
 	int i = 0;
-	const char *e = s + len;
-
-	while ( s < e ) {
-		const char *p = s;
-		int l;
-		while (p < e) {
-			char c = *p;
-			if (c == '>' ||
-			    c == ',' ||
-			    c == ':') {
-				break;
-			}
-			++p;
-		}
-		l = p - s;
 		
-		if (memcmp(s, "TCPXX", 5) == 0)
-		  return 1; /* Forbidden to be relayed */
-		if (memcmp(s, "NOGATE", 6) == 0)
-		  return 1; /* Forbidden to be relayed */
-		if (memcmp(s, "RFONLY", 6) == 0)
-		  return 1; /* Forbidden to be relayed */
-		if (memcmp(s, "qAX", 3) == 0)
-		  return 1;
-		if (*p == ':')
-		  return 0; /* Found nothing forbidden */
-		++p;
-		s = p;
-	}
+	if (memcmp(s, "TCPXX", 5) == 0)
+	  return 1; /* Forbidden to be relayed */
+	if (memcmp(s, "NOGATE", 6) == 0)
+	  return 1; /* Forbidden to be relayed */
+	if (memcmp(s, "RFONLY", 6) == 0)
+	  return 1; /* Forbidden to be relayed */
+	if (memcmp(s, "qAX", 3) == 0)
+	  return 1;
+
 	return 0; /* Found nothing forbidden */
 }
 
@@ -511,24 +507,48 @@ static int forbidden_to_gate_addr(const char *s, const int len)
  *
  * See:  http://www.aprs-is.net/IGateDetails.aspx
  *
- * TODO:
- *  aa) APRS-IS relayed third-party frames are ignored.
+ * ----------------------------------------------------------------
+ * 
+ *  Gate message packets and associated posits to RF if
  *
- *  ac) The message path does not have TCPXX, NOGATE, RFONLY
+ *  1. the receiving station has been heard within range within
+ *     a predefined time period (range defined as digi hops,
+ *     distance, or both).
+ *  2. the sending station has not been heard via RF within
+ *     a predefined time period (packets gated from the Internet
+ *     by other stations are excluded from this test).
+ *  3. the sending station does not have TCPXX, NOGATE, or RFONLY
+ *     in the header.
+ *  4. the sending station has not been heard via the Internet
+ *     within a predefined time period.
+ *
+ * A station is said to be heard via the Internet if packets from
+ * the station contain TCPIP* or TCPXX* in the header or if gated
+ * (3rd-party) packets are seen on RF gated by the station and
+ * containing TCPIP or TCPXX in the 3rd-party header (in other
+ * words, the station is seen on RF as being an IGate).
+ *
+ * Gate all packets to RF based on criteria set by the sysop (such
+ * as callsign, object name, etc.).
+ *
+ * ----------------------------------------------------------------
+ *
+ * TODO:
+ *  a) APRS-IS relayed third-party frames are ignored.
+ *
+ *  3) The message path does not have TCPXX, NOGATE, RFONLY
  *     in it.
  *
- *  a) The receiving station has been heard recently
+ *  1) The receiving station has been heard recently
  *     within defined range limits, and more recently
- *     than since given interval N1. (Range as digi-hops
+ *     than since given interval T1. (Range as digi-hops [N1]
  *     or coordinates, or both.)
  *
- *  b) The sending station has not been heard via RF
- *     within timer interval N2. (Third-party relayed
+ *  2) The sending station has not been heard via RF
+ *     within timer interval T2. (Third-party relayed
  *     frames are not analyzed for this.)
  *
- * [c moved upwards as 'ac']
- *
- *  d) the sending station has not been heard via the Internet
+ *  4) the sending station has not been heard via the Internet
  *     within a predefined time period.
  *     A station is said to be heard via the Internet if packets
  *     from the station contain TCPIP* or TCPXX* in the header or
@@ -537,10 +557,10 @@ static int forbidden_to_gate_addr(const char *s, const int len)
  *     header (in other words, the station is seen on RF as being
  *     an IGate). 
  *
- * e)  Gate all packets to RF based on criteria set by the sysop
+ * 5)  Gate all packets to RF based on criteria set by the sysop
  *     (such as callsign, object name, etc.).
  *
- * f)  Drop everything else.
+ * c)  Drop everything else.
  *
  *  Paths
  *
@@ -556,6 +576,39 @@ static int forbidden_to_gate_addr(const char *s, const int len)
  * used on RF.
  */
 
+static void pick_heads(char *ax25, int headlen,
+		       char *heads[20], int *headscount) 
+{
+	char *p = ax25;
+	char *e = ax25 + headlen;
+
+	char *p0 = p;
+	if (debug)
+	  printf(" head parse: ");
+	while (p <= e) {
+	  p0 = p;
+	  while (p <= e) {
+	    const char c = *p;
+	    if (c != '>' && c != ',' && c != ':') {
+	      ++p;
+	      continue;
+	    }
+	    *p++ = 0;
+	    if (*headscount >= 19)
+	      continue; /* too many head parts.. */
+	    heads[*headscount] = p0;
+	    *headscount += 1;
+	    if (debug) {
+	      printf("  %-9s", p0);
+	    }
+	    break;
+	  }
+	}
+	heads[*headscount] = NULL;
+	if (debug)
+	  printf("\n");
+}
+
 void igate_from_aprsis(const char *ax25, int ax25len)
 {
 	const char *p = ax25;
@@ -563,6 +616,9 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	const char *b;
 	const char *e = p + ax25len; /* string end pointer */
 	char  axbuf[1000]; /* enough and then some more.. */
+	char  axbuf2[1000]; /* enough and then some more.. */
+	char  *heads[20];
+	int    headscount = 0;
 
 	if (!aprx_tx_igate_enabled) {
 	  /* Not enabled */
@@ -586,23 +642,76 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  /* Not really any data there.. */
 	  return;
 	}
+
+	memcpy(axbuf, ax25, ax25len);
+	headscount = 0;
+	pick_heads(axbuf, colonidx, heads, &headscount);
+
+	int ok_to_relay = 0;
+	int i;
+	if (headscount <= 4) {
+	  // No via fields in original packet
+	  if (debug)
+	    printf("Not relayable packet!\n");
+	  return;
+	}
+	/*
+	    if (strncmp(heads[1],"RXTLM-",6)==0) {
+	      if (debug)
+	        printf("Not relayable packet!\n");
+	      return;
+	    }
+	*/
+
+	for (i = 0; i < headscount; ++i) {
+	  if (forbidden_to_gate_addr(heads[i])) {
+	    if (debug)
+	      printf("Not relayable packet!\n");
+	    return;
+	  }
+
+	  if (heads[i][0] == 'q') {
+	    if (strcmp(heads[i], "qAR") == 0) {
+	      // qAR packets will be relayed
+	      ok_to_relay = 1;
+	      heads[i] = NULL;
+	      break;
+	    } else {
+	      // Other than "qAR", not accepted.
+	      ok_to_relay = 0;
+	      break;
+	    }
+	  }
+	}
+	if (!ok_to_relay) {
+	  if (debug)
+	    printf("Not relayable packet!\n");
+	  return;
+	}
+
 	++b; /* Skip the ':' */
 
-	/* aa) */
-	/* Check for forbidden things that cause dropping the packet */
-	if (*b == '}') /* Third-party packet from APRS-IS */
-		return; /* drop it */
-
-	/* ab) */
-	if (forbidden_to_gate_addr(p, colonidx))
-		return;
-
 	/* a) */
-	/* b) */
-	/* d) */
-	/* e) */
-	/* f) */
+	/* Check for forbidden things that cause dropping the packet */
+	if (*b == '}') { /* Third-party packet from APRS-IS */
+	  if (debug)
+	    printf("Not relayable packet!\n");
+	  return; /* drop it */
+	}
 
+	/* 3) */
+
+	/* 1) */
+	
+
+	/* 2) */
+	
+
+	/* 4) */
+	
+
+	/* f) */
+	
 
 	// netax25_sendax25(buf,len);
 }
