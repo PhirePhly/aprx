@@ -96,6 +96,10 @@ int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
 
 void tnc2_to_ax25()
 {
+	int i;
+
+	// TNC2 format:   src> dest, via1, via2, via3, ... via8
+	// AX25 format:   dest, src, via1, via2, via3, ... via8
 }
 
 /* Convert the binary packet to TNC2 monitor text format  */

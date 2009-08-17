@@ -228,6 +228,8 @@ static int aprspass(const char *mycall)
 
 	for (; *mycall; ++mycall) {
 		c = 0xFF & *mycall;
+		if ('a' <= c && c <= 'z')
+			c = c - ('a' - 'A');
 		if (!(('0' <= c && c <= '9') || ('A' <= c && c <= 'Z')))
 			break;
 		h ^= ((0xFF & *mycall) * (a ? 1 : 256));

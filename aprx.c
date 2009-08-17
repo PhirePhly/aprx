@@ -41,7 +41,7 @@ static void sig_handler(int sig)
 
 static void usage(void)
 {
-	printf("aprx: [-d][-d][-e][-v][-l logfacility] [-f %s]\n",
+	printf("aprx: [-d][-d][-e][-v][-L][-l logfacility] [-f %s]\n",
 	       CFGFILE);
 	printf("    version: %s\n", swversion);
 	printf("    -f %s:  where the configuration is\n", CFGFILE);
@@ -50,6 +50,7 @@ static void usage(void)
 	printf("    -l ...: sets syslog FACILITY code for erlang reports, default: LOG_DAEMON\n");
 	printf("    -d:  turn debug printout on, use to verify config file!\n");
 	printf("         twice: prints also interaction with aprs-is system..\n");
+	printf("    -L:  Log also all of APRS-IS traffic on relevant log.\n");
 	exit(64);		/* EX_USAGE */
 }
 
@@ -208,6 +209,7 @@ int main(int argc, char *const argv[])
 	aprsis_start();
 	netax25_start();
 	telemetry_start();
+	igate_start();
 
 	/* The main loop */
 

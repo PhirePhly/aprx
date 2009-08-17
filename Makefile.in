@@ -60,7 +60,9 @@ PROGSTAT=	$(PROGAPRX)-stat
 LIBS=		@LIBS@ @LIBRESOLV@ @LIBSOCKET@
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o	\
 		netax25.o erlang.o aprxpolls.o telemetry.o igate.o \
-		aprsdigi.o
+		aprsdigi.o cellmalloc.o historydb.o keyhash.o
+# parse_aprs.o
+
 OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
 
 # man page sources, will be installed as $(PROGAPRX).8 / $(PROGSTAT).8
