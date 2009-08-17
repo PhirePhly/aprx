@@ -27,21 +27,19 @@
 #
 #aprsis-heartbeat-timeout   120
 
-
-# APRS-IS server may support some filter commands.  Although this
-# program does not transmit out to RF, filter rules can be used to
-# ensure that there is sufficient dataflow from APRS-IS server to
-# this program that it very likely will not timeout within network
-# monitoring timeout..
-#
-#aprsis-filter "some filter specs in quotes"
-
 # Additional APRS-IS servers can be entered, by repeating following
 # three configuration entries as many times as are needed.
 #
 #aprsis-server            rotate.aprs.net 14580
 #aprsis-heartbeat-timeout 120
-#aprsis-filter            "some filter specs in quotes"
+
+# APRS-IS server may support some filter commands.
+# See:  http://www.aprs-is.net/javAPRSFilter.aspx
+#
+# Note: "m/.." filter does not work, because you can not beacon
+#       same ID as is used on APRS-IS login - the mycall !
+#
+#aprsis-filter "some filter specs in quotes"
 
 # AX.25 filters block selected messages matching on selected regular
 # expressions.  The expressions are case sensitive, and AX.25 address
@@ -162,7 +160,6 @@ pidfile @VARRUN@/aprx.pid
 #radio tcp  12.34.56.78  4001  KISS  timeout 900 callsign N0CALL-12
 #radio tcp  12.34.56.78  4002  TNC2  timeout 300 callsign N0CALL-11
 
-
 # The  netbeacon  option.
 # Parameter string (in quotes) is sent to network (without quotes)
 # at varying intervals --  1200-1800 seconds in between restransmits.
@@ -176,12 +173,16 @@ pidfile @VARRUN@/aprx.pid
 # The parameter sets can vary:
 #  a) 'for nnn-n symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
 #  b) 'for nnn-n raw "string"'
-#  c) traditional "just a string" (but in quotes)
 # The a) form flags on some of possible syntax errors in parameters.
 # It will also create only "!" type messages.
+#
+# Writing correct RAW format beacon message is very hard,
+# which is evidenced by the frequency of bad syntax texts
+# people so often put there...   If you can not be persuaded
+# not to do it, then at least VERIFY the beacon result on
+# web service like  findu.com,  or  aprs.fi
 #
 # Symbol  R&   is for "Rx-only iGate"
 #
 #netbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx - an Rx-only iGate"
 #netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"
-#netbeacon  "!6016.35NR02506.36E&aprx - an Rx-only iGate"
