@@ -238,7 +238,8 @@ int beacon_prepoll(struct aprxpolls *app)
 int beacon_postpoll(struct aprxpolls *app)
 {
 	char beaconaddr[64];
-	int txtlen;
+	int  beaconaddrlen;
+	int  txtlen;
 	struct beaconmsg *bm;
 
 	if (!beacon_msgs)
@@ -266,13 +267,14 @@ int beacon_postpoll(struct aprxpolls *app)
 
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
-	sprintf(beaconaddr, "%s>APRS", bm->destaddr);
+	beaconaddrlen = sprintf(beaconaddr, "%s>APRS", bm->destaddr);
+	
 	txtlen = strlen(bm->msg);
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(beaconaddr, mycall, bm->msg, txtlen);
+	aprsis_queue(beaconaddr, beaconaddrlen, mycall, bm->msg, txtlen);
 
 	return 0;
 }

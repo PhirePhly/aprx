@@ -87,7 +87,8 @@ extern void aprsis_set_heartbeat_timeout(const int tout);
 extern void aprsis_set_filter(const char *filter);
 extern void aprsis_set_mycall(const char *filter);
 
-extern int aprsis_queue(const char *addr, const char *gwcall,
+extern int aprsis_queue(const char *addr, int addrlen,
+			const char *gwcall,
 			const char *text, int textlen);
 extern int aprsis_prepoll(struct aprxpolls *app);
 extern int aprsis_postpoll(struct aprxpolls *app);
