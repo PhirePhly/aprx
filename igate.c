@@ -125,11 +125,11 @@ void ax25_filter_add(const char *p1, const char *p2)
 	}
 }
 
-static const char *tnc2_verify_callsign_format(const char *t, int starok)
+static const char *tnc2_verify_callsign_format(const char *t, int starok, const char *e)
 {
 	const char *s = t;
 
-	for (; *s; ++s) {
+	for (; *s && s < e; ++s) {
 		/* Valid station-id charset is:  [A-Z0-9] */
 		int c = *s;
 		if (!(('A' <= c && c <= 'Z') || ('0' <= c && c <= '9'))) {
@@ -152,6 +152,11 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok)
 					   limited to VIA fields :-(  */
 		++s;
 
+	if (s >= e) {
+		if (debug)
+			printf("callsign scanner ran over end of buffer");
+		return NULL; /* Over the end-of-buffer */
+	}
 	if (s == t) {
 		if (debug)
 			printf("callsign format verify got bad character: '%c' in string: '%.20s'\n", *s, t);
@@ -168,12 +173,12 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok)
 	return s;
 }
 
-static const char *tnc2_forbidden_source_stationid(const char *t)
+static const char *tnc2_forbidden_source_stationid(const char *t, const char *e)
 {
 	int i;
 	const char *s;
 
-	s = tnc2_verify_callsign_format(t, 0);
+	s = tnc2_verify_callsign_format(t, 0, e);
 	if (!s)
 		return NULL;
 
@@ -195,12 +200,12 @@ static const char *tnc2_forbidden_source_stationid(const char *t)
 	return s;
 }
 
-static const char *tnc2_forbidden_destination_stationid(const char *t)
+static const char *tnc2_forbidden_destination_stationid(const char *t, const char *e)
 {
 	int i;
 	const char *s;
 
-	s = tnc2_verify_callsign_format(t, 0);
+	s = tnc2_verify_callsign_format(t, 0, e);
 	if (!s)
 		return NULL;
 
@@ -213,12 +218,12 @@ static const char *tnc2_forbidden_destination_stationid(const char *t)
 	return s;
 }
 
-static const char *tnc2_forbidden_via_stationid(const char *t)
+static const char *tnc2_forbidden_via_stationid(const char *t, const char *e)
 {
 	int i;
 	const char *s;
 
-	s = tnc2_verify_callsign_format(t, 1);
+	s = tnc2_verify_callsign_format(t, 1, e);
 	if (!s)
 		return NULL;
 
@@ -315,7 +320,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	 * next if ($axpath =~ m/^RELAY/io);
 	 * next if ($axpath =~ m/^TRACE/io);
 	 */
-	s = tnc2_forbidden_source_stationid(t);
+	s = tnc2_forbidden_source_stationid(t, e);
 	if (s)
 		t = (char *) s;
 	else {
@@ -335,7 +340,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 		goto discard;
 	}
 
-	s = tnc2_forbidden_destination_stationid(t);
+	s = tnc2_forbidden_destination_stationid(t, e);
 	if (s)
 		t = (char *) s;
 	else {
@@ -344,7 +349,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 		goto discard;
 	}
 
-	while (*t) {
+	while (*t && t < e) {
 		if (*t == ':')
 			break;
 		if (*t == ',') {
@@ -362,7 +367,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 		 *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
 		 */
 
-		s = tnc2_forbidden_via_stationid(t);
+		s = tnc2_forbidden_via_stationid(t, e);
 		if (!s) {
 			/* Forbidden in via fields.. */
 			if (debug)
@@ -376,7 +381,13 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	/* Now we have processed the address, this should be ABORT time if
 	   the current character is not ':' !  */
 	if (*t == ':') {
-		*t++ = 0;	/* turn it to NUL character */
+#if 0
+	  // *t++ = 0;	/* turn it to NUL character */
+#else
+	  /* Don't zero! */
+	  ++t;
+#endif
+	  ;
 	} else {
 		if (debug)
 			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
@@ -434,11 +445,14 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	 */
 
 
-	t += strlen(t);		/* To the end of the string */
+	
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	discard = aprsis_queue(tnc2buf, portname, t0, e - t0);	/* Send it.. */
+	/*
+	  printf("alen=%d  tlen=%d  tnc2buf=%s\n",t0-1-tnc2buf, e-t0, tnc2buf);
+	*/
+	discard = aprsis_queue(tnc2buf, t0-1-tnc2buf, portname, t0, e - t0); /* Send it.. */
 
 	if (0) {
  discard:;

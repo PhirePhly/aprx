@@ -181,6 +181,11 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 	memcpy(A->wrbuf + A->wrbuf_len, text, textlen);
 	A->wrbuf_len += textlen;	/* Always supplied with tail newline.. */
 
+	/* -- debug --
+	  fwrite(A->wrbuf,A->wrbuf_len,1,stdout);
+	  return 0;
+	*/
+
 	/* Try writing it right away: */
 
 	i = write(A->server_socket, A->wrbuf + A->wrbuf_cur,
@@ -560,38 +565,52 @@ static void aprsis_readsp(void)
 	if (textlen <= 2)
 		return;		/* BAD! */
 
+	/*
+	  printf("addrlen=%d addr=%s\n",head.addrlen, addr);
+	  printf("gwlen=%d  gwcall=%s\n",head.gwlen,gwcall);
+	  printf("textlen=%d text=%s",head.textlen, text);
+	  return;
+	*/
+
 	/* Now queue the thing! */
 
 	for (i = 0; i < AprsIScount; ++i)
 		aprsis_queue_(AprsIS[i], addr, gwcall, text, textlen);
 }
 
-int aprsis_queue(const char *addr, const char *gwcall, const char *text,
+int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *text,
 		 int textlen)
 {
 	static char *buf;	/* Dynamically allocated buffer... */
 	static int buflen;
-	int i, len = strlen(gwcall);
+	int i, len, gwlen = strlen(gwcall);
 	char *p;
 	struct aprsis_tx_msg_head head;
+	int newlen;
 
-	if (len + textlen + strlen(addr) + 30 > buflen) {
-		buflen = len + textlen + strlen(addr) + 30;
+	if (addrlen == 0)      /* should never be... */
+		addrlen = strlen(addr);
+
+	newlen = sizeof(head) + addrlen + gwlen + textlen + 6;
+	if (newlen > buflen) {
+		buflen = newlen;
 		buf = realloc(buf, buflen);
 	}
 
-	head.then = now;
-	head.addrlen = strlen(addr);
-	head.gwlen = strlen(gwcall);
+	head.then    = now;
+	head.addrlen = addrlen;
+	head.gwlen   = gwlen;
 	head.textlen = textlen + 2;	/* We add line terminating \r\n  pair. */
 
 	memcpy(buf, &head, sizeof(head));
 	p = buf + sizeof(head);
 
-	p += sprintf(p, "%s", addr);
-	*++p = 0;		/* string terminating 0 byte */
-	p += sprintf(p, "%s", gwcall);
-	*++p = 0;		/* string terminating 0 byte */
+	memcpy(p, addr, addrlen);
+	p += addrlen;
+	*p++ = 0;		/* string terminating 0 byte */
+	memcpy(p, gwcall, gwlen);
+	p += gwlen;
+	*p++ = 0;		/* string terminating 0 byte */
 	memcpy(p, text, textlen);
 	p += textlen;
 	memcpy(p, "\r\n", 2);
@@ -611,8 +630,6 @@ int aprsis_queue(const char *addr, const char *gwcall, const char *text,
 	/* Return 0 if ANY of the queue operations was successfull
 	   Return 1 if there was some error.. */
 }
-
-
 
 
 static int aprsis_prepoll_(struct aprxpolls *app)
