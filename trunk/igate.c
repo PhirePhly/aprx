@@ -250,6 +250,45 @@ static int tnc2_forbidden_data(const char *t)
 	return 0;
 }
 
+/* ---------------------------------------------------------- */
+
+static void rflog(const char *portname, int tncid, int discard, const char *tnc2buf, int tnc2len) {
+    if (rflogfile) {
+	FILE *fp = fopen(rflogfile, "a");
+    
+	if (fp) {
+		char timebuf[60];
+		struct tm *t = gmtime(&now);
+		strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	  
+		fprintf(fp, "%s %s", timebuf, portname);
+		if (tncid)
+			fprintf(fp, "_%d", tncid);
+		fprintf(fp, " ");
+		if (discard < 0) {
+			fprintf(fp, "*");
+		}
+		if (discard > 0) {
+			fprintf(fp, "#");
+		}
+		fwrite( tnc2buf, tnc2len, 1, fp);
+		fprintf( fp, "\n" );
+		fclose(fp);
+	}
+    }
+}
+
+void verblog(const char *portname, int tncid, const char *tnc2buf, int tnc2len) {
+    if (verbout) {
+        printf("%ld\t%s", (long) now, portname);
+	if (tncid)
+	    printf("_%d", tncid);
+	printf("\t#");
+	fwrite(tnc2buf, tnc2len, 1, stdout);
+	printf("\n");
+    }
+}
+
 /*
  * The  tnc2_rxgate()  is actual RX-iGate filter function, and processes
  * prepated TNC2 format text presentation of the packet.
@@ -364,34 +403,15 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	/* Messages begining with '}' char are 3rd-party frames.. */
 	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
-		if (verbout) {
-			printf("%ld\t%s", (long) now, portname);
-			if (tncid)
-				printf("_%d", tncid);
-			printf("\t#");
-			printf("%s:%s\n", tnc2buf, t0); // t0 is not NULL
-		}
-		if (rflogfile) {
-			FILE *fp = fopen(rflogfile, "a");
-			if (fp) {
-				char timebuf[60];
-				struct tm *t = gmtime(&now);
-				strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S",
-					 t);
-
-				fprintf(fp, "%s %s", timebuf, portname);
-				if (tncid)
-					fprintf(fp, "_%d", tncid);
-				fprintf(fp, " #%s:%s\n", tnc2buf, t0); // t0 is not nULL
-				fclose(fp);
-			}
-		}
+		verblog(portname, tncid, tnc2buf, tnc2len);
+		rflog(portname, tncid, discard, tnc2buf, tnc2len);
 
 		/* Copy the 3rd-party message content into begining of the buffer... */
 		++t;				/* Skip the '}'		*/
 		tnc2len = e - t;		/* New length		*/
 		e = tnc2buf + tnc2len;		/* New end pointer	*/
 		memcpy(tnc2buf, t, tnc2len);	/* Move the content	*/
+		tnc2buf[tnc2len] = 0;
 
 		/* .. and redo the filtering. */
 		goto redo_frame_filter;
@@ -432,47 +452,9 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 
 
 	/* DEBUG OUTPUT TO STDOUT ! */
-	if (verbout) {
-		printf("%ld\t%s", (long) now, portname);
-		if (tncid)
-			printf("_%d", tncid);
-		printf("\t");
-		if (discard < 0) {
-			printf("*");
-		};
-		if (discard > 0) {
-			printf("#");
-		};
-		printf("%s:%s\n", tnc2buf, t0 ? t0 : ""); // t0 can be NULL
-	}
-	if (rflogfile) {
-		FILE *fp = fopen(rflogfile, "a");
-
-		if (fp) {
-			char timebuf[60];
-			struct tm *t = gmtime(&now);
-			strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-
-			fprintf(fp, "%s %s", timebuf, portname);
-			if (tncid)
-				fprintf(fp, "_%d", tncid);
-			fprintf(fp, " ");
-			if (discard < 0) {
-				fprintf(fp, "*");
-			}
-			if (discard > 0) {
-				fprintf(fp, "#");
-			}
-			fprintf(fp, "%s:%s\n", tnc2buf, t0 ? t0 : ""); // t0 can be NULL
-
-			fclose(fp);
-		}
-	}
+	verblog(portname, tncid, tnc2buf, tnc2len);
+	rflog(portname, tncid, discard, tnc2buf, tnc2len);
 }
-
-
-/* ---------------------------------------------------------- */
-
 
 
 
@@ -664,6 +646,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	*/
 
 	for (i = 0; i < headscount; ++i) {
+	  /* 3) */
 	  if (forbidden_to_gate_addr(heads[i])) {
 	    if (debug)
 	      printf("Not relayable packet!\n");
@@ -698,8 +681,6 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	    printf("Not relayable packet!\n");
 	  return; /* drop it */
 	}
-
-	/* 3) */
 
 	/* 1) */
 	
