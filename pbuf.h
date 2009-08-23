@@ -16,6 +16,8 @@
 #ifndef WORKER_H
 #define WORKER_H
 
+#include <time.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /* minimum and maximum length of a callsign on APRS-IS */

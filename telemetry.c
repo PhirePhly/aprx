@@ -128,7 +128,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 		/* Send those (net)beacons.. */
 		aprsis_queue(beaconaddr, beaconaddrlen,  mycall, buf, (int) (s - buf));
 
-		if ((telemetry_seq % 128) == 0) {
+		if ((telemetry_seq % 32) == 0) { /* every 5h20m */
 
 			/* Send at start, and every about 2 days.. */
 
