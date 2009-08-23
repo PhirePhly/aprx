@@ -22,7 +22,7 @@ void telemetry_start()
 	 * be in some persistent database, but this is reasonable
 	 * compromise.
 	 */
-	telemetry_seq = time(NULL);
+	telemetry_seq = (time(NULL)) & 127;
 }
 
 int telemetry_prepoll(struct aprxpolls *app)
@@ -50,7 +50,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 	telemetry_time += telemetry_interval;
 
-	++telemetry_seq;
+	telemetry_seq = (telemetry_seq + 1) % 128;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 
@@ -121,7 +121,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 		s += sprintf(s, "%03d,", (int) erlmax);
 
 		/* Tail filler */
-		s += sprintf(s, "000,00000000");
+		s += sprintf(s, "000,00000000");  // FIXME: TxPackets
 
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
@@ -133,19 +133,19 @@ int telemetry_postpoll(struct aprxpolls *app)
 			/* Send at start, and every about 2 days.. */
 
 			s = buf + sprintf(buf,
-					  ":%-9s:PARM.Max1m,Max10m,RxPkts,DropRxPkts",
+					  ":%-9s:PARM.Max 1m,Max 10m,RxPkts,DropRxPkts, TxPkts",
 					  E->name);
 			aprsis_queue(beaconaddr, beaconaddrlen, mycall, buf,
 				     (int) (s - buf));
 
 			s = buf + sprintf(buf,
-					  ":%-9s:UNIT.Erlang,Erlang,count,count",
+					  ":%-9s:UNIT.Erlang,Erlang,count 10m,count 10m, count 10m",
 					  E->name);
 			aprsis_queue(beaconaddr, beaconaddrlen, mycall, buf,
 				     (int) (s - buf));
 
 			s = buf + sprintf(buf,
-					  ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0",
+					  ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 					  E->name);
 			aprsis_queue(beaconaddr, beaconaddrlen, mycall, buf,
 				     (int) (s - buf));
