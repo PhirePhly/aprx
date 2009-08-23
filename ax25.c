@@ -79,6 +79,8 @@ int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
 		++i;
 	}
 
+	ax25[6] = ssidflags;
+
 	if (*text != '\0') {
 		++text;
 		if (sscanf(text, "%d", &ssid) != 1 || ssid < 0
