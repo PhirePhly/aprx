@@ -1,3 +1,26 @@
+2009-08-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION, INSTALL:
+	    Mark version as: 1.00
+	
+	* aprx.c:
+	    Document '-L' option.
+
+	* aprx.h, aprsis.c, beacon.c, igate.c:
+	    New internal API to pass data from  aprx proper, and APRS-IS
+	    communicator.  This is able to carry binary (including NUL
+	    bytes) data both on received AX.25 address, and frame content.
+
+	* telemetry.c:
+	    Change a bit on information texts, and transmit frequency.
+
+	* aprx.conf.in, aprx.8.in:
+	    Edit prototype configurations, and documentation
+
+	* aprx.c, aprx.h, igate.c, cellmalloc.h, historydb.h, historydb.c,
+	  keyhash.h, keyhash.c, pbuf.h, parse_aprs.c:
+	    Preparing infrastructure for TX capable i-gate, and digipeater.
+
 2009-02-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* Makefile.in, aprsdigi.c, igate.c, aprx.h, ax25.c, ttyreader.c,

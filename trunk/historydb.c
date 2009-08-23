@@ -15,8 +15,6 @@
 #include <math.h>
 
 
-#if 0
-
 cellarena_t *historydb_cells;
 int lastposition_storetime;
 
@@ -55,7 +53,7 @@ void historydb_init(void)
 void historydb_free(struct history_cell_t *p)
 {
 	if (p->packet != p->packetbuf)
-		hfree(p->packet);
+		free(p->packet);
 
 	cellfree( historydb_cells, p );
 	--historydb_cellgauge;
@@ -235,11 +233,11 @@ int historydb_insert(struct pbuf_t *pb)
 				cp->packetlen   = pb->packet_len;
 
 				if ( cp->packet != cp->packetbuf )
-					hfree( cp->packet );
+					free( cp->packet );
 				cp->packet = cp->packetbuf; /* default case */
 				if ( cp->packetlen > sizeof(cp->packetbuf) ) {
 					/* Needs bigger buffer */
-					cp->packet = hmalloc( cp->packetlen );
+					cp->packet = malloc( cp->packetlen );
 				}
 				memcpy( cp->packet, pb->data, cp->packetlen );
 			}
@@ -267,9 +265,8 @@ int historydb_insert(struct pbuf_t *pb)
 		cp->packet      = cp->packetbuf; /* default case */
 		if (cp->packetlen > sizeof(cp->packetbuf)) {
 			/* Needs bigger buffer */
-			cp->packet = hmalloc( cp->packetlen );
+			cp->packet = realloc( cp->packet, cp->packetlen );
 		}
-		memcpy( cp->packet, pb->data, cp->packetlen );
 
 		*hp = cp; 
 	}
@@ -354,5 +351,3 @@ void historydb_cleanup(void)
 		}
 	}
 }
-
-#endif

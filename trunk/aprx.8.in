@@ -562,7 +562,7 @@ which was too close to another (a less low-tech C++ approach) program had.
 The
 .IR Erlang -monitor
 mechanisms are of rudimentary quality, and can seriously underestimate
-the channel occupancy.
+the channel occupancy by ignoring pre- and postample transmissions.
 .PP
 On SMACK links there is no full-form of multi-TNC support.
 Run with only one TNC on link, its id can be any in 0..7 range.
