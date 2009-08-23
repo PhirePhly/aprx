@@ -50,7 +50,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 	telemetry_time += telemetry_interval;
 
-	telemetry_seq = (telemetry_seq + 1) % 128;
+	++telemetry_seq;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 
