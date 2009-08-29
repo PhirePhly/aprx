@@ -121,6 +121,7 @@ int main(int argc, char *const argv[])
 	erlang_init(syslog_facility);
 	ttyreader_init();
 	netax25_init();
+	dupecheck_init(); // before aprsis_init() !
 	aprsis_init();
 
 	erlang_start(1);

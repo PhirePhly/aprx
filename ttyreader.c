@@ -1066,7 +1066,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	tty->fd = -1;
 	tty->wait_until = now - 1;	/* begin opening immediately */
 	tty->last_read_something = now;	/* well, not really.. */
-	tty->linetype = LINETYPE_KISS;	/* default */
+	tty->linetype  = LINETYPE_KISS;	/* default */
 	tty->kissstate = KISSSTATE_SYNCHUNT;
 
 	tty->ttyname = NULL;
