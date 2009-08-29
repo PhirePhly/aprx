@@ -9,9 +9,12 @@
  * **************************************************************** */
 
 #include "aprx.h"
+#include <math.h>
 
 struct beaconmsg {
+	time_t nexttime;
 	const char *destaddr;
+	const char *dest;
 	const char *msg;
 };
 
@@ -22,8 +25,7 @@ static int beacon_msgs_cursor;
 
 
 static time_t beacon_nexttime;
-static int beacon_increment;
-
+static int    beacon_cycle_size = 20*60; // 20 minutes
 
 int validate_degmin_input(const char *s, int maxdeg)
 {
@@ -31,20 +33,20 @@ int validate_degmin_input(const char *s, int maxdeg)
 	return 0;		/* zero for OK */
 }
 
-void beacon_reset(void)
+void netbeacon_reset(void)
 {
 	beacon_nexttime = now + 30;	/* start 30 seconds from now */
 	beacon_msgs_cursor = beacon_msgs_count;	/* and start the sequence
 						   from the beginning */
 }
 
-void beacon_set(const char *p1, char *str)
+void netbeacon_set(const char *p1, char *str)
 {
 	const char *for_ = mycall;
-	char *buf = alloca(strlen(p1) + strlen(str ? str : "") + 10);
+	char *buf  = alloca(strlen(p1) + strlen(str ? str : "") + 10);
 	char *code = NULL;
-	char *lat = NULL;
-	char *lon = NULL;
+	char *lat  = NULL;
+	char *lon  = NULL;
 	char *comment = NULL;
 
 	*buf = 0;
@@ -81,6 +83,11 @@ void beacon_set(const char *p1, char *str)
 
 			if (debug)
 				printf("for '%s' ", for_);
+
+		} else if (strcmp(p1, "dest") == 0) {
+			bm->dest  = str;
+			str = config_SKIPTEXT(str);
+			str = config_SKIPSPACE(str);
 
 		} else if (strcmp(p1, "lat") == 0) {
 			/*  ddmm.mmN   */
@@ -220,11 +227,13 @@ void beacon_set(const char *p1, char *str)
 	beacon_msgs[beacon_msgs_count++] = bm;
 	beacon_msgs[beacon_msgs_count] = NULL;
 
-	beacon_reset();
+	netbeacon_reset();
 }
 
-int beacon_prepoll(struct aprxpolls *app)
+int netbeacon_prepoll(struct aprxpolls *app)
 {
+	if (!mycall)
+		return 0;	/* No mycall !  hoh... */
 	if (!beacon_msgs)
 		return 0;	/* Nothing to do */
 
@@ -235,15 +244,13 @@ int beacon_prepoll(struct aprxpolls *app)
 }
 
 
-int beacon_postpoll(struct aprxpolls *app)
+int netbeacon_postpoll(struct aprxpolls *app)
 {
 	char beaconaddr[64];
 	int  beaconaddrlen;
 	int  txtlen;
+	int  i;
 	struct beaconmsg *bm;
-
-	if (!beacon_msgs)
-		return 0;	/* Nothing to do */
 
 	if (beacon_nexttime > now)
 		return 0;	/* Too early.. */
@@ -252,22 +259,31 @@ int beacon_postpoll(struct aprxpolls *app)
 		beacon_msgs_cursor = 0;
 
 	if (beacon_msgs_cursor == 0) {
-		int beacon_interval = 1200 + rand() % 600;	/*  1200-1800 seconds from now */
-		beacon_increment = beacon_interval / beacon_msgs_count;
-		if (beacon_increment < 3)
-			beacon_increment = 3;	/* Minimum interval: 3 seconds ! */
+		float beacon_cycle = (beacon_cycle_size -
+				      0.2*beacon_cycle_size *
+				      (rand()*1000)*0.001);
+		float beacon_increment = beacon_cycle / beacon_msgs_count;
+		if (beacon_increment < 3.0)
+			beacon_increment = 3.0;	/* Minimum interval: 3 seconds ! */
+		for (i = 0; i < beacon_msgs_count; ++i) {
+			beacon_msgs[i]->nexttime =
+			  now + round(i * beacon_increment + beacon_increment);
+		}
 	}
-
-	beacon_nexttime += beacon_increment;
-
-	if (!mycall)
-		return 0;	/* No mycall !  hoh... */
 
 	/* --- now the business of sending ... */
 
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
-	beaconaddrlen = sprintf(beaconaddr, "%s>APRS", bm->destaddr);
+	beacon_nexttime = bm->nexttime;
+
+	if (bm->dest == NULL) {
+		beaconaddrlen = sprintf(beaconaddr, "%s>APRS",
+					bm->destaddr);
+	} else {
+		beaconaddrlen = sprintf(beaconaddr, "%s>%s",
+					bm->destaddr, bm->dest);
+	}
 	
 	txtlen = strlen(bm->msg);
 

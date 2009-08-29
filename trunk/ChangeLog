@@ -1,3 +1,16 @@
+2009-08-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c -> netbeacon.c, Makefile.in, aprsis.c, aprx.c, aprx.h:
+	    Change file name, and all references therein.
+	    A preparation for separate RF beacons.
+
+	* netbeacon.c:
+	    Add "netbeacon dest APRS,NOGATE ..."  option for configuration.
+
+	* netbeacon.c:
+	    Use float math to determine next event times for all beacons
+	    for smoother distribution.
+
 2009-08-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* Makefile.in, dupecheck.c, dupecheck.h, aprx.c, aprx.h, aprsis.c:
