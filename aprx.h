@@ -96,11 +96,11 @@ extern int aprsis_postpoll(struct aprxpolls *app);
 extern void aprsis_init(void);
 extern void aprsis_start(void);
 
-/* beacon.c */
-extern void beacon_set(const char *s, char *);
-extern void beacon_reset(void);
-extern int beacon_prepoll(struct aprxpolls *app);
-extern int beacon_postpoll(struct aprxpolls *app);
+/* netbeacon.c */
+extern void netbeacon_set(const char *s, char *);
+extern void netbeacon_reset(void);
+extern int  netbeacon_prepoll(struct aprxpolls *app);
+extern int  netbeacon_postpoll(struct aprxpolls *app);
 
 /* config.c */
 extern void readconfig(const char *cfgfile);

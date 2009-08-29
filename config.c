@@ -239,7 +239,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 		netax25_addport(param1, str);
 
 	} else if (strcmp(name, "netbeacon") == 0) {
-		beacon_set(param1, str);
+		netbeacon_set(param1, str);
 
 		if (debug)
 			printf("%s:%d: NETBEACON = '%s' '%s'\n",
