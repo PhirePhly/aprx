@@ -62,12 +62,18 @@ static int aprsis_multiconnect;
 static int aprsis_sp;		/* up & down talking socket(pair),
 				   parent: write talks down,
 				   child: write talks up. */
+static dupecheck_t *aprsis_rx_dupecheck;
+
 
 extern int log_aprsis;
 
 void aprsis_init(void)
 {
 	aprsis_sp = -1;
+}
+
+void enable_aprsis_rx_dupecheck(void) {
+	aprsis_rx_dupecheck = new_dupecheck();
 }
 
 static void sig_handler(int sig)
@@ -590,6 +596,13 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 
 	if (addrlen == 0)      /* should never be... */
 		addrlen = strlen(addr);
+
+	if (aprsis_rx_dupecheck != NULL) {
+	  i = dupecheck(aprsis_rx_dupecheck, 
+			addr, addrlen,
+			text, textlen);
+	  if (i != 0) return 1; // Bad either as dupe, or due to alloc failure
+	}
 
 	newlen = sizeof(head) + addrlen + gwlen + textlen + 6;
 	if (newlen > buflen) {

@@ -30,6 +30,7 @@
 #include "historydb.h"
 #include "keyhash.h"
 #include "pbuf.h"
+#include "dupecheck.h"
 
 #if 0
 #define static			/*ignore statics during debug */

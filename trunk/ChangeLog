@@ -1,3 +1,15 @@
+2009-08-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile.in, dupecheck.c, dupecheck.h, aprx.c, aprx.h, aprsis.c:
+	    Add infrastructure for future:  dupecheck()
+
+	* telemetry.c:
+	    Add "NOGATE" on telemetry messages transmitted to APRSIS.
+
+	* igate.c:
+	    Deeper look into Rx-IGate specs revealed couple missing details.
+	    More bits towards Tx-IGate.
+
 2009-08-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION, INSTALL:

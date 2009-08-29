@@ -27,6 +27,7 @@ static int viaregscount;
 static regex_t **dataregs;
 static int dataregscount;
 
+static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
 
 /*
  * Enable tx-igate functionality.
@@ -46,6 +47,8 @@ void enable_tx_igate(const char *p1, const char *p2)
  */
 void igate_start()
 {
+	aprsisdupe = new_dupecheck();
+
 	if (!aprx_tx_igate_enabled)
 		return;
 }
@@ -210,6 +213,13 @@ static const char *tnc2_forbidden_destination_stationid(const char *t, const cha
 		return NULL;
 
 	for (i = 0; i < destinationregscount; ++i) {
+	  if (memcmp("TCPIP", t, 5) == 0 ||	/* just plain wrong */
+	      memcmp("TCPXX", t, 5) == 0 ||	/* Forbidden to gate */
+	      memcmp("NOGATE", t, 5) == 0 ||	/* Forbidden to gate */
+	      memcmp("RFONLY", t, 5) == 0 ||	/* Forbidden to gate */
+	      memcmp("N0CALL", t, 6) == 0 ||	/* TNC default setting */
+	      memcmp("NOCALL", t, 6) == 0)	/* TNC default setting */
+		return NULL;
 		int stat = regexec(destinationregs[i], t, 0, NULL, 0);
 		if (stat == 0)
 			return NULL;	/* MATCH! */
@@ -444,7 +454,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	 * ...  and many more ...
 	 */
 
-
+	// FIXME: Duplicate filter messages to APRSIS
 	
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
@@ -515,7 +525,7 @@ static int forbidden_to_gate_addr(const char *s)
  *     by other stations are excluded from this test).
  *  3. the sending station does not have TCPXX, NOGATE, or RFONLY
  *     in the header.
- *  4. the sending station has not been heard via the Internet
+ *  4. the receiving station has not been heard via the Internet
  *     within a predefined time period.
  *
  * A station is said to be heard via the Internet if packets from
@@ -645,8 +655,8 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 	int ok_to_relay = 0;
 	int i;
-	if (headscount <= 4) {
-	  // No via fields in original packet
+	if (headscount < 4) {
+	  // Less than 3 header fields coming from APRS-IS ?
 	  if (debug)
 	    printf("Not relayable packet!\n");
 	  return;

@@ -184,5 +184,5 @@ pidfile @VARRUN@/aprx.pid
 #
 # Symbol  R&   is for "Rx-only iGate"
 #
-#netbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx - an Rx-only iGate"
-#netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"
+#netbeacon for N0CALL-13 symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#netbeacon for N0CALL-14 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
