@@ -365,17 +365,17 @@ erlangfile @VARRUN@/aprx.state
 #
 # There can be multiple netbeacon options.
 # The parameter sets can vary:
-#  a) traditional "just a string" (but in quotes)
-#  b) 'for nnn-n raw "string"'
-#  c) 'for nnn-n symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
-# The c) form flags on some of possible syntax errors in parameters.
-# It will also create only "!" type messages.
+#  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
+#  b) 'for nnn-n dest "string" raw "string"'
+# The a) form flags on some of possible syntax errors in parameters.
+# It will also create only "!" type messages.  The dest parameter
+# defaults to "APRS", but can be used to add VIA keywords, like when
+# one wants to prevent gating back to RF: "APRS,NOGATE"
 #
 # Symbol  R&   is for "rx\-only iGate"
 #
-#netbeacon  "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"
-#netbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"
-#netbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx \- an Rx\-only iGate"
+#netbeacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx \- an Rx\-only iGate"
+#netbeacon for N0CALL-14 dest "APRS" raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"
 \fR
 .fi
 .PP
