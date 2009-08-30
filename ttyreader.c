@@ -550,7 +550,7 @@ static int ttyreader_pullkiss(struct serialport *S)
 static int ttyreader_pulltnc2(struct serialport *S)
 {
 	/* Send the frame to internal AX.25 network */
-	netax25_sendax25_tnc2(S->rdline, S->rdlinelen);
+	/* netax25_sendax25_tnc2(S->rdline, S->rdlinelen); */
 
 	/* S->rdline[] has text line without line ending CR/LF chars   */
 	igate_to_aprsis(S->ttycallsign, 0, (char *) (S->rdline), S->rdlinelen, 0);
@@ -1229,7 +1229,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	}
 
 	if (!tty->ttycallsign)
-		tty->ttycallsign = mycall;
+		tty->ttycallsign = aprsis_login;
 
 
 

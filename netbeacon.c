@@ -24,6 +24,7 @@ static int beacon_msgs_cursor;
 
 
 static time_t beacon_nexttime;
+static time_t beacon_last_nexttime;
 static int    beacon_cycle_size = 20*60; // 20 minutes
 
 int validate_degmin_input(const char *s, int maxdeg)
@@ -40,7 +41,7 @@ void netbeacon_reset(void)
 
 void netbeacon_set(const char *p1, char *str)
 {
-	const char *srcaddr  = mycall;
+	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
 	const char *via      = NULL;
 	char *buf  = alloca(strlen(p1) + strlen(str ? str : "") + 10);
@@ -56,8 +57,6 @@ void netbeacon_set(const char *p1, char *str)
 	if (!bm)
 		return;		/* sigh.. */
 	memset(bm, 0, sizeof(*bm));
-
-	srcaddr = mycall;
 
 	if (debug)
 		printf("NETBEACON parameters: ");
@@ -184,6 +183,13 @@ void netbeacon_set(const char *p1, char *str)
 	if (debug)
 		printf("\n");
 
+	if (srcaddr == NULL) {
+		if (debug)
+			printf("Lacking the 'for' keyword for this beacon definition.");
+		return;
+	}
+
+
 	if (destaddr == NULL)
 		destaddr = "APRS";
 	if (via == NULL) {
@@ -240,7 +246,7 @@ void netbeacon_set(const char *p1, char *str)
 
 int netbeacon_prepoll(struct aprxpolls *app)
 {
-	if (!mycall)
+	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
 	if (!beacon_msgs)
 		return 0;	/* Nothing to do */
@@ -262,9 +268,6 @@ int netbeacon_postpoll(struct aprxpolls *app)
 	if (beacon_nexttime > now)
 		return 0;	/* Too early.. */
 
-	if (beacon_msgs_cursor >= beacon_msgs_count)	/* Last done.. */
-		beacon_msgs_cursor = 0;
-
 	if (beacon_msgs_cursor == 0) {
 		float beacon_cycle, beacon_increment;
 		int   r;
@@ -282,6 +285,7 @@ int netbeacon_postpoll(struct aprxpolls *app)
 			beacon_msgs[i]->nexttime =
 			  now + round(i * beacon_increment);
 		}
+		beacon_last_nexttime = now + round(beacon_msgs_count * beacon_increment);
 	}
 
 	/* --- now the business of sending ... */
@@ -289,14 +293,23 @@ int netbeacon_postpoll(struct aprxpolls *app)
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
 	beacon_nexttime = bm->nexttime;
+	if (beacon_msgs_cursor >= beacon_msgs_count) {	/* Last done.. */
+		beacon_msgs_cursor = 0;
+	        beacon_nexttime    = beacon_last_nexttime;
+	}
 	
 	destlen = strlen(bm->dest);
 	txtlen  = strlen(bm->msg);
 
+	if (debug) {
+		printf("Now beaconing: '%s' -> '%s',  next beacon in %.2f minutes\n",
+		       bm->dest, bm->msg, round((beacon_nexttime - now)/60.0));
+	}
+
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(bm->dest, destlen, mycall, bm->msg, txtlen);
+	aprsis_queue(bm->dest, destlen, aprsis_login, bm->msg, txtlen);
 
 	return 0;
 }

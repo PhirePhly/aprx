@@ -127,9 +127,9 @@ int main(int argc, char *const argv[])
 	erlang_start(1);
 	readconfig(cfgfile);	/* TODO: real parametrized cfg file location.. */
 
-	if ((debug || verbout) && !mycall) {
+	if ((debug || verbout) && !aprsis_login) {
 		fprintf(stderr,
-			"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
+			"APRX: NO GLOBAL  APRSIS-LOGIN=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	}
 
 	if (!foreground) {
@@ -208,7 +208,7 @@ int main(int argc, char *const argv[])
 
 	/* Must be after config reading ... */
 	aprsis_start();
-	netax25_start();
+	netax25_start(aprsis_login); // FIXME: Wrong one!
 	telemetry_start();
 	igate_start();
 

@@ -197,13 +197,13 @@ it is never re-read during process life.
 #  Sample configuration file for the APRX \-\- an Rx\-only APRS iGate
 #
 
-# The  mycall  parameter: 
+# The  aprsis-login  parameter: 
 # Station call\-id used for relaying APRS frames into APRS\-IS.
 # This value MUST NOT match any possible AX.25 interface in
 # the system!  Ignore this at your own peril...  The Call\-SSIDs
 # SSID value do not need to be numeric 1..15, "\-R1" works too.
 #
-#mycall           N0CALL\-R1
+#aprsis\-login      N0CALL\-R1
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
