@@ -126,7 +126,8 @@ int telemetry_postpoll(struct aprxpolls *app)
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 		/* Send those (net)beacons.. */
-		aprsis_queue(beaconaddr, beaconaddrlen,  mycall, buf, (int) (s - buf));
+		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
+			     buf, (int) (s - buf));
 
 		if ((telemetry_seq % 32) == 0) { /* every 5h20m */
 
@@ -135,20 +136,20 @@ int telemetry_postpoll(struct aprxpolls *app)
 			s = buf + sprintf(buf,
 					  ":%-9s:PARM.Max 1m,Max 10m,RxPkts,DropRxPkts, TxPkts",
 					  E->name);
-			aprsis_queue(beaconaddr, beaconaddrlen, mycall, buf,
-				     (int) (s - buf));
+			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+				     buf, (int) (s - buf));
 
 			s = buf + sprintf(buf,
 					  ":%-9s:UNIT.Erlang,Erlang,count 10m,count 10m, count 10m",
 					  E->name);
-			aprsis_queue(beaconaddr, beaconaddrlen, mycall, buf,
-				     (int) (s - buf));
+			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+				     buf, (int) (s - buf));
 
 			s = buf + sprintf(buf,
 					  ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 					  E->name);
-			aprsis_queue(beaconaddr, beaconaddrlen, mycall, buf,
-				     (int) (s - buf));
+			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+				     buf, (int) (s - buf));
 		}
 	}
 

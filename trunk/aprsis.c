@@ -32,7 +32,7 @@ struct aprsis_host {
 	const char *server_name;
 	const char *server_port;
 	const char *filterparam;
-	const char *mycall;
+	const char *login;
 	int heartbeat_monitor_timeout;
 };
 
@@ -136,7 +136,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 	if (A->server_socket < 0)
 		return 1;
 
-	/* Here the A->H->mycall is always set. */
+	/* Here the A->H->login is always set. */
 
 	/*
 	 * Append stuff on the writebuf, if it fits.
@@ -154,7 +154,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 	if (addr)
 		addrlen = sprintf(addrbuf, "%s,qAR,%s:", addr,
 				  (gwcall
-				   && *gwcall) ? gwcall : A->H->mycall);
+				   && *gwcall) ? gwcall : A->H->login);
 	len = addrlen + textlen;
 
 
@@ -233,17 +233,17 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
  * will terminate the calculation.
  */
 
-static int aprspass(const char *mycall)
+static int aprspass(const char *login)
 {
 	int a = 0, h = 29666, c;
 
-	for (; *mycall; ++mycall) {
-		c = 0xFF & *mycall;
+	for (; *login; ++login) {
+		c = 0xFF & *login;
 		if ('a' <= c && c <= 'z')
 			c = c - ('a' - 'A');
 		if (!(('0' <= c && c <= '9') || ('A' <= c && c <= 'Z')))
 			break;
-		h ^= ((0xFF & *mycall) * (a ? 1 : 256));
+		h ^= ((0xFF & *login) * (a ? 1 : 256));
 		a = !a;
 	}
 	return h;
@@ -279,9 +279,9 @@ static void aprsis_reconnect(struct aprsis *A)
 	}
 
 
-	if (!A->H->mycall) {
+	if (!A->H->login) {
 		if (verbout)
-			printf("%ld\tFAIL - MYCALL not defined, no APRSIS connection!\n", (long) now);
+			printf("%ld\tFAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n", (long) now);
 		if (aprxlogfile) {
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
@@ -291,7 +291,7 @@ static void aprsis_reconnect(struct aprsis *A)
 					 t);
 
 				fprintf(fp,
-					"%s FAIL - MYCALL not defined, no APRSIS connection!\n",
+					"%s FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n",
 					timebuf);
 				fclose(fp);
 			}
@@ -417,8 +417,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	/* We do at first sync writing of login, and such.. */
 	s = aprsislogincmd;
-	s += sprintf(s, "user %s pass %d vers %s %s", A->H->mycall,
-		     aprspass(A->H->mycall), swname, swversion);
+	s += sprintf(s, "user %s pass %d vers %s %s", A->H->login,
+		     aprspass(A->H->login), swname, swversion);
 	if (A->H->filterparam)
 		s += sprintf(s, " filter %s", A->H->filterparam);
 	strcpy(s, "\r\n");
@@ -893,7 +893,7 @@ void aprsis_add_server(const char *server, const char *port)
 
 	H->server_name = strdup(server);
 	H->server_port = strdup(port);
-	H->mycall = mycall;	/* global mycall */
+	H->login = aprsis_login;	/* global aprsis_login */
 
 	A->server_socket = -1;
 	A->next_reconnect = now;	/* perhaps somewhen latter.. */
@@ -928,7 +928,7 @@ void aprsis_set_filter(const char *filter)
 	H->filterparam = strdup(filter);
 }
 
-void aprsis_set_mycall(const char *mycall)
+void aprsis_set_login(const char *login)
 {
 	int i = AIShcount;
 	struct aprsis_host *H;
@@ -937,7 +937,7 @@ void aprsis_set_mycall(const char *mycall)
 		--i;
 	H = AISh[i];
 
-	H->mycall = strdup(mycall);
+	H->login = strdup(login);
 }
 
 void aprsis_start(void)

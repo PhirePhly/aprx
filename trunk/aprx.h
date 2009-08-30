@@ -47,7 +47,7 @@ extern void aprxpolls_reset(struct aprxpolls *app);
 extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
 
 /* aprx.c */
-extern const char *mycall;
+extern const char *aprsis_login;
 extern int die_now;
 
 extern int fd_nonblockingmode(int fd);
@@ -85,7 +85,7 @@ extern int parse_ax25addr(unsigned char ax25[7], const char *text,
 extern void aprsis_add_server(const char *server, const char *port);
 extern void aprsis_set_heartbeat_timeout(const int tout);
 extern void aprsis_set_filter(const char *filter);
-extern void aprsis_set_mycall(const char *filter);
+extern void aprsis_set_login(const char *login);
 
 extern int aprsis_queue(const char *addr, int addrlen,
 			const char *gwcall,
@@ -123,12 +123,11 @@ extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
 
 /* netax25.c */
 extern void netax25_init(void);
-extern void netax25_start(void);
+extern void netax25_start(const char *ifcallsign);
 extern int netax25_prepoll(struct aprxpolls *);
 extern int netax25_postpoll(struct aprxpolls *);
 extern void netax25_addport(const char *portname, char *str);
 extern void netax25_sendax25(const void *ax25, int ax25len);
-extern void netax25_sendax25_tnc2(const void *tnc2, int tnc2len);
 
 /* telemetry.c */
 extern void telemetry_start(void);

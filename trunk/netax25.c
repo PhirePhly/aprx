@@ -32,7 +32,9 @@
 static int pty_master = -1;
 static int pty_slave = -1;
 
-static void netax25_openpty(void)
+static const char *my_ifcallsign;
+
+static void netax25_openpty(const char *mycall)
 {
 	int rc;
 	int disc;
@@ -41,6 +43,8 @@ static void netax25_openpty(void)
 	unsigned char ax25call[7];
 	struct ifreq ifr;
 	int fd = -1;
+
+	my_ifcallsign = mycall;
 
 	if (!mycall)
 		return;		/* No mycall, no ptys! */
@@ -136,20 +140,13 @@ void netax25_sendax25(const void *ax25, int ax25len)
 	rc = write(pty_master, ax25buf, ax25len);
 }
 
-/* Have to convert incoming TNC2 format messge to AX.25.. */
-void netax25_sendax25_tnc2(const void *ax25, int ax25len)
-{
-}
-
 #else
-static void netax25_openpty(void)
+static void netax25_openpty(const char *mycall)
 {
+	my_ifcallsign = mycall;
 }
 
 void netax25_sendax25(const void *ax25, int ax25len)
-{
-}
-void netax25_sendax25_tnc2(const void *ax25, int ax25len)
 {
 }
 #endif				/* HAVE_OPENPTY */
@@ -174,12 +171,12 @@ void netax25_init(void)
 }
 
 /* .. but all things in late start.. */
-void netax25_start(void)
+void netax25_start(const char *ifcallsign)
 {
 	int i;
 	int rx_protocol;
 
-	netax25_openpty();
+	netax25_openpty(ifcallsign);
 
 	rx_socket = -1;			/* Initialize for early bail-out  */
 
@@ -297,8 +294,8 @@ int netax25_postpoll(struct aprxpolls *app)
 				printf("Received frame from '%s' len %d\n",
 				       ifaddress, rcvlen);
 
-			if (strcmp(ifaddress, mycall) == 0)
-				continue;	/* We drop our own packets */
+			if (strcmp(ifaddress, my_ifcallsign) == 0)
+				continue;	/* We drop our own packets, if we ever see them */
 
 
 			if (ax25rxports) {

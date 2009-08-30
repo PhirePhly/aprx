@@ -11,7 +11,7 @@
 #include "aprx.h"
 
 
-const char *mycall;
+const char *aprsis_login;
 
 
 char *config_SKIPSPACE(char *Y)
@@ -172,10 +172,18 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 	if (strcmp(name, "mycall") == 0) {
 		config_STRUPPER(param1);
 		validate_callsign_input(param1);
-		mycall = strdup(param1);
+		aprsis_login = strdup(param1);
 		if (debug)
-			printf("%s:%d: MYCALL = '%s' '%s'\n",
-			       cfgfilename, linenum, mycall, str);
+			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
+			       cfgfilename, linenum, aprsis_login, str);
+
+	} else if (strcmp(name, "aprsis-login") == 0) {
+		config_STRUPPER(param1);
+		validate_callsign_input(param1);
+		aprsis_login = strdup(param1);
+		if (debug)
+			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
+			       cfgfilename, linenum, aprsis_login, str);
 
 	} else if (strcmp(name, "aprsis-server") == 0) {
 		aprsis_add_server(param1, str);
@@ -207,15 +215,6 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 		if (debug)
 			printf("%s:%d: ENABLE-TX-IGATE\n",
 			       cfgfilename, linenum);
-
-	} else if (strcmp(name, "aprsis-mycall") == 0) {
-		/* Do not use! - multi APRSIS connection thing,
-		   which is also "do not use" item.. */
-		aprsis_set_mycall(param1);
-
-		if (debug)
-			printf("%s:%d: APRSIS-MYCALL = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
 
 	} else if (strcmp(name, "ax25-filter") == 0) {
 		if (debug)

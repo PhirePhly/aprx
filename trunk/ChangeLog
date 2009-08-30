@@ -1,5 +1,11 @@
 2009-08-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.8.in, aprx.conf.in, config.c, aprx.h, aprx.c, telemetry.c,
+	  netax25.c, netbeacon.c, aprsis.c, ttyreader.c, erlang.c, 
+	  aprx-stat.c:
+	    Rename the "mycall" configuration parameter to "aprsis-login",
+	    what it really is being used at.  There is no "mycall", anywhere!
+
 	* dupecheck.c, aprx.h, aprx.c, [dupecheck.h]:
 	    Removed dupecheck.h after incorporating it into aprx.h.
 	    Added the poll-interfaces to handle housekeeping operations.
@@ -31,7 +37,7 @@
 
 	* VERSION, INSTALL:
 	    Mark version as: 1.00
-	
+
 	* aprx.c:
 	    Document '-L' option.
 
@@ -143,7 +149,6 @@
 
 	* beacon.c:
 	    Improve input validation.
-	
 
 2008-02-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
@@ -164,12 +169,12 @@
 
 2008-02-03  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	* configure.in, netax25.c, 
+	* configure.in, netax25.c,
 	    autodetect header <pty.h>, and libutil function openpty().
-	
+
 	* netax25.c, aprx.h, aprx.c:
 	    Rearranged  netax25 module initing - to happen _latter_.
-	
+
 	* ttyreader.c, aprx.h, netax25.c:
 	    kissencoder() function
 
@@ -390,7 +395,7 @@
 	* aprxpolls.c:
 	    Library function used everywhere, part of "eliminate fixed
 	    size preallocations" -task.
-	
+
 	* aprsis.c:
 	    Debug logging improvements, parent death detection.
 	    Preserved MAXAPRSIS setting - of 10 servers.
@@ -406,7 +411,7 @@
 	* VERSION, arpx.c, Makefile, aprx.8, aprx.8.in,
 	  aprx-stat.8, aprx-stat.8.in:
 	    Define system version in VERSION file, have it stamped
-	    on programs and 
+	    on programs and packages.
 
 	* config.c:
 	    The "aprxlog" and "rflog" parameters were interchanged
@@ -502,7 +507,7 @@
 	    Erlang data has now a mmap():ed filesystem based backing-store.
 	    Erlang-data can be syslog()ed, and independently of that,
 	    it can be printed on STDOUT.  Default syslog facility is "NONE".
-	
+
 	* Great Rename -- the thing is now called:  aprx
 
 2007-12-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
