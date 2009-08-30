@@ -115,7 +115,7 @@ static void dupecheck_db_free(struct dupe_record_t *dp)
  *	Note: entry validity is possibly shorter time than the cleanup
  *	invocation interval!
  */
-void dupecheck_cleanup(void)
+static void dupecheck_cleanup(void)
 {
 	struct dupe_record_t *dp, **dpp;
 	int cleancount = 0, i;
@@ -227,5 +227,33 @@ int dupecheck(dupecheck_t *dpc,
 	memcpy(dp->packet,    data, datalen);
 	dp->hash = hash;
 	dp->t    = now + dupefilter_storetime;
+	return 0;
+}
+
+/*
+ * dupechecker aprx poll integration, timed tasks control
+ *
+ */
+
+static time_t dupecheck_cleanup_nexttime;
+
+int dupecheck_prepoll(struct aprxpolls *app)
+{
+	if (dupecheck_cleanup_nexttime < app->next_timeout)
+		app->next_timeout = dupecheck_cleanup_nexttime;
+
+	return 0;		/* No poll descriptors, only time.. */
+}
+
+
+int dupecheck_postpoll(struct aprxpolls *app)
+{
+	if (dupecheck_cleanup_nexttime > now)
+		return 0;	/* Too early.. */
+
+	dupecheck_cleanup_nexttime = now + 30; // tick every 30 second or so
+
+	dupecheck_cleanup();
+
 	return 0;
 }

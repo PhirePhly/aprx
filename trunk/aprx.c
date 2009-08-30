@@ -227,6 +227,7 @@ int main(int argc, char *const argv[])
 		i = netax25_prepoll(&app);
 		i = erlang_prepoll(&app);
 		i = telemetry_prepoll(&app);
+		i = dupecheck_prepoll(&app);
 
 		if (app.next_timeout <= now)
 			app.next_timeout = now + 1;	/* Just to be on safe side.. */
@@ -242,6 +243,7 @@ int main(int argc, char *const argv[])
 		i = aprsis_postpoll(&app);
 		i = erlang_postpoll(&app);
 		i = telemetry_postpoll(&app);
+		i = dupecheck_postpoll(&app);
 
 	}
 

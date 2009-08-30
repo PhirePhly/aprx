@@ -1,11 +1,15 @@
 2009-08-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* dupecheck.c, aprx.h, aprx.c, [dupecheck.h]:
+	    Removed dupecheck.h after incorporating it into aprx.h.
+	    Added the poll-interfaces to handle housekeeping operations.
+
 	* beacon.c -> netbeacon.c, Makefile.in, aprsis.c, aprx.c, aprx.h:
 	    Change file name, and all references therein.
 	    A preparation for separate RF beacons.
 
-	* netbeacon.c:
-	    Add "netbeacon dest APRS,NOGATE ..."  option for configuration.
+	* netbeacon.c, aprx.8.in, aprx.conf.in:
+	    Add "netbeacon dest APRS via NOGATE ..."  options for configuration.
 
 	* netbeacon.c:
 	    Use float math to determine next event times for all beacons
