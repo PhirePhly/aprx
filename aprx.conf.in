@@ -175,8 +175,8 @@ pidfile @VARRUN@/aprx.pid
 #  b) 'for nnn-n dest "string" raw "string"'
 # The a) form flags on some of possible syntax errors in parameters.
 # It will also create only "!" type messages.  The dest parameter
-# defaults to "APRS", but can be used to add VIA keywords, like when
-# one wants to prevent gating back to RF: "APRS,NOGATE"
+# defaults to "APRS", but can be used to give other destinations.
+# The via parameter can be used to add other keywords, like "NOGATE".
 #
 # Writing correct RAW format beacon message is very hard,
 # which is evidenced by the frequency of bad syntax texts

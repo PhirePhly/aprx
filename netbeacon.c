@@ -13,7 +13,6 @@
 
 struct beaconmsg {
 	time_t nexttime;
-	const char *destaddr;
 	const char *dest;
 	const char *msg;
 };
@@ -36,18 +35,21 @@ int validate_degmin_input(const char *s, int maxdeg)
 void netbeacon_reset(void)
 {
 	beacon_nexttime = now + 30;	/* start 30 seconds from now */
-	beacon_msgs_cursor = beacon_msgs_count;	/* and start the sequence
-						   from the beginning */
+	beacon_msgs_cursor = 0;
 }
 
 void netbeacon_set(const char *p1, char *str)
 {
-	const char *for_ = mycall;
+	const char *srcaddr  = mycall;
+	const char *destaddr = NULL;
+	const char *via      = NULL;
 	char *buf  = alloca(strlen(p1) + strlen(str ? str : "") + 10);
 	char *code = NULL;
 	char *lat  = NULL;
 	char *lon  = NULL;
 	char *comment = NULL;
+	char beaconaddr[64];
+	int  beaconaddrlen;
 
 	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
@@ -55,7 +57,7 @@ void netbeacon_set(const char *p1, char *str)
 		return;		/* sigh.. */
 	memset(bm, 0, sizeof(*bm));
 
-	bm->destaddr = mycall;
+	srcaddr = mycall;
 
 	if (debug)
 		printf("NETBEACON parameters: ");
@@ -67,27 +69,34 @@ void netbeacon_set(const char *p1, char *str)
 
 		if (strcmp(p1, "for") == 0) {
 
-			for_ = str;
+			srcaddr = str;
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 
-			if (validate_callsign_input((char *) for_)) {
+			if (validate_callsign_input((char *) srcaddr)) {
 				;
 			}
 
-			p1 = str;
-			str = config_SKIPTEXT(str);
-			str = config_SKIPSPACE(str);
-
-			bm->destaddr = strdup(for_);
-
 			if (debug)
-				printf("for '%s' ", for_);
+				printf("for '%s' ", srcaddr);
 
 		} else if (strcmp(p1, "dest") == 0) {
-			bm->dest  = str;
+
+			destaddr = str;
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
+
+			if (debug)
+				printf("dest '%s' ", destaddr);
+
+		} else if (strcmp(p1, "via") == 0) {
+
+			via  = str;
+			str = config_SKIPTEXT(str);
+			str = config_SKIPSPACE(str);
+
+			if (debug)
+				printf("via '%s' ", via);
 
 		} else if (strcmp(p1, "lat") == 0) {
 			/*  ddmm.mmN   */
@@ -99,10 +108,6 @@ void netbeacon_set(const char *p1, char *str)
 			if (validate_degmin_input(lat, 90)) {
 				;
 			}
-
-			p1 = str;
-			str = config_SKIPTEXT(str);
-			str = config_SKIPSPACE(str);
 
 			if (debug)
 				printf("lat '%s' ", lat);
@@ -118,10 +123,6 @@ void netbeacon_set(const char *p1, char *str)
 				;
 			}
 
-			p1 = str;
-			str = config_SKIPTEXT(str);
-			str = config_SKIPSPACE(str);
-
 			if (debug)
 				printf("lon '%s' ", lon);
 
@@ -129,10 +130,6 @@ void netbeacon_set(const char *p1, char *str)
 			/*   R&    */
 
 			code = str;
-			str = config_SKIPTEXT(str);
-			str = config_SKIPSPACE(str);
-
-			p1 = str;
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 
@@ -146,10 +143,6 @@ void netbeacon_set(const char *p1, char *str)
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 
-			p1 = str;
-			str = config_SKIPTEXT(str);
-			str = config_SKIPSPACE(str);
-
 			if (debug)
 				printf("comment '%s' ", comment);
 
@@ -160,10 +153,6 @@ void netbeacon_set(const char *p1, char *str)
 			str = config_SKIPSPACE(str);
 
 			bm->msg = strdup(p1);
-
-			p1 = str;
-			str = config_SKIPTEXT(str);
-			str = config_SKIPSPACE(str);
 
 			if (debug)
 				printf("raw '%s' ", bm->msg);
@@ -188,9 +177,29 @@ void netbeacon_set(const char *p1, char *str)
 #endif
 		}
 
+		p1 = str;
+		str = config_SKIPTEXT(str);
+		str = config_SKIPSPACE(str);
 	}
 	if (debug)
 		printf("\n");
+
+	if (destaddr == NULL)
+		destaddr = "APRS";
+	if (via == NULL) {
+		beaconaddrlen = snprintf(beaconaddr, sizeof(beaconaddr),
+					 "%s>%s", srcaddr, destaddr);
+	} else {
+		beaconaddrlen = snprintf(beaconaddr, sizeof(beaconaddr),
+					 "%s>%s,%s", srcaddr, destaddr, via);
+	}
+	if (beaconaddrlen >= sizeof(beaconaddr)) {
+		// BAD BAD!  Too big?
+		if (debug)
+			printf("Constructed netbeacon address header is too big. (over %d chars long)",sizeof(beaconaddr)-2);
+		return;
+	}
+	bm->dest = strdup(beaconaddr);
 
 	if (!bm->msg) {
 		/* Not raw packet, perhaps composite ? */
@@ -217,8 +226,7 @@ void netbeacon_set(const char *p1, char *str)
 	}
 
 	if (debug)
-		printf("NETBEACON  FOR '%s'  '%s'\n", bm->destaddr,
-		       bm->msg);
+		printf("NETBEACON  FOR '%s'  '%s'\n", bm->dest, bm->msg);
 
 	/* realloc() works also when old ptr is NULL */
 	beacon_msgs = realloc(beacon_msgs,
@@ -246,8 +254,7 @@ int netbeacon_prepoll(struct aprxpolls *app)
 
 int netbeacon_postpoll(struct aprxpolls *app)
 {
-	char beaconaddr[64];
-	int  beaconaddrlen;
+	int  destlen;
 	int  txtlen;
 	int  i;
 	struct beaconmsg *bm;
@@ -259,15 +266,21 @@ int netbeacon_postpoll(struct aprxpolls *app)
 		beacon_msgs_cursor = 0;
 
 	if (beacon_msgs_cursor == 0) {
-		float beacon_cycle = (beacon_cycle_size -
-				      0.2*beacon_cycle_size *
-				      (rand()*1000)*0.001);
-		float beacon_increment = beacon_cycle / beacon_msgs_count;
+		float beacon_cycle, beacon_increment;
+		int   r;
+		srand(now);
+		r = rand() % 1024;
+		beacon_cycle = (beacon_cycle_size -
+				0.2*beacon_cycle_size * (r*0.001));
+		beacon_increment = beacon_cycle / beacon_msgs_count;
 		if (beacon_increment < 3.0)
 			beacon_increment = 3.0;	/* Minimum interval: 3 seconds ! */
+		if (debug)
+			printf("netbeacons cycle: %.2f minutes, r: %d, increment: %.1f seconds\n",
+			       beacon_cycle/60.0, r, beacon_increment);
 		for (i = 0; i < beacon_msgs_count; ++i) {
 			beacon_msgs[i]->nexttime =
-			  now + round(i * beacon_increment + beacon_increment);
+			  now + round(i * beacon_increment);
 		}
 	}
 
@@ -276,21 +289,14 @@ int netbeacon_postpoll(struct aprxpolls *app)
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
 	beacon_nexttime = bm->nexttime;
-
-	if (bm->dest == NULL) {
-		beaconaddrlen = sprintf(beaconaddr, "%s>APRS",
-					bm->destaddr);
-	} else {
-		beaconaddrlen = sprintf(beaconaddr, "%s>%s",
-					bm->destaddr, bm->dest);
-	}
 	
-	txtlen = strlen(bm->msg);
+	destlen = strlen(bm->dest);
+	txtlen  = strlen(bm->msg);
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(beaconaddr, beaconaddrlen, mycall, bm->msg, txtlen);
+	aprsis_queue(bm->dest, destlen, mycall, bm->msg, txtlen);
 
 	return 0;
 }

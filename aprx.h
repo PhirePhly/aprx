@@ -30,7 +30,6 @@
 #include "historydb.h"
 #include "keyhash.h"
 #include "pbuf.h"
-#include "dupecheck.h"
 
 #if 0
 #define static			/*ignore statics during debug */
@@ -213,3 +212,33 @@ struct erlanghead {
 extern struct erlanghead *ErlangHead;
 extern struct erlangline **ErlangLines;
 extern int ErlangLinesCount;
+
+
+/* dupecheck.c */
+
+
+struct dupe_record_t {
+	struct dupe_record_t *next;
+	uint32_t hash;
+	time_t	 t;
+	int	 alen;	// Address length
+	int	 plen;	// Payload length
+	char	 addresses[20];
+	char	*packet;
+	char	 packetbuf[200]; /* 99.9+ % of time this is enough.. */
+};
+
+#define DUPECHECK_DB_SIZE 64        /* Hash index table size - per dupechecker */
+
+typedef struct dupecheck_t {
+	struct dupecheck_t *next;
+	struct dupe_record_t *dupecheck_db[DUPECHECK_DB_SIZE]; /* Hash index table */
+	
+
+} dupecheck_t;
+
+extern void         dupecheck_init(void);	/* Inits the dupechecker subsystem */
+extern dupecheck_t *new_dupecheck(void);	/* Makes a new dupechecker  */
+extern int	    dupecheck(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen); /* the checker */
+extern int          dupecheck_prepoll(struct aprxpolls *app);
+extern int          dupecheck_postpoll(struct aprxpolls *app);
