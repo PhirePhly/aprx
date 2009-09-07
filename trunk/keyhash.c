@@ -109,8 +109,8 @@ unsigned int __attribute__((pure)) keyhash(const void const *p, int len, unsigne
 {
 	const uint8_t *u = p;
 	int i;
-#define FNV_32_PRIME     16777619
-#define FVN_32_OFFSET  2166136261
+#define FNV_32_PRIME     16777619U
+#define FVN_32_OFFSET  2166136261U
 
 	if (hash == 0)
 		hash = FVN_32_OFFSET;
