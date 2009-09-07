@@ -90,6 +90,9 @@ int new_cellblock(cellarena_t *ca)
 	cb = mmap( NULL, ca->createsize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	close(fd);
 #else
+#ifndef MAP_ANONYMOUS
+# define MAP_ANONYMOUS 0 /* some systems do not have this define.. */
+#endif
 	cb = mmap( NULL, ca->createsize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 #endif
 	if (cb == NULL || cb == (char*)-1)
