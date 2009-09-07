@@ -349,7 +349,7 @@ int netax25_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-void netax25_start(void)
+void netax25_start(const char *ifcallsign)
 {
 }
 

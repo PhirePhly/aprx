@@ -1,3 +1,8 @@
+2009-09-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* cellmalloc.c, netax25.c, keyhash.c:
+	    Compiling at OS/X found a few odd problems, corrected.
+
 2009-08-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.8.in, aprx.conf.in, config.c, aprx.h, aprx.c, telemetry.c,
