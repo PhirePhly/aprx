@@ -265,6 +265,10 @@ int netbeacon_postpoll(struct aprxpolls *app)
 	int  i;
 	struct beaconmsg *bm;
 
+	if (!aprsis_login)
+		return 0;	/* No mycall !  hoh... */
+	if (!beacon_msgs)
+		return 0;	/* Nothing to do */
 	if (beacon_nexttime > now)
 		return 0;	/* Too early.. */
 

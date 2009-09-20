@@ -54,7 +54,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 
-		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,NOGATE", E->name, i + 1);
+		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, i + 1);
 		s = buf;
 		s += sprintf(s, "T#%03d,", telemetry_seq & 255);
 

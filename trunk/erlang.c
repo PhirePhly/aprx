@@ -301,6 +301,9 @@ static struct erlangline *erlang_findline(const void *refp,
 	int i;
 	struct erlangline *E = NULL;
 
+	if (bytes_per_minute == 0)
+	  bytes_per_minute = (int) ((1200.0 * 60) / 8.2); // Default of 1200 bps
+
 	/* Allocate a new ErlangLines[] entry for this object, if no existing is found.. */
 #if 1
 	refp = NULL;		/* Ref only by text name.. */
@@ -341,7 +344,7 @@ static struct erlangline *erlang_findline(const void *refp,
 		E->index = ErlangLinesCount - 1;
 
 		E->e1_cursor = E->e10_cursor = E->e60_cursor = 0;
-		E->e1_max = APRXERL_1M_COUNT;
+		E->e1_max  = APRXERL_1M_COUNT;
 		E->e10_max = APRXERL_10M_COUNT;
 		E->e60_max = APRXERL_60M_COUNT;
 	}
