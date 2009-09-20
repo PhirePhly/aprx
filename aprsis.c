@@ -812,7 +812,7 @@ static void aprsis_main(void)
 			break;	/* a safety fallback case.. */
 
 		aprxpolls_reset(&app);
-		app.next_timeout = now + 30;
+		app.next_timeout = now + 5;
 
 		pfd = aprxpolls_new(&app);
 
@@ -944,6 +944,12 @@ void aprsis_start(void)
 {
 	int i;
 	int pipes[2];
+
+	if (AISh == NULL || AprsIS == NULL) {
+	  fprintf(stderr,"***** NO APRSIS SERVER CONNECTION DEFINED *****");
+	  return;
+	}
+
 
 	i = socketpair(AF_UNIX, SOCK_DGRAM, PF_UNSPEC, pipes);
 	if (i != 0) {

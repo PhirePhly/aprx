@@ -1013,13 +1013,12 @@ int ttyreader_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-#ifndef HAVE_CFMAKERAW  /* Extract from FreeBSD termios.c */
 /*
  * Make a pre-existing termios structure into "raw" mode: character-at-a-time
  * mode with no characters interpreted, 8-bit data path.
  */
 void
-cfmakeraw(t)
+aprx_cfmakeraw(t)
 	struct termios *t;
 {
 
@@ -1032,7 +1031,6 @@ cfmakeraw(t)
 	t->c_cc[VMIN] = 1;
 	t->c_cc[VTIME] = 0;
 }
-#endif
 
 
 const char *ttyreader_serialcfg(char *param1, char *str)
@@ -1131,7 +1129,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	}
 
 	/* setup termios parameters for this line.. */
-	cfmakeraw(&tty->tio);
+	aprx_cfmakeraw(&tty->tio);
 	tty->tio.c_cc[VMIN] = 1;	/* pick at least one char .. */
 	tty->tio.c_cc[VTIME] = 3;	/* 0.3 seconds timeout - 36 chars @ 1200 baud */
 	tty->tio.c_cflag |= (CREAD | CLOCAL);
