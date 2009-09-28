@@ -22,7 +22,7 @@ void telemetry_start()
 	 * be in some persistent database, but this is reasonable
 	 * compromise.
 	 */
-	telemetry_seq = (time(NULL)) & 127;
+	telemetry_seq = (time(NULL)) & 255;
 }
 
 int telemetry_prepoll(struct aprxpolls *app)
@@ -51,12 +51,13 @@ int telemetry_postpoll(struct aprxpolls *app)
 	telemetry_time += telemetry_interval;
 
 	++telemetry_seq;
+	telemetry_seq %= 256;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 
 		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, i + 1);
 		s = buf;
-		s += sprintf(s, "T#%03d,", telemetry_seq & 255);
+		s += sprintf(s, "T#%03d,", telemetry_seq);
 
 		erlmax = 0;
 		k = E->e1_cursor;
@@ -131,7 +132,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 		if ((telemetry_seq % 32) == 0) { /* every 5h20m */
 
-			/* Send at start, and every about 2 days.. */
+			/* Send every 5h20m or thereabouts. */
 
 			s = buf + sprintf(buf,
 					  ":%-9s:PARM.Max 1m,Max 10m,RxPkts,DropRxPkts, TxPkts",
