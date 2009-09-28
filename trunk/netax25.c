@@ -29,12 +29,25 @@
 #include <pty.h>
 #endif
 
-static int pty_master = -1;
-static int pty_slave = -1;
+/*
+ *  Talking to Linux kernel 2.6.x, using SMACK type frames
+ *  on each configured serial port callsign -> ptymux 
+ *  writer channel.  If system does not write correct SMACK
+ *  frame on that KISS port for any number of reasons,
+ *  including writing incompletely buffered data, then
+ *  kernel will be able to notice that frame it received
+ *  is not valid, and discard it.  (Maybe... P = 2^-16 to
+ *  accepting of error frame in spite of these controls.)
+ */
 
-static const char *my_ifcallsign;
+struct netax25_pty {
+	int	fd;
+};
 
-static void netax25_openpty(const char *mycall)
+static void netax25_addttyport(const char *callsign,
+			       const int masterfd, const int slavefd);
+
+static const void* netax25_openpty(const char *mycall)
 {
 	int rc;
 	int disc;
@@ -43,11 +56,13 @@ static void netax25_openpty(const char *mycall)
 	unsigned char ax25call[7];
 	struct ifreq ifr;
 	int fd = -1;
+	struct netax25_pty *nax25;
+	int pty_master, pty_slave;
 
-	my_ifcallsign = mycall;
+	parse_ax25addr(ax25call, mycall, 0x60);
 
 	if (!mycall)
-		return;		/* No mycall, no ptys! */
+		return NULL;		/* No mycall, no ptys! */
 
 	rc = openpty(&pty_master, &pty_slave, devname, NULL, NULL);
 
@@ -65,8 +80,11 @@ static void netax25_openpty(const char *mycall)
 		pty_slave = -1;
 		if (fd >= 0)
 			close(fd);
-		return;		/* D'uh.. */
+		return NULL;		/* D'uh.. */
 	}
+
+	nax25 = calloc( 1,sizeof(*nax25) );
+	nax25->fd = pty_master;
 
 	/* setup termios parameters for this line.. */
 	aprx_cfmakeraw(&tio);
@@ -90,7 +108,6 @@ static void netax25_openpty(const char *mycall)
 		goto error_exit;
 
 	/* Convert mycall[] to AX.25 format callsign */
-	parse_ax25addr(ax25call, mycall, 0x60);
 	rc = ioctl(pty_slave, SIOCSIFHWADDR, ax25call);
 	if (rc < 0)
 		goto error_exit;
@@ -123,30 +140,33 @@ static void netax25_openpty(const char *mycall)
 	/* OK, we write and read on pty_master, the pty_slave is now
 	   attached on kernel side AX.25 interface with call: mycall */
 
-	return;
+	netax25_addttyport( mycall, pty_master, pty_slave );
+
+	return (void*) nax25;
 }
 
-void netax25_sendax25(const void *ax25, int ax25len)
+void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 {
 	int rc;
-	unsigned char ax25buf[1000];
+	unsigned char ax25buf[2000];
+	const struct netax25_pty *nax25 = nax25p;
 
 	/* kissencoder() takes AX.25 frame, and adds framing + cmd-byte */
-	rc = kissencoder(ax25buf, sizeof(ax25buf), ax25, ax25len, 0);
+	rc = kissencoder(ax25buf, sizeof(ax25buf), ax25, ax25len, 0x80);
 	if (rc < 0)
 		return;
 	ax25len = rc;
 
-	rc = write(pty_master, ax25buf, ax25len);
+	rc = write(nax25->fd, ax25buf, ax25len);
 }
 
 #else
-static void netax25_openpty(const char *mycall)
+static const void* netax25_openpty(const char *mycall)
 {
-	my_ifcallsign = mycall;
+	return null;
 }
 
-void netax25_sendax25(const void *ax25, int ax25len)
+void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 {
 }
 #endif				/* HAVE_OPENPTY */
@@ -156,13 +176,39 @@ static int rx_socket;
 static char **ax25rxports;
 static int ax25rxportscount;
 
-void netax25_addport(const char *portname, char *str)
+static char **ax25ttyports;
+static int   *ax25ttyfds;
+static int    ax25ttyportscount;
+
+/* config interface:  ax25-rxport: callsign */
+void netax25_addrxport(const char *callsign, char *str)
 {
-	ax25rxports =
-		realloc(ax25rxports,
-			sizeof(void *) * (ax25rxportscount + 1));
-	ax25rxports[ax25rxportscount] = strdup(portname);
+	ax25rxports = realloc(ax25rxports,
+			      sizeof(void *) * (ax25rxportscount + 1));
+	ax25rxports[ax25rxportscount] = strdup(callsign);
 	++ax25rxportscount;
+}
+
+static void netax25_addttyport(const char *callsign,
+			       const int masterfd, const int slavefd)
+{
+	ax25ttyports = realloc(ax25ttyports,
+			      sizeof(void *) * (ax25ttyportscount + 1));
+	ax25ttyfds   = realloc(ax25ttyfds,
+			      sizeof(int) * (ax25ttyportscount + 1));
+	ax25ttyports[ax25ttyportscount] = strdup(callsign);
+	ax25ttyfds  [ax25ttyportscount] = masterfd; /* slavefd forgotten */
+	++ax25ttyportscount;
+}
+
+static int is_ax25ttyport(const char *callsign)
+{
+	int i;
+	for (i = 0; i < ax25ttyportscount; ++i) {
+		if (strcmp(callsign,ax25ttyports[i]) == 0)
+			return 1; // Have match
+	}
+	return 0; // No match
 }
 
 /* Nothing much in early init */
@@ -171,12 +217,10 @@ void netax25_init(void)
 }
 
 /* .. but all things in late start.. */
-void netax25_start(const char *ifcallsign)
+void netax25_start(void)
 {
 	int i;
 	int rx_protocol;
-
-	netax25_openpty(ifcallsign);
 
 	rx_socket = -1;			/* Initialize for early bail-out  */
 
@@ -211,18 +255,35 @@ void netax25_start(const char *ifcallsign)
 		fd_nonblockingmode(rx_socket);
 }
 
+
+/* .. but all things in late start.. */
+const void* netax25_open(const char *ifcallsign)
+{
+	return netax25_openpty(ifcallsign);
+}
+
 int netax25_prepoll(struct aprxpolls *app)
 {
 	struct pollfd *pfd;
+	int i;
 
-	if (rx_socket < 0)
-		return 0;
+	if (rx_socket >= 0) {
+		/* FD is open, lets mark it for poll read.. */
+		pfd = aprxpolls_new(app);
+		pfd->fd = rx_socket;
+		pfd->events = POLLIN | POLLPRI;
+		pfd->revents = 0;
+	}
 
-	/* FD is open, lets mark it for poll read.. */
-	pfd = aprxpolls_new(app);
-	pfd->fd = rx_socket;
-	pfd->events = POLLIN | POLLPRI;
-	pfd->revents = 0;
+	/* read from PTY masters */
+	for (i = 0; i < ax25ttyportscount; ++i) {
+		if (ax25ttyfds[i] >= 0) {
+		  pfd = aprxpolls_new(app);
+		  pfd->fd = ax25ttyfds[i];
+		  pfd->events = POLLIN | POLLPRI;
+		  pfd->revents = 0;
+		}
+	}
 
 	return 1;
 }
@@ -255,14 +316,83 @@ static int ax25_fmtaddress(char *dest, const unsigned char *src)
 }
 
 
-int netax25_postpoll(struct aprxpolls *app)
+static int rxsock_read( const int fd )
 {
 	struct sockaddr sa;
 	struct ifreq ifr;
 	socklen_t asize;
 	unsigned char rxbuf[3000];
 	int rcvlen;
+	char ifaddress[10];
+
+	asize = sizeof(sa);
+	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf),
+			  0, &sa, &asize);
+	if (rcvlen < 0) {
+		return 0;	/* No more at this time.. */
+	}
+
+	/* Query AX.25 for the address from whence
+	   this came in.. */
+	strcpy(ifr.ifr_name, sa.sa_data);
+	if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
+	    || ifr.ifr_hwaddr.sa_family != AF_AX25) {
+		/* not AX.25 so ignore this packet .. */
+		return 1;	/* there may be more on this socket */
+	}
+	/* OK, AX.25 address.  Print it out in text. */
+	ax25_fmtaddress(ifaddress, ifr.ifr_hwaddr.sa_data);
+
+	if (debug > 1)
+		printf("Received frame from '%s' len %d\n",
+		       ifaddress, rcvlen);
+
+	if (is_ax25ttyport(ifaddress))
+		return 1;	/* We drop our own packets,
+				   if we ever see them */
+
+	if (ax25rxports) {
+		/* We have a list of AX.25 ports
+		   (callsigns) where we limit
+		   the reception from! */
+		int j, ok = 0;
+		for (j = 0; j < ax25rxportscount; ++j) {
+			if (strcmp(ifaddress,ax25rxports[j]) == 0) {
+				ok = 1;	/* Found match ! */
+				break;
+			}
+		}
+		if (!ok)
+			return 1;	/* No match :-(  */
+	}
+
+	/* Now: actual AX.25 frame reception,
+	   and transmit via ax25_to_tnc2() ! */
+
+	/*
+	 * "+10" is a magic constant for trying
+	 * to estimate channel
+	 * occupation overhead
+	 */
+	erlang_add(NULL, ifaddress, 0, ERLANG_RX, rcvlen + 10, 1);
+
+	ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
+
+	return 1;
+}
+
+static void discard_read_fd( const int fd )
+{
 	int i;
+	char buf[2000];
+
+	i = read(fd, buf, sizeof(buf));
+}
+
+
+int netax25_postpoll(struct aprxpolls *app)
+{
+	int i, j;
 	struct pollfd *pfd = app->polls;
 	char ifaddress[10];
 
@@ -270,66 +400,19 @@ int netax25_postpoll(struct aprxpolls *app)
 		return 0;
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
-		while ((pfd->fd == rx_socket) &&
-		       (pfd->revents & (POLLIN | POLLPRI))) {
-			/* something coming in.. */
-			asize = sizeof(sa);
-			rcvlen = recvfrom(rx_socket, rxbuf, sizeof(rxbuf),
-					  0, &sa, &asize);
-			if (rcvlen < 0) {
-				return -1;	/* No more at this time.. */
-			}
-
-			/* Query AX.25 for the address from whence this came in.. */
-			strcpy(ifr.ifr_name, sa.sa_data);
-			if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
-			    || ifr.ifr_hwaddr.sa_family != AF_AX25) {
-				/* not AX.25 so ignore this packet .. */
-				continue;	/* there may be more on this socket */
-			}
-			/* OK, AX.25 address.  Print it out in text. */
-			ax25_fmtaddress(ifaddress, ifr.ifr_hwaddr.sa_data);
-
-			if (debug > 1)
-				printf("Received frame from '%s' len %d\n",
-				       ifaddress, rcvlen);
-
-			if (strcmp(ifaddress, my_ifcallsign) == 0)
-				continue;	/* We drop our own packets, if we ever see them */
-
-
-			if (ax25rxports) {
-				/* We have a list of AX.25 ports (callsigns) where we limit
-				   the reception from! */
-				int j, ok = 0;
-				for (j = 0; j < ax25rxportscount; ++j) {
-					if (strcmp
-					    (ifaddress,
-					     ax25rxports[j]) == 0) {
-						ok = 1;	/* Found match ! */
-						break;
-					}
-				}
-				if (!ok)
-					continue;	/* No match :-(  */
-			}
-
-			/* Now: actual AX.25 frame reception,
-			   and transmit via ax25_to_tnc2() ! */
-
-			/*
-			 * "+10" is a magic constant for trying to estimate channel
-			 * occupation overhead
-			 */
-			erlang_add(NULL, ifaddress, 0, ERLANG_RX,
-				   rcvlen + 10, 1);
-
-			ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf + 1,
-				     rcvlen - 1);
-
-		}
+	  if ((pfd->fd == rx_socket) &&
+	      (pfd->revents & (POLLIN | POLLPRI))) {
+	    /* something coming in.. */
+	    rxsock_read( rx_socket );
+	  }
+	  for (j = 0; j < ax25ttyportscount; ++j) {
+	    if ((pfd->revents & (POLLIN | POLLPRI)) &&
+		(ax25ttyfds[j] == pfd->fd)) {
+	      discard_read_fd(ax25ttyfds[j]);
+	    }
+	  }
 	}
-
+	
 	return 0;
 }
 
@@ -349,15 +432,19 @@ int netax25_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-void netax25_start(const char *ifcallsign)
+void netax25_start(void)
 {
 }
 
-void netax25_addport(const char *portname, char *str)
+const void* netax25_open(const char *ifcallsign)
 {
 }
 
-void netax25_sendax25(const void *ax25, int ax25len)
+void netax25_addrxport(const char *portname, char *str)
+{
+}
+
+void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 {
 }
 
