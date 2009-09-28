@@ -1,3 +1,22 @@
+2009-09-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION:  1.02
+
+	* erlang.c, aprx-stat.c, aprx.h:
+	    Remove subport from erlang codes, having "tncid N" on serial
+	    port definitions takes care of this kind of things.
+
+	* kiss.c, ttyreader.c, netax25.c, ax25.h:
+	    Moved KISS/SMACK encoder to separate module, the CRC16 calculator
+	    went there as well.  For each ttyreader sub-tncid there is
+	    separately opened KISS-pty channel on Linux systems with given
+	    callsign as interface's writer channel.  The  netax25 ax25-port
+	    reader does not accept packets with source callsign as any of
+	    our ttyreader callsigns.
+
+	* erlang.c:
+	    Fix the erlang_find() to really find the interface call.
+
 2009-09-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* cellmalloc.c, netax25.c, keyhash.c:

@@ -235,7 +235,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
 			       cfgfilename, linenum, param1, str);
 
-		netax25_addport(param1, str);
+		netax25_addrxport(param1, str);
 
 	} else if (strcmp(name, "netbeacon") == 0) {
 		netbeacon_set(param1, str);

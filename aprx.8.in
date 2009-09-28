@@ -318,17 +318,25 @@ erlangfile @VARRUN@/aprx.state
 #     TNC2            \-\- non\-KISS text format variant
 #
 #
-#radio serial /dev/ttyUSB0  19200 8n1    KISS  callsign N0CALL-14
-#radio serial /dev/ttyUSB1  19200 8n1    TNC2  callsign N0CALL-13
+#radio serial /dev/ttyUSB0  19200 8n1    KISS tncid 0 callsign N0CALL-14
+#radio serial /dev/ttyUSB1  19200 8n1    TNC2         callsign N0CALL-13
 
 # Additional/alternate options for the "radio" line.
 #
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\\xC0\\xC0\\xFF\\xC0\\r\\nMO 0\\rKISS $01\\r"
 #
+# "tncid 0" sets optional alternate SSID on KISS type connections.
+#    This id is specific for the multiplexer connection on given
+#    port, and can be in range of 0 thru 7 for SMACK type links,
+#    and up to 15 for KISS, and BPQ type links.  The tncid is not
+#    settable for TNC2 type connections.
+#
 # "callsign NAME" sets callsign used in statistics displays,
 #    and when the message is sent to APRS-IS.
 #    If none are given, then it will use physical port name.
+#    There can be multiple callsign parameters, if each are
+#    prefixed with their own  tncid  setting.
 #
 # "timeout 900" sets a timeout monitor (in seconds) to make
 #    reopen/reconnect if the (tcp) connection to radio has
@@ -435,11 +443,15 @@ The KISS encapsulation details must also be specified, and they
 are used in all cases.
 .PP
 The
+.I tncid
+option sets up KISS multiplexer parameter so that subsequent
+.I callsign
+option applies only on designated sub-port.
+Default value is zero (0).
+.PP
+The
 .I callsign
 option sets port specific callsign when relaying to APRS-IS.
-Default is the "mycall" entry value.
-(BUG: on MULTI-KISS mode all TNCs on given radio port get same callsign,
-this does not apply on AX.25 ports!)
 
 .SH NETBEACON definitions
 Because classical netbeacon definitions are highly error-prone, this program

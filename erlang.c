@@ -304,22 +304,24 @@ static struct erlangline *erlang_findline(const void *refp,
 	if (bytes_per_minute == 0)
 	  bytes_per_minute = (int) ((1200.0 * 60) / 8.2); // Default of 1200 bps
 
-	/* Allocate a new ErlangLines[] entry for this object, if no existing is found.. */
-#if 1
-	refp = NULL;		/* Ref only by text name.. */
-#endif
+	/* Allocate a new ErlangLines[] entry for this object,
+	   if no existing one is found.. */
 
 	if (ErlangLines) {
 		for (i = 0; i < ErlangLinesCount; ++i) {
+#if 0
+		  /* Single ttyreader can have up to 16 rx sub-ports,
+		     this pointer to it is not useful refp value...
+		   */
 			if (refp && (refp != ErlangLines[i]->refp))
 				continue;	/* Was not this.. */
-			if (!refp
-			    && (strcmp(portname, ErlangLines[i]->name) !=
-				0) && ErlangLines[i]->subport == subport)
-				continue;	/* Was not this.. */
-			/* HOO-RAY!  It is this one! */
-			E = ErlangLines[i];
-			break;
+#endif
+			if (/* ErlangLines[i]->subport == subport && */
+			    strcmp(portname, ErlangLines[i]->name) == 0) {
+				/* HOO-RAY!  It is this one! */
+				E = ErlangLines[i];
+				break;
+			}
 		}
 	}
 	/* If found -- err... why we are SETing it AGAIN ? */
@@ -338,7 +340,7 @@ static struct erlangline *erlang_findline(const void *refp,
 		E->refp = refp;
 		strncpy(E->name, portname, sizeof(E->name) - 1);
 		E->name[sizeof(E->name) - 1] = 0;
-		E->subport = subport;
+		/* E->subport = subport; */
 
 		E->erlang_capa = bytes_per_minute;
 		E->index = ErlangLinesCount - 1;
@@ -457,8 +459,10 @@ static void erlang_time_end(void)
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now;
 			*subport = 0;
+			/*
 			if (E->subport)
 				sprintf(subport, "_%d", E->subport);
+			*/
 
 			if (erlanglog1min) {
 				sprintf(msgbuf,
@@ -509,8 +513,10 @@ static void erlang_time_end(void)
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now;
 			*subport = 0;
+			/*
 			if (E->subport)
 				sprintf(subport, "_%d", E->subport);
+			*/
 			sprintf(msgbuf,
 				"ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
 				10, E->name, subport,
@@ -555,8 +561,10 @@ static void erlang_time_end(void)
 			struct erlangline *E = ErlangLines[i];
 			/* E->last_update = now; -- the 10 minute step does also this */
 			*subport = 0;
+			/*
 			if (E->subport)
 				sprintf(subport, "_%d", E->subport);
+			*/
 			sprintf(msgbuf,
 				"ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
 				60, E->name, subport,

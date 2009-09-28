@@ -60,20 +60,23 @@ struct serialport {
 
 	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" --
 				   Linux TTY-names can be long..        */
-	const char *ttycallsign;/* callsign                             */
+	const char *ttycallsign[16]; /* callsign                             */
+	const void *netax25[16];
+
 	char *initstring;	/* optional init-string to be sent to
 				   the TNC, NULL OK                     */
 	int initlen;		/* .. as it can have even NUL-bytes,
 				   length is important!                 */
 
-	unsigned char rdbuf[1000];	/* buffering area for raw stream read */
+
+	unsigned char rdbuf[2000];	/* buffering area for raw stream read */
 	int rdlen, rdcursor;	/* rdlen = last byte in buffer,
 				   rdcursor = next to read.
 				   When rdlen == 0, buffer is empty.    */
-	unsigned char rdline[330];	/* processed into lines/records       */
+	unsigned char rdline[2000];	/* processed into lines/records       */
 	int rdlinelen;		/* length of this record                */
 
-	unsigned char wrbuf[1000];	/* buffering area for raw stream read */
+	unsigned char wrbuf[2000];	/* buffering area for raw stream read */
 	int wrlen, wrcursor;	/* wrlen = last byte in buffer,
 				   wrcursor = next to write.
 				   When wrlen == 0, buffer is empty.    */
@@ -86,173 +89,6 @@ static void ttyreader_linewrite(struct serialport *S); /* forward declaration */
 
 #define TTY_OPEN_RETRY_DELAY_SECS 30
 
-
-/* KISS protocol encoder/decoder specials */
-
-#define KISS_FEND  (0xC0)
-#define KISS_FESC  (0xDB)
-#define KISS_TFEND (0xDC)
-#define KISS_TFESC (0xDD)
-
-
-/*
- *  ttyreader_kissprocess()  --  the S->rdline[]  array has a KISS frame after
- *  KISS escape decode.  The frame begins with KISS command byte, then
- *  AX25 headers and payload, and possibly a CRC-checksum.
- *  Frame length is in S->rdlinelen variable.
- */
-
-/* KA9Q describes the KISS frame format as follows:
-
-   http://www.ka9q.net/papers/kiss.html
-
-   - - - - - - - - -
-   4. Control of the KISS TNC
-
-   To distinguish between command and data frames on the host/TNC link,
-   the first byte of each asynchronous frame between host and TNC is
-   a "type" indicator.
-
-   This type indicator byte is broken into two 4-bit nibbles so that
-   the low-order nibble indicates the command number (given in the table
-   below) and the high-order nibble indicates the port number for that
-   particular command. In systems with only one HDLC port, it is by definition
-   Port 0. In multi-port TNCs, the upper 4 bits of the type indicator
-   byte can specify one of up to sixteen ports. The following commands
-   are defined in frames to the TNC (the "Command" field is in hexadecimal):
-
-   . . . . . .
-
-   CMD code 0 is for the data frame, and is only one present coming from
-   TNC to host.
-
-   - - - - - - - - -
-
-   SYMEK et al. have defined a way to run CRC inside KISS frames to
-   verify that the KISS-frame itself is correct:
-
-   http://www.symek.com/g/smack.html
-   http://www.ir3ip.net/iw3fqg/doc/smak.htm
-
-   SMACK variation recycles the top-most bit of the TNC-id nibble, and
-   thus permits up to 8 TNC ports on line.  Top-most bit is always one
-   on SMACK frames.
-
-   SMACK runs CRC16 over whole KISS frame buffer, including the CMD byte.
-   The CRC-code is thus _different_ from what will be sent out on radio.
-
-*/
-
-
-int crc16_calc(unsigned char *buf, int n)
-{
-
-	static int crc_table[] = {
-		0x0000, 0xc0c1, 0xc181, 0x0140,
-		0xc301, 0x03c0, 0x0280,	0xc241,
-		0xc601, 0x06c0, 0x0780, 0xc741,
-		0x0500, 0xc5c1, 0xc481,	0x0440,
-		0xcc01, 0xcc0, 0x0d80, 0xcd41,
-		0x0f00, 0xcfc1, 0xce81,	0x0e40,
-		0x0a00, 0xcac1, 0xcb81, 0x0b40,
-		0xc901, 0x09c0, 0x0880,	0xc841,
-		0xd801, 0x18c0, 0x1980, 0xd941,
-		0x1b00, 0xdbc1, 0xda81,	0x1a40,
-		0x1e00, 0xdec1, 0xdf81, 0x1f40,
-		0xdd01, 0x1dc0, 0x1c80,	0xdc41,
-		0x1400, 0xd4c1, 0xd581, 0x1540,
-		0xd701, 0x17c0, 0x1680,	0xd641,
-		0xd201, 0x12c0, 0x1380, 0xd341,
-		0x1100, 0xd1c1, 0xd081,	0x1040,
-		0xf001, 0x30c0, 0x3180, 0xf141,
-		0x3300, 0xf3c1, 0xf281,	0x3240,
-		0x3600, 0xf6c1, 0xf781, 0x3740,
-		0xf501, 0x35c0, 0x3480,	0xf441,
-		0x3c00, 0xfcc1, 0xfd81, 0x3d40,
-		0xff01, 0x3fc0, 0x3e80,	0xfe41,
-		0xfa01, 0x3ac0, 0x3b80, 0xfb41,
-		0x3900, 0xf9c1, 0xf881,	0x3840,
-		0x2800, 0xe8c1, 0xe981, 0x2940,
-		0xeb01, 0x2bc0, 0x2a80,	0xea41,
-		0xee01, 0x2ec0, 0x2f80, 0xef41,
-		0x2d00, 0xedc1, 0xec81,	0x2c40,
-		0xe401, 0x24c0, 0x2580, 0xe541,
-		0x2700, 0xe7c1, 0xe681,	0x2640,
-		0x2200, 0xe2c1, 0xe381, 0x2340,
-		0xe101, 0x21c0, 0x2080,	0xe041,
-		0xa001, 0x60c0, 0x6180, 0xa141,
-		0x6300, 0xa3c1, 0xa281,	0x6240,
-		0x6600, 0xa6c1, 0xa781, 0x6740,
-		0xa501, 0x65c0, 0x6480,	0xa441,
-		0x6c00, 0xacc1, 0xad81, 0x6d40,
-		0xaf01, 0x6fc0, 0x6e80,	0xae41,
-		0xaa01, 0x6ac0, 0x6b80, 0xab41,
-		0x6900, 0xa9c1, 0xa881,	0x6840,
-		0x7800, 0xb8c1, 0xb981, 0x7940,
-		0xbb01, 0x7bc0, 0x7a80,	0xba41,
-		0xbe01, 0x7ec0, 0x7f80, 0xbf41,
-		0x7d00, 0xbdc1, 0xbc81,	0x7c40,
-		0xb401, 0x74c0, 0x7580, 0xb541,
-		0x7700, 0xb7c1, 0xb681,	0x7640,
-		0x7200, 0xb2c1, 0xb381, 0x7340,
-		0xb101, 0x71c0, 0x7080,	0xb041,
-		0x5000, 0x90c1, 0x9181, 0x5140,
-		0x9301, 0x53c0, 0x5280,	0x9241,
-		0x9601, 0x56c0, 0x5780, 0x9741,
-		0x5500, 0x95c1, 0x9481,	0x5440,
-		0x9c01, 0x5cc0, 0x5d80, 0x9d41,
-		0x5f00, 0x9fc1, 0x9e81,	0x5e40,
-		0x5a00, 0x9ac1, 0x9b81, 0x5b40,
-		0x9901, 0x59c0, 0x5880,	0x9841,
-		0x8801, 0x48c0, 0x4980, 0x8941,
-		0x4b00, 0x8bc1, 0x8a81,	0x4a40,
-		0x4e00, 0x8ec1, 0x8f81, 0x4f40,
-		0x8d01, 0x4dc0, 0x4c80,	0x8c41,
-		0x4400, 0x84c1, 0x8581, 0x4540,
-		0x8701, 0x47c0, 0x4680,	0x8641,
-		0x8201, 0x42c0, 0x4380, 0x8341,
-		0x4100, 0x81c1, 0x8081,	0x4040
-	};
-
-	int crc = 0;
-
-	while (--n >= 0)
-		crc = ((crc >> 8) & 0xff) ^ crc_table[(crc ^ *buf++) &
-						      0xFF];
-	return crc;
-}
-
-int kissencoder( void *kissbuf, int kissspace,
-		 const void *pktbuf, int pktlen, int cmdbyte )
-{
-	unsigned char *kb = kissbuf;
-	unsigned char *ke = kb + kissspace - 3;
-	const unsigned char *pkt = pktbuf;
-	int i;
-
-	/* Expect the KISS buffer to be at least ... 6 bytes.. */
-
-	*kb++ = KISS_FEND;
-	*kb++ = cmdbyte;
-	for (i = 0; i < pktlen && kb < ke; ++i, ++pkt) {
-		/* todo: add here crc-calculators.. */
-		if (*pkt == KISS_FEND) {
-			*kb++ = KISS_FESC;
-			*kb++ = KISS_TFEND;
-		} else {
-			*kb++ = *pkt;
-			if (*pkt == KISS_FESC)
-				*kb++ = KISS_TFESC;
-		}
-	}
-	if (kb < ke) {
-		*kb++ = KISS_FEND;
-		return (kb - (unsigned char *) (kissbuf));
-	} else {
-		/* Didn't fit in... */
-		return 0;
-	}
-}
 
 static int ttyreader_kissprocess(struct serialport *S)
 {
@@ -286,10 +122,31 @@ static int ttyreader_kissprocess(struct serialport *S)
 		return -1;
 	}
 
+
+	/* Are we expecting Basic KISS ? */
+	if (S->linetype == LINETYPE_KISS) {
+	    if (S->ttycallsign[tncid] == NULL) {
+	      /* D'OH!  received packet on multiplexer tncid without
+		 callsign definition!  We discard this packet! */
+	      if (debug > 0) {
+		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it!\n", now, S->ttyname, cmdbyte);
+	      }
+	    }
+	}
+
 	/* Are we excepting BPQ "CRC" (XOR-sum of data) */
 	if (S->linetype == LINETYPE_KISSBPQCRC) {
 		/* TODO: in what conditions the "CRC" is calculated and when not ? */
 		int xorsum = 0;
+
+		if (S->ttycallsign[tncid] == NULL) {
+		  /* D'OH!  received packet on multiplexer tncid without
+		     callsign definition!  We discard this packet! */
+		  if (debug > 0) {
+		    printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it!\n", now, S->ttyname, cmdbyte);
+		  }
+		}
+
 		for (i = 1; i < S->rdlinelen; ++i)
 			xorsum ^= S->rdline[i];
 		xorsum &= 0xFF;
@@ -306,6 +163,14 @@ static int ttyreader_kissprocess(struct serialport *S)
 	if (S->linetype == LINETYPE_KISSSMACK) {
 
 	    tncid &= 0x07;	/* Chop off top bit */
+
+	    if (S->ttycallsign[tncid] == NULL) {
+	      /* D'OH!  received packet on multiplexer tncid without
+		 callsign definition!  We discard this packet! */
+	      if (debug > 0) {
+		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it!\n", now, S->ttyname, cmdbyte);
+	      }
+	    }
 
 	    if ((cmdbyte & 0x8F) == 0x80) {
 	        /* SMACK data frame */
@@ -354,13 +219,10 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
 		    probe[1] = 0;
-		    crc = crc16_calc(probe, 2);
-		    probe[2] =  crc       & 0xFF;  /* low  CRC byte */
-		    probe[3] = (crc >> 8) & 0xFF;  /* high CRC byte */
 
 		    /* Convert the probe packet to KISS frame */
 		    kisslen = kissencoder( kissbuf, sizeof(kissbuf),
-					   probe+1, 4-1, probe[0] );
+					   probe+1, 1, probe[0] );
 
 		    /* Send probe message..  */
 		    if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
@@ -401,11 +263,12 @@ static int ttyreader_kissprocess(struct serialport *S)
 	 */
 
 	/* Send the frame without cmdbyte to internal AX.25 network */
-	netax25_sendax25(S->rdline + 1, S->rdlinelen - 1);
+	if (S->netax25 != NULL)
+		netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
 
 	/* Send the frame to APRS-IS */
-	ax25_to_tnc2(S->ttycallsign, tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1);
-	erlang_add(S, S->ttycallsign, tncid, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
+	ax25_to_tnc2(S->ttycallsign[tncid], tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1);
+	erlang_add(S, S->ttycallsign[tncid], tncid, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	return 0;
 }
@@ -553,9 +416,9 @@ static int ttyreader_pulltnc2(struct serialport *S)
 	/* netax25_sendax25_tnc2(S->rdline, S->rdlinelen); */
 
 	/* S->rdline[] has text line without line ending CR/LF chars   */
-	igate_to_aprsis(S->ttycallsign, 0, (char *) (S->rdline), S->rdlinelen, 0);
+	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), S->rdlinelen, 0);
 
-	erlang_add(S, S->ttycallsign, 0, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
+	erlang_add(S, S->ttycallsign[0], 0, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	return 0;
 }
@@ -686,7 +549,7 @@ static void ttyreader_linewrite(struct serialport *S)
 	i = write(S->fd, S->wrbuf + S->wrcursor, len);
 	if (i > 0) {		/* wrote something */
 		S->wrcursor += i;
-		erlang_add(S, S->ttycallsign, 0, ERLANG_TX, i, 0);
+		erlang_add(S, S->ttycallsign[0], 0, ERLANG_TX, i, 0);
 		len = S->wrlen - S->wrcursor;
 		if (len == 0) {
 			S->wrcursor = S->wrlen = 0;	/* wrote all ! */
@@ -1039,6 +902,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	speed_t baud;
 	struct serialport *tty;
 	int tcpport = 0;
+	int tncid   = 0;
 
 	/*
 	   serialport /dev/ttyUSB123 [19200 [8n1]]
@@ -1180,6 +1044,9 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			cfsetispeed(&tty->tio, baud);
 			cfsetospeed(&tty->tio, baud);
 		}
+
+		/* Note:  param1  is now lower-case string */
+
 		if (i > 0) {
 			;
 		} else if (strcmp(param1, "8n1") == 0) {
@@ -1206,13 +1073,29 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 			config_STRUPPER(param1);
-			tty->ttycallsign = strdup(param1);
+			tty->ttycallsign[tncid] = strdup(param1);
+
+			tty->netax25[tncid] = netax25_open(param1);
+
+			/* Use side-effect: this defines the tty into
+			   erlang accounting */
+			erlang_set(NULL, param1, tncid,
+				   /* Magic constant for channel capa.. */
+				   (int) ((1200.0 * 60) / 8.2));
 
 		} else if (strcmp(param1, "timeout") == 0) {
 			param1 = str;
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
 			tty->read_timeout = atol(param1);
+
+		} else if (strcmp(param1, "tncid") == 0) {
+			param1 = str;
+			str = config_SKIPTEXT(str);
+			str = config_SKIPSPACE(str);
+			tncid = atoi(param1);
+			if (tncid < 0 || tncid > 15)
+				tncid = 0;
 
 		} else if (strcmp(param1, "tnc2") == 0) {
 			tty->linetype = LINETYPE_TNC2;	/* TNC2 monitor */
@@ -1223,17 +1106,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			str = config_SKIPSPACE(str);
 			tty->initstring = strdup(param1);
 		}
-
 	}
-
-	if (!tty->ttycallsign)
-		tty->ttycallsign = aprsis_login;
-
-
-
-	/* Use side-effect: this defines the tty into erlang accounting */
-	erlang_set(tty, tty->ttycallsign, 0, (int) ((1200.0 * 60) / 8.2));	/* Magic constant for channel capa.. */
-
 	return NULL;
 }
 

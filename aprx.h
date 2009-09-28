@@ -70,7 +70,6 @@ extern int ttyreader_prepoll(struct aprxpolls *);
 extern int ttyreader_postpoll(struct aprxpolls *);
 extern void ttyreader_init(void);
 extern const char *ttyreader_serialcfg(char *param1, char *str);
-extern int kissencoder(void *, int, const void *, int, int);
 extern void aprx_cfmakeraw(struct termios *);
 
 /* ax25.c */
@@ -123,12 +122,13 @@ extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
 			    int tnc2len, int discard);
 
 /* netax25.c */
-extern void netax25_init(void);
-extern void netax25_start(const char *ifcallsign);
-extern int netax25_prepoll(struct aprxpolls *);
-extern int netax25_postpoll(struct aprxpolls *);
-extern void netax25_addport(const char *portname, char *str);
-extern void netax25_sendax25(const void *ax25, int ax25len);
+extern void        netax25_init(void);
+extern void        netax25_start(void);
+extern const void* netax25_open(const char *ifcallsign);
+extern int         netax25_prepoll(struct aprxpolls *);
+extern int         netax25_postpoll(struct aprxpolls *);
+extern void        netax25_addrxport(const char *callsign, char *str);
+extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
 
 /* telemetry.c */
 extern void telemetry_start(void);
@@ -163,7 +163,7 @@ struct erlangline {
 	const void *refp;
 	int index;
 	char name[31];
-	unsigned char subport;
+	unsigned char __subport;
 	time_t last_update;
 
 	int erlang_capa;	/* bytes, 1 minute                      */
@@ -242,3 +242,16 @@ extern dupecheck_t *new_dupecheck(void);	/* Makes a new dupechecker  */
 extern int	    dupecheck(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen); /* the checker */
 extern int          dupecheck_prepoll(struct aprxpolls *app);
 extern int          dupecheck_postpoll(struct aprxpolls *app);
+
+
+/* kiss.c */
+
+/* KISS protocol encoder/decoder specials */
+
+#define KISS_FEND  (0xC0)
+#define KISS_FESC  (0xDB)
+#define KISS_TFEND (0xDC)
+#define KISS_TFESC (0xDD)
+
+extern int crc16_calc(unsigned char *buf, int n); /* SMACK's CRC16 */
+extern int kissencoder(void *, int, const void *, int, int);
