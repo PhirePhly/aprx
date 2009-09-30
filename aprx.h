@@ -14,12 +14,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <poll.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <errno.h>
 #include <syslog.h>
 
@@ -70,7 +70,7 @@ extern int ttyreader_prepoll(struct aprxpolls *);
 extern int ttyreader_postpoll(struct aprxpolls *);
 extern void ttyreader_init(void);
 extern const char *ttyreader_serialcfg(char *param1, char *str);
-extern void aprx_cfmakeraw(struct termios *);
+extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
 extern void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,

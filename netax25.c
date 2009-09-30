@@ -87,7 +87,7 @@ static const void* netax25_openpty(const char *mycall)
 	nax25->fd = pty_master;
 
 	/* setup termios parameters for this line.. */
-	aprx_cfmakeraw(&tio);
+	aprx_cfmakeraw(&tio, 0);
 	tio.c_cc[VMIN] = 1;	/* pick at least one char .. */
 	tio.c_cc[VTIME] = 3;	/* 0.3 seconds timeout - 36 chars @ 1200 baud */
 	tio.c_cflag |= (CREAD | CLOCAL);
