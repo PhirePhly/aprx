@@ -8,6 +8,7 @@
  *                                                                  *
  * **************************************************************** */
 
+#define _SVID_SOURCE 1
 
 #include "aprx.h"
 #include <sys/socket.h>
@@ -655,6 +656,7 @@ static void ttyreader_lineread(struct serialport *S)
 static void ttyreader_linesetup(struct serialport *S)
 {
 	int i;
+	struct termios tio;
 
 	S->wait_until = 0;	/* Zero it just to be safe */
 
@@ -662,8 +664,8 @@ static void ttyreader_linesetup(struct serialport *S)
 
 	if (memcmp(S->ttyname, "tcp!", 4) != 0) {
 
-		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY | O_NONBLOCK,
-			     0);
+		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY, 0);
+
 		if (debug)
 			printf("%ld\tTTY %s OPEN - ", now, S->ttyname);
 		if (S->fd < 0) {	/* Urgh.. an error.. */
@@ -676,8 +678,20 @@ static void ttyreader_linesetup(struct serialport *S)
 		if (debug)
 			printf("OK\n");
 
-		/* Set attributes, and flush the serial port queue */
+		// ioctl(S->fd, TIOCNOTTY, NULL);
+
+		/* Getting tioctl data seems to OPEN the serial port..
+		   Without this all setters are powerless.. */
+		tcgetattr(S->fd, &tio);
+
+		/* Discard everything in buffers .. */
+		i = tcflush(S->fd, TCIOFLUSH);
+
+		/* Set attributes */
+		aprx_cfmakeraw(&S->tio, 1);
 		i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
+
+		tcgetattr(S->fd, &tio);
 
 		if (i < 0) {
 			close(S->fd);
@@ -689,6 +703,28 @@ static void ttyreader_linesetup(struct serialport *S)
 		   Used system (Linux) has them in   'struct termios'  so they
 		   are now set, but other systems may have different ways..
 		 */
+
+		/* Start flows both directions, and flush buffers */
+
+		i = tcflow(S->fd, TCOON);
+		i = tcflow(S->fd, TCION);
+		i = tcflush(S->fd, TCIOFLUSH);
+
+		/* .. and set them again, just in case. */
+		aprx_cfmakeraw(&S->tio, 0);
+		i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
+		tcgetattr(S->fd, &tio);
+
+		i = tcflush(S->fd, TCIOFLUSH);
+
+		i = fcntl(S->fd, F_GETFL, 0);
+		fcntl(S->fd, F_SETFL, i|O_NONBLOCK);
+
+		i = open(S->ttyname, O_RDONLY|O_NOCTTY, 0);
+		if (i >= 0) {
+		  // read(i, S->rdbuf, 10);
+		  close(i);
+		}
 
 		if (S->initstring != NULL) {
 			memcpy(S->wrbuf + S->wrlen, S->initstring, S->initlen);
@@ -881,18 +917,25 @@ int ttyreader_postpoll(struct aprxpolls *app)
  * mode with no characters interpreted, 8-bit data path.
  */
 void
-aprx_cfmakeraw(t)
+aprx_cfmakeraw(t, f)
 	struct termios *t;
 {
 
 	t->c_iflag &= ~(IMAXBEL|IXOFF|INPCK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON|IGNPAR);
 	t->c_iflag |= IGNBRK;
+
 	t->c_oflag &= ~OPOST;
+	if (f) {
+	  t->c_oflag |= CRTSCTS;
+	} else {
+	  t->c_oflag &= ~CRTSCTS;
+	}
+
 	t->c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|ICANON|ISIG|IEXTEN|NOFLSH|TOSTOP|PENDIN);
 	t->c_cflag &= ~(CSIZE|PARENB);
 	t->c_cflag |= CS8|CREAD;
-	t->c_cc[VMIN] = 1;
-	t->c_cc[VTIME] = 0;
+	t->c_cc[VMIN] = 80;
+	t->c_cc[VTIME] = 3;
 }
 
 
@@ -993,8 +1036,8 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	}
 
 	/* setup termios parameters for this line.. */
-	aprx_cfmakeraw(&tty->tio);
-	tty->tio.c_cc[VMIN] = 1;	/* pick at least one char .. */
+	aprx_cfmakeraw(&tty->tio, 0);
+	tty->tio.c_cc[VMIN] = 80;	/* pick at least one char .. */
 	tty->tio.c_cc[VTIME] = 3;	/* 0.3 seconds timeout - 36 chars @ 1200 baud */
 	tty->tio.c_cflag |= (CREAD | CLOCAL);
 

@@ -1,3 +1,12 @@
+2009-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.03
+
+	* ttyreader.c:
+	    Fix on serial port startup - always turn on flows on
+	    the port, and explicitely flush the driver level
+	    buffers discarding possibly accumulated data.
+
 2009-09-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION:  1.02
