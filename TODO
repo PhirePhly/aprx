@@ -1,4 +1,4 @@
-		     APRX   0.99
+		     APRX   1.03
 
 		  	TODO
 
@@ -10,8 +10,7 @@
 - OpenTRAC support ?  (UI, PID=0x77)
   - No.  Entirely different protocol.
 
-- "radio NN ... KISS .." to support multiple TNCs,
-   and more esoteric polling modes
+- "radio NN ... KISS .." to support more esoteric polling modes
 
 - AGWPE interface for Windows ?
 
