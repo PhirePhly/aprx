@@ -678,20 +678,9 @@ static void ttyreader_linesetup(struct serialport *S)
 		if (debug)
 			printf("OK\n");
 
-		// ioctl(S->fd, TIOCNOTTY, NULL);
-
-		/* Getting tioctl data seems to OPEN the serial port..
-		   Without this all setters are powerless.. */
-		tcgetattr(S->fd, &tio);
-
-		/* Discard everything in buffers .. */
-		i = tcflush(S->fd, TCIOFLUSH);
-
 		/* Set attributes */
-		aprx_cfmakeraw(&S->tio, 1);
+		aprx_cfmakeraw(&S->tio, 1); /* hw-flow on */
 		i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
-
-		tcgetattr(S->fd, &tio);
 
 		if (i < 0) {
 			close(S->fd);
@@ -704,27 +693,12 @@ static void ttyreader_linesetup(struct serialport *S)
 		   are now set, but other systems may have different ways..
 		 */
 
-		/* Start flows both directions, and flush buffers */
-
-		i = tcflow(S->fd, TCOON);
-		i = tcflow(S->fd, TCION);
+		/* Flush buffers once again. */
 		i = tcflush(S->fd, TCIOFLUSH);
 
-		/* .. and set them again, just in case. */
-		aprx_cfmakeraw(&S->tio, 0);
-		i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
-		tcgetattr(S->fd, &tio);
-
-		i = tcflush(S->fd, TCIOFLUSH);
-
+		/* change the file handle to non-blocking */
 		i = fcntl(S->fd, F_GETFL, 0);
 		fcntl(S->fd, F_SETFL, i|O_NONBLOCK);
-
-		i = open(S->ttyname, O_RDONLY|O_NOCTTY, 0);
-		if (i >= 0) {
-		  // read(i, S->rdbuf, 10);
-		  close(i);
-		}
 
 		if (S->initstring != NULL) {
 			memcpy(S->wrbuf + S->wrlen, S->initstring, S->initlen);
