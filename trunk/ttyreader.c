@@ -64,9 +64,9 @@ struct serialport {
 	const char *ttycallsign[16]; /* callsign                             */
 	const void *netax25[16];
 
-	char *initstring;	/* optional init-string to be sent to
+	char *initstring[16];	/* optional init-string to be sent to
 				   the TNC, NULL OK                     */
-	int initlen;		/* .. as it can have even NUL-bytes,
+	int initlen[16];	/* .. as it can have even NUL-bytes,
 				   length is important!                 */
 
 
@@ -700,9 +700,9 @@ static void ttyreader_linesetup(struct serialport *S)
 		i = fcntl(S->fd, F_GETFL, 0);
 		fcntl(S->fd, F_SETFL, i|O_NONBLOCK);
 
-		if (S->initstring != NULL) {
-			memcpy(S->wrbuf + S->wrlen, S->initstring, S->initlen);
-			S->wrlen += S->initlen;
+		if (S->initstring[0] != NULL) {
+			memcpy(S->wrbuf + S->wrlen, S->initstring[0], S->initlen[0]);
+			S->wrlen += S->initlen[0];
 
 			/* Flush it out..  and if not successfull,
 			   poll(2) will take care of it soon enough.. */
@@ -1121,7 +1121,8 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			param1 = str;
 			str = config_SKIPTEXT(str);
 			str = config_SKIPSPACE(str);
-			tty->initstring = strdup(param1);
+			tty->initstring[tncid] = strdup(param1);
+			tty->initlen[tncid] = strlen(param1);
 		}
 	}
 	return NULL;
