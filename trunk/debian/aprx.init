@@ -24,13 +24,13 @@ case "$1" in
 	echo -n "Starting $DESC: "
 	start-stop-daemon --start --quiet --pidfile /var/run/$NAME.pid \
 		--exec $DAEMON -- $DAEMON_OPTS
-	echo "$NAME."
+	echo
 	;;
   stop)
 	echo -n "Stopping $DESC: "
-	start-stop-daemon --stop --quiet --pidfile /var/run/$NAME.pid \
-		--exec $DAEMON
-	echo "$NAME."
+	start-stop-daemon --stop --quiet --pidfile /var/run/$NAME.pid  \
+		--exec $DAEMON --oknodo
+	echo
 	;;
   #reload)
 	#
