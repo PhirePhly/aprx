@@ -147,8 +147,8 @@ static const void* netax25_openpty(const char *mycall)
 
 void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 {
-	int rc;
-	unsigned char ax25buf[2000];
+	int rc, p;
+	unsigned char ax25buf[2100];
 	const struct netax25_pty *nax25 = nax25p;
 
 	/* kissencoder() takes AX.25 frame, and adds framing + cmd-byte */
@@ -157,7 +157,21 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 		return;
 	ax25len = rc;
 
-	rc = write(nax25->fd, ax25buf, ax25len);
+	/* Try to write it to the PTY */
+	p = 0;
+	rc = write(nax25->fd, ax25buf + p, ax25len - p);
+	if (rc < 0) rc = 0; // error hickup..
+	p += rc; rc = 0;
+	if (p < ax25len) { // something left unwritten
+		rc = write(nax25->fd, ax25buf + p, ax25len - p);
+		if (rc < 0) rc = 0; // error hickup..
+	}
+	p += rc; rc = 0;
+	if (p < ax25len) { // something left unwritten
+		rc = write(nax25->fd, ax25buf + p, ax25len - p);
+	}
+	// Now it either succeeded, or it failed.
+	// in both cases we give up on this frame.
 }
 
 #else
