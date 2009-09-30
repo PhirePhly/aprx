@@ -1,5 +1,12 @@
 2009-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION: 1.04
+
+	* netax25.c:
+	    When writing AX.25 KISS frame to kernel, try to do it
+	    up to 3 times.  Also add some debug statements on
+	    ax25-rxport processing.
+
 	* VERSION: 1.03
 
 	* ttyreader.c:

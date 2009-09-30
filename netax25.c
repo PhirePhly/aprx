@@ -337,7 +337,7 @@ static int rxsock_read( const int fd )
 	socklen_t asize;
 	unsigned char rxbuf[3000];
 	int rcvlen;
-	char ifaddress[10];
+	char ifaddress[12]; /* max size: 6+1+2 chars */
 
 	asize = sizeof(sa);
 	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf),
@@ -361,9 +361,11 @@ static int rxsock_read( const int fd )
 		printf("Received frame from '%s' len %d\n",
 		       ifaddress, rcvlen);
 
-	if (is_ax25ttyport(ifaddress))
+	if (is_ax25ttyport(ifaddress)) {
+		if (debug > 1) printf("%s is ttyport which we serve.",ifaddress);
 		return 1;	/* We drop our own packets,
 				   if we ever see them */
+	}
 
 	if (ax25rxports) {
 		/* We have a list of AX.25 ports
@@ -376,8 +378,10 @@ static int rxsock_read( const int fd )
 				break;
 			}
 		}
-		if (!ok)
+		if (!ok) {
+			if (debug > 1) printf("%s is not known on  ax25-rxport definitions.",ifaddress);
 			return 1;	/* No match :-(  */
+		}
 	}
 
 	/* Now: actual AX.25 frame reception,

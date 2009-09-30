@@ -114,7 +114,7 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	const unsigned char *e = frame + framelen;
 	int discard = 0;
 
-	char tnc2buf[800];
+	char tnc2buf[2800];
 	char *t = tnc2buf;
 	int tnc2len;
 
