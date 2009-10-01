@@ -30,6 +30,20 @@ static int    beacon_cycle_size = 20*60; // 20 minutes
 int validate_degmin_input(const char *s, int maxdeg)
 {
 	int i;
+	int deg;
+	float min;
+	char c;
+	if (maxdeg > 90) {
+	  i = sscanf(s, "%3d%5.2f%c&c", &deg, &min, &c,&c);
+	  if (deg < 0 || deg > 180) return 1; // Bad deg value
+	  if (c != 'E' && c != 'e' && c != 'W' && c != 'w') return 1;
+	} else {
+	  i = sscanf(s, "%2d%5.2f%c%c", &deg, &min, &c,&c);
+	  if (deg < 0 || deg > 90) return 1; // Bad deg value
+	  if (c != 'N' && c != 'n' && c != 'S' && c != 's') return 1;
+	}
+	if (i != 3) return 1; // Bad scan result
+	if (min < 0.0 || min > 59.99) return 1;
 	return 0;		/* zero for OK */
 }
 
