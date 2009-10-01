@@ -216,7 +216,6 @@ static int ttyreader_kissprocess(struct serialport *S)
 		    unsigned char probe[4];
 		    unsigned char kissbuf[12];
 		    int kisslen;
-		    int crc;
 
 		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
 		    probe[1] = 0;
@@ -669,7 +668,6 @@ static void ttyreader_lineread(struct serialport *S)
 static void ttyreader_linesetup(struct serialport *S)
 {
 	int i;
-	struct termios tio;
 
 	S->wait_until = 0;	/* Zero it just to be safe */
 
