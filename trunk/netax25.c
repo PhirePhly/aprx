@@ -22,6 +22,7 @@
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
+#include <netax25/ax25.h>
 
 
 #if defined(HAVE_OPENPTY)
@@ -42,6 +43,7 @@
 
 struct netax25_pty {
 	int	fd;
+	const char *callsign;
 };
 
 static void netax25_addttyport(const char *callsign,
@@ -84,7 +86,8 @@ static const void* netax25_openpty(const char *mycall)
 	}
 
 	nax25 = calloc( 1,sizeof(*nax25) );
-	nax25->fd = pty_master;
+	nax25->fd       = pty_master;
+	nax25->callsign = mycall;
 
 	/* setup termios parameters for this line.. */
 	aprx_cfmakeraw(&tio, 0);
@@ -169,9 +172,23 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	p += rc; rc = 0;
 	if (p < ax25len) { // something left unwritten
 		rc = write(nax25->fd, ax25buf + p, ax25len - p);
+		if (rc < 0) rc = 0; // error hickup..
 	}
+	p += rc; rc = 0;
 	// Now it either succeeded, or it failed.
 	// in both cases we give up on this frame.
+	if (p < ax25len) {
+	  if (aprxlogfile) {
+	    FILE *fp = fopen(aprxlogfile, "a");
+	    if (fp) {
+	      char timebuf[60];
+	      struct tm *t = gmtime(&now);
+	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      fprintf(fp, "%s netax25_sendax25(%s,len=%d) wrote %d bytes\n", timebuf, nax25->callsign, ax25len, p);
+	      fclose(fp);
+	    }
+	  }
+	}
 }
 
 #else
@@ -248,6 +265,7 @@ void netax25_start(void)
 					   picks only inbound-at-ax25-devices
 					   ..packets.  */
 
+	// rx_socket = socket(PF_AX25, SOCK_RAW, htons(rx_protocol));
 	rx_socket = socket(PF_PACKET, SOCK_PACKET, htons(rx_protocol));
 
 	if (rx_socket < 0)
@@ -332,23 +350,54 @@ static int ax25_fmtaddress(char *dest, const unsigned char *src)
 
 static int rxsock_read( const int fd )
 {
-	struct sockaddr sa;
+	// struct msghdr msgh;
+	// union {
+	  struct sockaddr sa;
+	//  struct full_sockaddr_ax25 sax;
+	//  unsigned char sab[200];
+	// } sa;
+	// struct iovec    iov[1];
+	// unsigned char msgbuf[1000];
+	unsigned char rxbuf[3000];
+
 	struct ifreq ifr;
 	socklen_t asize;
-	unsigned char rxbuf[3000];
 	int rcvlen;
 	char ifaddress[12]; /* max size: 6+1+2 chars */
 
+	/*
+	msgh.msg_name       = & sa;
+	msgh.msg_namelen    = sizeof(sa);
+	msgh.msg_iov        = iov;
+	msgh.msg_iovlen     = 1;
+	msgh.msg_control    = msgbuf;
+	msgh.msg_controllen = sizeof(msgbuf);
+	msgh.msg_flags      = 0;
+	iov[0].iov_base        = rxbuf;
+	iov[0].iov_len         = sizeof(rxbuf);
+	*/
+
+	// memset(&sa, 0, sizeof(sa));
+
 	asize = sizeof(sa);
-	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf),
-			  0, &sa, &asize);
+	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf), 0, &sa, &asize);
+
+
+	// rcvlen = recvmsg(fd, &msgh, MSG_DONTWAIT);
+
 	if (rcvlen < 0) {
 		return 0;	/* No more at this time.. */
 	}
 
+	if (debug) {
+	  // printf("netax25rx packet from %s length %d family=%d\n", &sa.sax.fsa_ax25.sax25_call, rcvlen, sa.sax.fsa_ax25.sax25_family);
+	  printf("netax25rx packet from %s length %d family=%d\n", &sa.sa_data, rcvlen, sa.sa_family);
+	}
+
 	/* Query AX.25 for the address from whence
 	   this came in.. */
-	strcpy(ifr.ifr_name, sa.sa_data);
+	// memcpy(ifr.ifr_name, &sa.sax.fsa_ax25.sax25_call, sizeof(ifr.ifr_name));
+	memcpy(ifr.ifr_name, &sa.sa_data, sizeof(ifr.ifr_name));
 	if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
 	    || ifr.ifr_hwaddr.sa_family != AF_AX25) {
 		/* not AX.25 so ignore this packet .. */
@@ -362,7 +411,7 @@ static int rxsock_read( const int fd )
 		       ifaddress, rcvlen);
 
 	if (is_ax25ttyport(ifaddress)) {
-		if (debug > 1) printf("%s is ttyport which we serve.",ifaddress);
+		if (debug > 1) printf("%s is ttyport which we serve.\n",ifaddress);
 		return 1;	/* We drop our own packets,
 				   if we ever see them */
 	}
@@ -379,7 +428,7 @@ static int rxsock_read( const int fd )
 			}
 		}
 		if (!ok) {
-			if (debug > 1) printf("%s is not known on  ax25-rxport definitions.",ifaddress);
+			if (debug > 1) printf("%s is not known on  ax25-rxport definitions.\n",ifaddress);
 			return 1;	/* No match :-(  */
 		}
 	}

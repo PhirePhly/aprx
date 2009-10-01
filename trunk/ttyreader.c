@@ -263,12 +263,25 @@ static int ttyreader_kissprocess(struct serialport *S)
 	   S->rdline[1..S->rdlinelen-1]
 	 */
 
-	/* Send the frame without cmdbyte to internal AX.25 network */
-	if (S->netax25 != NULL)
-		netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
+	/* Send the frame to APRS-IS, return 1 if valid AX.25 UI message, does not
+	   validate against valid APRS message rules... (TODO: it could do that too) */
+	if (ax25_to_tnc2(S->ttycallsign[tncid], tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
+		/* Send the frame without cmdbyte to internal AX.25 network */
+		if (S->netax25 != NULL)
+			netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
+	} else {
+	  if (aprxlogfile) {
+	    FILE *fp = fopen(aprxlogfile, "a");
+	    if (fp) {
+	      char timebuf[60];
+	      struct tm *t = gmtime(&now);
+	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message\n", timebuf, S->ttycallsign[tncid], S->rdlinelen-1);
+	      fclose(fp);
+	    }
+	  }
+	}
 
-	/* Send the frame to APRS-IS */
-	ax25_to_tnc2(S->ttycallsign[tncid], tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1);
 	erlang_add(S, S->ttycallsign[tncid], tncid, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	return 0;
@@ -697,8 +710,7 @@ static void ttyreader_linesetup(struct serialport *S)
 		i = tcflush(S->fd, TCIOFLUSH);
 
 		/* change the file handle to non-blocking */
-		i = fcntl(S->fd, F_GETFL, 0);
-		fcntl(S->fd, F_SETFL, i|O_NONBLOCK);
+		fd_nonblockingmode(S->fd);
 
 		if (S->initstring[0] != NULL) {
 			memcpy(S->wrbuf + S->wrlen, S->initstring[0], S->initlen[0]);

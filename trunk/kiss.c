@@ -189,11 +189,31 @@ int kissencoder( void *kissbuf, int kissspace,
 		}
 	}
 	/* If caller is asking for SMACK format frame, then
-	   store calculated CRC on frame. */
+	   store calculated CRC on frame. - CRC-bytes must be KISS escaped! */
 	if ((cmdbyte & 0x8F) == 0x80) {
-		if (kb < ke) {
-			*kb++ = crc & 0xFF;		/* low crc byte */
-			*kb++ = (crc >> 8) & 0xFF;	/* high crc byte */
+		int b = crc & 0xFF;		/* low crc byte */
+		if (b == KISS_FEND) {
+		  if (kb < ke)
+		    *kb++ = KISS_FESC;
+		  if (kb < ke)
+		    *kb++ = KISS_TFEND;
+		} else {
+		  if (kb < ke)
+		    *kb++ = b;
+		  if (b == KISS_FESC && kb < ke)
+		    *kb++ = KISS_TFESC;
+		}
+		b = (crc >> 8) & 0xFF;		/* high crc byte */
+		if (b == KISS_FEND) {
+		  if (kb < ke)
+		    *kb++ = KISS_FESC;
+		  if (kb < ke)
+		    *kb++ = KISS_TFEND;
+		} else {
+		  if (kb < ke)
+		    *kb++ = b;
+		  if (b == KISS_FESC && kb < ke)
+		    *kb++ = KISS_TFESC;
 		}
 	}
 	if (kb < ke) {
