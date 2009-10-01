@@ -73,12 +73,12 @@ extern const char *ttyreader_serialcfg(char *param1, char *str);
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
-extern void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
+extern int  ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 			 const unsigned char *frame, const int framelen);
 extern void ax25_filter_add(const char *p1, const char *p2);
 
-extern int parse_ax25addr(unsigned char ax25[7], const char *text,
-			  int ssidflags);
+extern int  parse_ax25addr(unsigned char ax25[7], const char *text,
+			   int ssidflags);
 
 
 /* aprsis.c */

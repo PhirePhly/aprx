@@ -28,23 +28,28 @@ static int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src,
 				   int markflag)
 {
 	int i, c;
+	int ssid;
 
 	/* We really should verify that  */
 
 	/* 6 bytes of station callsigns in shifted ASCII format.. */
 	for (i = 0; i < 6; ++i, ++src) {
-		c = *src;
+		c = (*src) & 0xFF;
 		if (c & 1)
-			return (-(int) (c));	/* Bad address-end flag ? */
+			return -c;	/* Bad address-end flag ? */
 
 		/* Don't copy spaces or 0 bytes */
-		if (c != 0 && c != 0x40)
-			*dest++ = c >> 1;
+		c = c >> 1;
+		if (c == 0 || c == 0x20) continue;
+		*dest++ = c;
 	}
 	/* 7th byte carries SSID et.al. bits */
-	c = *src;
-	if ((c >> 1) % 16) {	/* don't print SSID==0 value */
-		dest += sprintf(dest, "-%d", (c >> 1) % 16);
+	c = (*src) & 0xFF;
+	/* (c & 1) can be non-zero - at last address! */
+
+	ssid = (c >> 1) & 0x0F;
+	if (ssid) {	/* don't print SSID==0 value */
+		dest += sprintf(dest, "-%d", ssid);
 	}
 
 	if ((c & 0x80) && markflag) {
@@ -104,15 +109,15 @@ void tnc2_to_ax25()
 	// AX25 format:   dest, src, via1, via2, via3, ... via8
 }
 
-/* Convert the binary packet to TNC2 monitor text format  */
+/* Convert the binary packet to TNC2 monitor text format.
+   Return 0 if conversion fails (format errors), 1 when format is OK. */
 
-void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
-		  const unsigned char *frame, const int framelen)
+int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
+		 const unsigned char *frame, const int framelen)
 {
 	int i, j;
 	const unsigned char *s = frame;
 	const unsigned char *e = frame + framelen;
-	int discard = 0;
 
 	char tnc2buf[2800];
 	char *t = tnc2buf;
@@ -121,7 +126,7 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	if (framelen > sizeof(tnc2buf) - 80) {
 		/* Too much ! Too much! */
-		return;
+		return 0;
 	}
 
 
@@ -131,20 +136,22 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	*t = 0;
 	i = ax25_to_tnc2_fmtaddress(t, frame + 7, 0);	/* source */
-	if (i < 0) {
-		discard = -1;	/* Bad format */
+	if (i < 0/*  || ((i & 0xE0) != 0x60)*/) { // Top 3 bits must be: 011
+		/* Bad format */
 		if (debug)
-			printf("Ax25toTNC2: Bad destination address\n");
+		  printf("Ax25toTNC2: Bad destination address; SSID-byte=0x%x\n",i);
+		return 0;
 	}
 
 	t += strlen(t);
 	*t++ = '>';
 
 	j = ax25_to_tnc2_fmtaddress(t, frame + 0, 0);	/* destination */
-	if (i < 0) {
-		discard = -1;	/* Bad format */
+	if (i < 0/* || ((i & 0xE0) != 0xE0)*/) { // Top 3 bits must be: 111
+		/* Bad format */
 		if (debug)
-			printf("Ax25toTNC2: Bad source address\n");
+		  printf("Ax25toTNC2: Bad source address; SSID-byte=0x%x\n",i);
+		return 0;
 	}
 
 	t += strlen(t);
@@ -155,12 +162,12 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 		for (; s < e;) {
 			*t++ = ',';	/* separator char */
-			i = ax25_to_tnc2_fmtaddress(t, s, 1);
-			if (i < 0) {
-				discard = -1;	/* Bad format */
+			i = ax25_to_tnc2_fmtaddress(t, s, 1); // Top 3 bits are:  H11  ( H = "has been digipeated" )
+			if (i < 0 || ((i & 0x60) != 0x60)) {
+				/* Bad format */
 				if (debug)
-					printf("Ax25toTNC2: Bad via address\n");
-				break;
+				  printf("Ax25toTNC2: Bad via address; SSID-byte=0x%x\n",i);
+				return 0;
 			}
 
 			t += strlen(t);
@@ -172,39 +179,38 @@ void ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	/* Address completed */
 
-	if ((s + 2) >= e)
-		return;		/* never happens ?? */
+	if ((s + 2) >= e) // too short payload
+		return 0;		/* never happens ?? */
 
 	*t++ = ':';		/* end of address */
 
 	if ((*s++ != 0x03) || (*s++ != 0xF0)) {
 		/* Not AX.25 UI frame */
-		return;
+		return 0;
 	}
 
 	/* Copy payload - stop at first LF char */
 	for (; s < e; ++s) {
 		if (*s == '\n') /* Stop at first LF */
-		  break;
+			break;
 		*t++ = *s;
 	}
 	*t = 0;
 
 	/* Chop off possible immediately trailing CR characters */
 	for ( ;t > tnc2buf; --t ) {
-	    int c = t[-1];
-	    if (c != '\r') {
-		break;
-	    }
-	    t[-1] = 0;
+		int c = t[-1];
+		if (c != '\r') {
+			break;
+		}
+		t[-1] = 0;
 	}
 
 	tnc2len = t - tnc2buf;
 
-	/* 
-	   if (!discard)
-	   aprsdigi(tnc2buf, portname, t0, t-t0);
-	 */
+	// TODO!
+	// aprsdigi(tnc2buf, portname, t0, t-t0);
 
-	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len, discard);
+	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len, 0);
+	return 1;
 }
