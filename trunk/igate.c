@@ -491,8 +491,6 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
  */
 static int forbidden_to_gate_addr(const char *s)
 {
-	int i = 0;
-		
 	if (memcmp(s, "TCPXX", 5) == 0)
 	  return 1; /* Forbidden to be relayed */
 	if (memcmp(s, "NOGATE", 6) == 0)
@@ -617,12 +615,12 @@ static void pick_heads(char *ax25, int headlen,
 
 void igate_from_aprsis(const char *ax25, int ax25len)
 {
-	const char *p = ax25;
+	// const char *p = ax25;
 	int colonidx;
 	const char *b;
-	const char *e = p + ax25len; /* string end pointer */
-	char  axbuf[1000]; /* enough and then some more.. */
-	char  axbuf2[1000]; /* enough and then some more.. */
+	// const char *e = p + ax25len; /* string end pointer */
+	char  axbuf[2000]; /* enough and then some more.. */
+	// char  axbuf2[1000]; /* enough and then some more.. */
 	char  *heads[20];
 	int    headscount = 0;
 

@@ -120,6 +120,7 @@ extern void igate_start(void);
 extern void igate_from_aprsis(const char *ax25, int ax25len);
 extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
 			    int tnc2len, int discard);
+extern void enable_tx_igate(const char *, const char *);
 
 /* netax25.c */
 extern void        netax25_init(void);
