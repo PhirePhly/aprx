@@ -391,7 +391,7 @@ static int rxsock_read( const int fd )
 
 	if (debug) {
 	  // printf("netax25rx packet from %s length %d family=%d\n", &sa.sax.fsa_ax25.sax25_call, rcvlen, sa.sax.fsa_ax25.sax25_family);
-	  printf("netax25rx packet from %s length %d family=%d\n", &sa.sa_data, rcvlen, sa.sa_family);
+	  printf("netax25rx packet from %s length %d family=%d\n", sa.sa_data, rcvlen, sa.sa_family);
 	}
 
 	/* Query AX.25 for the address from whence
@@ -404,7 +404,7 @@ static int rxsock_read( const int fd )
 		return 1;	/* there may be more on this socket */
 	}
 	/* OK, AX.25 address.  Print it out in text. */
-	ax25_fmtaddress(ifaddress, ifr.ifr_hwaddr.sa_data);
+	ax25_fmtaddress(ifaddress, (unsigned char*)ifr.ifr_hwaddr.sa_data);
 
 	if (debug > 1)
 		printf("Received frame from '%s' len %d\n",
@@ -461,7 +461,7 @@ int netax25_postpoll(struct aprxpolls *app)
 {
 	int i, j;
 	struct pollfd *pfd = app->polls;
-	char ifaddress[10];
+	// char ifaddress[10];
 
 	if (rx_socket < 0)
 		return 0;

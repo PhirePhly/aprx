@@ -1,3 +1,15 @@
+2009-10-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.06
+
+	* netbeacon.c:
+	    Complete beacon coordinate validator code, now it
+	    can detect invalid input values properly.
+
+	* netax25.c, aprsis.c, ttyreader.c, igate.c, aprx.h:
+	    Cleaning gcc -Wall warnings on various platforms,
+	    including OpenBSD.
+
 2009-10-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION: 1.05

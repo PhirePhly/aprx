@@ -136,25 +136,30 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	*t = 0;
 	i = ax25_to_tnc2_fmtaddress(t, frame + 7, 0);	/* source */
-	if (i < 0/*  || ((i & 0xE0) != 0x60)*/) { // Top 3 bits must be: 011
-		/* Bad format */
-		if (debug)
-		  printf("Ax25toTNC2: Bad destination address; SSID-byte=0x%x\n",i);
-		return 0;
-	}
-
 	t += strlen(t);
 	*t++ = '>';
 
 	j = ax25_to_tnc2_fmtaddress(t, frame + 0, 0);	/* destination */
-	if (i < 0/* || ((i & 0xE0) != 0xE0)*/) { // Top 3 bits must be: 111
+	t += strlen(t);
+
+	if (!((i & 0xE0) == 0x60 && (j & 0xE0) == 0xE0)) {
+	  if (debug)
+	    printf("Ax25toTNC2: %s SSID-bytes: %02x,%02x\n", tnc2buf, i,j);
+	}
+
+	if (i < 0 /*  || ((i & 0xE0) != 0x60)*/) { // Top 3 bits should be: 011
 		/* Bad format */
 		if (debug)
 		  printf("Ax25toTNC2: Bad source address; SSID-byte=0x%x\n",i);
 		return 0;
 	}
+	if (j < 0/* || ((j & 0xE0) != 0xE0)*/) { // Top 3 bits should be: 111
+		/* Bad format */
+		if (debug)
+		  printf("Ax25toTNC2: Bad destination address; SSID-byte=0x%x\n",j);
+		return 0;
+	}
 
-	t += strlen(t);
 
 	s = frame + 14;
 
@@ -186,7 +191,9 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 	if ((*s++ != 0x03) || (*s++ != 0xF0)) {
 		/* Not AX.25 UI frame */
-		return 0;
+		return 2; /* But say that the frame is OK, and
+			     let it be possibly copied to Linux
+			     internal AX.25 network. */
 	}
 
 	/* Copy payload - stop at first LF char */
