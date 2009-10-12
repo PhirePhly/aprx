@@ -141,9 +141,11 @@ void netbeacon_set(const char *p1, char *str)
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			if (validate_callsign_input((char *) srcaddr)) {
-				;
-			}
+			// What about ITEM and OBJECT ?
+
+			// if (validate_callsign_input((char *) srcaddr),1) {
+			//   printf("Invalid netbeacon FOR callsign");
+			// }
 
 			if (debug)
 				printf("for '%s' ", srcaddr);

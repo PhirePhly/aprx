@@ -1,5 +1,12 @@
 2009-10-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprsis.c, aprx.h, config.c, netbeacon.c, aprx.conf.in,
+	  VERSION, README, INSTALL, TODO:
+	    <aprsis> interface config with new style entry.
+	    More of <interface> definitions.
+	    Experiments at aprx.conf.in writing.
+
+
 	* Makefile.in, aprx.8.in, aprx.conf.in, aprx.h, config.c,
 	  filter.c, interface.c, netax25.c, netbeacon.c, pbuf.c,
 	  pbuf.h, ttyreader.c:

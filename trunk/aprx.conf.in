@@ -3,13 +3,15 @@
 #
 #
 
+<aprsis>
+
 # The  aprsis-login  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
 # This value MUST NOT match any possible AX.25 interface in
 # the system!  Ignore this at your own peril...  The Call-SSIDs
 # SSID value does not need to be numeric 1..15: "-R1" works too.
 #
-#aprsis-login     N0CALL-R1
+login     N0CALL-R1
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
@@ -17,48 +19,33 @@
 # used in round\-robin fashion.  Heartbeat and filter definitions
 # must follow each server definition.
 
-#aprsis-server    finland.aprs2.net  14580
-#aprsis-server    rotate.aprs.net    14580
+server	   igates.aprs.fi     14580
+#server    finland.aprs2.net  14580
+#server    rotate.aprs.net    14580
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
 # Enable only if the server you use does present heartbeat.
 # Recommended value 3*"heartbeat" + some  -> 120 (seconds)
 #
-#aprsis-heartbeat-timeout   120
+#heartbeat-timeout   120
 
 # Additional APRS-IS servers can be entered, by repeating following
 # three configuration entries as many times as are needed.
 #
-#aprsis-server            rotate.aprs.net 14580
-#aprsis-heartbeat-timeout 120
+#server            rotate.aprs.net 14580
+#heartbeat-timeout 120
 
 # APRS-IS server may support some filter commands.
 # See:  http://www.aprs-is.net/javAPRSFilter.aspx
 #
 # Note: "m/.." filter does not work, because you can not beacon
-#       same ID as is used on APRS-IS login - the mycall !
+#       same ID as is used on APRS-IS login - the aprsis login !
 #
-#aprsis-filter "some filter specs in quotes"
+#filter "some filter specs in quotes"
 
-# AX.25 filters block selected messages matching on selected regular
-# expressions.  The expressions are case sensitive, and AX.25 address
-# elements are in all uppercase text.  There can be unlimited number
-# of patterns, type fields are four: "source", "destination", "via",
-# and "data".  These patterns can be used in addition to built-in
-# hard-coded reject rules listed in documentation.
-#
-#ax25-reject-filter source      "^NOCALL"
-#ax25-reject-filter destination "^NOCALL"
-#ax25-reject-filter via         "^NOGATE"
-#ax25-reject-filter data        "^\\?"
+</aprsis>
 
-# ax25-rxport  Lists AX.25 ports by their callsigns that in Linux
-#              systems receive APRS packets.  If none are defined,
-#              the AX.25 network receiver is not enabled.
-#
-#ax25-rxport NoCALL
-#ax25-rxport N0CALL
 
 # pidfile is UNIX way to tell that others that this program is
 # running with given process-id number.  This has compiled-in
@@ -66,6 +53,8 @@
 #
 pidfile @VARRUN@/aprx.pid
 
+
+<logging>
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
@@ -114,6 +103,31 @@ pidfile @VARRUN@/aprx.pid
 #
 #erlang-log1min
 
+</logging>
+
+
+# AX.25 filters block selected messages matching on selected regular
+# expressions.  The expressions are case sensitive, and AX.25 address
+# elements are in all uppercase text.  There can be unlimited number
+# of patterns, type fields are four: "source", "destination", "via",
+# and "data".  These patterns can be used in addition to built-in
+# hard-coded reject rules listed in documentation.
+#
+#ax25-reject-filter source      "^NOCALL"
+#ax25-reject-filter destination "^NOCALL"
+#ax25-reject-filter via         "^NOGATE"
+#ax25-reject-filter data        "^\\?"
+
+#<interface>
+# ax25-rxport  Lists AX.25 ports by their callsigns that in Linux
+#              systems receive APRS packets.  If none are defined,
+#              the AX.25 network receiver is not enabled.
+#
+#ax25-rxport N0CALL
+#
+# ## tx-ok false
+#</interface>
+
 # The  radio serial  option.  Parameters are:
 #   - /dev/ttyUSB1    -- tty device
 #   - 19200           -- baud rate, supported ones are:
@@ -124,28 +138,33 @@ pidfile @VARRUN@/aprx.pid
 #     TNC2            -- non-KISS text format variant
 #
 #
-#radio serial   /dev/ttyUSB0  19200 8n1    KISS  tncid 0 callsign N0CALL-14
-#radio serial   /dev/ttyUSB1  19200 8n1    TNC2          callsign N0CALL-13
+#<interface>
+# serial-device   /dev/ttyUSB0  19200 8n1    KISS
+# <kiss-subif 0>
+#    callsign N0CALL-14
+#    tx-ok    false
+# </kiss-subif>
+#</interface>
+#
+#<interface>
+# serial-device   /dev/ttyUSB1  19200 8n1    TNC2
+# callsign N0CALL-13
+#</interface>
+#
 
-# Additional/alternate options for the "radio" line.
+#
+#  "KISS"                  - plain basic KISS mode
+#  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
+#  "SMACK"  alias "CRC16"  - KISS with better CRC
+#  "TNC2"                  - TNC2 monitor format
+#
+# Additional/alternate options for the serial-device
 #
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
 #    The initstring is a binary string,  "\x00" is encodable.
 #    Of the usual C-style codes only "\r" and "\n" are understood.
-#    The initstring is usable only on "tncid 0".
-#
-# "tncid 0" sets optional alternate SSID on KISS type connections.
-#    This id is specific for the multiplexer connection on given
-#    port, and can be in range of 0 thru 7 for SMACK type links,
-#    and up to 15 for KISS, and BPQ type links.  The tncid is not
-#    settable for TNC2 type connections.
-#
-# "callsign NAME" sets callsign used in statistics displays,
-#    and when the message is sent to APRS-IS.
-#    If none are given, then it will use physical port name.
-#    There can be multiple callsign parameters, if each are
-#    prefixed with their own  tncid  setting.
+#    The initstring is device level option, not on KISS-SUBIF.
 #
 # "timeout 900" sets a timeout monitor (in seconds) to make
 #    reopen/reconnect if the (tcp) connection to radio has
@@ -156,10 +175,22 @@ pidfile @VARRUN@/aprx.pid
 #    gracefully in case of network failures, and timeout
 #    value can be shortened.
 #
-#  "KISS"                  - plain basic KISS mode
-#  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
-#  "SMACK"  alias "CRC16"  - KISS with better CRC
-#  "TNC2"                  - TNC2 monitor format
+# "<kiss-subif 0>" sets optional multiplexer index on KISS type
+#    connections. This id is specific for the multiplexer connection
+#    on given port, and can be in range of 0 thru 7 for SMACK type
+#    links, and up to 15 for KISS, and BPQ type links. 
+#    The kiss-subif is settable only for KISS-type connections.
+#
+# "callsign NAME" sets callsign used in statistics displays,
+#    and when the message is sent to APRS-IS.
+#    If none are given, then it will use physical port name.
+#    There can be multiple callsign parameters, if each are
+#    prefixed with their own  tncid  setting.
+#
+# "tx-ok true" enables transmit. System will then also require
+#    that used callsign is valid for AX.25.
+#
+#</interface>
 
 
 # The  radio tcp  option defines a connection to remote socket
@@ -168,8 +199,24 @@ pidfile @VARRUN@/aprx.pid
 # then literal port number, and finally protocol mode.
 # KISS-protocol parameters are same as with normal serial port.
 #
-#radio tcp  12.34.56.78  4001  KISS  timeout 900 callsign N0CALL-12
-#radio tcp  12.34.56.78  4002  TNC2  timeout 300 callsign N0CALL-11
+#<interface>
+# tcp-device  12.34.56.78  4001  KISS
+# timeout 900 
+# <kiss-subif 0>
+#    callsign N0CALL-12
+#    tx-ok    false
+# </kiss-subif>
+#</interface>
+#
+#<interface>
+# tcp-device  12.34.56.78  4002  TNC2
+# timeout 300
+# <kiss-subif 0>
+#    callsign N0CALL-12
+#    tx-ok    false
+# </kiss-subif>
+#
+#</interface>
 
 # The  netbeacon  option.
 # Parameter string (in quotes) is sent to network (without quotes)

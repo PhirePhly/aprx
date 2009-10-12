@@ -1,4 +1,4 @@
-		     APRX   1.06
+		     APRX   1.90
 
 		  	TODO
 
@@ -8,7 +8,7 @@
   - ...
 
 - OpenTRAC support ?  (UI, PID=0x77)
-  - No.  Entirely different protocol.
+  - Yes, on DIGIPEATER ONLY
 
 - "radio NN ... KISS .." to support more esoteric polling modes
 
