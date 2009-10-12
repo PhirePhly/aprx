@@ -711,14 +711,17 @@ static void ttyreader_linesetup(struct serialport *S)
 		/* change the file handle to non-blocking */
 		fd_nonblockingmode(S->fd);
 
-		if (S->initstring[0] != NULL) {
-			memcpy(S->wrbuf + S->wrlen, S->initstring[0], S->initlen[0]);
-			S->wrlen += S->initlen[0];
-
-			/* Flush it out..  and if not successfull,
-			   poll(2) will take care of it soon enough.. */
-			ttyreader_linewrite(S);
+		for (i = 0; i < 16; ++i) {
+		  if (S->initstring[i] != NULL) {
+		    memcpy(S->wrbuf + S->wrlen, S->initstring[i], S->initlen[i]);
+		    S->wrlen += S->initlen[i];
+		  }
 		}
+
+		/* Flush it out..  and if not successfull,
+		   poll(2) will take care of it soon enough.. */
+		ttyreader_linewrite(S);
+
 	} else {		/* socket connection to remote TTY.. */
 		/*   "tcp!hostname-or-ip!port!opt-parameters" */
 		char *par = strdup(S->ttyname);
@@ -1117,6 +1120,9 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 			tty->initlen[tncid]    = parlen;
 			tty->initstring[tncid] = malloc(parlen);
 			memcpy(tty->initstring[tncid], param1, parlen);
+
+			if (debug)
+			  printf("initstring len=%d\n",parlen);
 		} else {
 		  printf("%s:%d Unknown sub-keyword on 'radio' configuration: '%s'\n",
 			 cf->name, cf->linenum, param1);
