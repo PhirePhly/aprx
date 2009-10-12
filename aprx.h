@@ -35,6 +35,13 @@
 #define static			/*ignore statics during debug */
 #endif
 
+struct configfile {
+	const char *name;
+	FILE	*fp;
+	int	linenum;
+	char	buf[1024];
+};
+
 /* aprxpolls.c */
 struct aprxpolls {
 	struct pollfd *polls;
@@ -66,10 +73,10 @@ extern const char *pidfile;
 
 
 /* ttyreader.c */
-extern int ttyreader_prepoll(struct aprxpolls *);
-extern int ttyreader_postpoll(struct aprxpolls *);
+extern int  ttyreader_prepoll(struct aprxpolls *);
+extern int  ttyreader_postpoll(struct aprxpolls *);
 extern void ttyreader_init(void);
-extern const char *ttyreader_serialcfg(char *param1, char *str);
+extern const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str);
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
@@ -87,11 +94,11 @@ extern void aprsis_set_heartbeat_timeout(const int tout);
 extern void aprsis_set_filter(const char *filter);
 extern void aprsis_set_login(const char *login);
 
-extern int aprsis_queue(const char *addr, int addrlen,
-			const char *gwcall,
-			const char *text, int textlen);
-extern int aprsis_prepoll(struct aprxpolls *app);
-extern int aprsis_postpoll(struct aprxpolls *app);
+extern int  aprsis_queue(const char *addr, int addrlen,
+			 const char *gwcall,
+			 const char *text, int textlen);
+extern int  aprsis_prepoll(struct aprxpolls *app);
+extern int  aprsis_postpoll(struct aprxpolls *app);
 extern void aprsis_init(void);
 extern void aprsis_start(void);
 
@@ -102,18 +109,21 @@ extern int  netbeacon_prepoll(struct aprxpolls *app);
 extern int  netbeacon_postpoll(struct aprxpolls *app);
 
 /* config.c */
-extern void readconfig(const char *cfgfile);
+extern void *readconfigline(struct configfile *cf);
+extern int   configline_is_comment(struct configfile *cf);
+extern void  readconfig(const char *cfgfile);
 extern char *config_SKIPSPACE(char *Y);
-extern char *config_SKIPTEXT(char *Y);
-extern void config_STRLOWER(char *Y);
-extern void config_STRUPPER(char *Y);
-extern int validate_callsign_input(char *callsign);
+extern char *config_SKIPTEXT(char *Y, int *lenp);
+extern void  config_STRLOWER(char *Y);
+extern void  config_STRUPPER(char *Y);
+extern int   validate_callsign_input(char *callsign);
+extern int   config_parse_boolean(const char *par, int *resultp);
 
 /* erlang.c */
 extern void erlang_init(const char *syslog_facility_name);
 extern void erlang_start(int do_create);
-extern int erlang_prepoll(struct aprxpolls *app);
-extern int erlang_postpoll(struct aprxpolls *app);
+extern int  erlang_prepoll(struct aprxpolls *app);
+extern int  erlang_postpoll(struct aprxpolls *app);
 
 /* igate.c */
 extern void igate_start(void);
@@ -133,8 +143,8 @@ extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax2
 
 /* telemetry.c */
 extern void telemetry_start(void);
-extern int telemetry_prepoll(struct aprxpolls *app);
-extern int telemetry_postpoll(struct aprxpolls *app);
+extern int  telemetry_prepoll(struct aprxpolls *app);
+extern int  telemetry_postpoll(struct aprxpolls *app);
 
 typedef enum {
 	ERLANG_RX,
@@ -256,3 +266,7 @@ extern int          dupecheck_postpoll(struct aprxpolls *app);
 
 extern int crc16_calc(unsigned char *buf, int n); /* SMACK's CRC16 */
 extern int kissencoder(void *, int, const void *, int, int);
+
+/* interface.c */
+extern void config_interface(struct configfile *cf);
+

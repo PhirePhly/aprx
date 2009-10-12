@@ -518,6 +518,4 @@ void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 void netax25_sendax25_tnc2(const void *tnc2, int tnc2len)
 {
 }
-
-
 #endif

@@ -72,7 +72,11 @@
 struct pbuf_t {
 	struct pbuf_t *next;
 
-	time_t t;		/* when the packet was received */
+	uint16_t refcount;
+	uint16_t ax25_control;  // APRS: 0x03
+	uint16_t ax25_pid;      // APRS: 0xF0
+
+	time_t   t;		/* when the packet was received */
 	uint32_t seqnum;	/* ever increasing counter, dupecheck sets */
 	uint16_t packettype;	/* bitmask: one or more of T_* */
 	uint16_t flags;		/* bitmask: one or more of F_* */
