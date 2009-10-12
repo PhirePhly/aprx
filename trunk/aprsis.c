@@ -1060,3 +1060,82 @@ int aprsis_postpoll(struct aprxpolls *app)
 	}			/* .. for .. nfds .. */
 	return 1;		/* there was something we did, maybe.. */
 }
+
+
+void config_aprsis(struct configfile *cf)
+{
+	char *name, *param1;
+	char *str = cf->buf;
+
+
+	while (readconfigline(cf) != NULL) {
+		if (configline_is_comment(cf))
+			continue;	/* Comment line, or empty line */
+
+		// It can be severely indented...
+		str = config_SKIPSPACE(cf->buf);
+
+		name = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+		config_STRLOWER(name);
+
+		param1 = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+
+		if (strcmp(name, "</aprsis>") == 0) {
+		  // End of this interface definition
+
+		  // make the interface...
+
+		  break;
+		}
+
+		// FIXME: aprsis parameters
+
+		// login
+		// server
+		// filter
+		// heartbeat-timeout
+
+		if (strcmp(name, "login") == 0) {
+		  config_STRUPPER(param1);
+		  validate_callsign_input(param1);
+		  aprsis_login = strdup(param1);
+		  if (debug)
+		    printf("%s:%d: LOGIN = '%s' '%s'\n",
+			   cf->name, cf->linenum, aprsis_login, str);
+
+		} else if (strcmp(name, "server") == 0) {
+		  aprsis_add_server(param1, str);
+
+		  if (debug)
+		    printf("%s:%d: SERVER = '%s':'%s'\n",
+			   cf->name, cf->linenum, param1, str);
+
+		} else if (strcmp(name, "heartbeat-timeout") == 0) {
+		  int i = 0;
+		  if (config_parse_interval(param1, &i)) {
+		    // FIXME: Report parameter failure ...
+		  }
+		  if (i < 0)	/* param failure ? */
+		    i = 0;	/* no timeout */
+		  aprsis_set_heartbeat_timeout(i);
+		  
+		  if (debug)
+		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%d' '%s'\n",
+			   cf->name, cf->linenum, i, str);
+
+		} else if (strcmp(name, "filter") == 0) {
+		  aprsis_set_filter(param1);
+
+		  if (debug)
+		    printf("%s:%d: FILTER = '%s' '%s'\n",
+			   cf->name, cf->linenum, param1, str);
+
+		} else  {
+		  printf("%s:%d: Unknown configuration keyword: '%s'\n",param1);
+		}
+	}
+}
