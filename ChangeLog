@@ -1,3 +1,12 @@
+2009-10-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile.in, aprx.8.in, aprx.conf.in, aprx.h, config.c,
+	  filter.c, interface.c, netax25.c, netbeacon.c, pbuf.c,
+	  pbuf.h, ttyreader.c:
+	    Incremental work on new style of configurations
+	    as outlined in the Requirement Specification document.
+	    Old style configurations do still work.
+
 2009-10-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION: 1.06
@@ -16,7 +25,6 @@
 
 	* kiss.c, netax25.c, ttyreader.c, aprx.h, ax25.c:
 	    Write the SMACK frame with correctly escaped CRC.
-
 
 2009-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
