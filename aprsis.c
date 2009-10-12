@@ -1101,7 +1101,7 @@ void config_aprsis(struct configfile *cf)
 
 		if (strcmp(name, "login") == 0) {
 		  config_STRUPPER(param1);
-		  validate_callsign_input(param1);
+		  validate_callsign_input(param1,0);
 		  aprsis_login = strdup(param1);
 		  if (debug)
 		    printf("%s:%d: LOGIN = '%s' '%s'\n",

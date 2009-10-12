@@ -117,7 +117,7 @@ extern char *config_SKIPSPACE(char *Y);
 extern char *config_SKIPTEXT(char *Y, int *lenp);
 extern void  config_STRLOWER(char *Y);
 extern void  config_STRUPPER(char *Y);
-extern int   validate_callsign_input(char *callsign);
+extern int   validate_callsign_input(char *callsign, int strict);
 extern int   config_parse_interval(const char *par, int *resultp);
 extern int   config_parse_boolean(const char *par, int *resultp);
 

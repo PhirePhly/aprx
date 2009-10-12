@@ -64,7 +64,9 @@ typedef enum {
 } iftype_e;
 
 struct aprx_interface {
-	iftype_e  iftype;
+	iftype_e    iftype;
+	char       *callsign;
+	int         txok;
 
 	const void *nax25p;
 	const void *serial;
@@ -119,7 +121,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 		// FIXME:   callsign   and   tx-ok   parameters!
 		if (strcmp(name, "callsign") == 0) {
-		  if (validate_callsign_input(param1)) {
+		  if (validate_callsign_input(param1,1)) {
 		    // FIXME: Complain of bad input parameter!
 		    return 1;
 		  }
@@ -140,6 +142,8 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 void config_interface(struct configfile *cf)
 {
 	struct aprx_interface *aif = calloc(1, sizeof(*aif));
+	aif->iftype = IFTYPE_UNSET;
+
 	char *name, *param1;
 	char *str = cf->buf;
 
@@ -187,12 +191,85 @@ void config_interface(struct configfile *cf)
 
 		// FIXME: interface parameters
 
-		// serial-device
-		// tcp
-		// ax25-device
-		// callsign
-		// tx-ok
-		// initstring
-		// timeout
+		if (strcmp(name,"ax25-rxport") == 0) {
+		  if (debug)
+		    printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
+			   cf->name, cf->linenum, param1, str);
+
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_AX25;
+		    // aif->nax25p = NULL;
+		    netax25_addrxport(param1, str);
+
+		  } else {
+		    // FIXME: Error!  Only single interface per interface block!
+		  }
+		  
+		} else if (strcmp(name,"ax25-device") == 0 && aif->callsign == NULL) {
+		  if (debug)
+		    printf("%s:%d: AX25-DEVICE '%s' '%s'\n",
+			   cf->name, cf->linenum, param1, str);
+
+		  if (validate_callsign_input(param1,1)) {
+		    // FIXME: Complain about bad callsign
+		    continue;
+		  }
+
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_AX25;
+		    // aif->nax25p = NULL;
+		    netax25_addrxport(param1, str);
+		    aif->callsign = strdup(param1);
+
+		  } else {
+		    // FIXME: Error!  Only single interface per interface block!
+		  }
+		} else if (strcmp(name,"tx-ok") == 0) {
+
+		  if (!config_parse_boolean(param1, &(aif->txok))) {
+		    // FIXME: Bad value
+		    continue;
+		  }
+		  if (aif->txok && aif->callsign) {
+		    if (validate_callsign_input(aif->callsign,aif->txok)) {  // Transmitters REQUIRE valid AX.25 address
+		      printf("%s:%d: TX-OK 'TRUE -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
+			     cf->name, cf->linenum);
+		      continue;
+		    }
+		  }
+
+		} else if ((strcmp(name,"callsign") == 0) && (aif->callsign == NULL)) {
+
+		  if (validate_callsign_input(param1,aif->txok)) { // Transmitters REQUIRE valid AX.25 address
+		    printf("%s:%d: CALLSIGN '%s -- IS NOT VALID AX.25 ADDRESS, AS REQUIRED ON TRANSMITTER DEVICES\n",
+			   cf->name, cf->linenum, param1);
+		    continue;
+		  }
+		  aif->callsign = strdup(param1);
+
+		} else if ((strcmp(name,"serial-device") == 0) && (aif->serial == NULL)) {
+		  // FIXME: Parse serial device
+
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_SERIAL;
+
+		  } else {
+		    // FIXME: Error!  Only single interface per interface block!
+		  }
+		  
+		} else if ((strcmp(name,"tcp-device") == 0) && (aif->serial == NULL)) {
+		  // FIXME: Parse tcp device
+
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_TCPIP;
+
+		  } else {
+		    // FIXME: Error!  Only single interface per interface block!
+		  }
+
+		} else if (strcmp(name,"initstring") == 0) {
+		} else if (strcmp(name,"timeout") == 0) {
+		} else {
+		}
 	}
 }

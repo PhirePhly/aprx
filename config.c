@@ -38,12 +38,13 @@ char *config_SKIPDIGIT(char *Y)
 }
 #endif
 
-int validate_callsign_input(char *callsign)
+int validate_callsign_input(char *callsign, int strict)
 {
 	int i = strlen(callsign);
 	char *p = callsign;
 	char c = 0;
 	int seen_minus = 0;
+	int ssid = 0;
 
 	for ( ; *p ; ++p ) {
 		c = *p;
@@ -54,6 +55,8 @@ int validate_callsign_input(char *callsign)
 		if (!seen_minus && c == '-') {
 		  if (p == callsign || p[1] == 0)
 		    return 1; // Hyphen is at beginning or at end!
+		  if ((p - callsign) > 6)
+		    return 1; // Hyphen too far!  Max 6 characters preceding it.
 		  seen_minus = 1;
 		  continue;
 		} else if (seen_minus && c == '-') {
@@ -62,17 +65,34 @@ int validate_callsign_input(char *callsign)
 
 		// The "SSID" value can be alphanumeric here!
 
-		if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
-		  // Valid character!
+		if (!seen_minus) {
+		  // Callsign prefix
+		  if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
+		    // Valid character!
+		  } else {
+		    return 1; // Invalid characters in callsign part
+		  }
 		} else {
-		  return 1; // Invalid characters in callsign part
+		  // SSID tail
+		  if (strict) {
+		    if ('0' <= c && c <= '9') {
+		      // Valid character!
+		      ssid = ssid * 10 + c - '0';
+		      if (ssid > 15) { // SSID value range: 0 .. 15
+			return 1;
+		      }
+		    } else {
+		      return 1; // Invalid characters in SSID part
+		    }
+		  } else { // non-strict
+		    if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
+		      // Valid character!
+		    } else {
+		      return 1; // Invalid characters in SSID part
+		    }
+		  }
 		}
 	}
-
-	/* If longer than 9 chars, break at 9 ... */
-	callsign[i > 9 ? 9 : i] = 0;
-	if (i > 9)		/* .. and complain! */
-		return 1;
 
 	if (i > 3 && (callsign[i - 1] == '0' && callsign[i - 2] == '-')) {
 		callsign[i - 2] = 0;
@@ -200,30 +220,40 @@ static void cfgparam(struct configfile *cf)
 
 	if (strcmp(name, "<aprsis>") == 0) {
 	  config_aprsis(cf);
-	} else if (strcmp(name, "<interface>") == 0) {
+	  return;
+	}
+	if (strcmp(name, "<interface>") == 0) {
 	  config_interface(cf);
-	} else if (strcmp(name, "<digipeater>") == 0) {
+	  return;
+	}
+	if (strcmp(name, "<digipeater>") == 0) {
 	  // config_digipeater(cf);
-	} else if (strcmp(name, "<netbeacon>") == 0) {
+	  return;
+	}
+	if (strcmp(name, "<netbeacon>") == 0) {
 	  // config_netbeacon(cf);
-	} else if (strcmp(name, "<rfbeacon>") == 0) {
+	  return;
+	}
+	if (strcmp(name, "</netbeacon>") == 0) {
+	  return;
+	}
+	if (strcmp(name, "<rfbeacon>") == 0) {
 	  // config_rfbeacon(cf);
-	} else if (strcmp(name, "<logging>") == 0) {
+	  return;
+	}
+	if (strcmp(name, "<logging>") == 0) {
 	  // config_logging(cf);
+	  return;
+	}
+	if (strcmp(name, "</logging>") == 0) { // temporary helper..
+	  return;
+
 	} else {
 	}
 
-	if (strcmp(name, "mycall") == 0) {
+	if (strcmp(name, "aprsis-login") == 0) {
 		config_STRUPPER(param1);
-		validate_callsign_input(param1);
-		aprsis_login = strdup(param1);
-		if (debug)
-			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
-			       cf->name, cf->linenum, aprsis_login, str);
-
-	} else if (strcmp(name, "aprsis-login") == 0) {
-		config_STRUPPER(param1);
-		validate_callsign_input(param1);
+		validate_callsign_input(param1,0);
 		aprsis_login = strdup(param1);
 		if (debug)
 			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
@@ -345,7 +375,7 @@ static void cfgparam(struct configfile *cf)
 
 	} else {
 		printf("%s:%d: Unknown config keyword: '%s' '%s'\n",
-		       cf->name, cf->linenum, param1, str);
+		       cf->name, cf->linenum, name, param1);
 	}
 }
 
