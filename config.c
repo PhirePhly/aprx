@@ -199,7 +199,7 @@ static void cfgparam(struct configfile *cf)
 	str = config_SKIPSPACE(str);
 
 	if (strcmp(name, "<aprsis>") == 0) {
-	  // config_aprsis(cf);
+	  config_aprsis(cf);
 	} else if (strcmp(name, "<interface>") == 0) {
 	  config_interface(cf);
 	} else if (strcmp(name, "<digipeater>") == 0) {
@@ -347,6 +347,12 @@ static void cfgparam(struct configfile *cf)
 		printf("%s:%d: Unknown config keyword: '%s' '%s'\n",
 		       cf->name, cf->linenum, param1, str);
 	}
+}
+
+int config_parse_interval(const char *par, int *resultp)
+{
+	*resultp = atoi(par);
+	return 0;
 }
 
 int config_parse_boolean(const char *par, int *resultp)
