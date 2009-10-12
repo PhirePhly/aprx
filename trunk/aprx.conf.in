@@ -131,6 +131,9 @@ pidfile @VARRUN@/aprx.pid
 #
 # "initstring" is of two parts, the keyword, and then a string.
 #    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
+#    The initstring is a binary string,  "\x00" is encodable.
+#    Of the usual C-style codes only "\r" and "\n" are understood.
+#    The initstring is usable only on "tncid 0".
 #
 # "tncid 0" sets optional alternate SSID on KISS type connections.
 #    This id is specific for the multiplexer connection on given

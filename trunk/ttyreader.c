@@ -924,7 +924,7 @@ aprx_cfmakeraw(t, f)
 }
 
 
-const char *ttyreader_serialcfg(char *param1, char *str)
+const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 {				/* serialport /dev/ttyUSB123   19200  8n1   {KISS|TNC2|AEA|..}  */
 	int i;
 	speed_t baud;
@@ -933,7 +933,6 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	int tncid   = 0;
 
 	/*
-	   serialport /dev/ttyUSB123 [19200 [8n1]]
 	   radio serial /dev/ttyUSB123  [19200 [8n1]]  KISS
 	   radio tcp 12.34.56.78 4001 KISS
 
@@ -961,30 +960,12 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 
 	tty->ttyname = NULL;
 
-	if (memcmp(param1, "socket!", 7) == 0) {
-		/* Uh oh..  old style..
-		   Convert to:  tcp!12.34.56.78!4001!
-		 */
-		sprintf((char *) (tty->ttyname), "tcp!%s", param1 + 7);
-		tcpport = 1;
-
-		if (debug)
-			printf(".. old style socket!\n");
-
-	} else if (*param1 == '/') {
-		/* Old style  'serialport /dev/... */
-
-		tty->ttyname = strdup(param1);
-
-		if (debug)
-			printf("..old style /... device\n");
-
-	} else if (strcmp(param1, "serial") == 0) {
+	if (strcmp(param1, "serial") == 0) {
 		/* New style! */
 		free((char *) (tty->ttyname));
 
 		param1 = str;
-		str = config_SKIPTEXT(str);
+		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
 		tty->ttyname = strdup(param1);
@@ -1001,11 +982,11 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 		free((char *) (tty->ttyname));
 
 		host = str;
-		str = config_SKIPTEXT(str);
+		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
 		port = str;
-		str = config_SKIPTEXT(str);
+		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
 		if (debug)
@@ -1039,7 +1020,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 	/* Optional parameters */
 	while (*str != 0) {
 		param1 = str;
-		str = config_SKIPTEXT(str);
+		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
 		/* See if it is baud-rate ? */
@@ -1098,7 +1079,7 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 		} else if (strcmp(param1, "callsign") == 0 ||
 			   strcmp(param1, "alias") == 0) {
 			param1 = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 			config_STRUPPER(param1);
 			tty->ttycallsign[tncid] = strdup(param1);
@@ -1113,13 +1094,13 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 
 		} else if (strcmp(param1, "timeout") == 0) {
 			param1 = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 			tty->read_timeout = atol(param1);
 
 		} else if (strcmp(param1, "tncid") == 0) {
 			param1 = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 			tncid = atoi(param1);
 			if (tncid < 0 || tncid > 15)
@@ -1129,11 +1110,16 @@ const char *ttyreader_serialcfg(char *param1, char *str)
 			tty->linetype = LINETYPE_TNC2;	/* TNC2 monitor */
 
 		} else if (strcmp(param1, "initstring") == 0) {
+			int parlen;
 			param1 = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, &parlen);
 			str = config_SKIPSPACE(str);
-			tty->initstring[tncid] = strdup(param1);
-			tty->initlen[tncid] = strlen(param1);
+			tty->initlen[tncid]    = parlen;
+			tty->initstring[tncid] = malloc(parlen);
+			memcpy(tty->initstring[tncid], param1, parlen);
+		} else {
+		  printf("%s:%d Unknown sub-keyword on 'radio' configuration: '%s'\n",
+			 cf->name, cf->linenum, param1);
 		}
 	}
 	return NULL;

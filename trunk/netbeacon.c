@@ -138,7 +138,7 @@ void netbeacon_set(const char *p1, char *str)
 		if (strcmp(p1, "for") == 0) {
 
 			srcaddr = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (validate_callsign_input((char *) srcaddr)) {
@@ -151,7 +151,7 @@ void netbeacon_set(const char *p1, char *str)
 		} else if (strcmp(p1, "dest") == 0) {
 
 			destaddr = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (debug)
@@ -160,7 +160,7 @@ void netbeacon_set(const char *p1, char *str)
 		} else if (strcmp(p1, "via") == 0) {
 
 			via  = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (debug)
@@ -170,7 +170,7 @@ void netbeacon_set(const char *p1, char *str)
 			/*  ddmm.mmN   */
 
 			lat = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (validate_degmin_input(lat, 90)) {
@@ -184,7 +184,7 @@ void netbeacon_set(const char *p1, char *str)
 			/*  dddmm.mmE  */
 
 			lon = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (validate_degmin_input(lat, 180)) {
@@ -198,7 +198,7 @@ void netbeacon_set(const char *p1, char *str)
 			/*   R&    */
 
 			code = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (debug)
@@ -208,7 +208,7 @@ void netbeacon_set(const char *p1, char *str)
 			/* text up to .. 40 chars */
 
 			comment = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			if (debug)
@@ -217,7 +217,7 @@ void netbeacon_set(const char *p1, char *str)
 		} else if (strcmp(p1, "raw") == 0) {
 
 			p1 = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
 			bm->msg = strdup(p1);
@@ -232,7 +232,7 @@ void netbeacon_set(const char *p1, char *str)
 				printf("Unknown keyword: '%s'", p1);
 
 			p1 = str;
-			str = config_SKIPTEXT(str);
+			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 #else
 			/* Unknown keyword, a raw message ? */
@@ -246,7 +246,7 @@ void netbeacon_set(const char *p1, char *str)
 		}
 
 		p1 = str;
-		str = config_SKIPTEXT(str);
+		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 	}
 	if (debug)

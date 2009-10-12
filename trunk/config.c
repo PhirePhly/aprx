@@ -41,10 +41,36 @@ char *config_SKIPDIGIT(char *Y)
 int validate_callsign_input(char *callsign)
 {
 	int i = strlen(callsign);
+	char *p = callsign;
+	char c = 0;
+	int seen_minus = 0;
+
+	for ( ; *p ; ++p ) {
+		c = *p;
+		if ('a' <= c && c <= 'z') {
+		  // Presuming ASCII
+		  c = *p = c - ('a'-'A');
+		}
+		if (!seen_minus && c == '-') {
+		  if (p == callsign || p[1] == 0)
+		    return 1; // Hyphen is at beginning or at end!
+		  seen_minus = 1;
+		  continue;
+		} else if (seen_minus && c == '-') {
+		  return 1; // Seen a hyphen again!
+		}
+
+		// The "SSID" value can be alphanumeric here!
+
+		if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
+		  // Valid character!
+		} else {
+		  return 1; // Invalid characters in callsign part
+		}
+	}
 
 	/* If longer than 9 chars, break at 9 ... */
 	callsign[i > 9 ? 9 : i] = 0;
-
 	if (i > 9)		/* .. and complain! */
 		return 1;
 
@@ -67,10 +93,11 @@ int validate_callsign_input(char *callsign)
  *  end of line/string.
  */
 
-char *config_SKIPTEXT(char *Y)
+char *config_SKIPTEXT(char *Y, int *lenp)
 {
 	char *O = Y;
 	char endc = *Y;
+	int  len = 0;
 	if (!Y)
 		return Y;
 
@@ -82,10 +109,13 @@ char *config_SKIPTEXT(char *Y)
 				++Y;
 				if (*Y == 'n') {
 					*O++ = '\n';
+					++len;
 				} else if (*Y == 'r') {
 					*O++ = '\r';
+					++len;
 				} else if (*Y == '"') {
 					*O++ = '"';
+					++len;
 				} else if (*Y == '\'') {
 					*O++ = '\'';
 				} else if (*Y == '\\') {
@@ -103,9 +133,12 @@ char *config_SKIPTEXT(char *Y)
 					hx[2] = 0;
 					i = (int) strtol(hx, NULL, 16);
 					*O++ = i;
+					++len;
 				}
-			} else
+			} else {
 				*O++ = *Y;
+				++len;
+			}
 			if (*Y != 0)
 				++Y;
 		}
@@ -116,12 +149,15 @@ char *config_SKIPTEXT(char *Y)
 	} else {
 		while (*Y && *Y != ' ' && *Y != '\t') {
 			++Y;
+			++len;
 		}
 		/* Stop at white-space or end */
 		if (*Y)
 			*Y++ = 0;
 	}
 
+	if (lenp != NULL)
+	  *lenp = len;
 	return Y;
 }
 
@@ -147,27 +183,35 @@ void config_STRUPPER(char *s)
 	}
 }
 
-static void cfgparam(char *str, int size, const char *cfgfilename,
-		     int linenum)
+static void cfgparam(struct configfile *cf)
 {
 	char *name, *param1;
-
-	name = strchr(str, '\n');	/* The trailing newline chopper ... */
-	if (name)
-		*name = 0;
-	name = strchr(str, '\r');	/* The trailing cr chopper ... */
-	if (name)
-		*name = 0;
+	char *str = cf->buf;
 
 	name = str;
-	str = config_SKIPTEXT(str);
+	str = config_SKIPTEXT(str, NULL);
 	str = config_SKIPSPACE(str);
 	config_STRLOWER(name);
 
 	param1 = str;
 
-	str = config_SKIPTEXT(str);
+	str = config_SKIPTEXT(str, NULL);
 	str = config_SKIPSPACE(str);
+
+	if (strcmp(name, "<aprsis>") == 0) {
+	  // config_aprsis(cf);
+	} else if (strcmp(name, "<interface>") == 0) {
+	  config_interface(cf);
+	} else if (strcmp(name, "<digipeater>") == 0) {
+	  // config_digipeater(cf);
+	} else if (strcmp(name, "<netbeacon>") == 0) {
+	  // config_netbeacon(cf);
+	} else if (strcmp(name, "<rfbeacon>") == 0) {
+	  // config_rfbeacon(cf);
+	} else if (strcmp(name, "<logging>") == 0) {
+	  // config_logging(cf);
+	} else {
+	}
 
 	if (strcmp(name, "mycall") == 0) {
 		config_STRUPPER(param1);
@@ -175,7 +219,7 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 		aprsis_login = strdup(param1);
 		if (debug)
 			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
-			       cfgfilename, linenum, aprsis_login, str);
+			       cf->name, cf->linenum, aprsis_login, str);
 
 	} else if (strcmp(name, "aprsis-login") == 0) {
 		config_STRUPPER(param1);
@@ -183,14 +227,14 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 		aprsis_login = strdup(param1);
 		if (debug)
 			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
-			       cfgfilename, linenum, aprsis_login, str);
+			       cf->name, cf->linenum, aprsis_login, str);
 
 	} else if (strcmp(name, "aprsis-server") == 0) {
 		aprsis_add_server(param1, str);
 
 		if (debug)
 			printf("%s:%d: APRSIS-SERVER = '%s':'%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 	} else if (strcmp(name, "aprsis-heartbeat-timeout") == 0) {
 		int i = atoi(param1);
@@ -199,14 +243,15 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 		aprsis_set_heartbeat_timeout(i);
 
 		if (debug)
-			printf("%s:%d: APRSIS-HEARTBEAT-TIMEOUT = '%d' '%s'\n", cfgfilename, linenum, i, str);
+			printf("%s:%d: APRSIS-HEARTBEAT-TIMEOUT = '%d' '%s'\n",
+			       cf->name, cf->linenum, i, str);
 
 	} else if (strcmp(name, "aprsis-filter") == 0) {
 		aprsis_set_filter(param1);
 
 		if (debug)
 			printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 	} else if (strcmp(name, "enable-tx-igate") == 0) {
 		
@@ -214,26 +259,26 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 
 		if (debug)
 			printf("%s:%d: ENABLE-TX-IGATE\n",
-			       cfgfilename, linenum);
+			       cf->name, cf->linenum);
 
 	} else if (strcmp(name, "ax25-filter") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		ax25_filter_add(param1, str);
 
 	} else if (strcmp(name, "ax25-reject-filter") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		ax25_filter_add(param1, str);
 
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		netax25_addrxport(param1, str);
 
@@ -242,105 +287,143 @@ static void cfgparam(char *str, int size, const char *cfgfilename,
 
 		if (debug)
 			printf("%s:%d: NETBEACON = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 	} else if (strcmp(name, "aprxlog") == 0) {
 		if (debug)
 			printf("%s:%d: APRXLOG = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		aprxlogfile = strdup(param1);
 
 	} else if (strcmp(name, "rflog") == 0) {
 		if (debug)
 			printf("%s:%d: RFLOG = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		rflogfile = strdup(param1);
 
 	} else if (strcmp(name, "pidfile") == 0) {
 		if (debug)
 			printf("%s:%d: PIDFILE = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		pidfile = strdup(param1);
 
 	} else if (strcmp(name, "erlangfile") == 0) {
 		if (debug)
 			printf("%s:%d: ERLANGFILE = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 
 		erlang_backingstore = strdup(param1);
 
 	} else if (strcmp(name, "erlang-loglevel") == 0) {
 		if (debug)
 			printf("%s:%d: ERLANG-LOGLEVEL = '%s' '%s'\n",
-			       cfgfilename, linenum, param1, str);
+			       cf->name, cf->linenum, param1, str);
 		erlang_init(param1);
 
 	} else if (strcmp(name, "erlanglog") == 0) {
 		if (debug)
 			printf("%s:%d: ERLANGLOG = '%s'\n",
-			       cfgfilename, linenum, param1);
+			       cf->name, cf->linenum, param1);
 
 		erlanglogfile = strdup(param1);
 
 	} else if (strcmp(name, "erlang-log1min") == 0) {
 		if (debug)
 			printf("%s:%d: ERLANG-LOG1MIN\n",
-			       cfgfilename, linenum);
+			       cf->name, cf->linenum);
 
 		erlanglog1min = 1;
-
-	} else if (strcmp(name, "serialport") == 0) {
-		if (debug)
-			printf("%s:%d: SERIALPORT = %s %s..\n",
-			       cfgfilename, linenum, param1, str);
-		ttyreader_serialcfg(param1, str);
 
 	} else if (strcmp(name, "radio") == 0) {
 		if (debug)
 			printf("%s:%d: RADIO = %s %s..\n",
-			       cfgfilename, linenum, param1, str);
-		ttyreader_serialcfg(param1, str);
+			       cf->name, cf->linenum, param1, str);
+		ttyreader_serialcfg(cf, param1, str);
 
 	} else {
 		printf("%s:%d: Unknown config keyword: '%s' '%s'\n",
-		       cfgfilename, linenum, param1, str);
+		       cf->name, cf->linenum, param1, str);
+	}
+}
+
+int config_parse_boolean(const char *par, int *resultp)
+{
+	if (strcasecmp(par, "true") == 0 ||
+	    strcmp(par, "1") == 0 ||
+	    strcasecmp(par, "yes") == 0 ||
+	    strcasecmp(par, "y") == 0) {
+
+		*resultp = 1;
+		return 1;
+
+	} else if (strcasecmp(par, "false") == 0 ||
+		   strcmp(par, "0") == 0 ||
+		   strcasecmp(par, "no") == 0 ||
+		   strcasecmp(par, "n") == 0) {
+
+		*resultp = 0;
+		return 1;
+
+	} else {
+		return 0;
 	}
 }
 
 
+void *readconfigline(struct configfile *cf)
+{
+	char *p = fgets(cf->buf, sizeof(cf->buf), cf->fp);
+	cf->buf[sizeof(cf->buf) - 1] = 0;	/* Trunc, just in case.. */
+	if (p != NULL)
+		cf->linenum += 1;
+	return p;
+}
+
+int configline_is_comment(struct configfile *cf)
+{
+	const char *buf = cf->buf;
+	const int buflen = sizeof(cf->buf);
+	char c = 0, *s;
+	int i;
+
+	for (i = 0; buf[i] != 0 && i < buflen; ++i) {
+		c = buf[i];
+		if (c == ' ' || c == '\t')
+			continue;
+		/* Anything else, stop scanning */
+		break;
+	}
+	if (c == '#' || c == '\n' || c == '\r')
+		return 1;
+
+	s = strchr(buf, '\n');	/* The trailing NL chopper ... */
+	if (s)
+		*s = 0;
+	s = strchr(buf, '\r');	/* The trailing CR chopper ... */
+	if (s)
+		*s = 0;
+
+	return 0;
+}
+
 void readconfig(const char *name)
 {
-	FILE *fp;
-	unsigned char c = 0;
-	char buf[1024];
-	int linenum = 0, i;
+	struct configfile cf;
 
+	cf.linenum = 0;
+	cf.name    = name;
 
-
-	if ((fp = fopen(name, "r")) == NULL)
+	if ((cf.fp = fopen(name, "r")) == NULL)
 		return;
 
-	buf[sizeof(buf) - 1] = 0;
-
-	while (fgets(buf, sizeof buf, fp) != NULL) {
-		++linenum;
-
-		buf[sizeof(buf) - 1] = 0;	/* Trunc, just in case.. */
-
-		for (i = 0; buf[i] != 0; ++i) {
-			c = buf[i];
-			if (c == ' ' || c == '\t')
-				continue;
-			/* Anything else, stop scanning */
-			break;
-		}
-		if (c == '#' || c == '\n' || c == '\r')
+	while (readconfigline(&cf) != NULL) {
+		if (configline_is_comment(&cf))
 			continue;	/* Comment line, or empty line */
 
-		cfgparam(buf, sizeof(buf), name, linenum);
+		cfgparam(&cf);
 	}
-	fclose(fp);
+	fclose(cf.fp);
 }
