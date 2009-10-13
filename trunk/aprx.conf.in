@@ -1,6 +1,16 @@
 #
-#  Sample configuration file for the APRX  -- an Rx-only APRS iGate
+#  Sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
 #
+# This configuration is structured with Apache HTTPD style tags
+# which then contain subsystem parameters.
+#
+# Define the parameters in following order:
+#   1)  <aprsis>     ** zero or one
+#   2)  <logging>    ** zero or one
+#   3)  <interface>  ** there can be multiple!
+#   4)  <netbeacon>  ** zero to many
+#   5)  <rfbeacon>   ** zero to many
+#   6)  <digipeater> ** zero to many (at most one for each Tx)
 #
 
 <aprsis>
@@ -19,9 +29,9 @@ login     N0CALL-R1
 # used in round\-robin fashion.  Heartbeat and filter definitions
 # must follow each server definition.
 
-server	   igates.aprs.fi     14580
+#server	   igates.aprs.fi     14580
 #server    finland.aprs2.net  14580
-#server    rotate.aprs.net    14580
+server    rotate.aprs.net    14580
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
