@@ -35,6 +35,9 @@
 #define static			/*ignore statics during debug */
 #endif
 
+struct aprx_interface; // Forward declarator
+
+
 struct configfile {
 	const char *name;
 	FILE	*fp;
@@ -73,10 +76,85 @@ extern const char *pidfile;
 
 
 /* ttyreader.c */
+typedef enum {
+	LINETYPE_KISS,		/* all KISS variants without CRC on line */
+	LINETYPE_KISSSMACK,	/* KISS/SMACK variants with CRC on line */
+	LINETYPE_KISSBPQCRC,	/* BPQCRC - really XOR sum of data bytes,
+				   also "AEACRC"                        */
+	LINETYPE_TNC2,		/* text line from TNC2 in monitor mode  */
+	LINETYPE_AEA		/* not implemented...                   */
+} LineType;
+
+typedef enum {
+	KISSSTATE_SYNCHUNT = 0,
+	KISSSTATE_COLLECTING,
+	KISSSTATE_KISSFESC
+} KissState;
+
+
+struct serialport {
+	int fd;			/* UNIX fd of the port                  */
+
+	time_t wait_until;
+	time_t last_read_something;	/* Used by serial port functionality
+					   watchdog */
+	int read_timeout;	/* seconds                              */
+
+	LineType linetype;
+
+	KissState kissstate;	/* state for KISS frame reader,
+				   also for line collector              */
+
+	/* NOTE: The smack_probe is separate on all
+	**       sub-tnc:s on SMACK loop
+	*/
+	time_t smack_probe[8];	/* if need to send SMACK probe, use this
+				   to limit their transmit frequency.	*/
+	int    smack_subids;    /* bitset; 0..7; could use char...	*/
+
+
+	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)       */
+	/*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
+
+	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" --
+				   Linux TTY-names can be long..        */
+	const char *ttycallsign[16]; /* callsign                             */
+	const void *netax25[16];
+
+	char *initstring[16];	/* optional init-string to be sent to
+				   the TNC, NULL OK                     */
+	int initlen[16];	/* .. as it can have even NUL-bytes,
+				   length is important!                 */
+
+	struct aprx_interface	*interface[16];
+
+
+	unsigned char rdbuf[2000];	/* buffering area for raw stream read */
+	int rdlen, rdcursor;	/* rdlen = last byte in buffer,
+				   rdcursor = next to read.
+				   When rdlen == 0, buffer is empty.    */
+	unsigned char rdline[2000];	/* processed into lines/records       */
+	int rdlinelen;		/* length of this record                */
+
+	unsigned char wrbuf[2000];	/* buffering area for raw stream read */
+	int wrlen, wrcursor;	/* wrlen = last byte in buffer,
+				   wrcursor = next to write.
+				   When wrlen == 0, buffer is empty.    */
+};
+
+
 extern int  ttyreader_prepoll(struct aprxpolls *);
 extern int  ttyreader_postpoll(struct aprxpolls *);
 extern void ttyreader_init(void);
+// Old style init: ttyreader_serialcfg()
 extern const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str);
+// New style init: ttyreader_new()
+extern struct serialport *ttyreader_new(void);
+// extern void               ttyreader_setlineparam(struct serialport *tty, const char *ttyname, const int baud, int const kisstype);
+// extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
+extern void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
+
+
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
@@ -269,6 +347,77 @@ extern int          dupecheck_postpoll(struct aprxpolls *app);
 extern int crc16_calc(unsigned char *buf, int n); /* SMACK's CRC16 */
 extern int kissencoder(void *, int, const void *, int, int);
 
+
+
+/* digipeater.c */
+typedef enum {
+	DIGIRELAY_UNSET,
+	DIGIRELAY_DIGIPEAT,
+	DIGIRELAY_THIRDPARTY
+} digi_relaytype;
+
+struct aprx_filter;    // Forward declarator
+struct digipeater;     // Forward declarator
+
+struct digipeater_source {
+	struct digipeater     *parent;
+	digi_relaytype	       src_relaytype;
+	struct aprx_interface *src_if;
+	struct aprx_filter    *src_filters;
+};
+
+struct tracewide {
+	int   maxreq;
+	int   maxdone;
+
+	int   nkeys;
+	char *keys[];
+};
+
+struct digipeater {
+	struct aprx_interface *transmitter;
+	int		       ratelimit;
+
+	// viscous queue ?
+
+	struct tracewide       trace;
+	struct tracewide       wide;
+
+	int                    sourcecount;
+	struct digipeater_source *sources;
+};
+
+extern void config_digipeater(struct configfile *cf);
+
+
 /* interface.c */
+
+typedef enum {
+	IFTYPE_UNSET,
+	IFTYPE_SERIAL,
+	IFTYPE_AX25,
+	IFTYPE_TCPIP
+} iftype_e;
+
+struct aprx_interface {
+	iftype_e    iftype;
+	int	    timeout;
+
+	char       *callsign;
+	int	    subif;
+	int         txok;
+	int	    initlength;
+	char	   *initstring;
+
+	const void        *nax25p; // fix this
+	struct serialport *tty;
+
+	int	                   digicount;
+	struct digipeater_source **digipeaters;
+};
+
 extern void config_interface(struct configfile *cf);
+extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
+
+extern void interface_ax25_receive(struct aprx_interface *ax25if, const char *rawax25, const int rawax25len);
 

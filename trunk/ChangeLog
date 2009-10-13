@@ -1,5 +1,11 @@
 2009-10-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c, ttyreader.c, aprx.h, aprx.conf.in, aprx.8.in:
+	    Remodelled serial-device definitions into interface layer.
+	    Documentation updates to match new system.
+
+2009-10-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* aprsis.c, aprx.h, config.c, netbeacon.c, aprx.conf.in,
 	  VERSION, README, INSTALL, TODO:
 	    <aprsis> interface config with new style entry.
@@ -13,6 +19,7 @@
 	    Incremental work on new style of configurations
 	    as outlined in the Requirement Specification document.
 	    Old style configurations do still work.
+	    Serial port initstring is now binary transparent.
 
 2009-10-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
@@ -32,6 +39,7 @@
 
 	* kiss.c, netax25.c, ttyreader.c, aprx.h, ax25.c:
 	    Write the SMACK frame with correctly escaped CRC.
+	    Fixed also serial-port initstring handling.
 
 2009-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 

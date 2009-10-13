@@ -55,47 +55,63 @@
 
  */
 
-
-typedef enum {
-	IFTYPE_UNSET,
-	IFTYPE_SERIAL,
-	IFTYPE_AX25,
-	IFTYPE_TCPIP
-} iftype_e;
-
-struct aprx_interface {
-	iftype_e    iftype;
-	char       *callsign;
-	int         txok;
-
-	const void *nax25p;
-	const void *serial;
-};
-
-struct aprx_interface *tx_interfaces;
-int                    tx_interfaces_count;
-
-struct aprx_interface *all_interfaces;
-int                    all_interfaces_count;
+struct aprx_interface **all_interfaces;
+int                     all_interfaces_count;
 
 
-static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, char *param1, char *str, int maxsubif, int *subif, int *txokp, char **callsignpp)
+static void store_interface(struct aprx_interface *aif)
 {
+	all_interfaces_count += 1;
+	all_interfaces = realloc(all_interfaces,
+				 sizeof(all_interfaces) * all_interfaces_count);
+	all_interfaces[all_interfaces_count -1] = aif;
+}
+
+struct aprx_interface *find_interface_by_callsign(const char *callsign)
+{
+	int i;
+	for (i = 0; i < all_interfaces_count; ++i) {
+	  if ((all_interfaces[i]->callsign != NULL) &&
+	      (strcasecmp(callsign, all_interfaces[i]->callsign) == 0)) {
+	    return all_interfaces[i];
+	  }
+	}
+	return NULL; // Not found!
+}
+
+static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, struct aprx_interface **aifp, char *param1, char *str, int maxsubif)
+{
+	int   fail = 0;
+
 	char *name;
-	*subif = 0;
-	for ( ; *param1; ++param1 ) {
-		int c = *param1;
+	int   parlen = 0;
+
+	char *initstring = NULL;
+	int   initlength = 0;
+	char *callsign   = NULL;
+	int   subif      = 0;
+	int   txok       = 0;
+
+	const char *p = param1;
+	int c;
+
+	for ( ; *p; ++p ) {
+		c = *p;
 		if ('0' <= c && c <= '9') {
-			*subif = *subif * 10 + (c - '0');
+			subif = subif * 10 + (c - '0');
 		} else if (c == '>') {
 		  // all fine..
 		} else {
 		  // FIXME: <KISS-SubIF nnn>  parameter value is bad!
+		  printf("%s:%d  <kiss-subif %s parameter value is bad\n",
+			 cf->name, cf->linenum, param1);
 		  return 1;
 		}
 	}
-	if (*subif >= maxsubif) {
+	if (subif >= maxsubif) {
 		// FIXME: <KISS-SubIF nnn>  parameter value is bad!
+	  printf("%s:%d  <kiss-subif %s parameter value is too large for this KISS variant.\n",
+		 cf->name, cf->linenum, param1);
 	  return 1;
 	}
 
@@ -112,7 +128,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		config_STRLOWER(name);
 
 		param1 = str;
-		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPTEXT(str, &parlen);
 		str = config_SKIPSPACE(str);
 
 		if (strcmp(name, "</kiss-subif>") == 0) {
@@ -121,39 +137,77 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 		// FIXME:   callsign   and   tx-ok   parameters!
 		if (strcmp(name, "callsign") == 0) {
-		  if (validate_callsign_input(param1,1)) {
-		    // FIXME: Complain of bad input parameter!
-		    return 1;
+		  if (validate_callsign_input(param1,txok)) {
+		    if (txok)
+		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+			     cf->name, cf->linenum, param1);
+		    else
+		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid APRSIS format! '%s'\n",
+			     cf->name, cf->linenum, param1);
+		    fail = 1;
+		    break;
 		  }
-		  *callsignpp = strdup(param1);
+		  callsign = strdup(param1);
+		} else if (strcmp(name, "initstring") == 0) {
+		  
+		  initlength = parlen;
+		  initstring = malloc(parlen);
+		  memcpy(initstring, param1, parlen);
+
 		} else if (strcmp(name, "tx-ok") == 0) {
-		  if (!config_parse_boolean(param1, txokp)) {
-		    // FIXME: Bad value
-		    return 1;
+		  if (!config_parse_boolean(param1, &txok)) {
+		    printf("%s:%d Bad TX-OK parameter value -- not a recognized boolean: %s\n",
+			   cf->name, cf->linenum, param1);
+		    fail = 1;
+		    break;
 		  }
 		} else {
-		  // FIXME: Bad keyword
-		  return 1;
+		  printf("%s:%d Unrecognized keyword: %s\n",
+			   cf->name, cf->linenum, name);
+		  fail = 1;
+		  break;
 		}
 	}
+	if (fail) return 1;
+
+	if (callsign == NULL) {
+	  // FIXME: Must define at least a callsign!
+	  return 1;
+	}
+
+	*aifp = malloc(sizeof(*aif));
+	memcpy(*aifp, aif, sizeof(*aif));
+
+	(*aifp)->callsign = callsign;
+	(*aifp)->subif    = subif;
+	(*aifp)->txok     = txok;
+
+	aif->tty->interface  [subif] = *aifp;
+	aif->tty->ttycallsign[subif] = callsign;
+	aif->tty->netax25    [subif] = netax25_open(callsign);
+
+	store_interface(*aifp);
+
+	if (initstring != NULL) {
+	  aif->tty->initlen[subif]    = initlength;
+	  aif->tty->initstring[subif] = initstring;
+	}
+
 	return 0;
 }
 
 void config_interface(struct configfile *cf)
 {
 	struct aprx_interface *aif = calloc(1, sizeof(*aif));
-	aif->iftype = IFTYPE_UNSET;
+	struct aprx_interface *aif2 = NULL; // subif copies here..
 
 	char *name, *param1;
 	char *str = cf->buf;
+	int  parlen = 0;
 
-	int pbuflen = 1024;
-	char *pbuf = malloc(pbuflen);
-	char *callsign = NULL;
-	int  txok = 0;
-	int  subif = 0;
 	int  maxsubif = 16;  // 16 for most KISS modes, 8 for SMACK
 
+	aif->iftype = IFTYPE_UNSET;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -168,7 +222,7 @@ void config_interface(struct configfile *cf)
 		config_STRLOWER(name);
 
 		param1 = str;
-		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPTEXT(str, &parlen);
 		str = config_SKIPSPACE(str);
 
 		if (strcmp(name, "</interface>") == 0) {
@@ -179,55 +233,102 @@ void config_interface(struct configfile *cf)
 		  break;
 		}
 		if (strcmp(name, "<kiss-subif") == 0) {
-		  callsign = NULL;
-		  subif = 0; txok = 0;
-		  if (config_kiss_subif(cf, aif, param1, str, maxsubif, &subif, &txok, &callsign)) {
+		  aif2 = NULL;
+		  if (config_kiss_subif(cf, aif, &aif2, param1, str, maxsubif)) {
 		    // FIXME: bad inputs.. complained already
+		  } else {
+		    if (aif2 != NULL) {
+		    }
 		  }
-		  // FIXME: store results
 
 		  continue;
 		}
 
 		// FIXME: interface parameters
 
-		if (strcmp(name,"ax25-rxport") == 0) {
-		  if (debug)
-		    printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
-			   cf->name, cf->linenum, param1, str);
-
+		if (strcmp(name,"ax25-device") == 0) {
 		  if (aif->iftype == IFTYPE_UNSET) {
 		    aif->iftype = IFTYPE_AX25;
 		    // aif->nax25p = NULL;
-		    netax25_addrxport(param1, str);
-
 		  } else {
-		    // FIXME: Error!  Only single interface per interface block!
+		    printf("%s:%d Only single device specification per interface block!\n",
+			   cf->name, cf->linenum);
+		    continue;
 		  }
-		  
-		} else if (strcmp(name,"ax25-device") == 0 && aif->callsign == NULL) {
+
+		  if (validate_callsign_input(param1,1)) {
+		    printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+			   cf->name, cf->linenum, param1);
+		    continue;
+		  }
+
 		  if (debug)
 		    printf("%s:%d: AX25-DEVICE '%s' '%s'\n",
 			   cf->name, cf->linenum, param1, str);
 
-		  if (validate_callsign_input(param1,1)) {
-		    // FIXME: Complain about bad callsign
+		  netax25_addrxport(param1, str);
+		  aif->callsign = strdup(param1);
+		  
+		  store_interface(aif);
+
+		} else if ((strcmp(name,"serial-device") == 0) && (aif->tty == NULL)) {
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_SERIAL;
+		    aif->tty = ttyreader_new();
+		    aif->tty->interface[0] = aif;
+
+		  } else {
+		    printf("%s:%d Only single device specification per interface block!\n",
+			   cf->name, cf->linenum);
 		    continue;
 		  }
 
+		  aif->tty->ttyname = strdup(param1);
+		  if (debug)
+		    printf(".. new style serial:  '%s' '%s'..\n",
+			   aif->tty->ttyname, str);
+
+		  ttyreader_parse_ttyparams(cf, aif->tty, str);
+
+
+		  
+		} else if ((strcmp(name,"tcp-device") == 0) && (aif->tty == NULL)) {
+		  int len;
+		  char *host, *port;
+
 		  if (aif->iftype == IFTYPE_UNSET) {
-		    aif->iftype = IFTYPE_AX25;
-		    // aif->nax25p = NULL;
-		    netax25_addrxport(param1, str);
-		    aif->callsign = strdup(param1);
+		    aif->iftype = IFTYPE_TCPIP;
+		    aif->tty = ttyreader_new();
+		    aif->tty->interface[0] = aif;
 
 		  } else {
-		    // FIXME: Error!  Only single interface per interface block!
+		    printf("%s:%d Only single device specification per interface block!\n",
+			   cf->name, cf->linenum);
+		    continue;
 		  }
+
+		  host = param1;
+
+		  port = str;
+		  str = config_SKIPTEXT(str, NULL);
+		  str = config_SKIPSPACE(str);
+
+		  if (debug)
+		    printf(".. new style tcp!:  '%s' '%s' '%s'..\n",
+			   host, port, str);
+
+		  len = strlen(host) + strlen(port) + 8;
+
+		  aif->tty->ttyname = malloc(len);
+		  sprintf((char *) (aif->tty->ttyname), "tcp!%s!%s!", host, port);
+
+		  ttyreader_parse_ttyparams( cf, aif->tty, str );
+
 		} else if (strcmp(name,"tx-ok") == 0) {
 
 		  if (!config_parse_boolean(param1, &(aif->txok))) {
-		    // FIXME: Bad value
+		    printf("%s:%d Bad TX-OK parameter value -- not a recognized boolean: %s\n",
+			   cf->name, cf->linenum, param1);
 		    continue;
 		  }
 		  if (aif->txok && aif->callsign) {
@@ -238,38 +339,44 @@ void config_interface(struct configfile *cf)
 		    }
 		  }
 
+		} else if (strcmp(name,"timeout") == 0) {
+		  if (config_parse_interval(param1, &(aif->timeout) ) ||
+		      (aif->timeout < 0) || (aif->timeout > 1200)) {
+		    aif->timeout = 0;
+		    printf("%s:%d Bad TIMEOUT parameter value: %s\n",
+			   cf->name, cf->linenum, param1);
+		    continue;
+		  }
+		  if (aif->tty != NULL) {
+		    aif->tty->read_timeout = aif->timeout;
+		  }
+
+/*
 		} else if ((strcmp(name,"callsign") == 0) && (aif->callsign == NULL)) {
 
 		  if (validate_callsign_input(param1,aif->txok)) { // Transmitters REQUIRE valid AX.25 address
+		    // FIX MESSAGE TEXTS PER txok VALUE
 		    printf("%s:%d: CALLSIGN '%s -- IS NOT VALID AX.25 ADDRESS, AS REQUIRED ON TRANSMITTER DEVICES\n",
 			   cf->name, cf->linenum, param1);
 		    continue;
 		  }
 		  aif->callsign = strdup(param1);
 
-		} else if ((strcmp(name,"serial-device") == 0) && (aif->serial == NULL)) {
-		  // FIXME: Parse serial device
-
-		  if (aif->iftype == IFTYPE_UNSET) {
-		    aif->iftype = IFTYPE_SERIAL;
-
-		  } else {
-		    // FIXME: Error!  Only single interface per interface block!
-		  }
-		  
-		} else if ((strcmp(name,"tcp-device") == 0) && (aif->serial == NULL)) {
-		  // FIXME: Parse tcp device
-
-		  if (aif->iftype == IFTYPE_UNSET) {
-		    aif->iftype = IFTYPE_TCPIP;
-
-		  } else {
-		    // FIXME: Error!  Only single interface per interface block!
-		  }
-
 		} else if (strcmp(name,"initstring") == 0) {
-		} else if (strcmp(name,"timeout") == 0) {
+		  if (aif->tty != NULL) {
+		    aif->tty->initlen[0]    = parlen;
+		    aif->tty->initstring[0] = malloc(parlen);
+		    memcpy(aif->tty->initstring[0], param1, parlen);
+		  } else {
+		    printf("%s:%d The initstring parameter is available only on serial-device, and tcp-device\n",
+			   cf->name, cf->linenum);
+		    continue;
+		  }
+*/
 		} else {
+		  printf("%s:%d Unknown config entry name: '%s'\n",
+			 cf->name, cf->linenum, name);
+
 		}
 	}
 }
