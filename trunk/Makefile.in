@@ -61,7 +61,8 @@ LIBS=		@LIBS@ @LIBRESOLV@ @LIBSOCKET@ -lm
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o netbeacon.o config.o	\
 		netax25.o erlang.o aprxpolls.o telemetry.o igate.o	\
 		aprsdigi.o cellmalloc.o historydb.o keyhash.o		\
-		parse_aprs.o  dupecheck.o  kiss.o interface.o
+		parse_aprs.o  dupecheck.o  kiss.o interface.o		\
+		rfbeacon.o 
 
 OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
 

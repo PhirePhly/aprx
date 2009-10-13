@@ -1,3 +1,9 @@
+2009-10-14  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* rfbeacon.c, interface.c, Makefile.in, config.c, aprx.c,
+	  aprx.h, aprx.conf.in, aprsis.c, netbeacon.c:
+	    Add a stub of rfbeacon.
+
 2009-10-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c, config.c, netax25.c, ttyreader.c, ax25.c,

@@ -1062,7 +1062,7 @@ int aprsis_postpoll(struct aprxpolls *app)
 }
 
 
-void config_aprsis(struct configfile *cf)
+void aprsis_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;

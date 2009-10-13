@@ -219,30 +219,27 @@ static void cfgparam(struct configfile *cf)
 	str = config_SKIPSPACE(str);
 
 	if (strcmp(name, "<aprsis>") == 0) {
-	  config_aprsis(cf);
+	  aprsis_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<interface>") == 0) {
-	  config_interface(cf);
+	  interface_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<digipeater>") == 0) {
-	  // config_digipeater(cf);
+	  // digipeater_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<netbeacon>") == 0) {
-	  // config_netbeacon(cf);
-	  return;
-	}
-	if (strcmp(name, "</netbeacon>") == 0) {
+	  netbeacon_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<rfbeacon>") == 0) {
-	  // config_rfbeacon(cf);
+	  rfbeacon_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<logging>") == 0) {
-	  // config_logging(cf);
+	  // logging_config(cf);
 	  return;
 	}
 	if (strcmp(name, "</logging>") == 0) { // temporary helper..

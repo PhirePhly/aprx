@@ -224,6 +224,7 @@ int main(int argc, char *const argv[])
 		i = ttyreader_prepoll(&app);
 		i = aprsis_prepoll(&app);
 		i = netbeacon_prepoll(&app);
+		i = rfbeacon_prepoll(&app);
 		i = netax25_prepoll(&app);
 		i = erlang_prepoll(&app);
 		i = telemetry_prepoll(&app);
@@ -238,6 +239,7 @@ int main(int argc, char *const argv[])
 
 
 		i = netbeacon_postpoll(&app);
+		i = rfbeacon_postpoll(&app);
 		i = ttyreader_postpoll(&app);
 		i = netax25_postpoll(&app);
 		i = aprsis_postpoll(&app);
