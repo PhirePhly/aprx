@@ -20,70 +20,6 @@
    to packet frames depending on what is attached...  */
 
 
-typedef enum {
-	LINETYPE_KISS,		/* all KISS variants without CRC on line */
-	LINETYPE_KISSSMACK,	/* KISS/SMACK variants with CRC on line */
-	LINETYPE_KISSBPQCRC,	/* BPQCRC - really XOR sum of data bytes,
-				   also "AEACRC"                        */
-	LINETYPE_TNC2,		/* text line from TNC2 in monitor mode  */
-	LINETYPE_AEA		/* not implemented...                   */
-} LineType;
-
-typedef enum {
-	KISSSTATE_SYNCHUNT = 0,
-	KISSSTATE_COLLECTING,
-	KISSSTATE_KISSFESC
-} KissState;
-
-
-struct serialport {
-	int fd;			/* UNIX fd of the port                  */
-
-	time_t wait_until;
-	time_t last_read_something;	/* Used by serial port functionality
-					   watchdog */
-	int read_timeout;	/* seconds                              */
-
-	LineType linetype;
-
-	KissState kissstate;	/* state for KISS frame reader,
-				   also for line collector              */
-
-	/* NOTE: The smack_probe is separate on all
-	**       sub-tnc:s on SMACK loop
-	*/
-	time_t smack_probe[8];	/* if need to send SMACK probe, use this
-				   to limit their transmit frequency.	*/
-	int    smack_subids;    /* bitset; 0..7; could use char...	*/
-
-
-	struct termios tio;	/* tcsetattr(fd, TCSAFLUSH, &tio)       */
-	/*  stty speed 19200 sane clocal pass8 min 1 time 5 -hupcl ignbrk -echo -ixon -ixoff -icanon  */
-
-	const char *ttyname;	/* "/dev/ttyUSB1234-bar22-xyz7" --
-				   Linux TTY-names can be long..        */
-	const char *ttycallsign[16]; /* callsign                             */
-	const void *netax25[16];
-
-	char *initstring[16];	/* optional init-string to be sent to
-				   the TNC, NULL OK                     */
-	int initlen[16];	/* .. as it can have even NUL-bytes,
-				   length is important!                 */
-
-
-	unsigned char rdbuf[2000];	/* buffering area for raw stream read */
-	int rdlen, rdcursor;	/* rdlen = last byte in buffer,
-				   rdcursor = next to read.
-				   When rdlen == 0, buffer is empty.    */
-	unsigned char rdline[2000];	/* processed into lines/records       */
-	int rdlinelen;		/* length of this record                */
-
-	unsigned char wrbuf[2000];	/* buffering area for raw stream read */
-	int wrlen, wrcursor;	/* wrlen = last byte in buffer,
-				   wrcursor = next to write.
-				   When wrlen == 0, buffer is empty.    */
-};
-
 static struct serialport **ttys;
 static int ttycount;		/* How many are defined ? */
 
@@ -926,34 +862,12 @@ aprx_cfmakeraw(t, f)
 	t->c_cc[VTIME] = 3;
 }
 
+struct serialport *ttyreader_new(void)
+{
+	struct serialport *tty = malloc(sizeof(*tty));
+	int baud = B1200;
 
-const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
-{				/* serialport /dev/ttyUSB123   19200  8n1   {KISS|TNC2|AEA|..}  */
-	int i;
-	speed_t baud;
-	struct serialport *tty;
-	int tcpport = 0;
-	int tncid   = 0;
-
-	/*
-	   radio serial /dev/ttyUSB123  [19200 [8n1]]  KISS
-	   radio tcp 12.34.56.78 4001 KISS
-
-	 */
-
-	if (*param1 == 0)
-		return "Bad mode keyword";
-	if (*str == 0)
-		return "Bad tty-name/param";
-
-	/* Grow the array as is needed.. - this is array of pointers,
-	   not array of blocks so that memory allocation does not
-	   grow into way too big chunks. */
-	ttys = realloc(ttys, sizeof(void *) * (ttycount + 1));
-
-	tty = malloc(sizeof(*tty));
 	memset(tty, 0, sizeof(*tty));
-	ttys[ttycount++] = tty;
 
 	tty->fd = -1;
 	tty->wait_until = now - 1;	/* begin opening immediately */
@@ -963,46 +877,6 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 
 	tty->ttyname = NULL;
 
-	if (strcmp(param1, "serial") == 0) {
-		/* New style! */
-		free((char *) (tty->ttyname));
-
-		param1 = str;
-		str = config_SKIPTEXT(str, NULL);
-		str = config_SKIPSPACE(str);
-
-		tty->ttyname = strdup(param1);
-
-		if (debug)
-			printf(".. new style serial:  '%s' '%s'..\n",
-			       tty->ttyname, str);
-
-	} else if (strcmp(param1, "tcp") == 0) {
-		/* New style! */
-		int len;
-		char *host, *port;
-
-		free((char *) (tty->ttyname));
-
-		host = str;
-		str = config_SKIPTEXT(str, NULL);
-		str = config_SKIPSPACE(str);
-
-		port = str;
-		str = config_SKIPTEXT(str, NULL);
-		str = config_SKIPSPACE(str);
-
-		if (debug)
-			printf(".. new style tcp!:  '%s' '%s' '%s'..\n",
-			       host, port, str);
-
-		len = strlen(host) + strlen(port) + 8;
-
-		tty->ttyname = malloc(len);
-		sprintf((char *) (tty->ttyname), "tcp!%s!%s!", host, port);
-		tcpport = 1;
-
-	}
 
 	/* setup termios parameters for this line.. */
 	aprx_cfmakeraw(&tty->tio, 0);
@@ -1011,14 +885,25 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 	tty->tio.c_cflag |= (CREAD | CLOCAL);
 
 
-	baud = B1200;
 	cfsetispeed(&tty->tio, baud);
 	cfsetospeed(&tty->tio, baud);
 
-	config_STRLOWER(str);	/* until end of line */
+	return tty;
+}
+
+void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str)
+{
+	int i;
+	speed_t baud;
+	int tcpport = 0;
+	int tncid   = 0;
+	char *param1 = 0;
+
 
 	/* FIXME: analyze correct serial port data and parity format settings,
 	   now hardwired to 8-n-1 -- does not work without for KISS anyway.. */
+	
+	config_STRLOWER(str);	/* until end of line */
 
 	/* Optional parameters */
 	while (*str != 0) {
@@ -1128,6 +1013,78 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 			 cf->name, cf->linenum, param1);
 		}
 	}
+}
+
+const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
+{				/* serialport /dev/ttyUSB123   19200  8n1   {KISS|TNC2|AEA|..}  */
+	int i;
+	speed_t baud;
+	struct serialport *tty;
+	int tcpport = 0;
+	int tncid   = 0;
+
+	/*
+	   radio serial /dev/ttyUSB123  [19200 [8n1]]  KISS
+	   radio tcp 12.34.56.78 4001 KISS
+
+	 */
+
+	if (*param1 == 0)
+		return "Bad mode keyword";
+	if (*str == 0)
+		return "Bad tty-name/param";
+
+	/* Grow the array as is needed.. - this is array of pointers,
+	   not array of blocks so that memory allocation does not
+	   grow into way too big chunks. */
+	ttys = realloc(ttys, sizeof(void *) * (ttycount + 1));
+
+	tty = ttyreader_new();
+	ttys[ttycount++] = tty;
+
+
+	if (strcmp(param1, "serial") == 0) {
+		/* New style! */
+		free((char *) (tty->ttyname));
+
+		param1 = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+
+		tty->ttyname = strdup(param1);
+
+		if (debug)
+			printf(".. new style serial:  '%s' '%s'..\n",
+			       tty->ttyname, str);
+
+	} else if (strcmp(param1, "tcp") == 0) {
+		/* New style! */
+		int len;
+		char *host, *port;
+
+		free((char *) (tty->ttyname));
+
+		host = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+
+		port = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+
+		if (debug)
+			printf(".. new style tcp!:  '%s' '%s' '%s'..\n",
+			       host, port, str);
+
+		len = strlen(host) + strlen(port) + 8;
+
+		tty->ttyname = malloc(len);
+		sprintf((char *) (tty->ttyname), "tcp!%s!%s!", host, port);
+		tcpport = 1;
+
+	}
+
+	ttyreader_parse_ttyparams( cf, tty, str);
 	return NULL;
 }
 
