@@ -182,10 +182,18 @@ extern void aprsis_start(void);
 extern void aprsis_config(struct configfile *cf);
 
 /* netbeacon.c */
+extern int  validate_degmin_input(const char *s, int maxdeg);
+
 extern void netbeacon_set(const char *s, char *);
 extern void netbeacon_reset(void);
 extern int  netbeacon_prepoll(struct aprxpolls *app);
 extern int  netbeacon_postpoll(struct aprxpolls *app);
+extern void netbeacon_config(struct configfile *cf);
+
+/* rfbeacon.c */
+extern int  rfbeacon_prepoll(struct aprxpolls *app);
+extern int  rfbeacon_postpoll(struct aprxpolls *app);
+extern void rfbeacon_config(struct configfile *cf);
 
 /* config.c */
 extern void *readconfigline(struct configfile *cf);
@@ -387,7 +395,7 @@ struct digipeater {
 	struct digipeater_source *sources;
 };
 
-extern void config_digipeater(struct configfile *cf);
+extern void digipeater_config(struct configfile *cf);
 
 
 /* interface.c */
@@ -416,9 +424,10 @@ struct aprx_interface {
 	struct digipeater_source **digipeaters;
 };
 
-extern void config_interface(struct configfile *cf);
+extern void interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 // extern void interface_ax25_receive(const struct aprx_interface *ax25if, const char *rawax25, const int rawax25len);
 
 extern void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen);
+extern void interface_receive_tnc2(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen);

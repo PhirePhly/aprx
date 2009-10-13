@@ -13,6 +13,7 @@
 
 struct beaconmsg {
 	time_t nexttime;
+	const struct aprx_interface *interface;
 	const char *dest;
 	const char *msg;
 };
@@ -27,99 +28,27 @@ static time_t beacon_nexttime;
 static time_t beacon_last_nexttime;
 static int    beacon_cycle_size = 20*60; // 20 minutes
 
-static const char* scan_int(const char *p, int len, int *val, int *seen_space) {
-	int i;
-	char c;
-	*val = 0;
-	for (i = 0; i < len; ++i, ++p) {
-		c = *p;
-		if (('0' <= c && c <= '9') && !(*seen_space)) {
-			*val = (*val) * 10 + (c - '0');
-		} else if (c == ' ') {
-			*val = (*val) * 10;
-			*seen_space = 1;
-		} else {
-			return NULL;
-		}
-	}
-	return p;
-}
 
-int validate_degmin_input(const char *s, int maxdeg)
-{
-	int deg;
-	int m1, m2;
-	char c;
-	const char *t;
-	int seen_space = 0;
-	if (maxdeg > 90) {
-		t = scan_int(s, 3, &deg, &seen_space);
-		if (t != s+3) return 1; // scan failure
-		if (deg > 179) return 1; // too large value
-		s = t;
-		t = scan_int(s, 2, &m1, &seen_space);
-		if (t != s+2) return 1;
-		if (m1 > 59) return 1;
-		s = t;
-		c = *s;
-		if (!seen_space && c == '.') {
-			// OK
-		} else if (!seen_space && c == ' ') {
-			seen_space = 1;
-		} else {
-			return 1; // Bad char..
-		}
-		++s;
-		t = scan_int(s, 2, &m2, &seen_space);
-		if (t != s+2) return 1;
-		s = t;
-		c = *s;
-		if (c != 'E' && c != 'e' && c != 'W' && c != 'w') return 1;
-	} else {
-		t = scan_int(s, 2, &deg, &seen_space);
-		if (t != s+2) return 1; // scan failure
-		if (deg > 89) return 1; // too large value
-		s = t;
-		t = scan_int(s, 2, &m1, &seen_space);
-		if (t != s+2) return 1;
-		if (m1 > 59) return 1;
-		s = t;
-		c = *s;
-		if (!seen_space && c == '.') {
-			// OK
-		} else if (!seen_space && c == ' ') {
-			seen_space = 1;
-		} else {
-			return 1; // Bad char..
-		}
-		++s;
-		t = scan_int(s, 2, &m2, &seen_space);
-		if (t != s+2) return 1;
-		s = t;
-		c = *s;
-		if (c != 'N' && c != 'n' && c != 'S' && c != 's') return 1;
-	}
-	return 0;		/* zero for OK */
-}
-
-void netbeacon_reset(void)
+static void rfbeacon_reset(void)
 {
 	beacon_nexttime = now + 30;	/* start 30 seconds from now */
 	beacon_msgs_cursor = 0;
 }
 
-void netbeacon_set(const char *p1, char *str)
+static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 {
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
 	const char *via      = NULL;
 	char *buf  = alloca(strlen(p1) + strlen(str ? str : "") + 10);
+	char *to   = NULL;
 	char *code = NULL;
 	char *lat  = NULL;
 	char *lon  = NULL;
 	char *comment = NULL;
-	char beaconaddr[64];
-	int  beaconaddrlen;
+	char  beaconaddr[64];
+	int   beaconaddrlen;
+	const struct aprx_interface *aif = NULL;
 
 	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
@@ -128,14 +57,32 @@ void netbeacon_set(const char *p1, char *str)
 	memset(bm, 0, sizeof(*bm));
 
 	if (debug)
-		printf("NETBEACON parameters: ");
+		printf("RFBEACON parameters: ");
 
 	while (*p1) {
 
 		/* if (debug)
 		   printf("p1='%s' ",p1); */
 
-		if (strcmp(p1, "for") == 0) {
+		if (strcmp(p1, "to") == 0) {
+
+			to = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			config_STRUPPER(to);
+			aif = find_interface_by_callsign(to);
+			if ((aif != NULL) && !aif->txok) {
+				aif = NULL;  // Not an TX interface :-(
+				printf("%s:%d Sorry, <rfbeacon> to '%s' that is not a TX capable interface.\n",
+				       cf->name, cf->linenum, to);
+				return; // sigh..
+			}
+
+			if (debug)
+				printf("to '%s' ", to);
+
+		} else if (strcmp(p1, "for") == 0) {
 
 			srcaddr = str;
 			str = config_SKIPTEXT(str, NULL);
@@ -144,7 +91,7 @@ void netbeacon_set(const char *p1, char *str)
 			// What about ITEM and OBJECT ?
 
 			// if (validate_callsign_input((char *) srcaddr),1) {
-			//   printf("Invalid netbeacon FOR callsign");
+			//   printf("Invalid rfbeacon FOR callsign");
 			// }
 
 			if (debug)
@@ -254,9 +201,13 @@ void netbeacon_set(const char *p1, char *str)
 	if (debug)
 		printf("\n");
 
+	if (aif == NULL) {
+	  printf("Lacking 'to' keyword for this beacon definition.\n");
+	}
+
 	if (srcaddr == NULL) {
 		if (debug)
-			printf("Lacking the 'for' keyword for this beacon definition.");
+			printf("Lacking the 'for' keyword for this beacon definition.\n");
 		return;
 	}
 
@@ -273,10 +224,11 @@ void netbeacon_set(const char *p1, char *str)
 	if (beaconaddrlen >= sizeof(beaconaddr)) {
 		// BAD BAD!  Too big?
 		if (debug)
-		  printf("Constructed netbeacon address header is too big. (over %d chars long)",(int)sizeof(beaconaddr)-2);
+		  printf("Constructed rfbeacon address header is too big. (over %d chars long)\n",(int)sizeof(beaconaddr)-2);
 		return;
 	}
-	bm->dest = strdup(beaconaddr);
+	bm->dest      = strdup(beaconaddr);
+	bm->interface = aif;
 
 	if (!bm->msg) {
 		/* Not raw packet, perhaps composite ? */
@@ -290,11 +242,11 @@ void netbeacon_set(const char *p1, char *str)
 		} else {
 			if (debug) {
 				if (!code || (code && strlen(code) != 2))
-					printf(" .. NETBEACON definition failure; symbol parameter missing or wrong size\n");
+					printf(" .. RFBEACON definition failure; symbol parameter missing or wrong size\n");
 				if (!lat || (lat && strlen(lat) != 8))
-					printf(" .. NETBEACON definition failure; lat(itude) parameter missing or wrong size\n");
+					printf(" .. RFBEACON definition failure; lat(itude) parameter missing or wrong size\n");
 				if (!lon || (lon && strlen(lon) != 9))
-					printf(" .. NETBEACON definition failure; lon(gitude) parameter missing or wrong size\n");
+					printf(" .. RFBEACON definition failure; lon(gitude) parameter missing or wrong size\n");
 			}
 			/* parse failure, abandon the alloc too */
 			free(bm);
@@ -303,7 +255,7 @@ void netbeacon_set(const char *p1, char *str)
 	}
 
 	if (debug)
-		printf("NETBEACON  FOR '%s'  '%s'\n", bm->dest, bm->msg);
+		printf("RFBEACON  FOR '%s'  '%s'\n", bm->dest, bm->msg);
 
 	/* realloc() works also when old ptr is NULL */
 	beacon_msgs = realloc(beacon_msgs,
@@ -312,10 +264,10 @@ void netbeacon_set(const char *p1, char *str)
 	beacon_msgs[beacon_msgs_count++] = bm;
 	beacon_msgs[beacon_msgs_count] = NULL;
 
-	netbeacon_reset();
+	rfbeacon_reset();
 }
 
-int netbeacon_prepoll(struct aprxpolls *app)
+int rfbeacon_prepoll(struct aprxpolls *app)
 {
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
@@ -329,7 +281,7 @@ int netbeacon_prepoll(struct aprxpolls *app)
 }
 
 
-int netbeacon_postpoll(struct aprxpolls *app)
+int rfbeacon_postpoll(struct aprxpolls *app)
 {
 	int  destlen;
 	int  txtlen;
@@ -354,7 +306,7 @@ int netbeacon_postpoll(struct aprxpolls *app)
 		if (beacon_increment < 3.0)
 			beacon_increment = 3.0;	/* Minimum interval: 3 seconds ! */
 		if (debug)
-			printf("netbeacons cycle: %.2f minutes, r: %d, increment: %.1f seconds\n",
+			printf("rfbeacons cycle: %.2f minutes, r: %d, increment: %.1f seconds\n",
 			       beacon_cycle/60.0, r, beacon_increment);
 		for (i = 0; i < beacon_msgs_count; ++i) {
 			beacon_msgs[i]->nexttime =
@@ -384,17 +336,15 @@ int netbeacon_postpoll(struct aprxpolls *app)
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (net)beacons.. */
-	aprsis_queue(bm->dest, destlen, aprsis_login, bm->msg, txtlen);
+	interface_receive_tnc2(bm->interface, bm->dest, bm->msg, txtlen);
 
 	return 0;
 }
 
-
-void netbeacon_config(struct configfile *cf)
+void rfbeacon_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
-
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -412,8 +362,13 @@ void netbeacon_config(struct configfile *cf)
 		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
-		if (strcmp(name, "</netbeacon>") == 0) {
+		if (strcmp(name, "</rfbeacon>") == 0) {
 		  break;
+		}
+
+		if (strcmp(name, "beacon") == 0) {
+		  rfbeacon_set(cf, param1, str);
+		} else {
 		}
 	}
 }

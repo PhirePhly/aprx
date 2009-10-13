@@ -110,9 +110,9 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	}
 	if (subif >= maxsubif) {
 		// FIXME: <KISS-SubIF nnn>  parameter value is bad!
-	  printf("%s:%d  <kiss-subif %s parameter value is too large for this KISS variant.\n",
-		 cf->name, cf->linenum, param1);
-	  return 1;
+		printf("%s:%d  <kiss-subif %s parameter value is too large for this KISS variant.\n",
+		       cf->name, cf->linenum, param1);
+		return 1;
 	}
 
 	while (readconfigline(cf) != NULL) {
@@ -196,7 +196,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	return 0;
 }
 
-void config_interface(struct configfile *cf)
+void interface_config(struct configfile *cf)
 {
 	struct aprx_interface *aif = calloc(1, sizeof(*aif));
 	struct aprx_interface *aif2 = NULL; // subif copies here..
@@ -396,3 +396,16 @@ void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddre
 }
 
 
+/*
+ * Process received AX.25 packet
+ *   - from AIF do find all DIGIPEATERS wanting this source.
+ *   - If there are none, end processing.
+ *   - Parse the received frame for possible latter filters
+ *   - Feed the resulting parsed packet to each digipeater
+ *
+ */
+
+void interface_receive_tnc2(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen)
+{
+
+}
