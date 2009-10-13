@@ -201,9 +201,17 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 	/* Send the frame to APRS-IS, return 1 if valid AX.25 UI message, does not
 	   validate against valid APRS message rules... (TODO: it could do that too) */
+	if (S->interface[tncid] != NULL) {
+		// Found an interface system to receive it..
+		interface_receive_ax25(S->interface[tncid],
+				       S->ttycallsign[tncid],
+				       S->rdline + 1, S->rdlinelen - 1);
+
+	}
+
 	if (ax25_to_tnc2(S->ttycallsign[tncid], tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
 		/* Send the frame without cmdbyte to internal AX.25 network */
-		if (S->netax25 != NULL)
+		if (S->netax25[tncid] != NULL)
 			netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
 	} else {
 	  if (aprxlogfile) {

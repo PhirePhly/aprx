@@ -1,4 +1,9 @@
-2009-10-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2009-10-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, config.c, netax25.c, ttyreader.c, ax25.c,
+	  aprx.h, ChangeLog:
+	    Feed received AX.25 frames to interface layer for possible
+	    digipeat processing.  (Missing: APRSIS originated frames!)
 
 	* interface.c, ttyreader.c, aprx.h, aprx.conf.in, aprx.8.in:
 	    Remodelled serial-device definitions into interface layer.

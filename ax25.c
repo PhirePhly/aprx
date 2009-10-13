@@ -72,6 +72,10 @@ int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
 
 		if (c == '-' || c == '\0')
 			break;
+		if (!(('A' <= c && c <= 'Z') || ('0' <= c && c <= '9'))) {
+			// Valid chars: [A-Z0-9]
+			return 1;
+		}
 
 		ax25[i] = c << 1;
 
@@ -86,12 +90,20 @@ int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
 
 	ax25[6] = ssidflags;
 
-	if (*text != '\0') {
+	if (*text == '-') {
 		++text;
-		if (sscanf(text, "%d", &ssid) != 1 || ssid < 0
-		    || ssid > 15) {
-			return -1;
-		}
+	} else {
+		return 1;
+	}
+
+	for (; (*text != '\0') &&
+	       ('0' <= *text) && (*text <= '9'); ++text) {
+
+		ssid = ssid * 10 + (*text - '0');
+	}
+
+	if (ssid > 15 || *text != '\0') {
+		return 1; // Bad values
 	}
 
 	ax25[6] = (ssid << 1) | ssidflags;
