@@ -266,7 +266,7 @@ void config_interface(struct configfile *cf)
 		    printf("%s:%d: AX25-DEVICE '%s' '%s'\n",
 			   cf->name, cf->linenum, param1, str);
 
-		  netax25_addrxport(param1, str);
+		  netax25_addrxport(param1, str, aif);
 		  aif->callsign = strdup(param1);
 		  
 		  store_interface(aif);
@@ -380,3 +380,19 @@ void config_interface(struct configfile *cf)
 		}
 	}
 }
+
+/*
+ * Process received AX.25 packet
+ *   - from AIF do find all DIGIPEATERS wanting this source.
+ *   - If there are none, end processing.
+ *   - Parse the received frame for possible latter filters
+ *   - Feed the resulting parsed packet to each digipeater
+ *
+ */
+
+void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen)
+{
+
+}
+
+

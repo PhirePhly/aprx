@@ -61,10 +61,13 @@ static const void* netax25_openpty(const char *mycall)
 	struct netax25_pty *nax25;
 	int pty_master, pty_slave;
 
-	parse_ax25addr(ax25call, mycall, 0x60);
-
 	if (!mycall)
 		return NULL;		/* No mycall, no ptys! */
+
+	if (parse_ax25addr(ax25call, mycall, 0x60)) {
+		// Not valid per AX.25 rules
+		return NULL;
+	}
 
 	rc = openpty(&pty_master, &pty_slave, devname, NULL, NULL);
 
@@ -204,19 +207,25 @@ void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 
 static int rx_socket;
 
-static char **ax25rxports;
-static int ax25rxportscount;
+struct ax25rxport {
+	const char *callsign;
+	const struct aprx_interface *interface;
+};
+
+static struct ax25rxport *ax25rxports;
+static int                ax25rxportscount;
 
 static char **ax25ttyports;
 static int   *ax25ttyfds;
 static int    ax25ttyportscount;
 
 /* config interface:  ax25-rxport: callsign */
-void netax25_addrxport(const char *callsign, char *str)
+void netax25_addrxport(const char *callsign, char *str, struct aprx_interface *interface)
 {
 	ax25rxports = realloc(ax25rxports,
-			      sizeof(void *) * (ax25rxportscount + 1));
-	ax25rxports[ax25rxportscount] = strdup(callsign);
+			      sizeof(struct ax25rxport) * (ax25rxportscount + 1));
+	ax25rxports[ax25rxportscount].callsign  = strdup(callsign);
+	ax25rxports[ax25rxportscount].interface = interface;
 	++ax25rxportscount;
 }
 
@@ -365,6 +374,8 @@ static int rxsock_read( const int fd )
 	int rcvlen;
 	char ifaddress[12]; /* max size: 6+1+2 chars */
 
+	const struct aprx_interface *aif = NULL;
+
 	/*
 	msgh.msg_name       = & sa;
 	msgh.msg_namelen    = sizeof(sa);
@@ -422,7 +433,8 @@ static int rxsock_read( const int fd )
 		   the reception from! */
 		int j, ok = 0;
 		for (j = 0; j < ax25rxportscount; ++j) {
-			if (strcmp(ifaddress,ax25rxports[j]) == 0) {
+			if (strcmp(ifaddress,ax25rxports[j].callsign) == 0) {
+				aif = ax25rxports[j].interface;
 				ok = 1;	/* Found match ! */
 				break;
 			}
@@ -444,6 +456,11 @@ static int rxsock_read( const int fd )
 	erlang_add(NULL, ifaddress, 0, ERLANG_RX, rcvlen + 10, 1);
 
 	ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
+
+	if (aif != NULL) {
+		// Found an interface system to receive it..
+		interface_receive_ax25(aif, ifaddress, rxbuf + 1, rcvlen - 1);
+	}
 
 	return 1;
 }

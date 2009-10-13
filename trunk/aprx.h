@@ -218,7 +218,7 @@ extern void        netax25_start(void);
 extern const void* netax25_open(const char *ifcallsign);
 extern int         netax25_prepoll(struct aprxpolls *);
 extern int         netax25_postpoll(struct aprxpolls *);
-extern void        netax25_addrxport(const char *callsign, char *str);
+extern void        netax25_addrxport(const char *callsign, char *str, struct aprx_interface *aif);
 extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
 
 /* telemetry.c */
@@ -419,5 +419,6 @@ struct aprx_interface {
 extern void config_interface(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
-extern void interface_ax25_receive(struct aprx_interface *ax25if, const char *rawax25, const int rawax25len);
+// extern void interface_ax25_receive(const struct aprx_interface *ax25if, const char *rawax25, const int rawax25len);
 
+extern void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen);
