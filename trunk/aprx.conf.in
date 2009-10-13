@@ -273,14 +273,13 @@ pidfile @VARRUN@/aprx.pid
 
 # ***********  Multiple <rfbeacon>  definitions follow   *********
 
-<rfbeacon>
+#<rfbeacon>
 #
 #  RF-beacons are sent out to radio transmitters.   To all of them
 #  that have "tx-ok true" setting if no "to" entry is defined, and
 #  to defined one if the "to" entry is defined.
 #
-
-</rfbeacon>
+#</rfbeacon>
 
 
 # ***********  Multiple <digipeater>  definitions follow   *********
