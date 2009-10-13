@@ -14,7 +14,6 @@
 #
 
 <aprsis>
-
 # The  aprsis-login  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
 # This value MUST NOT match any possible AX.25 interface in
@@ -56,6 +55,7 @@ server    rotate.aprs.net    14580
 
 </aprsis>
 
+<logging>
 
 # pidfile is UNIX way to tell that others that this program is
 # running with given process-id number.  This has compiled-in
@@ -64,7 +64,6 @@ server    rotate.aprs.net    14580
 pidfile @VARRUN@/aprx.pid
 
 
-<logging>
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
@@ -127,6 +126,9 @@ pidfile @VARRUN@/aprx.pid
 #ax25-reject-filter destination "^NOCALL"
 #ax25-reject-filter via         "^NOGATE"
 #ax25-reject-filter data        "^\\?"
+
+
+# ***********  Multiple <interface>  definitions follow   *********
 
 # ax25-device  Lists AX.25 ports by their callsigns that in Linux
 #              systems receive APRS packets.  If none are defined,
@@ -232,8 +234,13 @@ pidfile @VARRUN@/aprx.pid
 #
 #</interface>
 
-# The  netbeacon  option.
-# Parameter string (in quotes) is sent to network (without quotes)
+
+# ***********  Multiple <netbeacon>  definitions follow   *********
+
+<netbeacon>
+# The  netbeacon  options.
+#
+# Parameter string (in quotes) is sent to APRSIS network (without quotes)
 # at varying intervals --  1200-1800 seconds in between restransmits.
 # This interval is intentionally randomized.
 #
@@ -260,3 +267,29 @@ pidfile @VARRUN@/aprx.pid
 #
 #netbeacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
 #netbeacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#
+</netbeacon>
+
+
+# ***********  Multiple <rfbeacon>  definitions follow   *********
+
+<rfbeacon>
+#
+#  RF-beacons are sent out to radio transmitters.   To all of them
+#  that have "tx-ok true" setting if no "to" entry is defined, and
+#  to defined one if the "to" entry is defined.
+#
+
+</rfbeacon>
+
+
+# ***********  Multiple <digipeater>  definitions follow   *********
+
+#<digipeater>
+#
+#  The digipeater definitions tell transmitters that receive
+#  AX.25 packets from possibly multiple sources, and then what
+#  to do on the AX.25 headers of those messages.
+#
+#</digipeater>
+
