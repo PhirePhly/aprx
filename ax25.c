@@ -123,7 +123,7 @@ int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
 
 void tnc2_to_ax25()
 {
-	int i;
+	// int i;
 
 	// TNC2 format:   src> dest, via1, via2, via3, ... via8
 	// AX25 format:   dest, src, via1, via2, via3, ... via8
@@ -132,16 +132,18 @@ void tnc2_to_ax25()
 /* Convert the binary packet to TNC2 monitor text format.
    Return 0 if conversion fails (format errors), 1 when format is OK. */
 
-int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
+int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
+		 const int tncid, const int cmdbyte,
 		 const unsigned char *frame, const int framelen)
 {
 	int i, j;
 	const unsigned char *s = frame;
 	const unsigned char *e = frame + framelen;
+	int frameaddrlen = 0;
 
 	char tnc2buf[2800];
 	char *t = tnc2buf;
-	int tnc2len;
+	int tnc2len, tnc2addrlen;
 	int viacount = 0;
 
 
@@ -209,6 +211,9 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 		return 0;
 	}
 
+	frameaddrlen = s - frame;
+	tnc2addrlen  = t - tnc2buf;
+
 	/* Address completed */
 
 	if ((s + 2) >= e) // too short payload
@@ -217,6 +222,15 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	*t++ = ':';		/* end of address */
 
 	if ((*s++ != 0x03) || (*s++ != 0xF0)) {
+
+		tnc2len = t - tnc2buf;
+
+		// Send to interface system to receive it..  (digipeater!)
+		// A noop if the interface is actually NULL.
+		interface_receive_ax25(aif, portname, 0,
+				       frame, frameaddrlen, framelen,
+				       tnc2buf, tnc2addrlen, tnc2len);
+
 		/* Not AX.25 UI frame */
 		return 2; /* But say that the frame is OK, and
 			     let it be possibly copied to Linux
@@ -241,6 +255,13 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	}
 
 	tnc2len = t - tnc2buf;
+
+
+	// Send to interface system to receive it..  (digipeater!)
+	// A noop if the interface is actually NULL.
+	interface_receive_ax25(aif, portname, 1,
+			       frame, frameaddrlen, framelen,
+			       tnc2buf, tnc2addrlen, tnc2len);
 
 	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len, 0);
 	return 1;

@@ -207,20 +207,13 @@ static int ttyreader_kissprocess(struct serialport *S)
 	// Rx-IGate functionality.  Returns non-zero only when
 	// AX.25 header is OK, and packet is sane.
 
-	if (ax25_to_tnc2(S->ttycallsign[tncid], tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
+	if (ax25_to_tnc2(S->interface[tncid], S->ttycallsign[tncid], tncid,
+			 cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
 		// The packet is valid per AX.25 header bit rules.
 
 		/* Send the frame without cmdbyte to internal AX.25 network */
 		if (S->netax25[tncid] != NULL)
 			netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
-
-		if (S->interface[tncid] != NULL) {
-		  // Found an interface system to receive it..  (digipeater!)
-		  interface_receive_ax25(S->interface[tncid],
-					 S->ttycallsign[tncid],
-					 S->rdline + 1, S->rdlinelen - 1);
-		  
-		}
 
 	} else {
 	  if (aprxlogfile) {
@@ -502,7 +495,7 @@ static int ttyreader_pulltext(struct serialport *S)
 /*
  *  ttyreader_kisswrite()  -- write out buffered data
  */
-void ttyreader_kisswrite(struct serialport *S, const int tncid, const char *ax25raw, const int ax25rawlen)
+void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned char *ax25raw, const int ax25rawlen)
 {
 	int i, len, ssid;
 	char kissbuf[2300];
@@ -998,7 +991,6 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 {
 	int i;
 	speed_t baud;
-	int tcpport = 0;
 	int tncid   = 0;
 	char *param1 = 0;
 
@@ -1120,11 +1112,7 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 
 const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 {				/* serialport /dev/ttyUSB123   19200  8n1   {KISS|TNC2|AEA|..}  */
-	int i;
-	speed_t baud;
 	struct serialport *tty;
-	int tcpport = 0;
-	int tncid   = 0;
 
 	/*
 	   radio serial /dev/ttyUSB123  [19200 [8n1]]  KISS
@@ -1183,7 +1171,6 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 
 		tty->ttyname = malloc(len);
 		sprintf((char *) (tty->ttyname), "tcp!%s!%s!", host, port);
-		tcpport = 1;
 
 	}
 

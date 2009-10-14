@@ -26,3 +26,8 @@ struct pbuf_t pbuf_alloc( const int ax25hdrlen,
 {
 }
 
+
+struct pbuf_t *pbuf_new(const int is_aprs, const int axdatalen, const int tnc2len)
+{
+	return NULL;
+}

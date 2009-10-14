@@ -1135,7 +1135,8 @@ void aprsis_config(struct configfile *cf)
 			   cf->name, cf->linenum, param1, str);
 
 		} else  {
-		  printf("%s:%d: Unknown configuration keyword: '%s'\n",param1);
+		  printf("%s:%d: Unknown configuration keyword: '%s'\n",
+			 cf->name, cf->linenum, param1);
 		}
 	}
 }

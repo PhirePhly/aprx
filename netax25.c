@@ -222,12 +222,12 @@ static int   *ax25ttyfds;
 static int    ax25ttyportscount;
 
 /* config interface:  ax25-rxport: callsign */
-void *netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *interface)
+void netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *interface)
 {
 	unsigned char ax25call[7];
 	if (parse_ax25addr(ax25call, callsign, 0x60)) {
 		// Not valid per AX.25 rules
-		return NULL;
+		return;
 	}
 
 	ax25rxports = realloc(ax25rxports,
@@ -478,15 +478,8 @@ static int rxsock_read( const int fd )
 
 	// Send it to Rx-IGate, validates also AX.25 header bits,
 	// and returns non-zero only when things are OK for processing.
-	if (ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1)) {
-
-		// Send it to digipeaters
-		if (aif != NULL) {
-			// Found an interface system to receive it..
-			interface_receive_ax25(aif, ifaddress,
-					       rxbuf + 1, rcvlen - 1);
-		}
-	}
+	// Will internally also send to interface layer, if OK.
+	ax25_to_tnc2(aif, ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
 
 	return 1;
 }
@@ -589,12 +582,7 @@ static int txsock_read( const int fd )
 	 */
 	erlang_add(NULL, ifaddress, 0, ERLANG_RX, rcvlen + 10, 1);
 
-	ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
-
-	if (aif != NULL) {
-		// Found an interface system to receive it..
-		interface_receive_ax25(aif, ifaddress, rxbuf + 1, rcvlen - 1);
-	}
+	ax25_to_tnc2(aif, ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
 
 	return 1;
 }
@@ -641,7 +629,7 @@ int netax25_postpoll(struct aprxpolls *app)
 
 
 
-void netax25_sendto(const void *nax25p, const char *txbuf, const int txlen)
+void netax25_sendto(const void *nax25p, const unsigned char *txbuf, const int txlen)
 {
 	const struct netax25_pty *nax25 = nax25p;
 
@@ -688,7 +676,7 @@ void netax25_sendax25_tnc2(const void *tnc2, int tnc2len)
 {
 }
 
-void netax25_sendto(const void *nax25, const char *txbuf, const int txlen)
+void netax25_sendto(const void *nax25, const unsigned char *txbuf, const int txlen)
 {
 }
 #endif
