@@ -265,8 +265,8 @@ pidfile @VARRUN@/aprx.pid
 #
 # Symbol  R&   is for "Rx-only iGate"
 #
-#netbeacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
-#netbeacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 #
 </netbeacon>
 
@@ -279,6 +279,8 @@ pidfile @VARRUN@/aprx.pid
 #  that have "tx-ok true" setting if no "to" entry is defined, and
 #  to defined one if the "to" entry is defined.
 #
+#beacon to IFCALL-1 for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon to IFCALL-1 for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 </rfbeacon>
 
 

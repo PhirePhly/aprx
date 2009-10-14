@@ -35,7 +35,7 @@ static void rfbeacon_reset(void)
 	beacon_msgs_cursor = 0;
 }
 
-static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
+static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const int netonly)
 {
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
@@ -52,12 +52,14 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 
 	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
-	if (!bm)
-		return;		/* sigh.. */
 	memset(bm, 0, sizeof(*bm));
 
-	if (debug)
+	if (debug) {
+	  if (netonly)
+		printf("NETBEACON parameters: ");
+	  else
 		printf("RFBEACON parameters: ");
+	}
 
 	while (*p1) {
 
@@ -76,7 +78,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 				aif = NULL;  // Not an TX interface :-(
 				printf("%s:%d Sorry, <rfbeacon> to '%s' that is not a TX capable interface.\n",
 				       cf->name, cf->linenum, to);
-				return; // sigh..
+				goto discard_bm; // sigh..
 			}
 
 			if (debug)
@@ -201,14 +203,15 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 	if (debug)
 		printf("\n");
 
-	if (aif == NULL) {
-	  printf("Lacking 'to' keyword for this beacon definition.\n");
+	if (aif == NULL && !netonly) {
+		printf("%s:%d Lacking 'to' keyword for this beacon definition.\n", cf->name, cf->linenum);
+		goto discard_bm;
 	}
 
 	if (srcaddr == NULL) {
 		if (debug)
-			printf("Lacking the 'for' keyword for this beacon definition.\n");
-		return;
+			printf("%s:%d Lacking the 'for' keyword for this beacon definition.\n", cf->name, cf->linenum);
+		goto discard_bm;
 	}
 
 
@@ -224,8 +227,8 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 	if (beaconaddrlen >= sizeof(beaconaddr)) {
 		// BAD BAD!  Too big?
 		if (debug)
-		  printf("Constructed rfbeacon address header is too big. (over %d chars long)\n",(int)sizeof(beaconaddr)-2);
-		return;
+		  printf("Constructed beacon address header is too big. (over %d chars long)\n",(int)sizeof(beaconaddr)-2);
+		goto discard_bm;
 	}
 	bm->dest      = strdup(beaconaddr);
 	bm->interface = aif;
@@ -240,22 +243,23 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 				strcat(buf, comment);
 			bm->msg = strdup(buf);
 		} else {
-			if (debug) {
-				if (!code || (code && strlen(code) != 2))
-					printf(" .. RFBEACON definition failure; symbol parameter missing or wrong size\n");
-				if (!lat || (lat && strlen(lat) != 8))
-					printf(" .. RFBEACON definition failure; lat(itude) parameter missing or wrong size\n");
-				if (!lon || (lon && strlen(lon) != 9))
-					printf(" .. RFBEACON definition failure; lon(gitude) parameter missing or wrong size\n");
-			}
+			if (!code || (code && strlen(code) != 2))
+				printf("%s:%d .. BEACON definition failure; symbol parameter missing or wrong size\n", cf->name, cf->linenum);
+			if (!lat || (lat && strlen(lat) != 8))
+				printf("%s:%d .. BEACON definition failure; lat(itude) parameter missing or wrong size\n", cf->name, cf->linenum);
+			if (!lon || (lon && strlen(lon) != 9))
+				printf("%s:%d .. BEACON definition failure; lon(gitude) parameter missing or wrong size\n", cf->name, cf->linenum);
 			/* parse failure, abandon the alloc too */
-			free(bm);
-			return;
+			goto discard_bm;
 		}
 	}
 
-	if (debug)
-		printf("RFBEACON  FOR '%s'  '%s'\n", bm->dest, bm->msg);
+	if (debug) {
+	  if (netonly)
+		printf("NETBEACON FOR '%s'  '%s'\n", bm->dest, bm->msg);
+	  else
+		printf("RFBEACON FOR '%s'  '%s'\n", bm->dest, bm->msg);
+	}
 
 	/* realloc() works also when old ptr is NULL */
 	beacon_msgs = realloc(beacon_msgs,
@@ -265,6 +269,14 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str)
 	beacon_msgs[beacon_msgs_count] = NULL;
 
 	rfbeacon_reset();
+
+	if (0) {
+	discard_bm:
+	  if (bm->dest != NULL) free((void*)(bm->dest));
+	  if (bm->msg  != NULL) free((void*)(bm->msg));
+	  free(bm);
+	}
+	return;
 }
 
 int rfbeacon_prepoll(struct aprxpolls *app)
@@ -329,14 +341,26 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 	txtlen  = strlen(bm->msg);
 
 	if (debug) {
-		printf("Now beaconing: '%s' -> '%s',  next beacon in %.2f minutes\n",
-		       bm->dest, bm->msg, round((beacon_nexttime - now)/60.0));
+	  if (bm->interface != NULL)
+		printf("Now beaconing: rfbeacon to %s: '%s' -> '%s',  next beacon in %.2f minutes\n",
+		       bm->interface->callsign,
+		       bm->dest, bm->msg,
+		       round((beacon_nexttime - now)/60.0));
+	  else
+		printf("Now beaconing: netbeacon '%s' -> '%s',  next beacon in %.2f minutes\n",
+		       bm->dest, bm->msg,
+		       round((beacon_nexttime - now)/60.0));
 	}
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	/* Send those (net)beacons.. */
-	interface_receive_tnc2(bm->interface, bm->dest, bm->msg, txtlen);
+	/* Send those (rf)beacons.. */
+	if (bm->interface != NULL)
+		interface_receive_tnc2(bm->interface,
+				       bm->dest, bm->msg, txtlen);
+
+	/* Send them all also as netbeacons.. */
+	aprsis_queue(bm->dest, destlen, aprsis_login, bm->msg, txtlen);
 
 	return 0;
 }
@@ -371,7 +395,7 @@ void rfbeacon_config(struct configfile *cf, const int netonly)
 		}
 
 		if (strcmp(name, "beacon") == 0) {
-		  rfbeacon_set(cf, param1, str);
+		  rfbeacon_set(cf, param1, str, netonly);
 		} else {
 		  printf("%s:%d Unknown config keyword: '%s'\n",name);
 		  continue;
