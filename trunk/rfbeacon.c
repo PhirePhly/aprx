@@ -354,10 +354,8 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	/* Send those (rf)beacons.. */
-	if (bm->interface != NULL)
-		interface_receive_tnc2(bm->interface,
-				       bm->dest, bm->msg, txtlen);
+	/* Send those (rf)beacons.. (a noop if interface == NULL) */
+	interface_receive_tnc2(bm->interface, bm->dest, bm->msg, txtlen);
 
 	/* Send them all also as netbeacons.. */
 	aprsis_queue(bm->dest, destlen, aprsis_login, bm->msg, txtlen);
@@ -397,7 +395,8 @@ void rfbeacon_config(struct configfile *cf, const int netonly)
 		if (strcmp(name, "beacon") == 0) {
 		  rfbeacon_set(cf, param1, str, netonly);
 		} else {
-		  printf("%s:%d Unknown config keyword: '%s'\n",name);
+		  printf("%s:%d Unknown config keyword: '%s'\n",
+			 cf->name, cf->linenum, name);
 		  continue;
 		}
 	}

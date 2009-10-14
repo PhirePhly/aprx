@@ -390,10 +390,14 @@ void interface_config(struct configfile *cf)
  *
  */
 
-void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen)
+void interface_receive_ax25(const struct aprx_interface *aif,
+			    const char *ifaddress, int is_aprs,
+			    const unsigned char *axbuf, const int axaddrlen, const int axlen,
+			    const char *tnc2buf, const int tnc2addlen, const int tnc2len)
 {
+	if (aif == NULL) return;
 
-
+	struct pbuf_t *pb = pbuf_new(is_aprs, axlen, tnc2len);
 }
 
 /*
@@ -401,16 +405,18 @@ void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddre
  *
  */
 
-void interface_transmit_ax25(const struct aprx_interface *aif, const char *txbuf, const int txlen)
+void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axbuf, const int axlen)
 {
+	if (aif == NULL) return;
+
 	switch (aif->iftype) {
 	case IFTYPE_SERIAL:
 	case IFTYPE_TCPIP:
 		// If there is linetype error, kisswrite detects it.
-		ttyreader_kisswrite(aif->tty, aif->subif, txbuf, txlen);
+		ttyreader_kisswrite(aif->tty, aif->subif, axbuf, axlen);
 		break;
 	case IFTYPE_AX25:
-		netax25_sendto(aif->nax25p, txbuf, txlen);
+		netax25_sendto(aif->nax25p, axbuf, axlen);
 		break;
 	default:
 		break;
@@ -429,7 +435,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, const char *txbuf
 
 void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen)
 {
-
+	if (aif == NULL) return;
 }
 
 /*
@@ -439,5 +445,5 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 
 void interface_transmit_tnc2(const struct aprx_interface *aif, const char *txbuf, const int txlen)
 {
-
+	if (aif == NULL) return;
 }
