@@ -136,7 +136,7 @@ struct serialport {
 	unsigned char rdline[2000];	/* processed into lines/records       */
 	int rdlinelen;		/* length of this record                */
 
-	unsigned char wrbuf[2000];	/* buffering area for raw stream read */
+	unsigned char wrbuf[4000];	/* buffering area for raw stream read */
 	int wrlen, wrcursor;	/* wrlen = last byte in buffer,
 				   wrcursor = next to write.
 				   When wrlen == 0, buffer is empty.    */
@@ -193,7 +193,7 @@ extern void netbeacon_config(struct configfile *cf);
 /* rfbeacon.c */
 extern int  rfbeacon_prepoll(struct aprxpolls *app);
 extern int  rfbeacon_postpoll(struct aprxpolls *app);
-extern void rfbeacon_config(struct configfile *cf);
+extern void rfbeacon_config(struct configfile *cf, const int netonly);
 
 /* config.c */
 extern void *readconfigline(struct configfile *cf);
@@ -226,8 +226,9 @@ extern void        netax25_start(void);
 extern const void* netax25_open(const char *ifcallsign);
 extern int         netax25_prepoll(struct aprxpolls *);
 extern int         netax25_postpoll(struct aprxpolls *);
-extern void        netax25_addrxport(const char *callsign, char *str, struct aprx_interface *aif);
+extern void      * netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *aif);
 extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
+extern void        netax25_sendto(const void *nax25, const char *txbuf, const int txlen);
 
 /* telemetry.c */
 extern void telemetry_start(void);
@@ -427,7 +428,8 @@ struct aprx_interface {
 extern void interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
-// extern void interface_ax25_receive(const struct aprx_interface *ax25if, const char *rawax25, const int rawax25len);
 
-extern void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen);
-extern void interface_receive_tnc2(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen);
+extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen);
+extern void interface_transmit_ax25(const struct aprx_interface *aif, const char *rxbuf, const int rcvlen);
+extern void interface_receive_tnc2( const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen);
+extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char *rxbuf, const int rcvlen);

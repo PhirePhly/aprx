@@ -333,7 +333,7 @@ void interface_config(struct configfile *cf)
 		  }
 		  if (aif->txok && aif->callsign) {
 		    if (validate_callsign_input(aif->callsign,aif->txok)) {  // Transmitters REQUIRE valid AX.25 address
-		      printf("%s:%d: TX-OK 'TRUE -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
+		      printf("%s:%d: TX-OK 'TRUE' -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
 			     cf->name, cf->linenum);
 		      continue;
 		    }
@@ -393,11 +393,33 @@ void interface_config(struct configfile *cf)
 void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen)
 {
 
+
+}
+
+/*
+ * Process AX.25 packet transmit; beacons, digi output, igate output...
+ *
+ */
+
+void interface_transmit_ax25(const struct aprx_interface *aif, const char *txbuf, const int txlen)
+{
+	switch (aif->iftype) {
+	case IFTYPE_SERIAL:
+	case IFTYPE_TCPIP:
+		// If there is linetype error, kisswrite detects it.
+		ttyreader_kisswrite(aif->tty, aif->subif, txbuf, txlen);
+		break;
+	case IFTYPE_AX25:
+		netax25_sendto(aif->nax25p, txbuf, txlen);
+		break;
+	default:
+		break;
+	}
 }
 
 
 /*
- * Process received AX.25 packet
+ * Process received AX.25 packet  -- for APRSIS
  *   - from AIF do find all DIGIPEATERS wanting this source.
  *   - If there are none, end processing.
  *   - Parse the received frame for possible latter filters
@@ -405,7 +427,17 @@ void interface_receive_ax25(const struct aprx_interface *aif,const char *ifaddre
  *
  */
 
-void interface_receive_tnc2(const struct aprx_interface *aif,const char *ifaddress, const char *rxbuf, const int rcvlen)
+void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen)
+{
+
+}
+
+/*
+ * Process transmit of AX.25 packet in TNC2 form  -- for beacons
+ *
+ */
+
+void interface_transmit_tnc2(const struct aprx_interface *aif, const char *txbuf, const int txlen)
 {
 
 }

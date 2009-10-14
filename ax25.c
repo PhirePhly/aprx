@@ -29,8 +29,7 @@ static int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src,
 {
 	int i, c;
 	int ssid;
-
-	/* We really should verify that  */
+	int seen_space = 0;
 
 	/* 6 bytes of station callsigns in shifted ASCII format.. */
 	for (i = 0; i < 6; ++i, ++src) {
@@ -40,8 +39,17 @@ static int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src,
 
 		/* Don't copy spaces or 0 bytes */
 		c = c >> 1;
-		if (c == 0 || c == 0x20) continue;
-		*dest++ = c;
+		if (c == 0 || c == 0x20) {
+			seen_space = 1;
+			continue;
+		}
+		if (!seen_space &&
+		    (('A' <= c && c <= 'Z') ||
+		     ('0' <= c && c <= '9'))) {
+			*dest++ = c;
+		} else {
+			return -c; // Bad character in callsign
+		}
 	}
 	/* 7th byte carries SSID et.al. bits */
 	c = (*src) & 0xFF;
@@ -134,6 +142,7 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	char tnc2buf[2800];
 	char *t = tnc2buf;
 	int tnc2len;
+	int viacount = 0;
 
 
 	if (framelen > sizeof(tnc2buf) - 80) {
@@ -162,7 +171,7 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	if (i < 0 /*  || ((i & 0xE0) != 0x60)*/) { // Top 3 bits should be: 011
 		/* Bad format */
 		if (debug)
-		  printf("Ax25toTNC2: Bad source address; SSID-byte=0x%x\n",i);
+		  printf("Ax25toTNC2: Bad source address; SSID-byte=0x%02x\n",i);
 		return 0;
 	}
 	if (j < 0/* || ((j & 0xE0) != 0xE0)*/) { // Top 3 bits should be: 111
@@ -189,9 +198,15 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 
 			t += strlen(t);
 			s += 7;
+			++ viacount;
 			if (i & 1)
 				break;	/* last address */
 		}
+	}
+	if (viacount > 8) {
+		if (debug)
+		  printf("Ax25toTNC2: Found %d via fields, limit is 8!\n", viacount);
+		return 0;
 	}
 
 	/* Address completed */
@@ -226,9 +241,6 @@ int ax25_to_tnc2(const char *portname, int tncid, int cmdbyte,
 	}
 
 	tnc2len = t - tnc2buf;
-
-	// TODO!
-	// aprsdigi(tnc2buf, portname, t0, t-t0);
 
 	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len, 0);
 	return 1;

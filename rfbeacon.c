@@ -341,7 +341,7 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-void rfbeacon_config(struct configfile *cf)
+void rfbeacon_config(struct configfile *cf, const int netonly)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -362,13 +362,19 @@ void rfbeacon_config(struct configfile *cf)
 		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
-		if (strcmp(name, "</rfbeacon>") == 0) {
-		  break;
+		if (netonly) {
+		  if (strcmp(name, "</netbeacon>") == 0)
+		    break;
+		} else {
+		  if (strcmp(name, "</rfbeacon>") == 0)
+		    break;
 		}
 
 		if (strcmp(name, "beacon") == 0) {
 		  rfbeacon_set(cf, param1, str);
 		} else {
+		  printf("%s:%d Unknown config keyword: '%s'\n",name);
+		  continue;
 		}
 	}
 }
