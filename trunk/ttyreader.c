@@ -159,7 +159,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		    /* Convert the probe packet to KISS frame */
 		    kisslen = kissencoder( kissbuf, sizeof(kissbuf),
-					   probe+1, 1, probe[0] );
+					   &(probe[1]), 1, probe[0] );
 
 		    /* Send probe message..  */
 		    if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
@@ -201,18 +201,27 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 	/* Send the frame to APRS-IS, return 1 if valid AX.25 UI message, does not
 	   validate against valid APRS message rules... (TODO: it could do that too) */
-	if (S->interface[tncid] != NULL) {
-		// Found an interface system to receive it..
-		interface_receive_ax25(S->interface[tncid],
-				       S->ttycallsign[tncid],
-				       S->rdline + 1, S->rdlinelen - 1);
 
-	}
+	// The AX25_TO_TNC2 does validate the AX.25 packet,
+	// converts it to "TNC2 monitor format" and sends it to
+	// Rx-IGate functionality.  Returns non-zero only when
+	// AX.25 header is OK, and packet is sane.
 
 	if (ax25_to_tnc2(S->ttycallsign[tncid], tncid, cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
+		// The packet is valid per AX.25 header bit rules.
+
 		/* Send the frame without cmdbyte to internal AX.25 network */
 		if (S->netax25[tncid] != NULL)
 			netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
+
+		if (S->interface[tncid] != NULL) {
+		  // Found an interface system to receive it..  (digipeater!)
+		  interface_receive_ax25(S->interface[tncid],
+					 S->ttycallsign[tncid],
+					 S->rdline + 1, S->rdlinelen - 1);
+		  
+		}
+
 	} else {
 	  if (aprxlogfile) {
 	    FILE *fp = fopen(aprxlogfile, "a");
@@ -489,6 +498,84 @@ static int ttyreader_pulltext(struct serialport *S)
 }
 
 
+
+/*
+ *  ttyreader_kisswrite()  -- write out buffered data
+ */
+void ttyreader_kisswrite(struct serialport *S, const int tncid, const char *ax25raw, const int ax25rawlen)
+{
+	int i, len, ssid;
+	char kissbuf[2300];
+
+	if ((S->linetype != LINETYPE_KISS) && (S->linetype != LINETYPE_KISSSMACK) &&
+	    (S->linetype != LINETYPE_KISSBPQCRC)) {
+		if (debug)
+		  printf("WARNING: WRITING KISS FRAMES ON SERIAL/TCP LINE OF NO KISS TYPE IS UNSUPPORTED!\n");
+		return;
+	}
+
+
+	if ((S->wrlen == 0) || (S->wrlen > 0 && S->wrcursor >= S->wrlen)) {
+		S->wrlen = S->wrcursor = 0;	/* already all written */
+		return;
+	}
+
+
+	/* Now there is some data in between wrcursor and wrlen */
+
+	len = S->wrlen - S->wrcursor;
+	if (len > 0) {
+	  i = write(S->fd, S->wrbuf + S->wrcursor, len);
+	} else
+	  i = 0;
+	if (i > 0) {		/* wrote something */
+		S->wrcursor += i;
+		len = S->wrlen - S->wrcursor;
+		if (len == 0) {
+			S->wrcursor = S->wrlen = 0;	/* wrote all ! */
+		} else {
+			/* compact the buffer a bit */
+			memcpy(S->wrbuf, S->wrbuf + S->wrcursor, len);
+			S->wrcursor = 0;
+			S->wrlen = len;
+		}
+	}
+
+	ssid = (tncid << 4) | ((S->linetype == LINETYPE_KISSSMACK) ? 0x80 : 0x00);
+	len = kissencoder( kissbuf, sizeof(kissbuf), ax25raw, ax25rawlen, ssid );
+
+	// Will the KISS encoded frame fit in the link buffer?
+	if ((S->wrlen + len) < sizeof(S->wrbuf)) {
+		memcpy(S->wrbuf + S->wrlen, kissbuf, len);
+		S->wrlen += len;
+		erlang_add(S, S->ttycallsign[tncid], 0, ERLANG_TX, ax25rawlen, 1);
+
+	} else {
+		// No fit!
+		return;
+	}
+
+	// Try to write it immediately
+	len = S->wrlen - S->wrcursor;
+	if (len > 0)
+	  i = write(S->fd, S->wrbuf + S->wrcursor, len);
+	else
+	  i = 0;
+	if (i > 0) {		/* wrote something */
+		S->wrcursor += i;
+		len = S->wrlen - S->wrcursor;
+		if (len == 0) {
+			S->wrcursor = S->wrlen = 0;	/* wrote all ! */
+		} else {
+			/* compact the buffer a bit */
+			memcpy(S->wrbuf, S->wrbuf + S->wrcursor, len);
+			S->wrcursor = 0;
+			S->wrlen = len;
+		}
+	}
+
+}
+
 /*
  *  ttyreader_linewrite()  -- write out buffered data
  */
@@ -504,10 +591,12 @@ static void ttyreader_linewrite(struct serialport *S)
 	/* Now there is some data in between wrcursor and wrlen */
 
 	len = S->wrlen - S->wrcursor;
-	i = write(S->fd, S->wrbuf + S->wrcursor, len);
+	if (len > 0)
+	  i = write(S->fd, S->wrbuf + S->wrcursor, len);
+	else
+	  i = 0;
 	if (i > 0) {		/* wrote something */
 		S->wrcursor += i;
-		erlang_add(S, S->ttycallsign[0], 0, ERLANG_TX, i, 0);
 		len = S->wrlen - S->wrcursor;
 		if (len == 0) {
 			S->wrcursor = S->wrlen = 0;	/* wrote all ! */
@@ -623,7 +712,8 @@ static void ttyreader_linesetup(struct serialport *S)
 		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY, 0);
 
 		if (debug)
-			printf("%ld\tTTY %s OPEN - ", now, S->ttyname);
+			printf("%ld\tTTY %s OPEN - fd=%d - ",
+			       now, S->ttyname, S->fd);
 		if (S->fd < 0) {	/* Urgh.. an error.. */
 			S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
 			if (debug)
@@ -639,6 +729,8 @@ static void ttyreader_linesetup(struct serialport *S)
 		i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
 
 		if (i < 0) {
+		  printf("%ld\tTCSETATTR failed; errno=%d\n",
+			       now, errno);
 			close(S->fd);
 			S->fd = -1;
 			S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
@@ -719,7 +811,7 @@ static void ttyreader_linesetup(struct serialport *S)
 				i = connect(S->fd, ai->ai_addr,
 					    ai->ai_addrlen);
 				if ((i != 0) && (errno != EINPROGRESS)) {
-					/* non-blocking connect() yeilds EINPROGRESS,
+					/* non-blocking connect() yields EINPROGRESS,
 					   anything else and we fail entirely...      */
 					if (debug)
 						printf("ttyreader socket connect call failed: %d : %s\n", errno, strerror(errno));
@@ -794,6 +886,9 @@ int ttyreader_prepoll(struct aprxpolls *app)
 		/* FD is open, check read/idle timeout ... */
 		if ((S->read_timeout > 0) &&
 		    (now > (S->last_read_something + S->read_timeout))) {
+			if (debug)
+			  printf("%ld\tRead timeout on %s; %d seconds w/o input. fd=%d\n",
+				 now, S->ttyname, S->read_timeout, S->fd);
 			close(S->fd);	/* Close and mark for re-open */
 			S->fd = -1;
 			S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;

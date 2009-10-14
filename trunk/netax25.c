@@ -42,8 +42,10 @@
  */
 
 struct netax25_pty {
-	int	fd;
-	const char *callsign;
+	int                          fd;
+	const char                  *callsign;
+	const struct aprx_interface *interface;
+	struct sockaddr_ax25         ax25addr;
 };
 
 static void netax25_addttyport(const char *callsign,
@@ -91,6 +93,10 @@ static const void* netax25_openpty(const char *mycall)
 	nax25 = calloc( 1,sizeof(*nax25) );
 	nax25->fd       = pty_master;
 	nax25->callsign = mycall;
+
+	nax25->ax25addr.sax25_family = PF_AX25;
+	nax25->ax25addr.sax25_ndigis = 0;
+	memcpy(&nax25->ax25addr.sax25_call, ax25call, sizeof(ax25call));
 
 	/* setup termios parameters for this line.. */
 	aprx_cfmakeraw(&tio, 0);
@@ -205,27 +211,34 @@ void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 }
 #endif				/* HAVE_OPENPTY */
 
-static int rx_socket;
+static int rx_socket = -1;
+static int tx_socket = -1;
 
-struct ax25rxport {
-	const char *callsign;
-	const struct aprx_interface *interface;
-};
-
-static struct ax25rxport *ax25rxports;
-static int                ax25rxportscount;
+static struct netax25_pty *ax25rxports;
+static int                 ax25rxportscount;
 
 static char **ax25ttyports;
 static int   *ax25ttyfds;
 static int    ax25ttyportscount;
 
 /* config interface:  ax25-rxport: callsign */
-void netax25_addrxport(const char *callsign, char *str, struct aprx_interface *interface)
+void *netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *interface)
 {
+	unsigned char ax25call[7];
+	if (parse_ax25addr(ax25call, callsign, 0x60)) {
+		// Not valid per AX.25 rules
+		return NULL;
+	}
+
 	ax25rxports = realloc(ax25rxports,
-			      sizeof(struct ax25rxport) * (ax25rxportscount + 1));
+			      sizeof(struct netax25_pty) * (ax25rxportscount + 1));
+	ax25rxports[ax25rxportscount].fd        = -1;
 	ax25rxports[ax25rxportscount].callsign  = strdup(callsign);
 	ax25rxports[ax25rxportscount].interface = interface;
+	ax25rxports[ax25rxportscount].ax25addr.sax25_family = PF_AX25;
+	ax25rxports[ax25rxportscount].ax25addr.sax25_ndigis = 0;
+	memcpy(&ax25rxports[ax25rxportscount].ax25addr.sax25_call, ax25call, sizeof(ax25call));
+
 	++ax25rxportscount;
 }
 
@@ -233,9 +246,9 @@ static void netax25_addttyport(const char *callsign,
 			       const int masterfd, const int slavefd)
 {
 	ax25ttyports = realloc(ax25ttyports,
-			      sizeof(void *) * (ax25ttyportscount + 1));
+			       sizeof(void *) * (ax25ttyportscount + 1));
 	ax25ttyfds   = realloc(ax25ttyfds,
-			      sizeof(int) * (ax25ttyportscount + 1));
+			       sizeof(int) * (ax25ttyportscount + 1));
 	ax25ttyports[ax25ttyportscount] = strdup(callsign);
 	ax25ttyfds  [ax25ttyportscount] = masterfd; /* slavefd forgotten */
 	++ax25ttyportscount;
@@ -274,8 +287,8 @@ void netax25_start(void)
 					   picks only inbound-at-ax25-devices
 					   ..packets.  */
 
-	// rx_socket = socket(PF_AX25, SOCK_RAW, htons(rx_protocol));
 	rx_socket = socket(PF_PACKET, SOCK_PACKET, htons(rx_protocol));
+	tx_socket = socket(PF_AX25,   SOCK_PACKET, htons(ETH_P_AX25));
 
 	if (rx_socket < 0)
 		rx_socket =
@@ -294,6 +307,8 @@ void netax25_start(void)
 
 	if (rx_socket >= 0)
 		fd_nonblockingmode(rx_socket);
+	if (tx_socket >= 0)
+		fd_nonblockingmode(tx_socket);
 }
 
 
@@ -312,6 +327,13 @@ int netax25_prepoll(struct aprxpolls *app)
 		/* FD is open, lets mark it for poll read.. */
 		pfd = aprxpolls_new(app);
 		pfd->fd = rx_socket;
+		pfd->events = POLLIN | POLLPRI;
+		pfd->revents = 0;
+	}
+	if (tx_socket >= 0) {
+		/* FD is open, lets mark it for poll read.. */
+		pfd = aprxpolls_new(app);
+		pfd->fd = tx_socket;
 		pfd->events = POLLIN | POLLPRI;
 		pfd->revents = 0;
 	}
@@ -402,7 +424,119 @@ static int rxsock_read( const int fd )
 
 	if (debug) {
 	  // printf("netax25rx packet from %s length %d family=%d\n", &sa.sax.fsa_ax25.sax25_call, rcvlen, sa.sax.fsa_ax25.sax25_family);
-	  printf("netax25rx packet from %s length %d family=%d\n", sa.sa_data, rcvlen, sa.sa_family);
+	  printf("netax25rx packet from rx_socket; device %s data length %d address family=%d\n", sa.sa_data, rcvlen, sa.sa_family);
+	}
+
+	/* Query AX.25 for the address from whence
+	   this came in.. */
+	// memcpy(ifr.ifr_name, &sa.sax.fsa_ax25.sax25_call, sizeof(ifr.ifr_name));
+	memcpy(ifr.ifr_name, &sa.sa_data, sizeof(ifr.ifr_name));
+	if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
+	    || ifr.ifr_hwaddr.sa_family != AF_AX25) {
+		/* not AX.25 so ignore this packet .. */
+		return 1;	/* there may be more on this socket */
+	}
+	/* OK, AX.25 address.  Print it out in text. */
+	ax25_fmtaddress(ifaddress, (unsigned char*)ifr.ifr_hwaddr.sa_data);
+
+	if (debug > 1)
+		printf("Received frame from '%s' len %d\n",
+		       ifaddress, rcvlen);
+
+	if (is_ax25ttyport(ifaddress)) {
+		if (debug > 1) printf("%s is ttyport which we serve.\n",ifaddress);
+		return 1;	/* We drop our own packets,
+				   if we ever see them */
+	}
+
+	if (ax25rxports) {
+		/* We have a list of AX.25 ports
+		   (callsigns) where we limit
+		   the reception from! */
+		int j, ok = 0;
+		for (j = 0; j < ax25rxportscount; ++j) {
+			if (strcmp(ifaddress,ax25rxports[j].callsign) == 0) {
+				aif = ax25rxports[j].interface;
+				ok = 1;	/* Found match ! */
+				break;
+			}
+		}
+		if (!ok) {
+			if (debug > 1) printf("%s is not known on  ax25-rxport definitions.\n",ifaddress);
+			return 1;	/* No match :-(  */
+		}
+	}
+
+	/* Now: actual AX.25 frame reception,
+	   and transmit via ax25_to_tnc2() ! */
+
+	/*
+	 * "+10" is a magic constant for trying
+	 * to estimate channel occupation overhead
+	 */
+	erlang_add(NULL, ifaddress, 0, ERLANG_RX, rcvlen + 10, 1);
+
+	// Send it to Rx-IGate, validates also AX.25 header bits,
+	// and returns non-zero only when things are OK for processing.
+	if (ax25_to_tnc2(ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1)) {
+
+		// Send it to digipeaters
+		if (aif != NULL) {
+			// Found an interface system to receive it..
+			interface_receive_ax25(aif, ifaddress,
+					       rxbuf + 1, rcvlen - 1);
+		}
+	}
+
+	return 1;
+}
+
+static int txsock_read( const int fd )
+{
+	// struct msghdr msgh;
+	// union {
+	  struct sockaddr sa;
+	//  struct full_sockaddr_ax25 sax;
+	//  unsigned char sab[200];
+	// } sa;
+	// struct iovec    iov[1];
+	// unsigned char msgbuf[1000];
+	unsigned char rxbuf[3000];
+
+	struct ifreq ifr;
+	socklen_t asize;
+	int rcvlen;
+	char ifaddress[12]; /* max size: 6+1+2 chars */
+
+	const struct aprx_interface *aif = NULL;
+
+	/*
+	msgh.msg_name       = & sa;
+	msgh.msg_namelen    = sizeof(sa);
+	msgh.msg_iov        = iov;
+	msgh.msg_iovlen     = 1;
+	msgh.msg_control    = msgbuf;
+	msgh.msg_controllen = sizeof(msgbuf);
+	msgh.msg_flags      = 0;
+	iov[0].iov_base        = rxbuf;
+	iov[0].iov_len         = sizeof(rxbuf);
+	*/
+
+	// memset(&sa, 0, sizeof(sa));
+
+	asize = sizeof(sa);
+	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf), 0, &sa, &asize);
+
+
+	// rcvlen = recvmsg(fd, &msgh, MSG_DONTWAIT);
+
+	if (rcvlen < 0) {
+		return 0;	/* No more at this time.. */
+	}
+
+	if (debug) {
+	  // printf("netax25rx packet from %s length %d family=%d\n", &sa.sax.fsa_ax25.sax25_call, rcvlen, sa.sax.fsa_ax25.sax25_family);
+	  printf("netax25rx packet from tx_socket; device %s data length %d address family=%d\n", sa.sa_data, rcvlen, sa.sa_family);
 	}
 
 	/* Query AX.25 for the address from whence
@@ -489,6 +623,11 @@ int netax25_postpoll(struct aprxpolls *app)
 	    /* something coming in.. */
 	    rxsock_read( rx_socket );
 	  }
+	  if ((pfd->fd == tx_socket) &&
+	      (pfd->revents & (POLLIN | POLLPRI))) {
+	    /* something coming in.. */
+	    txsock_read( tx_socket );
+	  }
 	  for (j = 0; j < ax25ttyportscount; ++j) {
 	    if ((pfd->revents & (POLLIN | POLLPRI)) &&
 		(ax25ttyfds[j] == pfd->fd)) {
@@ -499,6 +638,19 @@ int netax25_postpoll(struct aprxpolls *app)
 	
 	return 0;
 }
+
+
+
+void netax25_sendto(const void *nax25p, const char *txbuf, const int txlen)
+{
+	const struct netax25_pty *nax25 = nax25p;
+
+	sendto(tx_socket, txbuf, txlen, MSG_NOSIGNAL, // That NOSIGNAL is Linux specific, but so is AX.25 too...
+	       (struct sockaddr *)&nax25->ax25addr, sizeof(nax25->ax25addr));
+
+	erlang_add(NULL, nax25->callsign, 0, ERLANG_TX, txlen + 10, 1);
+}
+
 
 #else				/* Not Linux with PF_AX25 ?  Dummy routines.. */
 
@@ -533,6 +685,10 @@ void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 }
 
 void netax25_sendax25_tnc2(const void *tnc2, int tnc2len)
+{
+}
+
+void netax25_sendto(const void *nax25, const char *txbuf, const int txlen)
 {
 }
 #endif

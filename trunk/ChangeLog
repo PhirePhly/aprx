@@ -1,3 +1,22 @@
+2009-10-15  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsdigi.c, ax25.c, Makefile.in:
+	    Remove obsolete placeholder.  Things will be done differently.
+
+	* config.c, rfbeacon.c:
+	    The rfbeacon code will be doing all variants of beacons..
+
+	* interface.c, netax25.c, ttyreader.c, aprx.h, ax25.c:
+	    interface_transmit_ax25() is able to transmit a fully formed
+	    AX.25 header+control+body frame to Linux internal AX.25 network
+	    devices as well as to any serial port attached KISS device.
+	    Transmission to TNC2 devices is not supported.
+	    Code is also very careful on checking the AX.25 frame header
+	    structure, and rejecting outright any with invalid header
+	    structure (bad continuation flags, bad chars in callsigns,
+	    not so careful with SSID byte contents - too many are careless
+	    with those :-( )
+
 2009-10-14  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* rfbeacon.c, interface.c, Makefile.in, config.c, aprx.c,

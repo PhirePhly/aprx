@@ -231,21 +231,21 @@ static void cfgparam(struct configfile *cf)
 	  return;
 	}
 	if (strcmp(name, "<netbeacon>") == 0) {
-	  netbeacon_config(cf);
+	  rfbeacon_config(cf,1);
 	  return;
 	}
 	if (strcmp(name, "<rfbeacon>") == 0) {
-	  rfbeacon_config(cf);
+	  rfbeacon_config(cf,0);
 	  return;
 	}
 	if (strcmp(name, "<logging>") == 0) {
 	  // logging_config(cf);
 	  return;
 	}
-	if (strcmp(name, "</logging>") == 0) { // temporary helper..
+	if (strcmp(name, "</logging>") == 0) // temporary helper
 	  return;
 
-	} else {
+	else {
 	}
 
 	if (strcmp(name, "aprsis-login") == 0) {
