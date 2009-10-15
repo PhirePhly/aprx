@@ -115,19 +115,6 @@ pidfile @VARRUN@/aprx.pid
 </logging>
 
 
-# AX.25 filters block selected messages matching on selected regular
-# expressions.  The expressions are case sensitive, and AX.25 address
-# elements are in all uppercase text.  There can be unlimited number
-# of patterns, type fields are four: "source", "destination", "via",
-# and "data".  These patterns can be used in addition to built-in
-# hard-coded reject rules listed in documentation.
-#
-#ax25-reject-filter source      "^NOCALL"
-#ax25-reject-filter destination "^NOCALL"
-#ax25-reject-filter via         "^NOGATE"
-#ax25-reject-filter data        "^\\?"
-
-
 # ***********  Multiple <interface>  definitions follow   *********
 
 # ax25-device  Lists AX.25 ports by their callsigns that in Linux
@@ -283,6 +270,25 @@ pidfile @VARRUN@/aprx.pid
 #beacon to IFCALL-1 for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 </rfbeacon>
 
+
+#<rx-igate>
+# AX.25 filters block selected messages matching on selected regular
+# expressions.  The expressions are case sensitive, and AX.25 address
+# elements are in all uppercase text.  There can be unlimited number
+# of patterns, type fields are four: "source", "destination", "via",
+# and "data".  These patterns can be used in addition to built-in
+# hard-coded reject rules listed in documentation.
+#
+#   ax25-reject-filter source      "^NOCALL"
+#   ax25-reject-filter destination "^NOCALL"
+#   ax25-reject-filter via         "^NOGATE"
+#   ax25-reject-filter data        "^\\?"
+#
+# Source interfaces from which the IGATE functionality feeds the data out
+#
+#   source   IFCALL-1
+#   source   IFCALL-2
+#</rx-igate>
 
 # ***********  Multiple <digipeater>  definitions follow   *********
 
