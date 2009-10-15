@@ -76,6 +76,9 @@ struct pbuf_t {
 
 	uint16_t refcount;
 
+	int	 reqcount;      // How many digipeat hops are requested?
+	int	 donecount;	// How many digipeat hops are already done?
+
 	time_t   t;		/* when the packet was received */
 	uint32_t seqnum;	/* ever increasing counter, dupecheck sets */
 	uint16_t packettype;	/* bitmask: one or more of T_* */
