@@ -286,11 +286,38 @@ pidfile @VARRUN@/aprx.pid
 
 # ***********  Multiple <digipeater>  definitions follow   *********
 
-#<digipeater>
-#
 #  The digipeater definitions tell transmitters that receive
 #  AX.25 packets from possibly multiple sources, and then what
 #  to do on the AX.25 headers of those messages.
+#
+#  There is one transmitter per digipeater -- and inversely, there
+#  can be at most one digipeater for each transmitter.
+#
+#  In each digipeater there is at least one <source>, usually same
+#  as the transmitter.
+#
+#<digipeater>
+#    transmitter  TXCALL-1
+#    ratelimit      300   # default: 300 msgs/minute
+#    viscous-delay    0   # default: no viscous delay
+#
+#    <trace>
+#        maxreq     4
+#        maxdone    4
+#        keys       TRACE,WIDE,RELAY
+#    </trace>
+#    <wide>
+#        maxreq     4
+#        maxdone    4
+#        keys       WIDE
+#    </wide>
+#
+#    <source>
+#        callsign   TXCALL-1
+#    </source>
+#    <source>
+#        callsign   RXCALL-1
+#    </source>
 #
 #</digipeater>
 
