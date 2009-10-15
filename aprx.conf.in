@@ -47,9 +47,9 @@ server    rotate.aprs.net    14580
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
 # Enable only if the server you use does present heartbeat.
-# Recommended value 3*"heartbeat" + some  -> 120 (seconds)
-
-heartbeat-timeout   120    # Disable if your server does not heartbeat
+# Default value is 3*"heartbeat" + some  -> 120 (seconds)
+#
+#heartbeat-timeout   0    # Disabler in case your server does not do heartbeat
 
 # APRS-IS server may support some filter commands.
 # See:  http://www.aprs-is.net/javAPRSFilter.aspx
@@ -148,8 +148,8 @@ erlangfile @VARRUN@/aprx.state
 #  if no "to" entry is defined, and only to defined transmitter, if
 #  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
 #
-#beacon to N0CALL-3 for N0CALL-3 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
-#beacon                          dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon                          symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
 #
 </beacon>
 
@@ -167,17 +167,17 @@ erlangfile @VARRUN@/aprx.state
 #  as the transmitter.
 #
 #<digipeater>
-#    transmitter  $mycall
+#    transmitter     $mycall
 #    #ratelimit      120      # default: max 120 packets/minute
 #
 #    <source>
-#        interface     $mycall
-#    #   viscous-delay 0      # no viscous delay for RF->RF digipeating
-#    #   ratelimit     120    # default: max 120 packets/minute
+#        source         $mycall
+#    #   viscous-delay  0     # no viscous delay for RF->RF digipeating
+#    #   ratelimit      120   # default: max 120 packets/minute
 #    #   filter     "..."     # Optional filters to limit digipeated messages
 #    </source>
 #    #<source>                # Adding APRSIS source makes this tx-igate
-#    #    interface     APRSIS
+#    #    source        APRSIS
 #    #    # %%%% additional tx-igate options to be defined %%%%
 #    #    #  (like relay-format controls, APRSIS->RF in 3rd-party form)
 #    #    viscous-delay 5     # Recommendation, wait 5 sec before tx:in
