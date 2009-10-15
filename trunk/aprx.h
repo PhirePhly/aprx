@@ -398,7 +398,11 @@ struct digipeater {
 	struct digipeater_source *sources;
 };
 
+extern int  digipeater_prepoll(struct aprxpolls *app);
+extern int  digipeater_postpoll(struct aprxpolls *app);
+
 extern void digipeater_config(struct configfile *cf);
+extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb);
 
 
 /* interface.c */
@@ -439,4 +443,8 @@ extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char
 
 /* pbuf.c */
 
+extern void           pbuf_get(struct pbuf_t *pb);
+extern void           pbuf_put(struct pbuf_t *pb);
 extern struct pbuf_t *pbuf_new(const int is_aprs, const int axdatalen, const int tnc2len);
+
+

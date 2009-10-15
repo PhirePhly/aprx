@@ -393,11 +393,33 @@ void interface_config(struct configfile *cf)
 void interface_receive_ax25(const struct aprx_interface *aif,
 			    const char *ifaddress, int is_aprs,
 			    const unsigned char *axbuf, const int axaddrlen, const int axlen,
-			    const char *tnc2buf, const int tnc2addlen, const int tnc2len)
+			    const char *tnc2buf, const int tnc2addrlen, const int tnc2len)
 {
-	if (aif == NULL) return;
+	int i;
 
+	if (aif == NULL) return;         // Not a real interface for digi use
+	if (aif->digicount == 0) return; // No receivers for this source
+
+	// Allocate pbuf, it is born "gotten" (refcount == 1)
 	struct pbuf_t *pb = pbuf_new(is_aprs, axlen, tnc2len);
+	memcpy(pb->ax25addr, axbuf, axlen);
+	pb->ax25data    = pb->ax25addr + axaddrlen;
+	pb->ax25datalen = axlen - axaddrlen;
+
+	memcpy((void*)(pb->destcall), tnc2buf, tnc2len);
+	pb->info_start = pb->destcall + tnc2addrlen + 1;
+
+	// If APRS packet, then parse for APRS meaning ...
+	// FIXME: parse for aprs meaning!
+
+
+	// Feed it to digipeaters ...
+	for (i = 0; i < aif->digicount; ++i) {
+		digipeater_receive( aif->digipeaters[i], pb);
+	}
+
+	// .. and finally free up the pbuf (if refcount == 0)
+	pbuf_put(pb);
 }
 
 /*
@@ -423,7 +445,6 @@ void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned ch
 	}
 }
 
-
 /*
  * Process received AX.25 packet  -- for APRSIS
  *   - from AIF do find all DIGIPEATERS wanting this source.
@@ -435,7 +456,9 @@ void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned ch
 
 void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen)
 {
-	if (aif == NULL) return;
+	if (aif == NULL) return;         // Not a real interface for digi use
+	if (aif->digicount == 0) return; // No receivers for this source
+
 }
 
 /*

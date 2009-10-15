@@ -72,9 +72,9 @@
 struct pbuf_t {
 	struct pbuf_t *next;
 
+	int	 is_aprs;	// If not, then just digipeated frame..
+
 	uint16_t refcount;
-	uint16_t ax25_control;  // APRS: 0x03
-	uint16_t ax25_pid;      // APRS: 0xF0
 
 	time_t   t;		/* when the packet was received */
 	uint32_t seqnum;	/* ever increasing counter, dupecheck sets */
@@ -84,12 +84,13 @@ struct pbuf_t {
 	uint16_t dstcall_len;	/* parsed length of destination callsign *including* SSID */
 	uint16_t entrycall_len;
 	
-	int packet_len;		/* the actual length of the packet, including CRLF */
+	int packet_len;		/* the actual length of the TNC2 packet */
 	int buf_len;		/* the length of this buffer */
 	
+	const char *destcall;	   /* start of dest callsign with SSID */
+	const char *dstcall_end;   /* end of dest callsign with SSID */
 	const char *srccall_end;   /* source callsign with SSID */
-	const char *dstcall_end;   /* end of dest callsign SSID */
-	const char *qconst_start;  /* "qAX,incomingSSID:"	-- for q and e filters  */
+//	const char *qconst_start;  /* "qAX,incomingSSID:"	-- for q and e filters  */
 	const char *info_start;    /* pointer to start of info field */
 	const char *srcname;       /* source's name (either srccall or object/item name) */
 	
@@ -99,7 +100,13 @@ struct pbuf_t {
 
 	char symbol[3]; /* 2(+1) chars of symbol, if any, NUL for not found */
 
-	char data[1];	/* contains the whole packet, including CRLF, ready to transmit */
+	unsigned char *ax25addr;	// Start of AX.25 address
+	int	       ax25addrlen;	// length of AX.25 address
+
+	unsigned char *ax25data;	// Start of AX.25 data after addresses
+	int	       ax25datalen;	// length of that data
+
+	char data[1];
 };
 
 /* global packet buffer */

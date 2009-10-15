@@ -1,5 +1,9 @@
 2009-10-15  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, pbuf.c, pbuf.h, interface.c, digipeater.c, aprx.c:
+	    Skeletons for pbufs, digipeaters, and their uses in
+	    the interface layer.
+
 	* aprsdigi.c, ax25.c, Makefile.in:
 	    Remove obsolete placeholder.  Things will be done differently.
 
