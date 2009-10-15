@@ -13,8 +13,6 @@
 #include "aprx.h"
 #include <regex.h>
 
-static int aprx_tx_igate_enabled;
-
 static regex_t **sourceregs;
 static int sourceregscount;
 
@@ -29,18 +27,6 @@ static int dataregscount;
 
 static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
 
-/*
- * Enable tx-igate functionality.
- *
- */
-void enable_tx_igate(const char *p1, const char *p2)
-{
-	aprx_tx_igate_enabled = 1;
-	if (debug) {
-	  printf("enable-tx-igate\n");
-	}
-}
-
 
 /*
  * igate start -- make TX-igate allocations and inits
@@ -49,8 +35,6 @@ void igate_start()
 {
 	aprsisdupe = new_dupecheck();
 
-	if (!aprx_tx_igate_enabled)
-		return;
 }
 
 /*
@@ -624,10 +608,6 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	char  *heads[20];
 	int    headscount = 0;
 
-	if (!aprx_tx_igate_enabled) {
-	  /* Not enabled */
-	  return;
-	}
 	if (ax25[0] == '#')
 	  return; // Comment line, timer tick, something such spurious..
 
@@ -717,5 +697,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	
 
 	// netax25_sendax25(buf,len);
+
+	interface_transmit_tnc2( &aprsis_interface, axbuf, ax25len );
 }
 

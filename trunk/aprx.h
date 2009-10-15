@@ -416,7 +416,8 @@ typedef enum {
 	IFTYPE_UNSET,
 	IFTYPE_SERIAL,
 	IFTYPE_AX25,
-	IFTYPE_TCPIP
+	IFTYPE_TCPIP,
+	IFTYPE_APRSIS
 } iftype_e;
 
 struct aprx_interface {
@@ -436,6 +437,10 @@ struct aprx_interface {
 	struct digipeater_source **digipeaters;
 };
 
+extern struct aprx_interface aprsis_interface;
+
+
+extern void interface_init(void);
 extern void interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
