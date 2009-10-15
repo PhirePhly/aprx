@@ -14,22 +14,6 @@
 #   7)  <digipeater> ** zero to many (at most one for each Tx)
 #
 
-#
-# For simple case, you need to adjust 3 things:
-#   - Mycall parameter
-#   - Select correct type of interface (ax25-device or serial-device)
-#   - Optionally set a beacon telling where this system is
-#   - Optionally enable digipeater with or without tx-igate
-#
-
-
-#
-# Global macro for simplified callsign definition:
-# Usable for 99+% of cases.
-#
-
-mycall  N0CALL-1
-
 <aprsis>
 # The  aprsis-login  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
@@ -37,7 +21,7 @@ mycall  N0CALL-1
 # the system!  Ignore this at your own peril...  The Call-SSIDs
 # SSID value does not need to be numeric 1..15: "-R1" works too.
 #
-login     $mycall
+login     N0CALL-R1
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
@@ -45,14 +29,22 @@ login     $mycall
 # used in round\-robin fashion.  Heartbeat and filter definitions
 # must follow each server definition.
 
+#server	   igates.aprs.fi     14580
+#server    finland.aprs2.net  14580
 server    rotate.aprs.net    14580
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
 # Enable only if the server you use does present heartbeat.
 # Recommended value 3*"heartbeat" + some  -> 120 (seconds)
+#
+#heartbeat-timeout   120
 
-heartbeat-timeout   120
+# Additional APRS-IS servers can be entered, by repeating following
+# three configuration entries as many times as are needed.
+#
+#server            rotate.aprs.net 14580
+#heartbeat-timeout 120
 
 # APRS-IS server may support some filter commands.
 # See:  http://www.aprs-is.net/javAPRSFilter.aspx
@@ -101,6 +93,26 @@ pidfile @VARRUN@/aprx.pid
 #
 #erlangfile @VARRUN@/aprx.state
 
+# erlang-loglevel is config file version of the "-l" option
+# pushing erlang data to syslog(3).
+# Valid values are (possibly) following: NONE, LOG_DAEMON,
+# LOG_FTP, LOG_LPR, LOG_MAIL, LOG_NEWS, LOG_USER, LOG_UUCP,
+# LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4,
+# LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.  If the parameter value is
+# not acceptable, list of accepted values are printed at startup.
+#
+#erlang-loglevel NONE
+
+# erlanglog defines a rotatable file into which erlang data
+# is written in text form.
+#
+#erlanglog @VARLOG@/erlang.log
+
+# erlang-log1min option logs to syslog/file also 1 minute
+# interval data from the program. (In addition to 10m and 60m.)
+#
+#erlang-log1min
+
 </logging>
 
 
@@ -113,8 +125,8 @@ pidfile @VARRUN@/aprx.pid
 # tx-ok        Boolean telling if this device is able to transmit.
 #
 #<interface>
-#   ax25-device $mycall
-#   tx-ok       false
+#   ax25-device N0CALL
+#   tx-ok false
 #</interface>
 
 # The  radio serial  option.  Parameters are:
@@ -128,27 +140,18 @@ pidfile @VARRUN@/aprx.pid
 #
 #
 #<interface>
-#   serial-device /dev/ttyUSB0  19200 8n1    KISS
-#   callsign      $mycall
-#   tx-ok         false
+# serial-device   /dev/ttyUSB0  19200 8n1    KISS
+# <kiss-subif 0>
+#    callsign N0CALL-14
+#    tx-ok    false
+# </kiss-subif>
 #</interface>
 #
 #<interface>
-#   serial-device /dev/ttyUSB1  19200 8n1    SMACK
-#   <kiss-subif 0>
-#      callsign   N0CALL-2
-#      tx-ok      false
-#   </kiss-subif>
-#   <kiss-subif 1>
-#      callsign   N0CALL-3
-#      tx-ok      true
-#   </kiss-subif>
-#</interface>
-#
-#<interface>
-#   serial-device /dev/ttyUSB1  19200 8n1    TNC2
-#   callsign      N0CALL-13
-#   #tx-ok        false   # TNC2 monitor can not have transmitter
+# serial-device   /dev/ttyUSB1  19200 8n1    TNC2
+# <kiss-subif 0>  # Actually it is not KISS subif, but "0" works for TNC2
+#   callsign N0CALL-13
+# </kiss-subif>
 #</interface>
 #
 
@@ -251,8 +254,8 @@ pidfile @VARRUN@/aprx.pid
 #
 # Symbol  R&   is for "Rx-only iGate"
 #
-#beacon for $mycall  dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
-#beacon for N0CALL-3 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 #
 </netbeacon>
 
@@ -266,9 +269,8 @@ pidfile @VARRUN@/aprx.pid
 #  if no "to" entry is defined, and only to defined transmitter, if
 #  the "to" entry is defined.
 #
-#beacon             for $mycall  dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
-#beacon to N0CALL-3 for N0CALL-3 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
-#
+#beacon to IFCALL-1 for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon to IFCALL-1 for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 </rfbeacon>
 
 
@@ -280,14 +282,15 @@ pidfile @VARRUN@/aprx.pid
 # and "data".  These patterns can be used in addition to built-in
 # hard-coded reject rules listed in documentation.
 #
-# #  ax25-reject-filter source      "^NOCALL"
-# #  ax25-reject-filter destination "^NOCALL"
-# #  ax25-reject-filter via         "^NOGATE"
-# #  ax25-reject-filter data        "^\\?"
+#   ax25-reject-filter source      "^NOCALL"
+#   ax25-reject-filter destination "^NOCALL"
+#   ax25-reject-filter via         "^NOGATE"
+#   ax25-reject-filter data        "^\\?"
 #
 # Source interfaces from which the IGATE functionality feeds the data out
 #
-#   source   $mycall
+#   source   IFCALL-1
+#   source   IFCALL-2
 #</rx-igate>
 
 # ***********  Multiple <digipeater>  definitions follow   *********
@@ -303,7 +306,7 @@ pidfile @VARRUN@/aprx.pid
 #  as the transmitter.
 #
 #<digipeater>
-#    transmitter  $mycall
+#    transmitter  TXCALL-1
 #    #ratelimit      300   # default: 300 packets/minute
 #    #viscous-delay    0   # default: no viscous delay
 #
@@ -319,12 +322,15 @@ pidfile @VARRUN@/aprx.pid
 #    #</wide>
 #
 #    <source>
-#        interface   $mycall
+#        interface   TXCALL-1
 #    #   ratelimit   60    # default: 60 packets/minute
 #    #	 filter      "javAPRSSrvr adjunct filters"
 #    #   reject-srccall "LIST,OF,CALLSIGNS"
 #    #   reject-viacall "LIST,OF,CALLSIGNS"
 #    </source>
+#    #<source>                  # Extra receiver(s)
+#    #    interface   RXCALL-1
+#    #</source>
 #    #<source>                  # APRSIS source makes this tx-igate
 #    #    interface   APRSIS
 #    #    # .. additional tx-igate options to be defined ..
