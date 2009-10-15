@@ -59,6 +59,7 @@ extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
 /* aprx.c */
 extern const char *aprsis_login;
 extern int die_now;
+extern const char *mycall;
 
 extern int fd_nonblockingmode(int fd);
 
@@ -150,6 +151,7 @@ extern void ttyreader_init(void);
 extern const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str);
 // New style init: ttyreader_new()
 extern struct serialport *ttyreader_new(void);
+extern void ttyreader_register(struct serialport *tty);
 // extern void               ttyreader_setlineparam(struct serialport *tty, const char *ttyname, const int baud, int const kisstype);
 // extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
 extern void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);

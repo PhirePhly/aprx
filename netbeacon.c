@@ -143,7 +143,7 @@ void netbeacon_set(const char *p1, char *str)
 
 			// What about ITEM and OBJECT ?
 
-			// if (validate_callsign_input((char *) srcaddr),1) {
+			// if (!validate_callsign_input((char *) srcaddr),1) {
 			//   printf("Invalid netbeacon FOR callsign");
 			// }
 

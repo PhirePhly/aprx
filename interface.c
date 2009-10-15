@@ -137,7 +137,10 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 		// FIXME:   callsign   and   tx-ok   parameters!
 		if (strcmp(name, "callsign") == 0) {
-		  if (validate_callsign_input(param1,txok)) {
+		  if (strcmp(param1,"$mycall") == 0)
+		    param1 = strdup(mycall);
+
+		  if (!validate_callsign_input(param1,txok)) {
 		    if (txok)
 		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, param1);
@@ -148,6 +151,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    break;
 		  }
 		  callsign = strdup(param1);
+
 		} else if (strcmp(name, "initstring") == 0) {
 		  
 		  initlength = parlen;
@@ -256,7 +260,10 @@ void interface_config(struct configfile *cf)
 		    continue;
 		  }
 
-		  if (validate_callsign_input(param1,1)) {
+		  if (strcmp(param1,"$mycall") == 0)
+		    param1 = strdup(mycall);
+
+		  if (!validate_callsign_input(param1,1)) {
 		    printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
 			   cf->name, cf->linenum, param1);
 		    continue;
@@ -273,9 +280,14 @@ void interface_config(struct configfile *cf)
 
 		} else if ((strcmp(name,"serial-device") == 0) && (aif->tty == NULL)) {
 		  if (aif->iftype == IFTYPE_UNSET) {
-		    aif->iftype = IFTYPE_SERIAL;
-		    aif->tty = ttyreader_new();
-		    aif->tty->interface[0] = aif;
+		    aif->iftype              = IFTYPE_SERIAL;
+		    aif->callsign            = strdup(mycall);
+		    aif->tty                 = ttyreader_new();
+		    aif->tty->ttyname        = strdup(param1);
+		    aif->tty->interface[0]   = aif;
+		    aif->tty->ttycallsign[0] = mycall;
+
+		    ttyreader_register(aif->tty);
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
@@ -283,10 +295,9 @@ void interface_config(struct configfile *cf)
 		    continue;
 		  }
 
-		  aif->tty->ttyname = strdup(param1);
 		  if (debug)
-		    printf(".. new style serial:  '%s' '%s'..\n",
-			   aif->tty->ttyname, str);
+		    printf(".. new style serial:  '%s' '%s'.. tncid=0 callsign=%s\n",
+			   aif->tty->ttyname, str, aif->callsign);
 
 		  ttyreader_parse_ttyparams(cf, aif->tty, str);
 
@@ -300,6 +311,9 @@ void interface_config(struct configfile *cf)
 		    aif->iftype = IFTYPE_TCPIP;
 		    aif->tty = ttyreader_new();
 		    aif->tty->interface[0] = aif;
+		    aif->tty->ttycallsign[0]  = mycall;
+
+		    ttyreader_register(aif->tty);
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
@@ -332,7 +346,7 @@ void interface_config(struct configfile *cf)
 		    continue;
 		  }
 		  if (aif->txok && aif->callsign) {
-		    if (validate_callsign_input(aif->callsign,aif->txok)) {  // Transmitters REQUIRE valid AX.25 address
+		    if (!validate_callsign_input(aif->callsign,aif->txok)) {  // Transmitters REQUIRE valid AX.25 address
 		      printf("%s:%d: TX-OK 'TRUE' -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
 			     cf->name, cf->linenum);
 		      continue;
@@ -351,28 +365,33 @@ void interface_config(struct configfile *cf)
 		    aif->tty->read_timeout = aif->timeout;
 		  }
 
-/*
-		} else if ((strcmp(name,"callsign") == 0) && (aif->callsign == NULL)) {
+		} else if (strcmp(name, "callsign") == 0) {
+		  if (strcmp(param1,"$mycall") == 0)
+		    param1 = strdup(mycall);
 
-		  if (validate_callsign_input(param1,aif->txok)) { // Transmitters REQUIRE valid AX.25 address
-		    // FIX MESSAGE TEXTS PER txok VALUE
-		    printf("%s:%d: CALLSIGN '%s -- IS NOT VALID AX.25 ADDRESS, AS REQUIRED ON TRANSMITTER DEVICES\n",
-			   cf->name, cf->linenum, param1);
-		    continue;
+		  if (!validate_callsign_input(param1,aif->txok)) {
+		    if (aif->txok)
+		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+			     cf->name, cf->linenum, param1);
+		    else
+		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid APRSIS format! '%s'\n",
+			     cf->name, cf->linenum, param1);
+		    break;
 		  }
 		  aif->callsign = strdup(param1);
+		  if (aif->tty != NULL)
+		    aif->tty->ttycallsign[0] = aif->callsign;
 
-		} else if (strcmp(name,"initstring") == 0) {
+		} else if (strcmp(name, "initstring") == 0) {
+		  
 		  if (aif->tty != NULL) {
-		    aif->tty->initlen[0]    = parlen;
-		    aif->tty->initstring[0] = malloc(parlen);
-		    memcpy(aif->tty->initstring[0], param1, parlen);
-		  } else {
-		    printf("%s:%d The initstring parameter is available only on serial-device, and tcp-device\n",
-			   cf->name, cf->linenum);
-		    continue;
+		    int   initlength = parlen;
+		    char *initstring = malloc(parlen);
+		    memcpy(initstring, param1, parlen);
+		    aif->tty->initstring[0] = initstring;
+		    aif->tty->initlen[0]    = initlength;
 		  }
-*/
+
 		} else {
 		  printf("%s:%d Unknown config entry name: '%s'\n",
 			 cf->name, cf->linenum, name);
@@ -429,6 +448,9 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axbuf, const int axlen)
 {
+  if (debug)
+    printf("interface_transmit_ax25(aif=%p, .., axlen=%d)\n",aif,axlen);
+
 	if (aif == NULL) return;
 
 	switch (aif->iftype) {

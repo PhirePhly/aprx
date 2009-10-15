@@ -19,6 +19,7 @@ int verbout;
 int erlangout;
 const char *rflogfile;
 const char *aprxlogfile;
+const char *mycall;
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
@@ -127,9 +128,14 @@ int main(int argc, char *const argv[])
 	erlang_start(1);
 	readconfig(cfgfile);	/* TODO: real parametrized cfg file location.. */
 
-	if ((debug || verbout) && !aprsis_login) {
+	if (debug || verbout) {
+	  if (!mycall && !aprsis_login) {
+		fprintf(stderr,
+			"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
+	  } else if (!mycall && !aprsis_login) {
 		fprintf(stderr,
 			"APRX: NO GLOBAL  APRSIS-LOGIN=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
+	  }
 	}
 
 	if (!foreground) {

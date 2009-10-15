@@ -713,18 +713,22 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 			    && A->server_socket >= 0) {
 				/* This is APRS-IS socket, and we may have some results.. */
 
-				if (pfd->revents & (POLLERR | POLLHUP)) {	/* Errors ? */
-				      close_sockaprsis:;
-					aprsis_close(A,
-						     "postpoll EOF et al.");
+				if (pfd->revents & (POLLERR)) {	/* Errors ? */
+					aprsis_close(A,"postpoll_ POLLERR");
+					continue;
+				}
+				if (pfd->revents & (POLLHUP)) {	/* Errors ? */
+					aprsis_close(A,"postpoll_ POLLHUP");
 					continue;
 				}
 
 				if (pfd->revents & POLLIN) {	/* Ready for reading */
 					for (;;) {
 						i = aprsis_sockread(A);
-						if (i == 0)	/* EOF ! */
-							goto close_sockaprsis;
+						if (i == 0) {	/* EOF ! */
+							aprsis_close(A,"postpoll_ EOF");
+							continue;
+						}
 						if (i < 0)
 							break;
 					}
@@ -894,7 +898,9 @@ void aprsis_add_server(const char *server, const char *port)
 
 	H->server_name = strdup(server);
 	H->server_port = strdup(port);
+	H->heartbeat_monitor_timeout = 120; // Default timeout 120 seconds
 	H->login = aprsis_login;	/* global aprsis_login */
+	if (H->login == NULL) H->login = mycall;
 
 	A->server_socket = -1;
 	A->next_reconnect = now;	/* perhaps somewhen latter.. */
@@ -1044,15 +1050,17 @@ int aprsis_postpoll(struct aprxpolls *app)
 			   and we may have some results.. */
 
 			if (pfd->revents & (POLLERR | POLLHUP)) {	/* Errors ? */
-			      close_sockaprsis:;
 				printf("APRS-IS coms subprocess socket failure from main program side!\n");
 				continue;
 			}
 
 			if (pfd->revents & POLLIN) {	/* Ready for reading */
 				i = aprsis_comssockread(pfd->fd);
-				if (i == 0)	/* EOF ! */
-					goto close_sockaprsis;
+				if (i == 0) {	/* EOF ! */
+					printf("APRS-IS coms subprocess socket EOF from main program side!\n");
+
+					continue;
+				}
 				if (i < 0)
 					continue;
 			}
