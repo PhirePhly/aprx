@@ -636,13 +636,13 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	if (headscount < 4) {
 	  // Less than 3 header fields coming from APRS-IS ?
 	  if (debug)
-	    printf("Not relayable packet!\n");
+	    printf("Not relayable packet! [1]\n");
 	  return;
 	}
 	/*
 	    if (strncmp(heads[1],"RXTLM-",6)==0) {
 	      if (debug)
-	        printf("Not relayable packet!\n");
+	        printf("Not relayable packet! [2]\n");
 	      return;
 	    }
 	*/
@@ -651,7 +651,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  /* 3) */
 	  if (forbidden_to_gate_addr(heads[i])) {
 	    if (debug)
-	      printf("Not relayable packet!\n");
+	      printf("Not relayable packet! [3]\n");
 	    return;
 	  }
 
@@ -670,7 +670,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	}
 	if (!ok_to_relay) {
 	  if (debug)
-	    printf("Not relayable packet!\n");
+	    printf("Not relayable packet! [4]\n");
 	  return;
 	}
 
@@ -680,7 +680,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	/* Check for forbidden things that cause dropping the packet */
 	if (*b == '}') { /* Third-party packet from APRS-IS */
 	  if (debug)
-	    printf("Not relayable packet!\n");
+	    printf("Not relayable packet! [5]\n");
 	  return; /* drop it */
 	}
 
@@ -695,9 +695,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 	/* f) */
 	
-
-	// netax25_sendax25(buf,len);
-
-	interface_transmit_tnc2( &aprsis_interface, axbuf, ax25len );
+	interface_receive_tnc2( &aprsis_interface, aprsis_interface.callsign,
+				ax25, ax25len );
 }
 

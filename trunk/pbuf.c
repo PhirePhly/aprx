@@ -22,6 +22,7 @@
 static void pbuf_free(struct pbuf_t *pb)
 {
 	free(pb);
+	if (debug > 1) printf("pbuf_free(%p)\n",pb);
 }
 
 struct pbuf_t *pbuf_alloc( const int axlen,
@@ -33,12 +34,15 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len;
 	struct pbuf_t *pb = malloc( pblen );
 
+	if (debug > 1) printf("pbuf_alloc(%d,%d) -> %p\n",axlen,tnc2len,pb);
+
 	memset(pb, 0, pblen );
 
 	pb->packet_len = tnc2len;
 	pb->buf_len    = tnc2len;
 
-	pb->ax25addr = (unsigned char*)pb->data;
+	if (axlen > 0)
+		pb->ax25addr = (unsigned char*)pb->data;
 	pb->destcall = pb->data + axlen;
 
 	return pb;

@@ -493,10 +493,52 @@ void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned ch
  *
  */
 
-void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen)
+void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddress, const char *tnc2buf, const int tnc2len)
 {
+	int i;
+	struct pbuf_t *pb;
+	const char *p;
+	int tnc2addrlen = 0;
+
+	if (debug)
+	  printf("interface_receive_tnc2() aif=%p, aif->digicount=%d\n",
+		 aif, aif ? aif->digicount : -1);
+
+
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digicount == 0) return; // No receivers for this source
+
+	p = memchr(tnc2buf, ':', tnc2len);
+	if (p != NULL) {
+		tnc2addrlen = p - tnc2buf;
+	} else {
+		// Bad TNC2 packet, no ':' in it..
+		if (debug)
+		  printf("Not found ':' in TNC2 buffer: '%*s'\n",
+			 tnc2len, tnc2buf);
+		return;
+	}
+
+	// Allocate pbuf, it is born "gotten" (refcount == 1)
+	pb = pbuf_new(1 /*is_aprs*/, 0, tnc2len);
+	// memcpy(pb->ax25addr, axbuf, axlen);
+	// pb->ax25data    = pb->ax25addr + axaddrlen;
+	// pb->ax25datalen = axlen - axaddrlen;
+
+	memcpy((void*)(pb->destcall), tnc2buf, tnc2len);
+	pb->info_start = pb->destcall + tnc2addrlen + 1;
+
+	// If APRS packet, then parse for APRS meaning ...
+	// FIXME: parse for aprs meaning!
+
+
+	// Feed it to digipeaters ...
+	for (i = 0; i < aif->digicount; ++i) {
+		digipeater_receive( aif->digipeaters[i], pb);
+	}
+
+	// .. and finally free up the pbuf (if refcount == 0)
+	pbuf_put(pb);
 
 }
 
