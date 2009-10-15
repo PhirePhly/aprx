@@ -59,8 +59,17 @@ struct aprx_interface **all_interfaces;
 int                     all_interfaces_count;
 
 
-static void store_interface(struct aprx_interface *aif)
+struct aprx_interface aprsis_interface = {
+	IFTYPE_APRSIS, 0, "APRSIS", 0, 0, 0, NULL,
+	NULL, NULL,
+	0, NULL
+};
+
+static void interface_store(struct aprx_interface *aif)
 {
+  if (debug)
+    printf("interface_store() aif->callsign = '%s'\n", aif->callsign);
+
 	all_interfaces_count += 1;
 	all_interfaces = realloc(all_interfaces,
 				 sizeof(all_interfaces) * all_interfaces_count);
@@ -191,7 +200,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	aif->tty->ttycallsign[subif] = callsign;
 	aif->tty->netax25    [subif] = netax25_open(callsign);
 
-	store_interface(*aifp);
+	interface_store(*aifp);
 
 	if (initstring != NULL) {
 	  aif->tty->initlen[subif]    = initlength;
@@ -199,6 +208,11 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	}
 
 	return 0;
+}
+
+void interface_init()
+{
+	interface_store( &aprsis_interface );
 }
 
 void interface_config(struct configfile *cf)
@@ -277,7 +291,7 @@ void interface_config(struct configfile *cf)
 		  netax25_addrxport(param1, str, aif);
 		  aif->callsign = strdup(param1);
 		  
-		  store_interface(aif);
+		  interface_store(aif);
 
 		} else if ((strcmp(name,"serial-device") == 0) && (aif->tty == NULL)) {
 		  if (aif->iftype == IFTYPE_UNSET) {
@@ -289,6 +303,7 @@ void interface_config(struct configfile *cf)
 		    aif->tty->ttycallsign[0] = mycall;
 
 		    ttyreader_register(aif->tty);
+		    interface_store(aif);
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
@@ -315,6 +330,7 @@ void interface_config(struct configfile *cf)
 		    aif->tty->ttycallsign[0]  = mycall;
 
 		    ttyreader_register(aif->tty);
+		    interface_store(aif);
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",

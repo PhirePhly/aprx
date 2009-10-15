@@ -121,6 +121,7 @@ int main(int argc, char *const argv[])
 	}
 
 
+	interface_init(); // before any interface system and aprsis init !
 	erlang_init(syslog_facility);
 	ttyreader_init();
 	netax25_init();

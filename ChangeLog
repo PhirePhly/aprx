@@ -1,3 +1,9 @@
+2009-10-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, aprsis.c, igate.c, aprx.h, aprx.c, digipeater.c:
+	    Minimal <digipeater> <source> definition parsers.
+	    Additionally internal "APRSIS" pseudo-interface.
+
 2009-10-15  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, aprx.c, rfbeacon.c:

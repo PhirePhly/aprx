@@ -33,6 +33,10 @@ int  digipeater_postpoll(struct aprxpolls *app) {
 
 void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 {
+	int i;
+
+	if (debug)
+	  printf("digipeater_receive() from %s\n", src->src_if->callsign);
 }
 
 
@@ -54,6 +58,10 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	char *str = cf->buf;
 	int has_fault = 0;
 
+	struct aprx_interface *source_aif = NULL;
+	struct digipeater_source  *source = NULL;
+	digi_relaytype          relaytype = DIGIRELAY_UNSET;
+	struct aprx_filter       *filters = NULL;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -73,13 +81,40 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 		if (strcmp(name, "</source>") == 0) {
 			break;
-		}
 
-		// ... actual parameters
+			// ... actual parameters
+		} else if (strcmp(name,"source") == 0) {
+			if (debug)
+			  printf("%s:%d <source> source = '%s'\n",
+				 cf->name, cf->linenum, param1);
+
+			if (strcmp(param1,"$mycall") == 0)
+				param1 = strdup(mycall);
+
+			source_aif = find_interface_by_callsign(param1);
+			if (source_aif == NULL) {
+				has_fault = 1;
+				printf("%s:%d digipeater source '%s' not found\n",
+				       cf->name, cf->linenum, param1);
+			}
+
+		} else if (strcmp(name,"filter") == 0) {
+		} else if (strcmp(name,"relay-format") == 0) {
+		} else {
+			has_fault = 1;
+		}
 	}
 
+	if (!has_fault && (source_aif != NULL)) {
+		source = malloc(sizeof(*source));
+		memset(source, 0, sizeof(*source));
+		
+		source->src_if        = source_aif;
+		source->src_relaytype = relaytype;
+		source->src_filters   = filters;
+	}
 
-	return NULL;
+	return source;
 }
 
 static struct tracewide *digipeater_config_tracewide(struct configfile *cf, int is_trace)
@@ -158,6 +193,9 @@ void digipeater_config(struct configfile *cf)
 			break;
 		}
 		if (strcmp(name, "transmit") == 0) {
+			if (strcmp(param1,"$mycall") == 0)
+			  param1 = strdup(mycall);
+
 			aif = find_interface_by_callsign(param1);
 			if (aif != NULL && (!aif->txok)) {
 			  aif = NULL; // Not 
