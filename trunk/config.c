@@ -38,6 +38,7 @@ char *config_SKIPDIGIT(char *Y)
 }
 #endif
 
+// return 0 for failures, 1 for OK.
 int validate_callsign_input(char *callsign, int strict)
 {
 	int i = strlen(callsign);
@@ -55,13 +56,13 @@ int validate_callsign_input(char *callsign, int strict)
 		}
 		if (!seen_minus && c == '-') {
 		  if (p == callsign || p[1] == 0)
-		    return 1; // Hyphen is at beginning or at end!
+		    return 0; // Hyphen is at beginning or at end!
 		  if ((p - callsign) > 6)
-		    return 1; // Hyphen too far!  Max 6 characters preceding it.
+		    return 0; // Hyphen too far!  Max 6 characters preceding it.
 		  seen_minus = 1;
 		  continue;
 		} else if (seen_minus && c == '-') {
-		  return 1; // Seen a hyphen again!
+		  return 0; // Seen a hyphen again!
 		}
 
 		// The "SSID" value can be alphanumeric here!
@@ -71,7 +72,7 @@ int validate_callsign_input(char *callsign, int strict)
 		  if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
 		    // Valid character!
 		  } else {
-		    return 1; // Invalid characters in callsign part
+		    return 0; // Invalid characters in callsign part
 		  }
 		} else {
 		  // SSID tail
@@ -80,27 +81,25 @@ int validate_callsign_input(char *callsign, int strict)
 		      // Valid character!
 		      ssid = ssid * 10 + c - '0';
 		      if (ssid > 15) { // SSID value range: 0 .. 15
-			return 1;
+			return 0;
 		      }
 		    } else {
-		      return 1; // Invalid characters in SSID part
+		      return 0; // Invalid characters in SSID part
 		    }
 		  } else { // non-strict
 		    if (('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')) {
 		      // Valid character!
 		    } else {
-		      return 1; // Invalid characters in SSID part
+		      return 0; // Invalid characters in SSID part
 		    }
 		  }
 		}
 	}
-
 	if (i > 3 && (callsign[i - 1] == '0' && callsign[i - 2] == '-')) {
 		callsign[i - 2] = 0;
 		/* If tailed with "-0" SSID, chop it off.. */
 	}
-
-	return 0;
+	return 1;
 }
 
 /* SKIPTEXT:
@@ -204,11 +203,91 @@ void config_STRUPPER(char *s)
 	}
 }
 
+static void logging_config(struct configfile *cf)
+{
+	char *name, *param1;
+	char *str = cf->buf;
+
+	while (readconfigline(cf) != NULL) {
+		if (configline_is_comment(cf))
+			continue;	/* Comment line, or empty line */
+
+		str = cf->buf;
+		str = config_SKIPSPACE(str); // arbitrary indention
+		name = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+		config_STRLOWER(name);
+	
+		param1 = str;
+	
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+	
+		if (strcmp(name, "</logging>") == 0)
+			break;
+	
+		if (strcmp(name, "aprxlog") == 0) {
+			if (debug)
+				printf("%s:%d: APRXLOG = '%s' '%s'\n",
+				       cf->name, cf->linenum, param1, str);
+	
+			aprxlogfile = strdup(param1);
+	
+		} else if (strcmp(name, "rflog") == 0) {
+			if (debug)
+				printf("%s:%d: RFLOG = '%s' '%s'\n",
+				       cf->name, cf->linenum, param1, str);
+	
+			rflogfile = strdup(param1);
+	
+		} else if (strcmp(name, "pidfile") == 0) {
+			if (debug)
+				printf("%s:%d: PIDFILE = '%s' '%s'\n",
+				       cf->name, cf->linenum, param1, str);
+	
+			pidfile = strdup(param1);
+	
+		} else if (strcmp(name, "erlangfile") == 0) {
+			if (debug)
+				printf("%s:%d: ERLANGFILE = '%s' '%s'\n",
+				       cf->name, cf->linenum, param1, str);
+	
+			erlang_backingstore = strdup(param1);
+	
+		} else if (strcmp(name, "erlang-loglevel") == 0) {
+			if (debug)
+				printf("%s:%d: ERLANG-LOGLEVEL = '%s' '%s'\n",
+				       cf->name, cf->linenum, param1, str);
+			erlang_init(param1);
+	
+		} else if (strcmp(name, "erlanglog") == 0) {
+			if (debug)
+				printf("%s:%d: ERLANGLOG = '%s'\n",
+				       cf->name, cf->linenum, param1);
+	
+			erlanglogfile = strdup(param1);
+	
+		} else if (strcmp(name, "erlang-log1min") == 0) {
+			if (debug)
+				printf("%s:%d: ERLANG-LOG1MIN\n",
+				       cf->name, cf->linenum);
+	
+			erlanglog1min = 1;
+	
+		} else {
+			printf("%s:%d: Unknown <logging> keyword: '%s' '%s'\n",
+			       cf->name, cf->linenum, name, param1);
+		}
+	}
+}
+
 static void cfgparam(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
 
+	str = config_SKIPSPACE(str); // arbitrary indention
 	name = str;
 	str = config_SKIPTEXT(str, NULL);
 	str = config_SKIPSPACE(str);
@@ -239,23 +318,40 @@ static void cfgparam(struct configfile *cf)
 	  rfbeacon_config(cf,0);
 	  return;
 	}
+	if (strcmp(name, "<beacon>") == 0) {
+	  rfbeacon_config(cf,-1);
+	  return;
+	}
 	if (strcmp(name, "<logging>") == 0) {
-	  // logging_config(cf);
+	  logging_config(cf);
 	  return;
 	}
-	if (strcmp(name, "</logging>") == 0) // temporary helper
-	  return;
 
-	else {
-	}
 
-	if (strcmp(name, "aprsis-login") == 0) {
+	if (strcmp(name, "mycall") == 0) {
 		config_STRUPPER(param1);
-		validate_callsign_input(param1,0);
-		aprsis_login = strdup(param1);
-		if (debug)
-			printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
-			       cf->name, cf->linenum, aprsis_login, str);
+		if (validate_callsign_input(param1,1)) {
+		  mycall       = strdup(param1);
+		  aprsis_login = mycall;
+		  if (debug)
+		    printf("%s:%d: MYCALL = '%s' '%s'\n",
+			   cf->name, cf->linenum, mycall, str);
+		} else {
+		    printf("%s:%d: MYCALL = '%s'  value is not valid AX.25 node callsign.\n",
+			   cf->name, cf->linenum, param1);
+		}
+
+	} else if (strcmp(name, "aprsis-login") == 0) {
+		config_STRUPPER(param1);
+		if (validate_callsign_input(param1,0)) {
+		  aprsis_login = strdup(param1);
+		  if (debug)
+		    printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
+			   cf->name, cf->linenum, aprsis_login, str);
+		} else {
+		    printf("%s:%d: APRSIS-LOGIN = '%s' value is not valid AX25-like node'\n",
+			   cf->name, cf->linenum, aprsis_login);
+		}
 
 	} else if (strcmp(name, "aprsis-server") == 0) {
 		aprsis_add_server(param1, str);
@@ -280,14 +376,6 @@ static void cfgparam(struct configfile *cf)
 		if (debug)
 			printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
-
-	} else if (strcmp(name, "enable-tx-igate") == 0) {
-		
-		enable_tx_igate(param1,str);
-
-		if (debug)
-			printf("%s:%d: ENABLE-TX-IGATE\n",
-			       cf->name, cf->linenum);
 
 	} else if (strcmp(name, "ax25-filter") == 0) {
 		if (debug)
@@ -316,54 +404,6 @@ static void cfgparam(struct configfile *cf)
 		if (debug)
 			printf("%s:%d: NETBEACON = '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
-
-	} else if (strcmp(name, "aprxlog") == 0) {
-		if (debug)
-			printf("%s:%d: APRXLOG = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-
-		aprxlogfile = strdup(param1);
-
-	} else if (strcmp(name, "rflog") == 0) {
-		if (debug)
-			printf("%s:%d: RFLOG = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-
-		rflogfile = strdup(param1);
-
-	} else if (strcmp(name, "pidfile") == 0) {
-		if (debug)
-			printf("%s:%d: PIDFILE = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-
-		pidfile = strdup(param1);
-
-	} else if (strcmp(name, "erlangfile") == 0) {
-		if (debug)
-			printf("%s:%d: ERLANGFILE = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-
-		erlang_backingstore = strdup(param1);
-
-	} else if (strcmp(name, "erlang-loglevel") == 0) {
-		if (debug)
-			printf("%s:%d: ERLANG-LOGLEVEL = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-		erlang_init(param1);
-
-	} else if (strcmp(name, "erlanglog") == 0) {
-		if (debug)
-			printf("%s:%d: ERLANGLOG = '%s'\n",
-			       cf->name, cf->linenum, param1);
-
-		erlanglogfile = strdup(param1);
-
-	} else if (strcmp(name, "erlang-log1min") == 0) {
-		if (debug)
-			printf("%s:%d: ERLANG-LOG1MIN\n",
-			       cf->name, cf->linenum);
-
-		erlanglog1min = 1;
 
 	} else if (strcmp(name, "radio") == 0) {
 		if (debug)

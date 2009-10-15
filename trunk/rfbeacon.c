@@ -55,7 +55,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 	memset(bm, 0, sizeof(*bm));
 
 	if (debug) {
-	  if (netonly)
+	  if (netonly > 0)
 		printf("NETBEACON parameters: ");
 	  else
 		printf("RFBEACON parameters: ");
@@ -92,7 +92,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 
 			// What about ITEM and OBJECT ?
 
-			// if (validate_callsign_input((char *) srcaddr),1) {
+			// if (!validate_callsign_input((char *) srcaddr),1) {
 			//   printf("Invalid rfbeacon FOR callsign");
 			// }
 
@@ -384,8 +384,11 @@ void rfbeacon_config(struct configfile *cf, const int netonly)
 		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
-		if (netonly) {
+		if (netonly > 0) {
 		  if (strcmp(name, "</netbeacon>") == 0)
+		    break;
+		} else if (netonly < 0) {
+		  if (strcmp(name, "</beacon>") == 0)
 		    break;
 		} else {
 		  if (strcmp(name, "</rfbeacon>") == 0)

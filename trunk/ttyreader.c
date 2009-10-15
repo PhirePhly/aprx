@@ -980,7 +980,6 @@ struct serialport *ttyreader_new(void)
 	tty->tio.c_cc[VTIME] = 3;	/* 0.3 seconds timeout - 36 chars @ 1200 baud */
 	tty->tio.c_cflag |= (CREAD | CLOCAL);
 
-
 	cfsetispeed(&tty->tio, baud);
 	cfsetospeed(&tty->tio, baud);
 
@@ -1005,6 +1004,9 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 		param1 = str;
 		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
+
+		if (debug)
+		  printf(" .. param='%s'",param1);
 
 		/* See if it is baud-rate ? */
 		i = atol(param1);	/* serial port speed - baud rate */
@@ -1108,6 +1110,16 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 			 cf->name, cf->linenum, param1);
 		}
 	}
+	if (debug) printf("\n");
+}
+
+void ttyreader_register(struct serialport *tty)
+{
+	/* Grow the array as is needed.. - this is array of pointers,
+	   not array of blocks so that memory allocation does not
+	   grow into way too big chunks. */
+	ttys = realloc(ttys, sizeof(void *) * (ttycount + 1));
+	ttys[ttycount++] = tty;
 }
 
 const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
@@ -1125,14 +1137,8 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 	if (*str == 0)
 		return "Bad tty-name/param";
 
-	/* Grow the array as is needed.. - this is array of pointers,
-	   not array of blocks so that memory allocation does not
-	   grow into way too big chunks. */
-	ttys = realloc(ttys, sizeof(void *) * (ttycount + 1));
-
 	tty = ttyreader_new();
-	ttys[ttycount++] = tty;
-
+	ttyreader_register(tty);
 
 	if (strcmp(param1, "serial") == 0) {
 		/* New style! */
