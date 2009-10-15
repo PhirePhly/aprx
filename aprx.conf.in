@@ -313,10 +313,25 @@ pidfile @VARRUN@/aprx.pid
 #    </wide>
 #
 #    <source>
-#        callsign   TXCALL-1
+#        interface   TXCALL-1
+#        ratelimit   60    # default: 60 packets/minute
+#	 filter      "javAPRSSrvr adjunct filters"
+#        reject-srccall "LIST,OF,CALLSIGNS"
+#        reject-viacall "LIST,OF,CALLSIGNS"
 #    </source>
 #    <source>
-#        callsign   RXCALL-1
+#        interface   RXCALL-1
+#        ratelimit   60    # default: 60 packets/minute
+#	 filter      "javAPRSSrvr adjunct filters"
+#        reject-srccall "LIST,OF,CALLSIGNS"
+#        reject-viacall "LIST,OF,CALLSIGNS"
+#    </source>
+#    <source>
+#        interface   APRSIS
+#        ratelimit   60    # default: 60 packets/minute
+#	 filter      "javAPRSSrvr adjunct filters"
+#        reject-srccall "LIST,OF,CALLSIGNS"
+#        reject-viacall "LIST,OF,CALLSIGNS"
 #    </source>
 #
 #</digipeater>
