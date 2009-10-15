@@ -37,6 +37,7 @@ void digipeater_config(struct configfile *cf)
 	struct aprx_interface *aif = NULL;
 	int ratelimit = 300;
 	int viscous_delay = 0;
+	int sourcecount = 0;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -100,6 +101,18 @@ void digipeater_config(struct configfile *cf)
 		  continue;
 		}
 	}
+
+	if (aif == NULL && !has_fault) {
+		printf("%s:%d Digipeater defined without transmit interface.\n",
+		       cf->name, cf->linenum);
+		has_fault = 1;
+	}
+	if (sourcecount == 0 && !has_fault) {
+		printf("%s:%d Digipeater defined without <source>:s.\n",
+		       cf->name, cf->linenum);
+		has_fault = 1;
+	}
+
 	if (has_fault) {
 	  // Free allocated resources and link pointers, if any
 	} else {
