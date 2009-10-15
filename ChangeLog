@@ -1,9 +1,14 @@
 2009-10-15  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, aprx.c, rfbeacon.c:
+	    Add internal "tocall" constant with value "APRX19".
+	    That one will track software versions.
+	    The 'for' keyword on beacons defaults to $mycall.
+
 	* aprx.h, aprx.c, interface.c, config.c, rfbeacon.c, aprsis.c,
 	  ttyreader.c, netbeacon.c:
 	    Config machinery redone towards new style.  Rx-IGate
-	    works again.
+	    works again.  (Old config should work too.)
 
 	* aprx.h, pbuf.c, pbuf.h, interface.c, digipeater.c, aprx.c:
 	    Skeletons for pbufs, digipeaters, and their uses in

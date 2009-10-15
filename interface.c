@@ -137,6 +137,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 		// FIXME:   callsign   and   tx-ok   parameters!
 		if (strcmp(name, "callsign") == 0) {
+
 		  if (strcmp(param1,"$mycall") == 0)
 		    param1 = strdup(mycall);
 
