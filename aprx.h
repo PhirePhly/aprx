@@ -389,13 +389,15 @@ struct digipeater {
 	struct aprx_interface *transmitter;
 	int		       ratelimit;
 
+	struct tracewide      *trace;
+	struct tracewide      *wide;
+
+	int                        sourcecount;
+	struct digipeater_source **sources;
+
+	int		       viscous_delay;
 	// viscous queue ?
-
-	struct tracewide       trace;
-	struct tracewide       wide;
-
-	int                    sourcecount;
-	struct digipeater_source *sources;
+	void * viscous_queue; // FIXME: What ???
 };
 
 extern int  digipeater_prepoll(struct aprxpolls *app);
