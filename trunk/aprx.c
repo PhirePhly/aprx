@@ -21,6 +21,8 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 
+const char *tocall = "APRX19";
+
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
 #endif

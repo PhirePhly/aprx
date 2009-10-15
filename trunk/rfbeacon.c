@@ -208,6 +208,9 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 		goto discard_bm;
 	}
 
+	if (srcaddr == NULL)
+		srcaddr = mycall;
+
 	if (srcaddr == NULL) {
 		if (debug)
 			printf("%s:%d Lacking the 'for' keyword for this beacon definition.\n", cf->name, cf->linenum);
@@ -216,7 +219,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 
 
 	if (destaddr == NULL)
-		destaddr = "APRS";
+		destaddr = tocall;
 	if (via == NULL) {
 		beaconaddrlen = snprintf(beaconaddr, sizeof(beaconaddr),
 					 "%s>%s", srcaddr, destaddr);

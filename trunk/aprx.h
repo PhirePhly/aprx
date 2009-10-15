@@ -60,6 +60,7 @@ extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
 extern const char *aprsis_login;
 extern int die_now;
 extern const char *mycall;
+extern const char *tocall;
 
 extern int fd_nonblockingmode(int fd);
 
