@@ -10,7 +10,8 @@
 #   3)  <interface>  ** there can be multiple!
 #   4)  <netbeacon>  ** zero to many
 #   5)  <rfbeacon>   ** zero to many
-#   6)  <digipeater> ** zero to many (at most one for each Tx)
+#   6)  <rx-igate>   ** Optional Rx-IGate definitions
+#   7)  <digipeater> ** zero to many (at most one for each Tx)
 #
 
 <aprsis>
@@ -225,7 +226,8 @@ pidfile @VARRUN@/aprx.pid
 # ***********  Multiple <netbeacon>  definitions follow   *********
 
 <netbeacon>
-# The  netbeacon  options.
+# The  netbeacon  options.  These are sent only to APRSIS, not to
+# any radio transmitters.
 #
 # Parameter string (in quotes) is sent to APRSIS network (without quotes)
 # at varying intervals --  1200-1800 seconds in between restransmits.
@@ -262,9 +264,10 @@ pidfile @VARRUN@/aprx.pid
 
 <rfbeacon>
 #
-#  RF-beacons are sent out to radio transmitters.   To all of them
-#  that have "tx-ok true" setting if no "to" entry is defined, and
-#  to defined one if the "to" entry is defined.
+#  RF-beacons are sent out to radio transmitters AND to APRSIS.
+#  They are sent to all transmitters that have "tx-ok true" setting
+#  if no "to" entry is defined, and only to defined transmitter, if
+#  the "to" entry is defined.
 #
 #beacon to IFCALL-1 for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
 #beacon to IFCALL-1 for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
@@ -304,41 +307,34 @@ pidfile @VARRUN@/aprx.pid
 #
 #<digipeater>
 #    transmitter  TXCALL-1
-#    ratelimit      300   # default: 300 msgs/minute
-#    viscous-delay    0   # default: no viscous delay
+#    #ratelimit      300   # default: 300 msgs/minute
+#    #viscous-delay    0   # default: no viscous delay
 #
-#    <trace>
-#        maxreq     4
-#        maxdone    4
-#        keys       TRACE,WIDE,RELAY
-#    </trace>
-#    <wide>
-#        maxreq     4
-#        maxdone    4
-#        keys       WIDE
-#    </wide>
+#    #<trace>
+#    #    maxreq     4
+#    #    maxdone    4
+#    #    keys       TRACE,WIDE,RELAY
+#    #</trace>
+#    #<wide>
+#    #    maxreq     4
+#    #    maxdone    4
+#    #    keys       WIDE
+#    #</wide>
 #
 #    <source>
 #        interface   TXCALL-1
-#        ratelimit   60    # default: 60 packets/minute
-#	 filter      "javAPRSSrvr adjunct filters"
-#        reject-srccall "LIST,OF,CALLSIGNS"
-#        reject-viacall "LIST,OF,CALLSIGNS"
+#    #   ratelimit   60    # default: 60 packets/minute
+#    #	 filter      "javAPRSSrvr adjunct filters"
+#    #   reject-srccall "LIST,OF,CALLSIGNS"
+#    #   reject-viacall "LIST,OF,CALLSIGNS"
 #    </source>
-#    <source>
-#        interface   RXCALL-1
-#        ratelimit   60    # default: 60 packets/minute
-#	 filter      "javAPRSSrvr adjunct filters"
-#        reject-srccall "LIST,OF,CALLSIGNS"
-#        reject-viacall "LIST,OF,CALLSIGNS"
-#    </source>
-#    <source>
-#        interface   APRSIS
-#        ratelimit   60    # default: 60 packets/minute
-#	 filter      "javAPRSSrvr adjunct filters"
-#        reject-srccall "LIST,OF,CALLSIGNS"
-#        reject-viacall "LIST,OF,CALLSIGNS"
-#    </source>
+#    #<source>                  # Extra receiver(s)
+#    #    interface   RXCALL-1
+#    #</source>
+#    #<source>                  # APRSIS source makes this tx-igate
+#    #    interface   APRSIS
+#    #    # .. additional tx-igate options to be defined ..
+#    #</source>
 #
 #</digipeater>
 
