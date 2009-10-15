@@ -1,8 +1,19 @@
 #
-#  Sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
+# Simple sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
 #
 # This configuration is structured with Apache HTTPD style tags
 # which then contain subsystem parameters.
+#
+
+#
+# For simple case, you need to adjust 4 things:
+#   - Mycall parameter
+#   - Select correct type of interface (ax25-device or serial-device)
+#   - Optionally set a beacon telling where this system is
+#   - Optionally enable digipeater with or without tx-igate
+#
+
+#
 #
 # Define the parameters in following order:
 #   1)  <aprsis>     ** zero or one
@@ -13,15 +24,6 @@
 #   6)  <rx-igate>   ** Optional Rx-IGate definitions
 #   7)  <digipeater> ** zero to many (at most one for each Tx)
 #
-
-#
-# For simple case, you need to adjust 3 things:
-#   - Mycall parameter
-#   - Select correct type of interface (ax25-device or serial-device)
-#   - Optionally set a beacon telling where this system is
-#   - Optionally enable digipeater with or without tx-igate
-#
-
 
 #
 # Global macro for simplified callsign definition:
@@ -273,6 +275,9 @@ pidfile @VARRUN@/aprx.pid
 
 
 #<rx-igate>
+#
+# By default all defined interfaces are Rx-IGated to APRSIS.
+#
 # AX.25 filters block selected messages matching on selected regular
 # expressions.  The expressions are case sensitive, and AX.25 address
 # elements are in all uppercase text.  There can be unlimited number
