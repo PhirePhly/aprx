@@ -50,7 +50,8 @@ int validate_callsign_input(char *callsign, int strict)
 		c = *p;
 		if ('a' <= c && c <= 'z') {
 		  // Presuming ASCII
-		  c = *p = c - ('a'-'A');
+		  c -= ('a'-'A');
+		  *p = c; // Side-effect: translates the callsign to uppercase
 		}
 		if (!seen_minus && c == '-') {
 		  if (p == callsign || p[1] == 0)
@@ -227,7 +228,7 @@ static void cfgparam(struct configfile *cf)
 	  return;
 	}
 	if (strcmp(name, "<digipeater>") == 0) {
-	  // digipeater_config(cf);
+	  digipeater_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<netbeacon>") == 0) {
