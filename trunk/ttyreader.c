@@ -218,6 +218,9 @@ static int ttyreader_kissprocess(struct serialport *S)
 			netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
 
 	} else {
+	  // The packet is not valid per AX.25 header bit rules
+	  erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+
 	  if (aprxlogfile) {
 	    FILE *fp = fopen(aprxlogfile, "a");
 	    if (fp) {

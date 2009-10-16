@@ -474,7 +474,7 @@ static int rxsock_read( const int fd )
 	 * "+10" is a magic constant for trying
 	 * to estimate channel occupation overhead
 	 */
-	erlang_add(ifaddress, ERLANG_RX, rcvlen + 10, 1);
+	erlang_add(ifaddress, ERLANG_RX, rcvlen + 10, 1); // rxsock_read()
 
 	// Send it to Rx-IGate, validates also AX.25 header bits,
 	// and returns non-zero only when things are OK for processing.
@@ -580,7 +580,7 @@ static int txsock_read( const int fd )
 	 * to estimate channel
 	 * occupation overhead
 	 */
-	erlang_add(ifaddress, ERLANG_RX, rcvlen + 10, 1);
+	erlang_add(ifaddress, ERLANG_RX, rcvlen + 10, 1);  // txsock_read()
 
 	ax25_to_tnc2(aif, ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
 
@@ -636,7 +636,7 @@ void netax25_sendto(const void *nax25p, const unsigned char *txbuf, const int tx
 	sendto(tx_socket, txbuf, txlen, MSG_NOSIGNAL, // That NOSIGNAL is Linux specific, but so is AX.25 too...
 	       (struct sockaddr *)&nax25->ax25addr, sizeof(nax25->ax25addr));
 
-	erlang_add(nax25->callsign, ERLANG_TX, txlen + 10, 1);
+	erlang_add(nax25->callsign, ERLANG_TX, txlen + 10, 1);  // netax25_sendto()
 }
 
 
