@@ -439,6 +439,8 @@ struct aprx_interface {
 
 extern struct aprx_interface aprsis_interface;
 
+extern int                     all_interfaces_count;
+extern struct aprx_interface **all_interfaces;
 
 extern void interface_init(void);
 extern void interface_config(struct configfile *cf);

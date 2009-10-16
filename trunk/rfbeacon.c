@@ -72,6 +72,10 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
+			if (strcmp(to,"$mycall") == 0) {
+				to = strdup(mycall);
+			}
+
 			config_STRUPPER(to);
 			aif = find_interface_by_callsign(to);
 			if ((aif != NULL) && !aif->txok) {
@@ -204,8 +208,9 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 		printf("\n");
 
 	if (aif == NULL && !netonly) {
-		printf("%s:%d Lacking 'to' keyword for this beacon definition.\n", cf->name, cf->linenum);
-		goto discard_bm;
+		if (debug)
+			printf("%s:%d Lacking 'to' keyword for this beacon definition.\n",
+			       cf->name, cf->linenum);
 	}
 
 	if (srcaddr == NULL)
@@ -357,11 +362,30 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	/* Send those (rf)beacons.. (a noop if interface == NULL) */
-	interface_receive_tnc2(bm->interface, bm->dest, bm->msg, txtlen);
-
 	/* Send them all also as netbeacons.. */
 	aprsis_queue(bm->dest, destlen, aprsis_login, bm->msg, txtlen);
+
+	/* Send those (rf)beacons.. (a noop if interface == NULL) */
+	if (bm->interface != NULL) {
+		char *txtbuf = alloca(destlen + 2 + txtlen);
+		memcpy(txtbuf, bm->dest, destlen);
+		txtbuf[destlen] = ':';
+		memcpy(txtbuf+destlen+1, bm->msg, txtlen);
+
+		interface_transmit_tnc2(bm->interface,
+					txtbuf, destlen + 1 + txtlen );
+	} 
+	/*
+	else {
+		for ( i = 0; i < all_interfaces_count; ++i ) {
+			if (all_interfaces[i]->txok) {
+				interface_receive_tnc2(all_interfaces[i],
+						       bm->dest,
+						       bm->msg, txtlen);
+			}
+		}
+	}
+	*/
 
 	return 0;
 }
