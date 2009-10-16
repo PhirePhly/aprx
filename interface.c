@@ -537,9 +537,8 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 		digipeater_receive( aif->digipeaters[i], pb);
 	}
 
-	// .. and finally free up the pbuf (if refcount == 0)
+	// .. and finally free up the pbuf (if refcount goes to 0)
 	pbuf_put(pb);
-
 }
 
 /*
@@ -549,5 +548,9 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 
 void interface_transmit_tnc2(const struct aprx_interface *aif, const char *txbuf, const int txlen)
 {
+	if (debug)
+	  printf("interface_transmit_tnc2() aif=%p, aif->txok=%d aif->callsign='%s'\n",
+		 aif, aif ? aif->txok : 0, aif ? aif->callsign : "<nil>");
+
 	if (aif == NULL) return;
 }
