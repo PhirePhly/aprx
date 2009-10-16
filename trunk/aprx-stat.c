@@ -12,6 +12,7 @@
 #include "aprx.h"
 
 time_t now;
+int debug; /* linkage dummy */
 int erlangout;
 int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
