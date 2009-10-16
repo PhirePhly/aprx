@@ -455,7 +455,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	}
 
 	if (discard) {
-		erlang_add(NULL, portname, tncid, ERLANG_DROP, tnc2len, 1);
+		erlang_add(portname, ERLANG_DROP, tnc2len, 1);
 	}
 
 

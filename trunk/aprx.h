@@ -246,10 +246,8 @@ typedef enum {
 	ERLANG_TX
 } ErlangMode;
 
-extern void erlang_add(const void *refp, const char *portname, int subport,
-		       ErlangMode erl, int bytes, int packets);
-extern void erlang_set(const void *refp, const char *portname, int subport,
-		       int bytes_per_minute);
+extern void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets);
+extern void erlang_set(const char *portname, int bytes_per_minute);
 
 extern int erlangsyslog;
 extern int erlanglog1min;

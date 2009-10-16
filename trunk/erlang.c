@@ -293,9 +293,7 @@ static int erlang_backingstore_open(int do_create)
 }
 
 
-static struct erlangline *erlang_findline(const void *refp,
-					  const char *portname,
-					  int subport,
+static struct erlangline *erlang_findline(const char *portname,
 					  int bytes_per_minute)
 {
 	int i;
@@ -309,15 +307,7 @@ static struct erlangline *erlang_findline(const void *refp,
 
 	if (ErlangLines) {
 		for (i = 0; i < ErlangLinesCount; ++i) {
-#if 0
-		  /* Single ttyreader can have up to 16 rx sub-ports,
-		     this pointer to it is not useful refp value...
-		   */
-			if (refp && (refp != ErlangLines[i]->refp))
-				continue;	/* Was not this.. */
-#endif
-			if (/* ErlangLines[i]->subport == subport && */
-			    strcmp(portname, ErlangLines[i]->name) == 0) {
+			if (strcmp(portname, ErlangLines[i]->name) == 0) {
 				/* HOO-RAY!  It is this one! */
 				E = ErlangLines[i];
 				break;
@@ -337,10 +327,8 @@ static struct erlangline *erlang_findline(const void *refp,
 		E = ErlangLines[ErlangLinesCount - 1];	/* Last one is the lattest.. */
 
 		memset(E, 0, sizeof(*E));
-		E->refp = refp;
 		strncpy(E->name, portname, sizeof(E->name) - 1);
 		E->name[sizeof(E->name) - 1] = 0;
-		/* E->subport = subport; */
 
 		E->erlang_capa = bytes_per_minute;
 		E->index = ErlangLinesCount - 1;
@@ -357,21 +345,18 @@ static struct erlangline *erlang_findline(const void *refp,
 /*
  *  erlang_set()
  */
-void erlang_set(const void *refp, const char *portname, int subport,
-		int bytes_per_minute)
+void erlang_set(const char *portname, int bytes_per_minute)
 {
-	erlang_findline(refp, portname, subport, bytes_per_minute);
+	erlang_findline(portname, bytes_per_minute);
 }
 
 /*
  *  erlang_add()
  */
-void erlang_add(const void *refp, const char *portname, int subport,
-		ErlangMode erl, int bytes, int packets)
+void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 {
 	struct erlangline *E =
-		erlang_findline(refp, portname, subport,
-				(int) ((1200.0 * 60) / 8.2));
+		erlang_findline(portname, (int) ((1200.0 * 60) / 8.2));
 	if (!E)
 		return;
 
@@ -442,7 +427,6 @@ static void erlang_time_end(void)
 	int i;
 	char msgbuf[500];
 	char logtime[40];
-	char subport[10];
 	struct tm *wallclock = localtime(&now);
 	FILE *fp = NULL;
 
@@ -458,16 +442,11 @@ static void erlang_time_end(void)
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now;
-			*subport = 0;
-			/*
-			if (E->subport)
-				sprintf(subport, "_%d", E->subport);
-			*/
 
 			if (erlanglog1min) {
 				sprintf(msgbuf,
-					"ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
-					1, E->name, subport,
+					"ERLANG%-2d %s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+					1, E->name, 
 					E->erl1m.bytes_rx,
 					E->erl1m.packets_rx,
 					E->erl1m.bytes_rxdrop,
@@ -512,14 +491,9 @@ static void erlang_time_end(void)
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now;
-			*subport = 0;
-			/*
-			if (E->subport)
-				sprintf(subport, "_%d", E->subport);
-			*/
 			sprintf(msgbuf,
-				"ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
-				10, E->name, subport,
+				"ERLANG%-2d %s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+				10, E->name, 
 				E->erl10m.bytes_rx, E->erl10m.packets_rx,
 				E->erl10m.bytes_rxdrop,
 				E->erl10m.packets_rxdrop,
@@ -560,14 +534,9 @@ static void erlang_time_end(void)
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			/* E->last_update = now; -- the 10 minute step does also this */
-			*subport = 0;
-			/*
-			if (E->subport)
-				sprintf(subport, "_%d", E->subport);
-			*/
 			sprintf(msgbuf,
-				"ERLANG%-2d %s%s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
-				60, E->name, subport,
+				"ERLANG%-2d %s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+				60, E->name, 
 				E->erl60m.bytes_rx, E->erl60m.packets_rx,
 				E->erl60m.bytes_rxdrop,
 				E->erl60m.packets_rxdrop,
