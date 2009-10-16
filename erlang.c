@@ -357,6 +357,10 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 {
 	struct erlangline *E =
 		erlang_findline(portname, (int) ((1200.0 * 60) / 8.2));
+
+	if (debug > 1)
+	  printf("erlang_add(%s, %d, %d, %d)\n", portname, erl, bytes, packets);
+
 	if (!E)
 		return;
 
