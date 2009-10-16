@@ -1,5 +1,8 @@
 2009-10-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* erlang.c, aprx.h, ttyreader.c, netax25.c, igate.c:
+	    Clean Erlang accountig API.  Removed unused parameters.
+
 	* interface.c, aprsis.c, igate.c, aprx.h, aprx.c, digipeater.c:
 	    Minimal <digipeater> <source> definition parsers.
 	    Additionally internal "APRSIS" pseudo-interface.

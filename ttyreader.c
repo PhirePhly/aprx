@@ -207,6 +207,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 	// Rx-IGate functionality.  Returns non-zero only when
 	// AX.25 header is OK, and packet is sane.
 
+	erlang_add(S->ttycallsign[tncid], ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
+
 	if (ax25_to_tnc2(S->interface[tncid], S->ttycallsign[tncid], tncid,
 			 cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
 		// The packet is valid per AX.25 header bit rules.
@@ -227,8 +229,6 @@ static int ttyreader_kissprocess(struct serialport *S)
 	    }
 	  }
 	}
-
-	erlang_add(S, S->ttycallsign[tncid], tncid, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	return 0;
 }
@@ -372,13 +372,13 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 static int ttyreader_pulltnc2(struct serialport *S)
 {
+	erlang_add(S->ttycallsign[0], ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
+
 	/* Send the frame to internal AX.25 network */
 	/* netax25_sendax25_tnc2(S->rdline, S->rdlinelen); */
 
 	/* S->rdline[] has text line without line ending CR/LF chars   */
 	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), S->rdlinelen, 0);
-
-	erlang_add(S, S->ttycallsign[0], 0, ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	return 0;
 }
@@ -541,7 +541,7 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned c
 	if ((S->wrlen + len) < sizeof(S->wrbuf)) {
 		memcpy(S->wrbuf + S->wrlen, kissbuf, len);
 		S->wrlen += len;
-		erlang_add(S, S->ttycallsign[tncid], 0, ERLANG_TX, ax25rawlen, 1);
+		erlang_add(S->ttycallsign[tncid], ERLANG_TX, ax25rawlen, 1);
 
 	} else {
 		// No fit!
@@ -1073,9 +1073,8 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 
 			/* Use side-effect: this defines the tty into
 			   erlang accounting */
-			erlang_set(NULL, param1, tncid,
-				   /* Magic constant for channel capa.. */
-				   (int) ((1200.0 * 60) / 8.2));
+
+			erlang_set(param1, /* Heuristic constant for max channel capa.. */ (int) ((1200.0 * 60) / 8.2));
 
 		} else if (strcmp(param1, "timeout") == 0) {
 			param1 = str;
