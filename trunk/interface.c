@@ -417,6 +417,7 @@ void interface_config(struct configfile *cf)
 	}
 }
 
+
 /*
  * Process received AX.25 packet
  *   - from AIF do find all DIGIPEATERS wanting this source.
@@ -438,6 +439,10 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digicount == 0) return; // No receivers for this source
 
+	if (axaddrlen <= 14) return;     // SOURCE>DEST without any VIAs..
+	// Note: Above one disables MICe destaddress-SSID embedded
+	//       extremely compressed WIDEn-N notation.
+
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
 	struct pbuf_t *pb = pbuf_new(is_aprs, axlen, tnc2len);
 
@@ -454,18 +459,19 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 			pb->destcall    = p+1;
 			continue;
 		}
-		if (*p == ',') {
+		if (*p == ',' || *p == ':') {
 			pb->dstcall_end = p;
 			break;
 		}
 	}
 
+	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
+	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
+
+	// Copy incoming AX.25 frame into its place too.
 	memcpy(pb->ax25addr, axbuf, axlen);
 	pb->ax25data    = pb->ax25addr + axaddrlen;
 	pb->ax25datalen = axlen - axaddrlen;
-
-	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
-	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
 
 	// If APRS packet, then parse for APRS meaning ...
 	if (is_aprs) {
@@ -574,7 +580,6 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 			break;
 		}
 	}
-
 
 	// memcpy(pb->ax25addr, axbuf, axlen);
 	// pb->ax25data    = pb->ax25addr + ax25addrlen;
