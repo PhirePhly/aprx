@@ -1029,7 +1029,7 @@ static int aprsis_comssockread(int fd)
 
 	/* Send the frame to internal AX.25 network */
 	if (i > 0)
-		igate_from_aprsis(buf, i);
+		igate_from_aprsis(buf, i+2); // two junk bytes..
 
 	return 1;
 }

@@ -433,20 +433,34 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 {
 	int i;
 
+	if (debug) printf("interface_receive_ax25()\n");
+
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digicount == 0) return; // No receivers for this source
 
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
 	struct pbuf_t *pb = pbuf_new(is_aprs, axlen, tnc2len);
+
+	memcpy((void*)(pb->data), tnc2buf, tnc2len);
+	pb->data[tnc2len] = 0;
+
+	pb->info_start = pb->data + tnc2addrlen + 1;
+	char *p = (char*)&pb->info_start[-1]; *p = 0;
+
 	memcpy(pb->ax25addr, axbuf, axlen);
 	pb->ax25data    = pb->ax25addr + axaddrlen;
 	pb->ax25datalen = axlen - axaddrlen;
 
-	memcpy((void*)(pb->destcall), tnc2buf, tnc2len);
-	pb->info_start = pb->destcall + tnc2addrlen + 1;
+	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
+	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
 
 	// If APRS packet, then parse for APRS meaning ...
-	// FIXME: parse for aprs meaning!
+	if (is_aprs) {
+		int rc = parse_aprs(pb);
+		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+		printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
+		       rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
+	}
 
 
 	// Feed it to digipeaters ...
@@ -499,6 +513,8 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 	struct pbuf_t *pb;
 	const char *p;
 	int tnc2addrlen = 0;
+	int ax25addrlen, ax25len = tnc2len; // A bit less, usually
+	unsigned char ax25buf[2800];
 
 	if (debug)
 	  printf("interface_receive_tnc2() aif=%p, aif->digicount=%d\n",
@@ -519,18 +535,29 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 		return;
 	}
 
+	// FIXME: Parse the TNC2 format to AX.25 format
+	//        using ax25buf[] storage area.
+
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
 	pb = pbuf_new(1 /*is_aprs*/, 0, tnc2len);
+
+	memcpy((void*)(pb->data), tnc2buf, tnc2len);
+	pb->info_start = pb->data + tnc2addrlen + 1;
+	char *p2    = (char*)&pb->info_start[-1]; *p2 = 0;
+	char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+
+	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
+	p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
+
 	// memcpy(pb->ax25addr, axbuf, axlen);
-	// pb->ax25data    = pb->ax25addr + axaddrlen;
-	// pb->ax25datalen = axlen - axaddrlen;
+	// pb->ax25data    = pb->ax25addr + ax25addrlen;
+	// pb->ax25datalen = ax25len - ax25addrlen;
 
-	memcpy((void*)(pb->destcall), tnc2buf, tnc2len);
-	pb->info_start = pb->destcall + tnc2addrlen + 1;
-
-	// If APRS packet, then parse for APRS meaning ...
-	// FIXME: parse for aprs meaning!
-
+	// This is APRS packet, parse for APRS meaning ...
+	int rc = parse_aprs(pb);
+	printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
+	       rc ? "OK":"FAIL", srcif, pb->data,
+	       pb->info_start);
 
 	// Feed it to digipeaters ...
 	for (i = 0; i < aif->digicount; ++i) {
