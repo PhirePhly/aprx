@@ -447,6 +447,19 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	pb->info_start = pb->data + tnc2addrlen + 1;
 	char *p = (char*)&pb->info_start[-1]; *p = 0;
 
+	p = pb->data;
+	for ( p = pb->data; p < (pb->info_start); ++p ) {
+		if (*p == '>') {
+			pb->srccall_end = p;
+			pb->destcall    = p+1;
+			continue;
+		}
+		if (*p == ',') {
+			pb->dstcall_end = p;
+			break;
+		}
+	}
+
 	memcpy(pb->ax25addr, axbuf, axlen);
 	pb->ax25data    = pb->ax25addr + axaddrlen;
 	pb->ax25datalen = axlen - axaddrlen;
@@ -548,6 +561,20 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 
 	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
 	p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
+
+	p = pb->data;
+	for ( p = pb->data; p < (pb->info_start); ++p ) {
+		if (*p == '>') {
+			pb->srccall_end = p;
+			pb->destcall    = p+1;
+			continue;
+		}
+		if (*p == ',') {
+			pb->dstcall_end = p;
+			break;
+		}
+	}
+
 
 	// memcpy(pb->ax25addr, axbuf, axlen);
 	// pb->ax25data    = pb->ax25addr + ax25addrlen;

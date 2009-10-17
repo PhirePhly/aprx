@@ -383,25 +383,31 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	
 	/* check that the destination call exists and is of the right size for mic-e */
 	d_start = pb->srccall_end+1;
-	if (pb->dstcall_end - d_start != 6)
+	if (pb->dstcall_end - d_start != 6) {
+		DEBUG_LOG(".. bad destcall length! ");
 		return 0; /* eh...? */
+	}
 	
 	/* validate destination call:
 	 * A-K characters are not used in the last 3 characters
 	 * and MNO are never used
 	 */
-	
+	if(debug)printf(" destcall='%6.6s'",d_start);
 	for (i = 0; i < 3; i++)
 		if (!((d_start[i] >= '0' && d_start[i] <= '9')
 			|| (d_start[i] >= 'A' && d_start[i] <= 'L')
-			|| (d_start[i] >= 'P' && d_start[i] <= 'Z')))
-				return 0;
+			|| (d_start[i] >= 'P' && d_start[i] <= 'Z'))) {
+			DEBUG_LOG(".. bad destcall characters in posits 1..3");
+			return 0;
+		}
 	
 	for (i = 3; i < 6; i++)
 		if (!((d_start[i] >= '0' && d_start[i] <= '9')
 			|| (d_start[i] == 'L')
-			|| (d_start[i] >= 'P' && d_start[i] <= 'Z')))
-				return 0;
+			|| (d_start[i] >= 'P' && d_start[i] <= 'Z'))) {
+			DEBUG_LOG(".. bad destcall characters in posits 4..6");
+			return 0;
+		}
 	
 	DEBUG_LOG("\tpassed dstcall format check");
 	
@@ -411,15 +417,39 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	 *   0          1          23            4          5          6              7
 	 * /^[\x26-\x7f][\x26-\x61][\x1c-\x7f]{2}[\x1c-\x7d][\x1c-\x7f][\x21-\x7b\x7d][\/\\A-Z0-9]/
 	 */
-	if (body[0] < 0x26 || (unsigned char)body[0] > 0x7f) return 0;
-	if (body[1] < 0x26 || (unsigned char)body[1] > 0x61) return 0;
-	if (body[2] < 0x1c || (unsigned char)body[2] > 0x7f) return 0;
-	if (body[3] < 0x1c || (unsigned char)body[3] > 0x7f) return 0;
-	if (body[4] < 0x1c || (unsigned char)body[4] > 0x7d) return 0;
-	if (body[5] < 0x1c || (unsigned char)body[5] > 0x7f) return 0;
+	if (body[0] < 0x26 || (unsigned char)body[0] > 0x7f) {
+		DEBUG_LOG("..bad infofield column 1");
+		return 0;
+	}
+	if (body[1] < 0x26 || (unsigned char)body[1] > 0x61) {
+		DEBUG_LOG("..bad infofield column 2");
+		return 0;
+	}
+	if (body[2] < 0x1c || (unsigned char)body[2] > 0x7f) {
+		DEBUG_LOG("..bad infofield column 3");
+		return 0;
+	}
+	if (body[3] < 0x1c || (unsigned char)body[3] > 0x7f) {
+		DEBUG_LOG("..bad infofield column 4");
+		return 0;
+	}
+	if (body[4] < 0x1c || (unsigned char)body[4] > 0x7d) {
+		DEBUG_LOG("..bad infofield column 5");
+		return 0;
+	}
+	if (body[5] < 0x1c || (unsigned char)body[5] > 0x7f) {
+		DEBUG_LOG("..bad infofield column 6");
+		return 0;
+	}
 	if ((body[6] < 0x21 || (unsigned char)body[6] > 0x7b)
-		&& (unsigned char)body[6] != 0x7d) return 0;
-	if (!valid_sym_table_uncompressed(body[7])) return 0;
+		&& (unsigned char)body[6] != 0x7d) {
+		DEBUG_LOG("..bad infofield column 7");
+		return 0;
+	}
+	if (!valid_sym_table_uncompressed(body[7])) {
+		DEBUG_LOG("..bad symbol table entry on column 8");
+		return 0;
+	}
 	
 	DEBUG_LOG("\tpassed info format check");
 	
@@ -449,7 +479,10 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	if (dstcall[4] == '_') { dstcall[4] = '5'; posambiguity = 2; }
 	if (dstcall[3] == '_') { dstcall[3] = '5'; posambiguity = 3; }
 	if (dstcall[2] == '_') { dstcall[2] = '3'; posambiguity = 4; }
-	if (dstcall[1] == '_' || dstcall[0] == '_') { return 0; } /* cannot use posamb here */
+	if (dstcall[1] == '_' || dstcall[0] == '_') {
+		DEBUG_LOG("..bad pos-ambiguity on destcall");
+		return 0;
+	} /* cannot use posamb here */
 	
 	/* convert to degrees, minutes and decimal degrees, and then to a float lat */
 	if (sscanf(dstcall, "%2u%2u%2u",
@@ -507,6 +540,7 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 		lng = (float)lng_deg + 0.5;
 		break;
 	default:
+		DEBUG_LOG(".. posambiguity code BUG!");
 		return 0;
 	}
 	
@@ -949,10 +983,9 @@ int parse_aprs(struct pbuf_t *pb)
 				pb->cos_lat = history->coslat;
 
 				pb->flags  |= F_HASPOS;
-				return 1;
 			}
 		}
-		return 0;
+		return 1;
 
 	case ';':
 		if (body_end - body > 29)
@@ -992,6 +1025,10 @@ int parse_aprs(struct pbuf_t *pb)
 
 	case '{':
 		pb->packettype |= T_USERDEF;
+		return 1;
+
+	case '}':
+		pb->packettype |= T_THIRDPARTY;
 		return 1;
 
 	default:
