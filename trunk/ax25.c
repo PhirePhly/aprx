@@ -254,6 +254,8 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 		t[-1] = 0;
 	}
 
+	*t++ = '\r';
+	*t++ = '\n';
 	tnc2len = t - tnc2buf;
 
 
@@ -263,6 +265,6 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 			       frame, frameaddrlen, framelen,
 			       tnc2buf, tnc2addrlen, tnc2len);
 
-	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len, 0);
+	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
 	return 1;
 }

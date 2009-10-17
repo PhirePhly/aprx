@@ -31,7 +31,7 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 	// Picks suitably sized pbuf, and pre-cleans it
 	// before passing to user
 
-	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len;
+	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 	struct pbuf_t *pb = malloc( pblen );
 
 	if (debug > 1) printf("pbuf_alloc(%d,%d) -> %p\n",axlen,tnc2len,pb);
@@ -40,10 +40,11 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 
 	pb->packet_len = tnc2len;
 	pb->buf_len    = tnc2len;
+	pb->data[tnc2len] = 0;
 
+	// pb->destcall = pb->data + axlen;
 	if (axlen > 0)
-		pb->ax25addr = (unsigned char*)pb->data;
-	pb->destcall = pb->data + axlen;
+		pb->ax25addr = (unsigned char*)pb->data+tnc2len+1;
 
 	return pb;
 }
