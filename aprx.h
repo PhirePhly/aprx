@@ -371,19 +371,22 @@ typedef enum {
 struct aprx_filter;    // Forward declarator
 struct digipeater;     // Forward declarator
 
+struct tracewide {
+	int   maxreq;
+	int   maxdone;
+
+	int    nkeys;
+	char **keys;
+	int   *keylens;
+};
+
 struct digipeater_source {
 	struct digipeater     *parent;
 	digi_relaytype	       src_relaytype;
 	struct aprx_interface *src_if;
 	struct aprx_filter    *src_filters;
-};
-
-struct tracewide {
-	int   maxreq;
-	int   maxdone;
-
-	int   nkeys;
-	char *keys[];
+	struct tracewide      *src_trace;
+	struct tracewide      *src_wide;
 };
 
 struct digipeater {
