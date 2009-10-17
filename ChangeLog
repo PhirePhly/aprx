@@ -2,8 +2,7 @@
 
 	* aprx.h, ax25.c, interface.c, aprsis.c, pbuf.c, parse_aprs.c:
 	    Changed a few "parse failed" returns to "parse OK".
-	    Systematic feed of datapacket "with TNC2 line end CRLF
-	    pair".
+	    Systematic feed of datapacket "with TNC2 line end CRLF pair".
 
 2009-10-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
