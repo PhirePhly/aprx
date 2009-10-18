@@ -28,28 +28,28 @@ struct digistate {
 
 static char * tracewords[] = { "WIDE","TRACE","RELAY" };
 static int tracewordlens[] = { 4, 5, 5 };
-static struct tracewide default_trace_param = {
+static const struct tracewide default_trace_param = {
 	4, 4, 1,
 	3,
-	&tracewords,
-	&tracewordlens
+	tracewords,
+	tracewordlens
 };
 static char * widewords[] = { "WIDE","RELAY" };
 static int widewordlens[] = { 4,5 };
-static struct tracewide default_wide_param = {
+static const struct tracewide default_wide_param = {
 	4, 4, 0,
 	2,
-	&widewords,
-	&widewordlens
+	widewords,
+	widewordlens
 };
 
-static int match_tracewide(const char *via, struct tracewide *twp)
+static int match_tracewide(const char *via, const struct tracewide *twp)
 {
 	int i;
 	if (twp == NULL) return 0;
 
 	for (i = 0; i < twp->nkeys; ++i) {
-	  if (debug>2) printf(" match:'%s'",twp->keys[i]);
+		// if (debug>2) printf(" match:'%s'",twp->keys[i]);
 		if (memcmp(via, twp->keys[i], twp->keylens[i]) == 0) {
 			return twp->keylens[i];
 		}
@@ -82,7 +82,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 		state->reqhops  += 0;
 		state->donehops += 0;
 		state->traces   += hasHflag;
-		if (debug>1) printf(" a[req=%d,done=%d,trace=%d]",0,0,hasHflag);
+		// if (debug>1) printf(" a[req=%d,done=%d,trace=%d]",0,0,hasHflag);
 		return;
 	}
 
@@ -119,7 +119,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 		  state->tracereq  += 1;
 		  state->tracedone += hasHflag;
 		}
-		if (debug>1) printf(" d[req=%d,done=%d]",1,hasHflag);
+		// if (debug>1) printf(" d[req=%d,done=%d]",1,hasHflag);
 		return;
 	}
 
@@ -132,7 +132,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 		  state->tracereq  += req;
 		  state->tracedone += req;
 		}
-		if (debug>1) printf(" e[req=%d,done=%d]",req,req);
+		// if (debug>1) printf(" e[req=%d,done=%d]",req,req);
 		return;
 	}
 	if (c == 0) { // Bogus WIDE1 - uidigi puts these out.
@@ -143,7 +143,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 		  state->tracereq  += req;
 		  state->tracedone += req;
 		}
-		if (debug>1) printf(" E[req=%d,done=%d]",req,req);
+		// if (debug>1) printf(" E[req=%d,done=%d]",req,req);
 		return;
 	}
 	// Not WIDE1-
@@ -154,7 +154,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 		  state->tracereq  += 1;
 		  state->tracedone += hasHflag;
 		}
-		if (debug>1) printf(" f[req=%d,done=%d]",1,hasHflag);
+		// if (debug>1) printf(" f[req=%d,done=%d]",1,hasHflag);
 		return;
 	}
 
@@ -167,8 +167,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 	    state->tracereq  += req;
 	    state->tracedone += done;
 	  }
-	  if (debug>1) printf(" g[req=%d,done=%d%s]",req,done,
-			    hasHflag ? ",Hflag!":"");
+	  // if (debug>1) printf(" g[req=%d,done=%d%s]",req,done,hasHflag ? ",Hflag!":"");
 	} else {
 	  // Yuck, impossible/syntactically invalid
 	  state->reqhops  += 1;
@@ -177,7 +176,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 	    state->tracereq  += 1;
 	    state->tracedone += hasHflag;
 	  }
-	  if (debug>1) printf(" h[req=%d,done=%d]",1,hasHflag);
+	  // if (debug>1) printf(" h[req=%d,done=%d]",1,hasHflag);
 	}
 }
 
@@ -260,8 +259,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 			    state->reqhops,state->donehops,
 			    have_fault ? "FAULT":"OK",
 			    (state->reqhops > state->donehops) ? "DIGIPEAT":"DROP",
-			    (state->tracereq > state->tracedone) ? "TRACE":"WIDE"
-			    );
+			    (state->tracereq > state->tracedone) ? "TRACE":"WIDE");
 	return have_fault;
 }
 
@@ -273,11 +271,11 @@ static void free_tracewide(struct tracewide *twp)
 	if (twp == NULL) return;
 	if (twp->keys) {
 	  for (i = 0; i < twp->nkeys; ++i)
-	    free(twp->keys[i]);
+	    free((void*)(twp->keys[i]));
 	  free(twp->keys);
 	}
 	if (twp->keylens)
-	  free(twp->keylens);
+	  free((void*)(twp->keylens));
 
 	free(twp);
 }
@@ -638,18 +636,18 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	// Below numbers like "4)" refer to Requirement Specification
 	// paper chapter 2.6: Digipeater Rules
 
-// if (debug) printf("digipeater_receive() from %s\n", src->src_if->callsign);
+	// if (debug) printf("digipeater_receive() from %s\n", src->src_if->callsign);
 
-// NOTE: The dupe-filter exists for APRS frames, possibly for some
-//       selected UI frame types, and definitely not for CONS frames.
+	//  The dupe-filter exists for APRS frames, possibly for some
+	// selected UI frame types, and definitely not for CONS frames.
 
-// FIXME: 1) feed to dupe-filter (transmitter specific)
+	// 1) feed to dupe-filter (transmitter specific)
 
 	if (pb->is_aprs) {
 		dupe = dupecheck_pbuf( digi->dupechecker, pb );
 		if (dupe != NULL &&
 		    dupe->seen > 1) {
-			if (debug)
+			if (debug>1)
 			  printf("Seen this packet %d times\n",dupe->seen);
 			return; // Already Nth observation
 		}
@@ -665,8 +663,9 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 // 
 
 
-// FIXME: 2) Verify that none of our interface callsigns does not match any
-//           of already DIGIPEATED via fields! (fields that have H-bit set)
+//  2) Verify that none of our interface callsigns does not match any
+//     of already DIGIPEATED via fields! (fields that have H-bit set)
+//   ( present implementation: this digi's transmitter callsign is verified)
 
 	// Parse executed and requested WIDEn-N/TRACEn-N info
 	if (parse_tnc2_hops(&state, src, pb)) {
@@ -706,7 +705,7 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	// Search for first AX.25 VIA field that does not have H-bit set:
 	for (; axaddr < e; axaddr += 7) {
 	  ax25_to_tnc2_fmtaddress(viafield, axaddr, 0);
-	  if (debug>1) printf(" via: %s", viafield);
+	  // if (debug>1) printf(" via: %s", viafield);
 	  if (!(axaddr[6] & 0x80)) // No "Has Been Digipeated" bit set
 	    break;
 	}
@@ -803,7 +802,7 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 					& frameaddrlen, &tnc2addrlen,
 					& is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
-	  printf("\n out-hdr: '%s'\n",tbuf);
+	  printf(" out-hdr: '%s'\n",tbuf);
 	}
 
 	// Feed to interface_transmit_ax25() with new header and body
