@@ -638,12 +638,15 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 
 // if (debug) printf("digipeater_receive() from %s\n", src->src_if->callsign);
 
-// FIXME: 4) feed to dupe-filter (transmitter specific)
-// FIXME: 4.1) optional viscous delay!
+// NOTE: The dupe-filter exists for APRS frames, possibly for some
+//       selected UI frame types, and definitely not for CONS frames.
+// 
+// FIXME: 1) feed to dupe-filter (transmitter specific)
+// FIXME: 1.1) optional viscous delay!
 //
 //	-- a bottom-half processing begins here..
-// FIXME: 4.2) If the dupe detector on this packet has reached count > 1, drop it.
-//        4.3) First struct pbuf_t stays in dupe-detector (with ++refcount),
+// FIXME: 1.2) If the dupe detector on this packet has reached count > 1, drop it.
+//        1.3) First struct pbuf_t stays in dupe-detector (with ++refcount),
 //             but the dupe-counts are held in separate storage separately
 //             for each transmitter's packet history.
 // 
@@ -662,7 +665,7 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 // FIXME: 3) aprsc style filters checking in service area of the packet..
 	}
 
-	// 5) Hop-count filtering:
+	// 4) Hop-count filtering:
 
 	// APRSIS sourced packets have different rules than DIGIPEAT
 	// packets...
@@ -698,6 +701,10 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	// Unprocessed VIA field found
 	if (axaddr < e) {	// VIA-field of interest has been found
 
+// FIXME: 5) / 6) Cross-frequency/cross-band digipeat may add a special
+//                label telling that the message originated on other band
+
+	  // 7) WIDEn-N treatment (as well as transmitter matching digi)
 	  if (pb->digi_like_aprs) {
 	    if ((len = match_tracewide(viafield, src->src_trace))) {
 	      count_single_tnc2_tracewide(&viastate, viafield, 1, len);
@@ -786,7 +793,10 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	  printf("\n out-hdr: '%s'\n",tbuf);
 	}
 
-// FIXME: Feed to interface_transmit_ax25() with new header+body (or perhaps augment that interface to accept split packet?)
+	// Feed to interface_transmit_ax25() with new header and body
+	interface_transmit_ax25( digi->transmitter,
+				 state.ax25addr, state.ax25addrlen,
+				 pb->ax25data, pb->ax25datalen );
 }
 
 

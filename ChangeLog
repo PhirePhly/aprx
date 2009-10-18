@@ -1,12 +1,19 @@
 2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* digipeater.c, interface.c, telemetry.c, aprx.h, ttyreader.c,
+	  erlang.c:
+	    Start transmitting digipeated frames to ttyreader's KISS
+	    output.  netax25's similar interface is not tested.
+	    Changed also the Erlang dataset format, and begun to
+	    produce Tx packet counts on telemetry.
+
 	* aprx.h, interface.c, digipeater.c, pbuf.h, pbuf.c, ax25.c:
 	    Pass the UI PID information all the way to interface,
 	    where it can be matched against a list of PIDs that will
 	    be treated alike APRS in digipeating.
 	    Have two modes in digipeating: one with interface (and
 	    aliases) as recognized work targets, and other with APRS
-	    wide/trace tags.
+	    wide/trace tags in addition to interface (and aliases).
 
 	* aprx.h, ax25.c, interface.c, digipeater.c, aprx.conf.in,
 	  aprx-complex.conf.in:

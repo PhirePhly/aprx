@@ -259,11 +259,11 @@ extern int erlanglog1min;
 extern const char *erlang_backingstore;
 
 /* The   struct erlangline  is shared in between the aprx, and
-   erlang reporter application: aprx-erl */
+   erlang reporter application: aprx-stat */
 
 struct erlang_rxtxbytepkt {
-	long packets_rx, packets_rxdrop /* , packets_tx */ ;
-	long bytes_rx,   bytes_rxdrop   /* , bytes_tx   */ ;
+	long packets_rx, packets_rxdrop, packets_tx ;
+	long bytes_rx,   bytes_rxdrop,   bytes_tx ;
 	time_t update;
 };
 
