@@ -73,13 +73,13 @@
 struct pbuf_t {
 	struct pbuf_t *next;
 
-	int	 is_aprs;	// If not, then just digipeated frame..
-	int	 digi_like_aprs;
+	int16_t	 is_aprs;	// If not, then just digipeated frame..
+	int16_t	 digi_like_aprs;
 
-	uint16_t refcount;
+	int16_t  refcount;
 
-	int	 reqcount;      // How many digipeat hops are requested?
-	int	 donecount;	// How many digipeat hops are already done?
+	int16_t	 reqcount;      // How many digipeat hops are requested?
+	int16_t	 donecount;	// How many digipeat hops are already done?
 
 	time_t   t;		/* when the packet was received */
 	uint32_t seqnum;	/* ever increasing counter, dupecheck sets */

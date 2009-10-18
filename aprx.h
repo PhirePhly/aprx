@@ -328,31 +328,34 @@ extern int ErlangLinesCount;
 /* dupecheck.c */
 
 
-struct dupe_record_t {
+typedef struct dupe_record_t {
 	struct dupe_record_t *next;
 	uint32_t hash;
 	time_t	 t;
-	int	 alen;	// Address length
-	int	 plen;	// Payload length
+
+	struct pbuf_t *pbuf;
+	int16_t  seen;  // Count of times this packet has been seen
+	
+	int16_t	 alen;	// Address length
+	int16_t	 plen;	// Payload length
+
 	char	 addresses[20];
 	char	*packet;
 	char	 packetbuf[200]; /* 99.9+ % of time this is enough.. */
-};
+} dupe_record_t;
 
 #define DUPECHECK_DB_SIZE 64        /* Hash index table size - per dupechecker */
 
 typedef struct dupecheck_t {
-	struct dupecheck_t *next;
 	struct dupe_record_t *dupecheck_db[DUPECHECK_DB_SIZE]; /* Hash index table */
-	
-
 } dupecheck_t;
 
-extern void         dupecheck_init(void);	/* Inits the dupechecker subsystem */
-extern dupecheck_t *new_dupecheck(void);	/* Makes a new dupechecker  */
-extern int	    dupecheck(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen); /* the checker */
-extern int          dupecheck_prepoll(struct aprxpolls *app);
-extern int          dupecheck_postpoll(struct aprxpolls *app);
+extern void           dupecheck_init(void); /* Inits the dupechecker subsystem */
+extern dupecheck_t   *dupecheck_new(void);  /* Makes a new dupechecker  */
+extern dupe_record_t *dupecheck_aprs(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen);     /* aprs checker */
+extern dupe_record_t *dupecheck_pbuf(dupecheck_t *dp, struct pbuf_t *pb); /* pbuf checker */
+extern int            dupecheck_prepoll(struct aprxpolls *app);
+extern int            dupecheck_postpoll(struct aprxpolls *app);
 
 
 /* kiss.c */
@@ -401,6 +404,8 @@ struct digipeater_source {
 struct digipeater {
 	struct aprx_interface *transmitter;
 	int		       ratelimit;
+
+	dupecheck_t           *dupechecker;
 
 	struct tracewide      *trace;
 	struct tracewide      *wide;
@@ -469,7 +474,7 @@ extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char
 
 
 /* pbuf.c */
-extern void           pbuf_get(struct pbuf_t *pb);
+extern struct pbuf_t *pbuf_get(struct pbuf_t *pb);
 extern void           pbuf_put(struct pbuf_t *pb);
 extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axdatalen, const int tnc2len);
 

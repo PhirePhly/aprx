@@ -597,6 +597,7 @@ void digipeater_config(struct configfile *cf)
 		digi->ratelimit     = ratelimit;
 		digi->viscous_delay = viscous_delay;
 		digi->viscous_queue = NULL;
+		digi->dupechecker   = dupecheck_new();
 
 		digi->trace         = (traceparam != NULL) ? traceparam : & default_trace_param;
 		digi->wide          = (wideparam  != NULL) ? wideparam  : & default_wide_param;
@@ -629,6 +630,7 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	struct digistate viastate;
 	char viafield[14];
 	struct digipeater *digi = src->parent;
+	dupe_record_t *dupe = NULL;
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
@@ -640,8 +642,15 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 
 // NOTE: The dupe-filter exists for APRS frames, possibly for some
 //       selected UI frame types, and definitely not for CONS frames.
-// 
+
 // FIXME: 1) feed to dupe-filter (transmitter specific)
+
+	if (pb->is_aprs) {
+		dupe = dupecheck_pbuf( digi->dupechecker, pb );
+		if (dupe != NULL &&
+		    dupe->seen > 1) return; // Already Nth observation
+	}
+
 // FIXME: 1.1) optional viscous delay!
 //
 //	-- a bottom-half processing begins here..
