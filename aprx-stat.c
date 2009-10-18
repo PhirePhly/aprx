@@ -90,13 +90,16 @@ void erlang_xml(int topmode)
 					 "%Y-%m-%d %H:%M", wallclock);
 			}
 			printf("%s  %s", logtime, E->name);
-			printf(" %2dm  %5ld  %3ld  %5ld  %3ld  %5ld  %3ld %5.3f  %5.3f  %5.3f\n", 60, E->e60[k].bytes_rx, E->e60[k].packets_rx, E->e60[k].bytes_rxdrop, E->e60[k].packets_rxdrop,
-			       E->e60[k].bytes_tx,  E->e60[k].packets_tx,
-			       (float) E->e60[k].bytes_rx /
+			printf(" %2dm  %5ld  %3ld  %5ld  %3ld  %5ld  %3ld %5.3f  %5.3f  %5.3f\n",
+			       1,
+			       E->e1[k].bytes_rx,     E->e1[k].packets_rx,
+			       E->e1[k].bytes_rxdrop, E->e1[k].packets_rxdrop,
+			       E->e1[k].bytes_tx,     E->e1[k].packets_tx,
+			       (float) E->e1[k].bytes_rx /
 			       ((float) E->erlang_capa * 60.0),
-			       (float) E->e60[k].bytes_rxdrop /
+			       (float) E->e1[k].bytes_rxdrop /
 			       ((float) E->erlang_capa * 60.0),
-			       (float)E->e60[k].bytes_tx/((float)E->erlang_capa*60.0)
+			       (float)E->e1[k].bytes_tx/((float)E->erlang_capa*60.0)
 				);
 		}
 
@@ -121,13 +124,16 @@ void erlang_xml(int topmode)
 					 "%Y-%m-%d %H:%M", wallclock);
 			}
 			printf("%s  %s", logtime, E->name);
-			printf(" %2dm  %5ld  %3ld  %5ld  %3ld  %5ld  %3ld %5.3f  %5.3f  %5.3f\n", 60, E->e60[k].bytes_rx, E->e60[k].packets_rx, E->e60[k].bytes_rxdrop, E->e60[k].packets_rxdrop,
-			       E->e60[k].bytes_tx,  E->e60[k].packets_tx,
-			       (float) E->e60[k].bytes_rx /
+			printf(" %2dm  %5ld  %3ld  %5ld  %3ld  %5ld  %3ld %5.3f  %5.3f  %5.3f\n",
+			       10,
+			       E->e10[k].bytes_rx,     E->e10[k].packets_rx,
+			       E->e10[k].bytes_rxdrop, E->e10[k].packets_rxdrop,
+			       E->e10[k].bytes_tx,     E->e10[k].packets_tx,
+			       (float) E->e10[k].bytes_rx /
 			       ((float) E->erlang_capa * 60.0),
-			       (float) E->e60[k].bytes_rxdrop /
+			       (float) E->e10[k].bytes_rxdrop /
 			       ((float) E->erlang_capa * 60.0),
-			       (float)E->e60[k].bytes_tx/((float)E->erlang_capa*60.0)
+			       (float)E->e10[k].bytes_tx/((float)E->erlang_capa*60.0)
 				);
 		}
 
@@ -152,8 +158,11 @@ void erlang_xml(int topmode)
 					 "%Y-%m-%d %H:%M", wallclock);
 			}
 			printf("%s  %s", logtime, E->name);
-			printf(" %2dm  %5ld  %3ld  %5ld  %3ld  %5ld  %3ld %5.3f  %5.3f  %5.3f\n", 60, E->e60[k].bytes_rx, E->e60[k].packets_rx, E->e60[k].bytes_rxdrop, E->e60[k].packets_rxdrop,
-			       E->e60[k].bytes_tx,  E->e60[k].packets_tx,
+			printf(" %2dm  %5ld  %3ld  %5ld  %3ld  %5ld  %3ld %5.3f  %5.3f  %5.3f\n",
+			       60,
+			       E->e60[k].bytes_rx,     E->e60[k].packets_rx,
+			       E->e60[k].bytes_rxdrop, E->e60[k].packets_rxdrop,
+			       E->e60[k].bytes_tx,     E->e60[k].packets_tx,
 			       (float) E->e60[k].bytes_rx /
 			       ((float) E->erlang_capa * 60.0),
 			       (float) E->e60[k].bytes_rxdrop /
