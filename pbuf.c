@@ -64,13 +64,14 @@ void pbuf_put( struct pbuf_t *pb )
 }
 
 
-struct pbuf_t *pbuf_new(const int is_aprs, const int axlen, const int tnc2len)
+struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axlen, const int tnc2len)
 {
 	struct pbuf_t *pb = pbuf_alloc( axlen, tnc2len );
 	pbuf_get(pb);
 
-	pb->is_aprs = is_aprs;
-	pb->t       = now;      // Arrival time
+	pb->is_aprs        = is_aprs;
+	pb->digi_like_aprs = digi_like_aprs;
+	pb->t              = now;      // Arrival time
 
 	return pb;
 }

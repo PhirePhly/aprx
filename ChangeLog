@@ -1,5 +1,13 @@
 2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, interface.c, digipeater.c, pbuf.h, pbuf.c, ax25.c:
+	    Pass the UI PID information all the way to interface,
+	    where it can be matched against a list of PIDs that will
+	    be treated alike APRS in digipeating.
+	    Have two modes in digipeating: one with interface (and
+	    aliases) as recognized work targets, and other with APRS
+	    wide/trace tags.
+
 	* aprx.h, ax25.c, interface.c, digipeater.c, aprx.conf.in,
 	  aprx-complex.conf.in:
 	    - Prefill AX.25 address field formatted ax25callsign

@@ -132,7 +132,7 @@ void tnc2_to_ax25()
 int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
 		       char *tnc2buf, const int tnc2buflen,
 		       int *frameaddrlen, int *tnc2addrlen,
-		       int *is_ui)
+		       int *is_aprs, int *ui_pid)
 {
 	int i, j;
 	const unsigned char *s = frame;
@@ -214,15 +214,24 @@ int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
 		return 0;		/* never happens ?? */
 
 	*t++ = ':';		/* end of address */
+	*t = 0; // temporary string NUL termination
 
-	if ((*s++ != 0x03) || (*s++ != 0xF0)) {
-
-		/* Not AX.25 UI frame */
+	if (s[0] != 0x03) {
+		// Not AX.25 UI frame
+		*ui_pid = -1; 
 		return t - tnc2buf;
 		/* But say that the frame is OK, and
 		   let it be possibly copied to Linux
 		   internal AX.25 network. */
 	}
+	if (s[0] == 0x03 && s[1] != 0xF0) {
+		// AX.25 UI frame, but no with APRS's PID value
+		*ui_pid = s[1];
+		return t - tnc2buf;
+	}
+
+	s += 2; // Skip over Control and PID bytes
+	*ui_pid = 0xF0; // This was previously verified
 
 	/* Copy payload - stop at first LF char */
 	for (; s < e; ++s) {
@@ -241,7 +250,7 @@ int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
 		t[-1] = 0;
 	}
 
-	*is_ui = 1;
+	*is_aprs = 1;
 
 	*t++ = '\r';
 	*t++ = '\n';
@@ -258,22 +267,22 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 	int frameaddrlen = 0;
 
 	char tnc2buf[2800];
-	int tnc2len, tnc2addrlen, is_ui = 0;
+	int tnc2len, tnc2addrlen, is_aprs = 0, ui_pid = 0;
 
 	tnc2len = ax25_format_to_tnc( frame, framelen,
 				      tnc2buf, sizeof(tnc2buf),
 				      & frameaddrlen, &tnc2addrlen,
-				      & is_ui );
+				      & is_aprs, &ui_pid );
 
 	if (tnc2len == 0) return 0; // Bad parse result
 
 	// Send to interface system to receive it..  (digipeater!)
 	// A noop if the interface is actually NULL.
-	interface_receive_ax25(aif, portname, is_ui,
+	interface_receive_ax25(aif, portname, is_aprs, ui_pid,
 			       frame, frameaddrlen, framelen,
 			       tnc2buf, tnc2addrlen, tnc2len);
 
-	if (is_ui) {
+	if (is_aprs) {
 		igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
 	}
 

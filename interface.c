@@ -472,11 +472,12 @@ void interface_config(struct configfile *cf)
  */
 
 void interface_receive_ax25(const struct aprx_interface *aif,
-			    const char *ifaddress, int is_aprs,
+			    const char *ifaddress, int is_aprs, int ui_pid,
 			    const unsigned char *axbuf, const int axaddrlen, const int axlen,
 			    const char *tnc2buf, const int tnc2addrlen, const int tnc2len)
 {
 	int i;
+	int digi_like_aprs = is_aprs;
 
 	if (debug) printf("interface_receive_ax25()\n");
 
@@ -487,8 +488,15 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	// Note: Above one disables MICe destaddress-SSID embedded
 	//       extremely compressed WIDEn-N notation.
 
+// FIXME: match ui_pid to list of UI PIDs that are treated with similar
+//        digipeat rules as is APRS New-N.
+
+	// ui_pid < 0 means that this frame is not an UI frame at all.
+	if (ui_pid >= 0)  digi_like_aprs = 1; // FIXME: more precise matching?
+
+
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
-	struct pbuf_t *pb = pbuf_new(is_aprs, axlen, tnc2len);
+	struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
 
 	memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	pb->data[tnc2len] = 0;
@@ -532,7 +540,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		digipeater_receive( aif->digipeaters[i], pb);
 	}
 
-	// .. and finally free up the pbuf (if refcount == 0)
+	// .. and finally free up the pbuf (if refcount goes to zero)
 	pbuf_put(pb);
 }
 
@@ -541,10 +549,16 @@ void interface_receive_ax25(const struct aprx_interface *aif,
  *
  */
 
-void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axbuf, const int axlen)
+void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axaddr, const int axaddrlen, const unsigned char *axdata, const int axdatalen)
 {
-  if (debug)
-    printf("interface_transmit_ax25(aif=%p, .., axlen=%d)\n",aif,axlen);
+	int axlen = axaddrlen + axdatalen;
+	unsigned char *axbuf = alloca(axlen);
+	memcpy(axbuf, axaddr, axaddrlen);
+	memcpy(axbuf + axaddrlen, axdata, axdatalen);
+
+	if (debug)
+	  printf("interface_transmit_ax25(aif=%p, .., axlen=%d)\n",aif,axlen);
+
 
 	if (aif == NULL) return;
 
@@ -603,7 +617,7 @@ void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddr
 	//        using ax25buf[] storage area.
 
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
-	pb = pbuf_new(1 /*is_aprs*/, 0, tnc2len);
+	pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, 0, tnc2len);
 
 	memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	pb->info_start = pb->data + tnc2addrlen + 1;

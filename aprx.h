@@ -171,7 +171,7 @@ extern void ax25_filter_add(const char *p1, const char *p2);
 extern int  ax25_format_to_tnc(const unsigned char *frame, const int framelen,
 			       char *tnc2buf, const int tnc2buflen,
 			       int *frameaddrlen, int *tnc2addrlen,
-			       int *is_ui);
+			       int *is_aprs, int *ui_pid);
 extern int  parse_ax25addr(unsigned char ax25[7], const char *text,
 			   int ssidflags);
 
@@ -459,16 +459,16 @@ extern void interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 
-extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const unsigned char *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
-extern void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axbuf, const int axlen);
-extern void interface_receive_tnc2( const struct aprx_interface *aif, const char *ifaddress, const char *rxbuf, const int rcvlen);
-extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char *rxbuf, const int rcvlen);
+extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int digi_like_aprs, const unsigned char *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
+extern void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axaddr, const int axaddrlen, const unsigned char *axdata, const int axdatalen);
+extern void interface_receive_tnc2( const struct aprx_interface *aif, const char *ifaddress, const char *tncbuf, const int tnclen);
+extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char *tncbuf, const int tnclen);
 
 
 /* pbuf.c */
 extern void           pbuf_get(struct pbuf_t *pb);
 extern void           pbuf_put(struct pbuf_t *pb);
-extern struct pbuf_t *pbuf_new(const int is_aprs, const int axdatalen, const int tnc2len);
+extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axdatalen, const int tnc2len);
 
 
 /* parse_aprs.c */
