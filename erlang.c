@@ -480,12 +480,8 @@ static void erlang_time_end(void)
 			if (E->e1_cursor >= E->e1_max)
 				E->e1_cursor = 0;
 
-			E->erl1m.bytes_rx = 0;
-			E->erl1m.packets_rx = 0;
-			E->erl1m.bytes_rxdrop = 0;
-			E->erl1m.packets_rxdrop = 0;
-			E->erl1m.bytes_tx = 0;
-			E->erl1m.packets_tx = 0;
+			memset(&E->erl1m, 0, sizeof(E->erl1m));
+			E->erl1m.update = now;
 		}
 		erlang_time_ival_1min = 1.0;
 	}
@@ -525,12 +521,8 @@ static void erlang_time_end(void)
 			if (E->e10_cursor >= E->e10_max)
 				E->e10_cursor = 0;
 
-			E->erl10m.bytes_rx = 0;
-			E->erl10m.packets_rx = 0;
-			E->erl10m.bytes_rxdrop = 0;
-			E->erl10m.packets_rxdrop = 0;
-			E->erl10m.bytes_tx   = 0;
-			E->erl10m.packets_tx = 0;
+			memset(&E->erl10m, 0, sizeof(E->erl10m));
+			E->erl10m.update = now;
 		}
 		erlang_time_ival_10min = 1.0;
 	}
@@ -570,12 +562,8 @@ static void erlang_time_end(void)
 			if (E->e60_cursor >= E->e60_max)
 				E->e60_cursor = 0;
 
-			E->erl60m.bytes_rx = 0;
-			E->erl60m.packets_rx = 0;
-			E->erl60m.bytes_rxdrop = 0;
-			E->erl60m.packets_rxdrop = 0;
-			E->erl60m.bytes_tx   = 0;
-			E->erl60m.packets_tx = 0;
+			memset(&E->erl60m, 0, sizeof(E->erl60m));
+			E->erl60m.update = now;
 		}
 		erlang_time_ival_60min = 1.0;
 	}
