@@ -12,72 +12,76 @@
 .RB [ \-f " \fI@CFGFILE@\fR]"
 .SH DESCRIPTION
 .B aprx
-is a
+begun as a
 .I receive-only
 APRS iGate application with minimum system support technology requirements.
+This version has also multi-port digipeater support, and plans include to
+add transmit igate.
 .PP
 .IP \(bu 3
-Does not require machine to have any other software in it, than things in libc.
-In particular no special AX.25 libraries at all, nor widgets or even
-C++ runtime.
+The Aprx does not require machine to have any other software in it, than things
+in UNIX standard libc. In particular no special AX.25 libraries at all, nor
+widgets or even C++ runtime.
 .IP \(bu 3
-Can listen "TNC2 monitor" and "KISS" speaking TNCs on any serial ports.
+Any UNIX platform should work for the Aprx, or be trivially ported.
+(uCLinux needing a bit more work.)
 .IP \(bu 3
-The serial port can be ordinary host computer port, a USB serial port, or 
-remote port on a remote server behind the internet, like cisco router AUX
+The Aprx can listen "TNC2 monitor" and "KISS" speaking TNCs on any serial ports.
+.IP \(bu 3
+For Aprx the serial port can be ordinary host computer port, a USB serial port,
+or remote port on a remote server behind the internet, like cisco router AUX
 ports (port 4001, TCP STREAM without TELNET escapes.)
 .IP \(bu 3
-Does not require machine to have AX.25 protocol support internally!
+The Aprx does not require machine to have AX.25 protocol support internally!
 (Thus this works also on e.g. Solaris and BSD machines without PF\_AX25 sockets.)
 .IP \(bu 3
 On Linux machine with kernel internal AX.25 protocol support, can listen
-on it with promiscuous mode, and in order to use that, must be started
-as
+on it with promiscuous mode, and in order to use that, must be started as
 .I root
 user, and be configured to list interface callsigns that APRS packets are
 coming in.
-The AX.25 socket listening is
-.I not
-configurable, it is always exists in Linux systems, and related
-configuration parameters are ignored in other platforms.
+The AX.25 socket listening is not in itself configurable, it is always exists
+in Linux systems, and related configuration parameters are ignored in other
+platforms.
 This socket listening does not need "libax25" to function.
 .IP \(bu 3
-Not running the program as root is a viable option at least against
-remote serial port servers.  One must change local serial port ownership
-or access-groups (if any are used) to userid that runs the program and
-possibly do several changes of file paths in configuration file beginning
+The Aprx program can be run without root privileges at least against remote
+serial port servers.  One must change local serial port ownership or
+access-groups (if any are used) to userid that runs the program and possibly
+do several changes of file paths in configuration file beginning
 with its location (startup parameter).
 How that is done is up to the user of this program.
 .IP \(bu 3
-Connects with one callsign-ssid pair to APRS-IS core for all received radio
-ports.
+The Aprx connects with one callsign-ssid pair to APRS-IS core for all received
+radio ports.
 .IP \(bu 3
-Knows that messages with following tokens in AX.25 VIA fields are not to be
-relayed into APRS-IS network:
+The Aprx Rx-IGate knows that messages with following tokens in AX.25 VIA
+fields are not to be relayed into APRS-IS network:
 .RS 9
 .B "RFONLY, NOGATE, TCPIP, TCPXX"
 .RE
 .IP \(bu 3
-Knows that following source address prefixes are bogus and thus messages with
-them are to be junked:
+The Aprx Rx-IGate knows that following source address prefixes are bogus and
+thus messages with them are to be junked:
 .RS 9
 .B "WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL"
 .RE
 .IP \(bu 3
-Drops all
+The Aprx Rx-IGate Drops all
 .I query
 messages ("?").
 .IP \(bu 3
-Opens up all 3rd party messages ("}"), and checks the internal data if it is OK
-to be gated out to APRS-IS.
+The Aprx Rx-IGate opens up all 3rd party messages ("}"), and checks the internal
+data if it is OK to be gated out to APRS-IS.
 .IP \(bu 3
-Has built-in "Erlang monitor" mechanism that telemeters each receiving
-interface to APRS-IS.
-It can also syslog the interface specific channel occupancy, and
-optionally can output to STDOUT.
+The Aprx has built-in "Erlang monitor" mechanism that telemeters each receiving
+interface to APRS-IS. It can also syslog the interface specific channel occupancy,
+and optionally can output to STDOUT.
 .IP \(bu 3
-Can be run on systems without writable storage, even with very little storage,
-like on NSLU2, and OpenWrt platforms.
+The Aprx can be run on systems without writable storage, even with very little
+memory, like on NSLU2, and OpenWrt platforms.
+.IP \(bu 3
+The Aprx (since version 1.91) can do digipeater functions.
 .PP
 .SH OPTIONS
 The
@@ -196,6 +200,37 @@ it is never re-read during process life.
 #
 #  Sample configuration file for the APRX \-\- an Rx\-only APRS iGate
 #
+#
+# Simple sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
+#
+# This configuration is structured with Apache HTTPD style tags
+# which then contain subsystem parameters.
+#
+
+#
+# For simple case, you need to adjust 4 things:
+#   - Mycall parameter
+#   - Select correct type of interface (ax25-device or serial-device)
+#   - Optionally set a beacon telling where this system is
+#   - Optionally enable digipeater with or without tx-igate
+#
+
+#
+#
+# Define the parameters in following order:
+#   1)  <aprsis>     ** zero or one
+#   2)  <logging>    ** zero or one
+#   3)  <interface>  ** there can be multiple!
+#   4)  <beacon>     ** zero to many
+#   5)  <digipeater> ** zero to many (at most one for each Tx)
+#
+
+#
+# Global macro for simplified callsign definition:
+# Usable for 99+% of cases.
+#
+
+mycall  N0CALL-1
 
 <aprsis>
 # The  aprsis-login  parameter: 
@@ -233,14 +268,13 @@ it is never re-read during process life.
 </aprsis>
 
 
-
+<logging>
 # pidfile is UNIX way to tell that others that this program is
 # running with given process-id number.  This has compiled-in
 # default value of:  pidfile @VARRUN@/aprx.pid
 #
 #pidfile @VARRUN@/aprx.pid
 
-<logging>
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
@@ -290,144 +324,92 @@ erlangfile @VARRUN@/aprx.state
 #erlang\-log1min
 </logging>
 
-# AX.25 filters block selected messages matching on selected regular
-# expressions.  The expressions are case sensitive, and AX.25 address
-# elements are in all uppercase text.  There can be unlimited number
-# of patterns, type fields are four: "source", "destination", "via",
-# and "data".  These patterns can be used in addition to built\-in
-# hard\-coded reject rules listed in documentation.
-#
-#ax25\-filter source      "^NOCALL"
-#ax25\-filter destination "^NOCALL"
-#ax25\-filter via         "^NOGATE"
-#ax25\-filter data        "^\\\\?"
 
+
+# ***********  Multiple <interface> definitions can follow   *********
 
 # ax25\-device  Lists AX.25 ports by their callsigns that in Linux
 #              systems receive APRS packets.  If none are defined,
-#              the AX.25 network receiver is not enabled.
+#              or the system is not Linux, the AX.25 network receiver
+#              is not enabled.
 #
 # tx\-ok        Boolean telling if this device is able to transmit.
 #
 #<interface>
-#   ax25\-device N0CALL
-#   tx\-ok false
+#   ax25\-device $mycall  # Either $mycall macro, or actual callsign
+#   #tx\-ok      false  # transmitter enable defaults to false
 #</interface>
 
-
-# The  radio serial   option.  Parameters are:
+# The  TNC serial  options.  Parameters are:
 #   \- /dev/ttyUSB1    \-\- tty device
 #   \- 19200           \-\- baud rate, supported ones are:
 #                        1200, 2400, 4800, 9600, 19200, 38400
 #   \- 8n1             \-\- 8\-bits, no parity, one stop\-bit,
 #                        no other supported modes
-#   \- KISS/XORSUM/SMACK \-\- KISS mode variants
-#     TNC2            \-\- non\-KISS text format variant
-#
-#
-#  "KISS"                  \- plain basic KISS mode
-#  "XORSUM" alias "BPQCRC" \- KISS with BPQ "CRC" byte
-#  "SMACK"  alias "CRC16"  \- KISS with better CRC
-#  "TNC2"                  \- TNC2 monitor format
-#
-# Additional/alternate options for the serial-device
-#
-# "timeout 900" sets a timeout monitor (in seconds) to make
-#    reopen/reconnect if the (tcp) connection to radio has
-#    failed somehow and nothing is heard. Local serial ports
-#    do not (in general) need this.  At APRS silent sites
-#    this may cause repeated reconnects, but it should not
-#    harm either.  At busy sites this will handle reconnect
-#    gracefully in case of network failures, and timeout
-#    value can be shortened.
-#
-# "<kiss\-subif 0>" sets optional multiplexer index on KISS type
-#    connections. This id is specific for the multiplexer connection
-#    on given port, and can be in range of 0 thru 7 for SMACK type
-#    links, and up to 15 for KISS, and BPQ type links. 
-#    The kiss-subif is settable only for KISS-type connections.
-#    The subif 0 is settable for TNC2 monitor format.
-#
-# "callsign NAME" sets callsign used in statistics displays,
-#    and when the message is sent to APRS-IS.
-#    If none are given, then it will use physical port name.
-#    There can be multiple callsign parameters, if each are
-#    prefixed with their own  tncid  setting.
-#
-# "tx\-ok true" enables transmit. System will then also require
-#    that used callsign is valid for AX.25.
-#
-# "initstring" is of two parts, the keyword, and then a string.
-#    initstring "\\xC0\\xC0\\xFF\\xC0\\r\\nMO 0\\rKISS $01\\r"
-#    The initstring is a binary string,  "\\x00" is encodable.
-#    Of the usual C-style codes only "\\r" and "\\n" are understood.
-#    The initstring is kiss-subif level option.
-#
+#   \- "KISS"                  \- plain basic KISS mode
+#   \- "XORSUM" alias "BPQCRC" \- KISS with BPQ "CRC" byte
+#   \- "SMACK"  alias "CRC16"  \- KISS with real CRC
+#   \- "TNC2"                  \- TNC2 monitor format
 #
 #<interface>
-# serial\-device   /dev/ttyUSB0  19200 8n1    KISS
-# <kiss\-subif 0>
-#    callsign N0CALL\-14
-#    tx\-ok    false
-# </kiss\-subif>
+#   serial\-device /dev/ttyUSB0  19200 8n1    KISS
+#   #callsign     $mycall  # Either $mycall macro, or actual callsign
+#   #tx\-ok        false    # transmitter enable defaults to false
 #</interface>
 #
 #<interface>
-# serial\-device   /dev/ttyUSB1  19200 8n1    TNC2
-# <kiss\-subif 0>  # Actually it is not KISS subif, but "0" works for TNC2
-#   callsign N0CALL\-13
-# </kiss\-subif>
-#</interface>
-
-
-
-# The  radio tcp   option defines a connection to remote socket
-# beyond which is a binary transparent connection to a serial
-# port.  The parameter fields:  literal IP address (IPv4 or IPv6),
-# then literal port number, and finally protocol mode.
-# KISS-protocol parameters are same as with normal serial port.
-#
-#<interface>
-# tcp\-device  12.34.56.78  4001  KISS
-# timeout 900 
-# <kiss\-subif 0>
-#    callsign N0CALL\-12
-#    tx\-ok    false
-# </kiss\-subif>
-#</interface>
-#
-#<interface>
-# tcp\-device  12.34.56.78  4002  TNC2
-# timeout 300
-# <kiss\-subif 0>
-#    callsign N0CALL\-12
-#    tx\-ok    false
-# </kiss\-subif>
+#   serial\-device /dev/ttyUSB1  19200 8n1    TNC2
+#   #callsign     $mycall  # cEither $mycall macro, or actual callsign
+#   #tx\-ok        false    # TNC2 monitor can not have transmitter
 #</interface>
 #
 
-# The  netbeacon  options.
-# Parameter string (in quotes) is sent to network (without quotes)
-# at varying intervals \-\-  1200\-1800 seconds in between restransmits.
-# This interval is intentionally randomized.
+
+# ***********  Multiple <beacon>  definitions can follow   *********
+<beacon>
 #
-# Multiple netbeacons are evenly distributed for each time period,
-# or at least 3 seconds apart.  First netbeacon is sent to network
-# 30 seconds after connection to APRS-IS.
+#  Beacons are sent out to all radio transmitters AND to APRSIS.
+#  They are sent to all transmitters that have "tx\-ok true" setting
+#  if no "to" entry is defined, and only to defined transmitter, if
+#  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
 #
-# There can be multiple netbeacon options.
-# The parameter sets can vary:
-#  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
-#  b) 'for nnn-n dest "string" raw "string"'
-# The a) form flags on some of possible syntax errors in parameters.
-# It will also create only "!" type messages.  The dest parameter
-# defaults to "APRS", but can be used to give other destinations.
-# The via parameter can be used to add other keywords, like "NOGATE".
+#beacon for N0CALL\-3 raw "!6016.30NR02506.36E&aprx \- an Rx\-only iGate"
+#beacon for $mycall  symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx \- an Rx\-only iGate"
 #
-# Symbol  R&   is for "rx\-only iGate"
+</beacon>
+
+
+# ***********  <digipeater>  definition(s) follow   *********
 #
-#netbeacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.35N" lon "02506.36E" comment "aprx \- an Rx\-only iGate"
-#netbeacon for N0CALL-14 dest "APRS" raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"
+#  The digipeater definitions tell transmitters that receive
+#  AX.25 packets from possibly multiple sources, and then what
+#  to do on the AX.25 headers of those messages.
+#
+#  There is one transmitter per digipeater \-\- and inversely, there
+#  can be at most one digipeater for each transmitter.
+#
+#  In each digipeater there is at least one <source>, usually same
+#  as the transmitter.
+#
+#<digipeater>
+#    transmitter     $mycall
+#    #ratelimit      120      # default: max 120 packets/minute
+#
+#    <source>
+#        source         $mycall
+#    #   viscous\-delay  0     # no viscous delay for RF\->RF digipeating
+#    #   ratelimit      120   # default: max 120 packets/minute
+#    #   filter     "..."     # Optional filters to limit digipeated messages
+#    </source>
+#    #<source>                # Adding APRSIS source makes this tx\igate
+#    #    source        APRSIS
+#    #    # %%%% additional tx-igate options to be defined %%%%
+#    #    #  (like relay-format controls, APRSIS\->RF in 3rd-party form)
+#    #    viscous\-delay 5     # Recommendation, wait 5 sec before tx:in
+#    #   filter     "..."     # Optional filters to limit gated messages
+#    #</source>
+#
+#</digipeater>
 \fR
 .fi
 .PP
@@ -631,9 +613,6 @@ The
 mechanisms are of rudimentary quality, and can seriously underestimate
 the channel occupancy by ignoring pre- and postample transmissions.
 .PP
-On SMACK links there is no full-form of multi-TNC support.
-Run with only one TNC on link, its id can be any in 0..7 range.
-.PP
 On serial lines supports really only 8n1 mode, not at all like: 7e1.
 On the other hand, there really is no sensible usage for anything but 8n1...
 
@@ -651,6 +630,7 @@ This little piece was written by
 during a dark and rainy fall and winter of 2007-2008 after a number
 of discussions grumbling about current breed of available software
 for APRS iGate use in Linux (or of any UNIX) platforms.
+Fall and winter 2009-2010 saw appearance of digipeater functionality.
 .PP
 Principal contributors and test users include:
 .IR "Pentti Gronlund, OH3BK" ,
