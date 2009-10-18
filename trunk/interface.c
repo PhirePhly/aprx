@@ -60,10 +60,15 @@ int                     all_interfaces_count;
 
 
 struct aprx_interface aprsis_interface = {
-	IFTYPE_APRSIS, 0, "APRSIS", 0, 0, 0, NULL,
+	IFTYPE_APRSIS, 0, "APRSIS",
+	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
+	0, NULL,
+	0, 0, 0, NULL,
 	NULL, NULL,
 	0, NULL
 };
+
+static char *interface_default_aliases[] = { "RELAY","WIDE","TRACE" };
 
 static void interface_store(struct aprx_interface *aif)
 {
@@ -100,6 +105,8 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	char *callsign   = NULL;
 	int   subif      = 0;
 	int   txok       = 0;
+	int   aliascount = 0;
+	char **aliases   = NULL;
 
 	const char *p = param1;
 	int c;
@@ -175,6 +182,16 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    fail = 1;
 		    break;
 		  }
+
+		} else if (strcmp(name, "alias") == 0) {
+		  char *k = strtok(param1, ",");
+		  for (; k ; k = strtok(NULL,",")) {
+		    ++aliascount;
+		    if (debug) printf(" n=%d alias='%s'\n",aliascount,k);
+		    aliases = realloc(aliases, sizeof(char*) * aliascount);
+		    aliases[aliascount-1] = strdup(k);
+		  }
+
 		} else {
 		  printf("%s:%d Unrecognized keyword: %s\n",
 			   cf->name, cf->linenum, name);
@@ -193,12 +210,21 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	memcpy(*aifp, aif, sizeof(*aif));
 
 	(*aifp)->callsign = callsign;
+	parse_ax25addr((*aifp)->ax25call, callsign, 0x60);
 	(*aifp)->subif    = subif;
 	(*aifp)->txok     = txok;
 
 	aif->tty->interface  [subif] = *aifp;
 	aif->tty->ttycallsign[subif] = callsign;
 	aif->tty->netax25    [subif] = netax25_open(callsign);
+
+	if (aliascount == 0) {
+	  aif->aliascount = 3;
+	  aif->aliases    = interface_default_aliases;
+	} else {
+	  aif->aliascount = aliascount;
+	  aif->aliases    = aliases;
+	}
 
 	interface_store(*aifp);
 
@@ -220,13 +246,15 @@ void interface_config(struct configfile *cf)
 	struct aprx_interface *aif = calloc(1, sizeof(*aif));
 	struct aprx_interface *aif2 = NULL; // subif copies here..
 
-	char *name, *param1;
-	char *str = cf->buf;
-	int  parlen = 0;
+	char  *name, *param1;
+	char  *str = cf->buf;
+	int    parlen     = 0;
 
 	int  maxsubif = 16;  // 16 for most KISS modes, 8 for SMACK
 
 	aif->iftype = IFTYPE_UNSET;
+	aif->aliascount = 3;
+	aif->aliases    = interface_default_aliases;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -290,6 +318,7 @@ void interface_config(struct configfile *cf)
 
 		  netax25_addrxport(param1, str, aif);
 		  aif->callsign = strdup(param1);
+		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  
 		  interface_store(aif);
 
@@ -297,6 +326,7 @@ void interface_config(struct configfile *cf)
 		  if (aif->iftype == IFTYPE_UNSET) {
 		    aif->iftype              = IFTYPE_SERIAL;
 		    aif->callsign            = strdup(mycall);
+		    parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		    aif->tty                 = ttyreader_new();
 		    aif->tty->ttyname        = strdup(param1);
 		    aif->tty->interface[0]   = aif;
@@ -396,6 +426,7 @@ void interface_config(struct configfile *cf)
 		    break;
 		  }
 		  aif->callsign = strdup(param1);
+		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  if (aif->tty != NULL)
 		    aif->tty->ttycallsign[0] = aif->callsign;
 
@@ -407,6 +438,19 @@ void interface_config(struct configfile *cf)
 		    memcpy(initstring, param1, parlen);
 		    aif->tty->initstring[0] = initstring;
 		    aif->tty->initlen[0]    = initlength;
+		  }
+
+		} else if (strcmp(name, "alias") == 0) {
+		  char *k = strtok(param1, ",");
+		  if (aif->aliases == interface_default_aliases) {
+		    aif->aliascount = 0;
+		    aif->aliases = NULL;
+		  }
+		  for (; k ; k = strtok(NULL,",")) {
+		    aif->aliascount += 1;
+		    if (debug) printf(" n=%d alias='%s'\n",aif->aliascount,k);
+		    aif->aliases = realloc(aif->aliases, sizeof(char*) * aif->aliascount);
+		    aif->aliases[aif->aliascount-1] = strdup(k);
 		  }
 
 		} else {
@@ -470,6 +514,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	// Copy incoming AX.25 frame into its place too.
 	memcpy(pb->ax25addr, axbuf, axlen);
+	pb->ax25addrlen = axaddrlen;
 	pb->ax25data    = pb->ax25addr + axaddrlen;
 	pb->ax25datalen = axlen - axaddrlen;
 

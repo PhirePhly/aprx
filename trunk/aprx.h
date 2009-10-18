@@ -162,11 +162,16 @@ extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const uns
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
+extern int  ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src,
+				    int markflag);
 extern int  ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 			 const int tncid, const int cmdbyte,
 			 const unsigned char *frame, const int framelen);
 extern void ax25_filter_add(const char *p1, const char *p2);
-
+extern int  ax25_format_to_tnc(const unsigned char *frame, const int framelen,
+			       char *tnc2buf, const int tnc2buflen,
+			       int *frameaddrlen, int *tnc2addrlen,
+			       int *is_ui);
 extern int  parse_ax25addr(unsigned char ax25[7], const char *text,
 			   int ssidflags);
 
@@ -372,8 +377,9 @@ struct aprx_filter;    // Forward declarator
 struct digipeater;     // Forward declarator
 
 struct tracewide {
-	int   maxreq;
-	int   maxdone;
+	int    maxreq;
+	int    maxdone;
+	int    is_trace;
 
 	int    nkeys;
 	char **keys;
@@ -425,7 +431,12 @@ struct aprx_interface {
 	iftype_e    iftype;
 	int	    timeout;
 
-	char       *callsign;
+	char         *callsign;
+	unsigned char ax25call[7];
+
+	int	    aliascount;
+	char	  **aliases;
+
 	int	    subif;
 	int         txok;
 	int	    initlength;
