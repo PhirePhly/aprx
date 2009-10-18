@@ -447,20 +447,22 @@ static void erlang_time_end(void)
 
 			if (erlanglog1min) {
 				sprintf(msgbuf,
-					"ERLANG%-2d %s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+					"ERLANG%-2d %s Rx %6ld %3ld Dp %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f %5.3f",
 					1, E->name, 
 					E->erl1m.bytes_rx,
 					E->erl1m.packets_rx,
 					E->erl1m.bytes_rxdrop,
 					E->erl1m.packets_rxdrop,
-					/* E->erl1m.bytes_tx, E->erl1m.packets_tx, */
+					E->erl1m.bytes_tx, E->erl1m.packets_tx,
 					((float) E->erl1m.bytes_rx /
 					 (float) E->erlang_capa *
 					 erlang_time_ival_1min),
 					((float) E->erl1m.bytes_rxdrop /
 					 (float) E->erlang_capa *
+					 erlang_time_ival_1min),
+					((float)E->erl1m.bytes_tx /
+					 (float)E->erlang_capa *
 					 erlang_time_ival_1min)
-					/* ((float)E->erl1m.bytes_tx/(float)E->erlang_capa*erlang_time_ival_1min) */
 					);
 				if (fp)
 					fprintf(fp, "%s %s\n", logtime,
@@ -482,8 +484,8 @@ static void erlang_time_end(void)
 			E->erl1m.packets_rx = 0;
 			E->erl1m.bytes_rxdrop = 0;
 			E->erl1m.packets_rxdrop = 0;
-			/* E->erl1m.bytes_tx = 0; */
-			/* E->erl1m.packets_tx = 0; */
+			E->erl1m.bytes_tx = 0;
+			E->erl1m.packets_tx = 0;
 		}
 		erlang_time_ival_1min = 1.0;
 	}
@@ -494,19 +496,21 @@ static void erlang_time_end(void)
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now;
 			sprintf(msgbuf,
-				"ERLANG%-2d %s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+				"ERLANG%-2d %s Rx %6ld %3ld Dp %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f %5.3f",
 				10, E->name, 
 				E->erl10m.bytes_rx, E->erl10m.packets_rx,
 				E->erl10m.bytes_rxdrop,
 				E->erl10m.packets_rxdrop,
-				/* E->erl10m.bytes_tx, E->erl10m.packets_tx, */
+				E->erl10m.bytes_tx, E->erl10m.packets_tx,
 				((float) E->erl10m.bytes_rx /
 				 ((float) E->erlang_capa * 10.0 *
 				  erlang_time_ival_10min)),
 				((float) E->erl10m.bytes_rxdrop /
 				 ((float) E->erlang_capa * 10.0 *
+				  erlang_time_ival_10min)),
+				((float)E->erl10m.bytes_tx /
+				 ((float)E->erlang_capa * 10.0 *
 				  erlang_time_ival_10min))
-				/* ((float)E->erl10m.bytes_tx/((float)E->erlang_capa*10.0*erlang_time_ival_10min)) */
 				);
 			if (fp)
 				fprintf(fp, "%s %s\n", logtime, msgbuf);
@@ -525,8 +529,8 @@ static void erlang_time_end(void)
 			E->erl10m.packets_rx = 0;
 			E->erl10m.bytes_rxdrop = 0;
 			E->erl10m.packets_rxdrop = 0;
-			/* E->erl10m.bytes_tx   = 0;
-			   E->erl10m.packets_tx = 0; */
+			E->erl10m.bytes_tx   = 0;
+			E->erl10m.packets_tx = 0;
 		}
 		erlang_time_ival_10min = 1.0;
 	}
@@ -537,19 +541,21 @@ static void erlang_time_end(void)
 			struct erlangline *E = ErlangLines[i];
 			/* E->last_update = now; -- the 10 minute step does also this */
 			sprintf(msgbuf,
-				"ERLANG%-2d %s Rx %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f",
+				"ERLANG%-2d %s Rx %6ld %3ld Dp %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f %5.3f",
 				60, E->name, 
 				E->erl60m.bytes_rx, E->erl60m.packets_rx,
 				E->erl60m.bytes_rxdrop,
 				E->erl60m.packets_rxdrop,
-				/* E->erl60m.bytes_tx,  E->erl60m.packets_tx, */
+				E->erl60m.bytes_tx,  E->erl60m.packets_tx,
 				((float) E->erl60m.bytes_rx /
 				 ((float) E->erlang_capa * 60.0 *
 				  erlang_time_ival_60min)),
 				((float) E->erl60m.bytes_rxdrop /
 				 ((float) E->erlang_capa * 60.0 *
+				  erlang_time_ival_60min)),
+				((float)E->erl60m.bytes_tx /
+				 ((float)E->erlang_capa * 60.0 *
 				  erlang_time_ival_60min))
-				/* ((float)E->erl60m.bytes_tx/((float)E->erlang_capa*60.0*erlang_time_ival_60min)) */
 				);
 			if (fp)
 				fprintf(fp, "%s %s\n", logtime, msgbuf);
@@ -568,8 +574,8 @@ static void erlang_time_end(void)
 			E->erl60m.packets_rx = 0;
 			E->erl60m.bytes_rxdrop = 0;
 			E->erl60m.packets_rxdrop = 0;
-			/* E->erl60m.bytes_tx   = 0;
-			   E->erl60m.packets_tx = 0; */
+			E->erl60m.bytes_tx   = 0;
+			E->erl60m.packets_tx = 0;
 		}
 		erlang_time_ival_60min = 1.0;
 	}
