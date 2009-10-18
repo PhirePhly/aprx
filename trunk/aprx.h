@@ -407,8 +407,8 @@ struct digipeater {
 
 	dupecheck_t           *dupechecker;
 
-	struct tracewide      *trace;
-	struct tracewide      *wide;
+	const struct tracewide *trace;
+	const struct tracewide *wide;
 
 	int                        sourcecount;
 	struct digipeater_source **sources;
