@@ -503,6 +503,8 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned c
 	int i, len, ssid;
 	char kissbuf[2300];
 
+	if (debug) printf("ttyreader_kisswrite(->%s, axlen=%d)", S->ttycallsign[tncid], ax25rawlen);
+
 	if ((S->linetype != LINETYPE_KISS) && (S->linetype != LINETYPE_KISSSMACK) &&
 	    (S->linetype != LINETYPE_KISSBPQCRC)) {
 		if (debug)
@@ -512,29 +514,26 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned c
 
 
 	if ((S->wrlen == 0) || (S->wrlen > 0 && S->wrcursor >= S->wrlen)) {
-		S->wrlen = S->wrcursor = 0;	/* already all written */
-		return;
-	}
-
-
-	/* Now there is some data in between wrcursor and wrlen */
-
-	len = S->wrlen - S->wrcursor;
-	if (len > 0) {
-	  i = write(S->fd, S->wrbuf + S->wrcursor, len);
-	} else
-	  i = 0;
-	if (i > 0) {		/* wrote something */
-		S->wrcursor += i;
-		len = S->wrlen - S->wrcursor;
-		if (len == 0) {
-			S->wrcursor = S->wrlen = 0;	/* wrote all ! */
-		} else {
-			/* compact the buffer a bit */
-			memcpy(S->wrbuf, S->wrbuf + S->wrcursor, len);
-			S->wrcursor = 0;
-			S->wrlen = len;
-		}
+		S->wrlen = S->wrcursor = 0;
+	} else {
+	  /* There is some data in between wrcursor and wrlen */
+	  len = S->wrlen - S->wrcursor;
+	  if (len > 0) {
+	    i = write(S->fd, S->wrbuf + S->wrcursor, len);
+	  } else
+	    i = 0;
+	  if (i > 0) {		/* wrote something */
+	    S->wrcursor += i;
+	    len = S->wrlen - S->wrcursor;
+	    if (len == 0) {
+	      S->wrcursor = S->wrlen = 0;	/* wrote all ! */
+	    } else {
+	      /* compact the buffer a bit */
+	      memcpy(S->wrbuf, S->wrbuf + S->wrcursor, len);
+	      S->wrcursor = 0;
+	      S->wrlen = len;
+	    }
+	  }
 	}
 
 	ssid = (tncid << 4) | ((S->linetype == LINETYPE_KISSSMACK) ? 0x80 : 0x00);
@@ -546,8 +545,12 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned c
 		S->wrlen += len;
 		erlang_add(S->ttycallsign[tncid], ERLANG_TX, ax25rawlen, 1);
 
+		if (debug)
+		  printf(" .. put %d bytes of KISS frame on IO buffer\n",len);
 	} else {
 		// No fit!
+		if (debug)
+		  printf(" .. %d bytes of KISS frame did not fit on IO buffer\n",len);
 		return;
 	}
 
@@ -559,7 +562,7 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned c
 	  i = 0;
 	if (i > 0) {		/* wrote something */
 		S->wrcursor += i;
-		len = S->wrlen - S->wrcursor;
+		len = S->wrlen - S->wrcursor; /* all done? */
 		if (len == 0) {
 			S->wrcursor = S->wrlen = 0;	/* wrote all ! */
 		} else {
@@ -569,7 +572,6 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned c
 			S->wrlen = len;
 		}
 	}
-
 }
 
 /*

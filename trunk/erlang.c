@@ -382,7 +382,6 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->erl60m.packets_rx += packets;
 		E->erl60m.update = now;
 	}
-#if 0
 	if (erl == ERLANG_TX) {
 		E->SNMP.bytes_tx += bytes;
 		E->SNMP.packets_tx += packets;
@@ -401,7 +400,6 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->erl60m.packets_tx += packets;
 		E->erl60m.update = now;
 	}
-#endif
 	if (erl == ERLANG_DROP) {
 		E->SNMP.bytes_rxdrop += bytes;
 		E->SNMP.packets_rxdrop += packets;
