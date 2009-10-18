@@ -5,7 +5,8 @@
 	    Start transmitting digipeated frames to ttyreader's KISS
 	    output.  netax25's similar interface is not tested.
 	    Changed also the Erlang dataset format, and begun to
-	    produce Tx packet counts on telemetry.
+	    produce Tx packet counts on telemetry.  Accounting
+	    saves also tx byte counts, but they are not reported.
 
 	* aprx.h, interface.c, digipeater.c, pbuf.h, pbuf.c, ax25.c:
 	    Pass the UI PID information all the way to interface,

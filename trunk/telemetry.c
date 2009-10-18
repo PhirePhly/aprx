@@ -57,7 +57,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, i + 1);
 		s = buf;
-		s += sprintf(s, "T#%d,", telemetry_seq);
+		s += sprintf(s, "T#%03d,", telemetry_seq);
 
 		erlmax = 0;
 		k = E->e1_cursor;
@@ -75,7 +75,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 		k = (int) (200.0 / erlcapa * (float) erlmax);
 		if (k > 255)
 			k = 255;
-		s += sprintf(s, "%d,", k);
+		s += sprintf(s, "%03d,", k);
 
 		erlmax = 0;
 		k = E->e10_cursor;
@@ -93,7 +93,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 		k = (int) (20.0 / erlcapa * (float) erlmax);
 		if (k > 255)
 			k = 255;
-		s += sprintf(s, "%d,", k);
+		s += sprintf(s, "%03d,", k);
 
 		erlmax = 0;
 		k = E->e1_cursor;
@@ -106,7 +106,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 				k = E->e1_max - 1;
 			erlmax += E->e1[k].packets_rx;
 		}
-		s += sprintf(s, "%d,", (int) erlmax);
+		s += sprintf(s, "%03d,", (int) erlmax);
 
 		erlmax = 0;
 		k = E->e1_cursor;
@@ -119,7 +119,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 				k = E->e1_max - 1;
 			erlmax += E->e1[k].packets_rxdrop;
 		}
-		s += sprintf(s, "%d,", (int) erlmax);
+		s += sprintf(s, "%03d,", (int) erlmax);
 
 		erlmax = 0;
 		k = E->e1_cursor;
@@ -132,11 +132,11 @@ int telemetry_postpoll(struct aprxpolls *app)
 				k = E->e1_max - 1;
 			erlmax += E->e1[k].packets_tx;
 		}
-		s += sprintf(s, "%d", (int) erlmax);
+		s += sprintf(s, "%03d,", (int) erlmax);
 
 		
 		/* Tail filler */
-		s += sprintf(s, "");  // FIXME: flag telemetry?
+		s += sprintf(s, "00000000");  // FIXME: flag telemetry?
 
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
