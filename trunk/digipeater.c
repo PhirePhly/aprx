@@ -590,6 +590,7 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	struct digistate state;
 	struct digistate viastate;
 	char viafield[14];
+	struct digipeater *digi = src->parent;
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
@@ -605,6 +606,15 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	  // if (debug) printf(" No remaining hops to execute.\n");
 	  return;
 	}
+	if (state.reqhops > digi->trace->maxreq ||
+	    state.reqhops > digi->wide->maxreq ||
+	    state.tracereq > digi->trace->maxreq ||
+	    state.donehops > digi->trace->maxdone ||
+	    state.donehops > digi->wide->maxdone ||
+	    state.tracedone > digi->trace->maxdone) {
+	  if (debug) printf(" Packet exceeds digipeat limits\n");
+	  return;
+	}
 
 	// if (debug) printf(" Packet accepted to digipeat!\n");
 
@@ -613,35 +623,37 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	unsigned char *axaddr = state.ax25addr + 14;
 	unsigned char *e      = state.ax25addr + state.ax25addrlen;
 
+	// Search for first AX.25 VIA field that does not have H-bit set:
 	for (; axaddr < e; axaddr += 7) {
 	  ax25_to_tnc2_fmtaddress(viafield, axaddr, 0);
 	  if (debug>1) printf(" via: %s", viafield);
 	  if (!(axaddr[6] & 0x80)) // No "Has Been Digipeated" bit set
 	    break;
 	}
+
 	if (axaddr < e) {	// VIA-field of interest has been found
 	  if ((len = match_tracewide(viafield, src->src_trace))) {
 	    count_single_tnc2_tracewide(&viastate, viafield, 1, len);
-	  } else if ((len = match_tracewide(viafield, src->parent->trace))) {
+	  } else if ((len = match_tracewide(viafield, digi->trace))) {
 	    count_single_tnc2_tracewide(&viastate, viafield, 1, len);
 	  } else if ((len = match_tracewide(viafield, src->src_wide))) {
 	    count_single_tnc2_tracewide(&viastate, viafield, 0, len);
-	  } else if ((len = match_tracewide(viafield, src->parent->wide))) {
+	  } else if ((len = match_tracewide(viafield, digi->wide))) {
 	    count_single_tnc2_tracewide(&viastate, viafield, 0, len);
-	  } else if (strcmp(viafield,src->parent->transmitter->callsign) == 0) {
+	  } else if (strcmp(viafield,digi->transmitter->callsign) == 0) {
 	    // Match on the transmitter callsign without the star.
 	    // Treat it as a TRACE request.
 	    int acont = axaddr[6] & 0x01; // save old address continuation bit
 	    // Put the transmitter callsign in, and set the H-bit.
-	    memcpy(axaddr, src->parent->transmitter->ax25call, 7);
+	    memcpy(axaddr, digi->transmitter->ax25call, 7);
 	    axaddr[6] |= (0x80 | acont); // Set H-bit
 
-	  } else if (match_aliases(viafield, src->parent->transmitter)) {
+	  } else if (match_aliases(viafield, digi->transmitter)) {
 	    // Match on the aliases.
 	    // Treat it as a TRACE request.
 	    int acont = axaddr[6] & 0x01; // save old address continuation bit
 	    // Put the transmitter callsign in, and set the H-bit.
-	    memcpy(axaddr, src->parent->transmitter->ax25call, 7);
+	    memcpy(axaddr, digi->transmitter->ax25call, 7);
 	    axaddr[6] |= (0x80 | acont); // Set H-bit
 
 	  }
@@ -662,7 +674,7 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	    if (newssid <= 0)
 	      axaddr[6+7] |= 0x80; // Set H-bit
 	    // Put the transmitter callsign in, and set the H-bit.
-	    memcpy(axaddr, src->parent->transmitter->ax25call, 7);
+	    memcpy(axaddr, digi->transmitter->ax25call, 7);
 	    axaddr[6] |= 0x80; // Set H-bit
 
 	  } else if (viastate.reqhops > viastate.donehops) {
