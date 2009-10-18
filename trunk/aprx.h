@@ -288,17 +288,20 @@ struct erlangline {
 
 #ifdef EMBEDDED			/* When making very small memory footprint,
 				   like embedding on Linksys WRT54GL ... */
-#define APRXERL_1M_COUNT   (30)
-#define APRXERL_10M_COUNT  (3)
-#define APRXERL_60M_COUNT  (2)
+
+#define APRXERL_1M_COUNT   (30)	      // 30 minutes of 1 minute data
+#define APRXERL_10M_COUNT  (3)        // 30 minutes of 10 minute data
+#define APRXERL_60M_COUNT  (2)        // 2 hours of 60 minute data
+
 #else
-#define APRXERL_1M_COUNT   (60*24)
-#define APRXERL_10M_COUNT  (60*24*7)
-#define APRXERL_60M_COUNT  (24*31*3)
+
+#define APRXERL_1M_COUNT   (60*24)    // 1 day of 1 minute data
+#define APRXERL_10M_COUNT  (60*24*7)  // 1 week of 10 minute data
+#define APRXERL_60M_COUNT  (24*31*3)  // 3 months of hourly data
 #endif
-	struct erlang_rxtxbytepkt e1[APRXERL_1M_COUNT];	/* 1 minute RR, 24 hours */
-	struct erlang_rxtxbytepkt e10[APRXERL_10M_COUNT];	/* 10 min RR, 7 days     */
-	struct erlang_rxtxbytepkt e60[APRXERL_60M_COUNT];	/* 1 hour RR, 3 months  */
+	struct erlang_rxtxbytepkt e1[APRXERL_1M_COUNT];
+	struct erlang_rxtxbytepkt e10[APRXERL_10M_COUNT];
+	struct erlang_rxtxbytepkt e60[APRXERL_60M_COUNT];
 };
 
 struct erlanghead {
