@@ -686,12 +686,12 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	  // if (debug) printf(" No remaining hops to execute.\n");
 	  return;
 	}
-	if (state.reqhops   >= digi->trace->maxreq  ||
-	    state.reqhops   >= digi->wide->maxreq   ||
-	    state.tracereq  >= digi->trace->maxreq  ||
-	    state.donehops  >= digi->trace->maxdone ||
-	    state.donehops  >= digi->wide->maxdone  ||
-	    state.tracedone >= digi->trace->maxdone) {
+	if (state.reqhops   > digi->trace->maxreq  ||
+	    state.reqhops   > digi->wide->maxreq   ||
+	    state.tracereq  > digi->trace->maxreq  ||
+	    state.donehops  > digi->trace->maxdone ||
+	    state.donehops  > digi->wide->maxdone  ||
+	    state.tracedone > digi->trace->maxdone) {
 	  if (debug) printf(" Packet exceeds digipeat limits\n");
 	  return;
 	}
