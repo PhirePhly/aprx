@@ -1,12 +1,15 @@
 
-		APRX    v1.90
+		APRX    v1.91
 
 A receive-only APRS-IS "i-gate" with following properties:
 
    Config file (-f option) default is:  /etc/aprx.conf
    Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
 
-   - Is receive-only  (future may, or may not, have Rx/Tx behaviour)
+   - IGate functionality is receive only
+
+   - Can do APRS New-N and generic AX.25 node digipeater functionality
+     with transmitters  - Not yet with Viscous Digipeater
 
    - Can receive data from multiple receivers/modems on local machine
      serial ports, both classical and USB.
@@ -76,6 +79,7 @@ A receive-only APRS-IS "i-gate" with following properties:
 
    - This program is also compilable as "EMBEDDED" target without
      any statistics buffer required at the system disk (or RAM-disk).
+     See the INSTALL file.
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009
