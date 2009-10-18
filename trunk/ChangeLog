@@ -1,5 +1,12 @@
 2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, dupecheck.c, digipeater.c, pbuf.c, pbuf.h, aprsis.c,
+	  igate.c, keyhash.c:
+	    Digipeater local instance of dupechecker.  The dupe-checker
+	    does recursive analysis of APRS packets for 3rd party
+	    frames, and dupecheck the innermost frame of them.
+	    Cleaned the keyhash.c to contain only FVN-1a hasher.
+
 	* digipeater.c, interface.c, telemetry.c, aprx.h, ttyreader.c,
 	  erlang.c, aprx-stat.c:
 	    Start transmitting digipeated frames to ttyreader's KISS

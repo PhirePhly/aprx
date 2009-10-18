@@ -33,7 +33,7 @@ static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
  */
 void igate_start()
 {
-	aprsisdupe = new_dupecheck();
+	aprsisdupe = dupecheck_new();
 
 }
 
@@ -655,6 +655,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	    return;
 	  }
 
+// FIXME: Hmm.. Really ??
 	  if (heads[i][0] == 'q') {
 	    if (strcmp(heads[i], "qAR") == 0) {
 	      // qAR packets will be relayed
@@ -684,10 +685,10 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  return; /* drop it */
 	}
 
-	/* 1) */
+	/* 1) - verify receiving station has been heard recently on radio */
 	
 
-	/* 2) */
+	/* 2) - sending station has not been heard recently on radio */
 	
 
 	/* 4) */

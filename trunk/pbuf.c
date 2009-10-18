@@ -49,10 +49,11 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 	return pb;
 }
 
-void pbuf_get( struct pbuf_t *pb )
+struct pbuf_t *pbuf_get( struct pbuf_t *pb )
 {
 	// Increments refcount
 	pb->refcount += 1;
+	return pb;
 }
 
 void pbuf_put( struct pbuf_t *pb )

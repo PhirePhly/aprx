@@ -74,7 +74,7 @@ void aprsis_init(void)
 }
 
 void enable_aprsis_rx_dupecheck(void) {
-	aprsis_rx_dupecheck = new_dupecheck();
+	aprsis_rx_dupecheck = dupecheck_new();
 }
 
 static void sig_handler(int sig)
@@ -594,15 +594,16 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 	char *p;
 	struct aprsis_tx_msg_head head;
 	int newlen;
+	dupe_record_t *dp;
 
 	if (addrlen == 0)      /* should never be... */
 		addrlen = strlen(addr);
 
 	if (aprsis_rx_dupecheck != NULL) {
-	  i = dupecheck(aprsis_rx_dupecheck, 
-			addr, addrlen,
-			text, textlen);
-	  if (i != 0) return 1; // Bad either as dupe, or due to alloc failure
+	  dp = dupecheck_aprs( aprsis_rx_dupecheck, 
+			       addr, addrlen,
+			       text, textlen );
+	  if (dp != NULL) return 1; // Bad either as dupe, or due to alloc failure
 	}
 
 	newlen = sizeof(head) + addrlen + gwlen + textlen + 6;

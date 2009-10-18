@@ -27,13 +27,14 @@
  *	dupecheck.c: the dupe-checkers
  */
 
-static int          dupecheck_cellgauge;
-static dupecheck_t *dupecheckers;
-static int          dupefilter_storetime = 30; /* 30 seconds */
+static int           dupecheck_cellgauge;
+static int           dupecheckers_count;
+static dupecheck_t **dupecheckers;
+static int           dupefilter_storetime = 30; /* 30 seconds */
 
 
 #ifndef _FOR_VALGRIND_
-struct dupe_record_t *dupecheck_free;
+dupe_record_t *dupecheck_free;
 cellarena_t *dupecheck_cells;
 #endif
 
@@ -55,23 +56,25 @@ void dupecheck_init(void)
 }
 
 /*
- * new_dupecheck() creates a new instance of dupechecker
+ * dupecheck_new() creates a new instance of dupechecker
  *
  */
-dupecheck_t *new_dupecheck(void) {
+dupecheck_t *dupecheck_new(void) {
 	dupecheck_t *dp = malloc(sizeof(dupecheck_t));
 	memset(dp, 0, sizeof(*dp));
-	dp->next = dupecheckers;
-	dupecheckers = dp;
+
+	++dupecheckers_count;
+	dupecheckers = realloc(dupecheckers,
+			       sizeof(dupecheck_t *) * dupecheckers_count);
+	dupecheckers[ dupecheckers_count -1 ] = dp;
 
 	return dp;
 }
 
 
-
-static struct dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
+static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 {
-	struct dupe_record_t *dp;
+	dupe_record_t *dp;
 #ifndef _FOR_VALGRIND_
 	if (dupecheck_free) { /* pick from free chain */
 		dp = dupecheck_free;
@@ -80,23 +83,30 @@ static struct dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 		dp = cellmalloc(dupecheck_cells);
 	if (!dp)
 		return NULL;
-#else
-	dp = malloc(pktlen + sizeof(*dp));
-#endif
+	// cellmalloc() block may need separate pktbuf
 	memset(dp, 0, sizeof(*dp));
+	if (pktlen > sizeof(dp->packetbuf))
+		dp->packet = malloc(pktlen+1);
+#else
+	// directly malloced block is fine as is
+	dp = malloc(pktlen + sizeof(*dp));
+	memset(dp, 0, sizeof(*dp));
+#endif
 	dp->alen = alen;
 	dp->plen = pktlen;
 	dp->packet = dp->packetbuf;
-	if (pktlen > sizeof(dp->packetbuf))
-		dp->packet = malloc(pktlen+1);
 
 	++dupecheck_cellgauge;
 
 	return dp;
 }
 
-static void dupecheck_db_free(struct dupe_record_t *dp)
+static void dupecheck_db_free(dupe_record_t *dp)
 {
+	if (dp->pbuf != NULL) { // If a pbuf is referred, release it
+		pbuf_put(dp->pbuf); // decrements refcount - and frees at zero.
+		dp->pbuf = NULL;
+	}
 #ifndef _FOR_VALGRIND_
 	if (dp->packet != dp->packetbuf)
 		free(dp->packet);
@@ -117,40 +127,43 @@ static void dupecheck_db_free(struct dupe_record_t *dp)
  */
 static void dupecheck_cleanup(void)
 {
-	struct dupe_record_t *dp, **dpp;
-	int cleancount = 0, i;
+	dupe_record_t *dp, **dpp;
+	int cleancount = 0, i, d;
 
-	struct dupecheck_t *dpc = dupecheckers;
+	// All dupecheckers..
+	for (d = 0; d < dupecheckers_count; ++d) {
 
-	for ( ; dpc != NULL; dpc = dpc->next ) {
-
-	    for (i = 0; i < DUPECHECK_DB_SIZE; ++i) {
-		dpp = & (dpc->dupecheck_db[i]);
-		while (( dp = *dpp )) {
-		    if (dp->t < now) {
-			/* Old..  discard. */
-			*dpp = dp->next;
-			dp->next = NULL;
-			dupecheck_db_free(dp);
-			++cleancount;
-			continue;
-		    }
-		    /* No expiry, just advance the pointer */
-		    dpp = &dp->next;
-		}
+	  // Within this dupechecker...
+	  struct dupecheck_t *dpc = dupecheckers[d];
+	  for (i = 0; i < DUPECHECK_DB_SIZE; ++i) {
+	    dpp = & (dpc->dupecheck_db[i]);
+	    while (( dp = *dpp )) {
+	      if (dp->t < now) {
+		/* Old..  discard. */
+		*dpp = dp->next;
+		dp->next = NULL;
+		dupecheck_db_free(dp);
+		++cleancount;
+		continue;
+	      }
+	      /* No expiry, just advance the pointer */
+	      dpp = &dp->next;
 	    }
+	  }
 	}
 	// hlog( LOG_DEBUG, "dupecheck_cleanup() removed %d entries, count now %ld",
 	//       cleancount, dupecheck_cellgauge );
 }
 
 /*
- *	check a single packet for duplicates
+ *	Check a single packet for duplicates in APRS sense
+ *	The addr/alen must be in TNC2 monitor format, data/dlen
+ *      are expected to be APRS payload as well.
  */
 
-int dupecheck(dupecheck_t *dpc,
-	      const char *addr, const int alen,
-	      const char *data, const int dlen)
+dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
+			      const char *addr, const int alen,
+			      const char *data, const int dlen)
 {
 	/* check a single packet */
 	// pb->flags |= F_DUPE; /* this is a duplicate! */
@@ -159,7 +172,7 @@ int dupecheck(dupecheck_t *dpc,
 	int addrlen;  // length of the address part
 	int datalen;  // length of the payload
 	uint32_t hash, idx;
-	struct dupe_record_t **dpp, *dp;
+	dupe_record_t **dpp, *dp;
 
 	// 1) collect canonic rep of the address
 	for (addrlen = 0; addrlen < alen; ++ addrlen) {
@@ -169,13 +182,11 @@ int dupecheck(dupecheck_t *dpc,
 		}
 	}
 
-
 	// Canonic tail has no SPACEs in data portion!
 	// TODO: how to treat 0 bytes ???
 	datalen = dlen;
 	while (datalen > 0 && data[datalen-1] == ' ')
 		--datalen;
-
 
 	// there are no 3rd-party frames in APRS-IS ...
 
@@ -209,7 +220,8 @@ int dupecheck(dupecheck_t *dpc,
 			    memcmp(addr, dp->addresses, addrlen) == 0 &&
 			    memcmp(data, dp->packet,    datalen) == 0) {
 				// PACKET MATCH!
-				return 1;
+				dp->seen += 1;
+				return dp;
 			}
 			// no packet match.. check next
 		}
@@ -220,14 +232,127 @@ int dupecheck(dupecheck_t *dpc,
 	// 4) Add comparison copy of non-dupe into dupe-db
 
 	dp = dupecheck_db_alloc(addrlen, datalen);
-	if (!dp) return -1; // alloc error!
+	if (!dp) return NULL; // alloc error!
+
+	dp->seen = 1;  // First observation gets number 1
 
 	*dpp = dp;
 	memcpy(dp->addresses, addr, addrlen);
 	memcpy(dp->packet,    data, datalen);
 	dp->hash = hash;
 	dp->t    = now + dupefilter_storetime;
-	return 0;
+	return NULL;
+}
+
+
+/*
+ *  dupecheck_pbuf() returns pointer to dupe record, if pbuf is
+ *  a duplicate.  Otherwise it return a NULL.
+ */
+dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
+{
+	int i;
+	uint32_t hash, idx;
+	dupe_record_t **dpp, *dp;
+	const char *addr = pb->data;
+	int   alen = pb->dstcall_end - addr;
+
+	const char *data = pb->info_start;
+	int   dlen = pb->packet_len-2 - (data - addr); // payload sans CRLF
+
+	int addrlen = alen;
+	int datalen = dlen;
+	char *p;
+
+	// Canonic tail has no SPACEs in data portion!
+	// TODO: how to treat 0 bytes ???
+	
+	if (!pb->is_aprs) {
+		// data and dlen are raw AX.25 section pointers
+		data    = (const char*) pb->ax25data;
+		datalen = pb->ax25datalen;
+
+	} else {  // Do with APRS rules
+	    for (;;) {
+
+		// 1) collect canonic rep of the address
+		for (addrlen = 0; addrlen < alen; ++ addrlen) {
+			const char c = addr[addrlen];
+			if (c == '-' || c == 0 || c == ',' || c == ':') {
+				break;
+			}
+		}
+		while (datalen > 0 && data[datalen-1] == ' ')
+			--datalen;
+
+		if (data[0] == '}') {
+			// 3rd party frame!
+			addr = data+1;
+			p = memchr(addr,':',datalen-1);
+			if (p == NULL)
+				break; // Invalid 3rd party frame, no ":" in it
+			alen = p - addr;
+			data = p+1;
+			datalen -= alen +1;
+			continue;  // repeat the processing!
+		}
+		break; // No repeat necessary in general case
+	    }
+	}
+
+	// 2) calculate checksum (from disjoint memory areas)
+
+	hash = keyhash(addr, addrlen, 0);
+	hash = keyhash(data, datalen, hash);
+	idx  = hash;
+
+	// 3) lookup if same checksum is in some hash bucket chain
+	//  3b) compare packet...
+	//    3b1) flag as F_DUPE if so
+	idx ^= (idx >> 24); /* fold the hash bits.. */
+	idx ^= (idx >> 12); /* fold the hash bits.. */
+	idx ^= (idx >>  6); /* fold the hash bits.. */
+	i = idx % DUPECHECK_DB_SIZE;
+	dpp = &(dpc->dupecheck_db[i]);
+	while (*dpp) {
+		dp = *dpp;
+		if (dp->t < now) {
+			// Old ones are discarded when seen
+			*dpp = dp->next;
+			dp->next = NULL;
+			dupecheck_db_free(dp);
+			continue;
+		}
+		if (dp->hash == hash) {
+			// HASH match!  And not too old!
+			if (dp->alen == addrlen &&
+			    dp->plen == datalen &&
+			    memcmp(addr, dp->addresses, addrlen) == 0 &&
+			    memcmp(data, dp->packet,    datalen) == 0) {
+				// PACKET MATCH!
+				dp->seen += 1;
+				return dp;
+			}
+			// no packet match.. check next
+		}
+		dpp = &dp->next;
+	}
+	// dpp points to pointer at the tail of the chain
+
+	// 4) Add comparison copy of non-dupe into dupe-db
+
+	dp = dupecheck_db_alloc(addrlen, datalen);
+	if (dp) return NULL; // alloc error!
+
+	dp->pbuf = pbuf_get(pb); // increments refcount
+	dp->seen = 1;  // First observation gets number 1
+
+	*dpp = dp;
+	memcpy(dp->addresses, addr, addrlen);
+	memcpy(dp->packet,    data, datalen);
+	dp->hash = hash;
+	dp->t    = now + dupefilter_storetime;
+	return NULL;
 }
 
 /*
