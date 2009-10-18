@@ -1,7 +1,7 @@
 2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* digipeater.c, interface.c, telemetry.c, aprx.h, ttyreader.c,
-	  erlang.c:
+	  erlang.c, aprx-stat.c:
 	    Start transmitting digipeated frames to ttyreader's KISS
 	    output.  netax25's similar interface is not tested.
 	    Changed also the Erlang dataset format, and begun to
