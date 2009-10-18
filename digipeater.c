@@ -648,7 +648,11 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	if (pb->is_aprs) {
 		dupe = dupecheck_pbuf( digi->dupechecker, pb );
 		if (dupe != NULL &&
-		    dupe->seen > 1) return; // Already Nth observation
+		    dupe->seen > 1) {
+			if (debug)
+			  printf("Seen this packet %d times\n",dupe->seen);
+			return; // Already Nth observation
+		}
 	}
 
 // FIXME: 1.1) optional viscous delay!
