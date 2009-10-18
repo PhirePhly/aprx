@@ -76,15 +76,22 @@ static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 {
 	dupe_record_t *dp;
 #ifndef _FOR_VALGRIND_
+//	if (debug) printf("DUPECHECK db alloc(alen=%d,dlen=%d) %s",
+//			  alen,pktlen, dupecheck_free ? "FreeChain":"CellMalloc");
+
 	if (dupecheck_free) { /* pick from free chain */
 		dp = dupecheck_free;
 		dupecheck_free = dp->next;
-	} else
+		dp->next = NULL;
+	} else {
 		dp = cellmalloc(dupecheck_cells);
-	if (!dp)
+	}
+//	if (debug) printf(" dp=%p\n",dp);
+	if (dp == NULL)
 		return NULL;
 	// cellmalloc() block may need separate pktbuf
 	memset(dp, 0, sizeof(*dp));
+	dp->packet = dp->packetbuf;
 	if (pktlen > sizeof(dp->packetbuf))
 		dp->packet = malloc(pktlen+1);
 #else
@@ -94,10 +101,9 @@ static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 #endif
 	dp->alen = alen;
 	dp->plen = pktlen;
-	dp->packet = dp->packetbuf;
 
 	++dupecheck_cellgauge;
-
+	// if(debug)printf("DUPECHECK db alloc() returning dp=%p\n",dp);
 	return dp;
 }
 
@@ -175,10 +181,14 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	dupe_record_t **dpp, *dp;
 
 	// 1) collect canonic rep of the address
+	i = 1;
 	for (addrlen = 0; addrlen < alen; ++ addrlen) {
 		const char c = addr[addrlen];
-		if (c == '-' || c == 0 || c == ',' || c == ':') {
+		if (c == 0 || c == ',' || c == ':') {
 			break;
+		}
+		if (c == '-' && i) {
+			i = 0;
 		}
 	}
 
@@ -232,11 +242,11 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	// 4) Add comparison copy of non-dupe into dupe-db
 
 	dp = dupecheck_db_alloc(addrlen, datalen);
-	if (!dp) return NULL; // alloc error!
+	if (dp == NULL) return NULL; // alloc error!
+	*dpp = dp; // Put it on tail of existing chain
 
 	dp->seen = 1;  // First observation gets number 1
 
-	*dpp = dp;
 	memcpy(dp->addresses, addr, addrlen);
 	memcpy(dp->packet,    data, datalen);
 	dp->hash = hash;
@@ -276,10 +286,14 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
 	    for (;;) {
 
 		// 1) collect canonic rep of the address
+		i = 1;
 		for (addrlen = 0; addrlen < alen; ++ addrlen) {
 			const char c = addr[addrlen];
-			if (c == '-' || c == 0 || c == ',' || c == ':') {
+			if (c == 0 || c == ',' || c == ':') {
 				break;
+			}
+			if (c == '-' && i) {
+				i = 0;
 			}
 		}
 		while (datalen > 0 && data[datalen-1] == ' ')
@@ -305,6 +319,15 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
 	hash = keyhash(addr, addrlen, 0);
 	hash = keyhash(data, datalen, hash);
 	idx  = hash;
+
+	/* if (debug>1) {
+	     printf("DUPECHECK: Addr='");
+	     fwrite(addr, 1, addrlen, stdout);
+	     printf("' Data='");
+	     fwrite(data, 1, datalen, stdout);
+	     printf("'  hash=%x\n", hash);
+	   }
+	*/
 
 	// 3) lookup if same checksum is in some hash bucket chain
 	//  3b) compare packet...
@@ -342,12 +365,15 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
 	// 4) Add comparison copy of non-dupe into dupe-db
 
 	dp = dupecheck_db_alloc(addrlen, datalen);
-	if (dp) return NULL; // alloc error!
+	if (dp == NULL) {
+	  if (debug) printf("DUPECHECK ALLOC ERROR!\n");
+	  return NULL; // alloc error!
+	}
+	*dpp = dp; // Put it on tail of existing chain
 
 	dp->pbuf = pbuf_get(pb); // increments refcount
 	dp->seen = 1;  // First observation gets number 1
 
-	*dpp = dp;
 	memcpy(dp->addresses, addr, addrlen);
 	memcpy(dp->packet,    data, datalen);
 	dp->hash = hash;
