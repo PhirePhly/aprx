@@ -74,6 +74,7 @@ struct pbuf_t {
 	struct pbuf_t *next;
 
 	int	 is_aprs;	// If not, then just digipeated frame..
+	int	 digi_like_aprs;
 
 	uint16_t refcount;
 

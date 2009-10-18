@@ -14,11 +14,11 @@ static int digi_count;
 static struct digipeater **digis;
 
 struct digistate {
+	int fixthis;
 	int reqhops;
 	int donehops;
 	int tracereq;
 	int tracedone;
-
 	int traces;
 
 	int           ax25addrlen;
@@ -125,8 +125,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 
 	req = reqc - '0';
 
-	// WIDE1 or WIDE1*
-	if (c == 0 || (c == '*' && remc == 0)) {
+	if (c == '*' && remc == 0) { // WIDE1*
 		state->reqhops  += req;
 		state->donehops += req;
 		if (istrace) {
@@ -134,6 +133,17 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 		  state->tracedone += req;
 		}
 		if (debug>1) printf(" e[req=%d,done=%d]",req,req);
+		return;
+	}
+	if (c == 0) { // Bogus WIDE1 - uidigi puts these out.
+		state->fixthis = 1;
+		state->reqhops  += req;
+		state->donehops += req;
+		if (istrace) {
+		  state->tracereq  += req;
+		  state->tracedone += req;
+		}
+		if (debug>1) printf(" E[req=%d,done=%d]",req,req);
 		return;
 	}
 	// Not WIDE1-
@@ -171,6 +181,19 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 	}
 }
 
+static int match_transmitter(char *viafield, struct digipeater_source *src)
+{
+	struct aprx_interface *aif = src->parent->transmitter;
+	int tlen = strlen(aif->callsign);
+
+	if (memcmp(viafield, aif->callsign, tlen) == 0) {
+	  if (viafield[tlen] == '*')
+	    return 1;
+	}
+
+	return 0;
+}
+
 /* Parse executed and requested WIDEn-N/TRACEn-N info */
 static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *src, struct pbuf_t *pb)
 {
@@ -178,22 +201,26 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	const char *s;
 	char viafield[14];
 	int have_fault = 0;
+	int viaindex = 1; // First via index will be 2..
 
 	if(debug>1) printf(" hops count: %s ",p);
 
 	while (p < pb->info_start) {
+	  int len = 0;
+
 	  for (s = p; s < pb->info_start; ++s) {
 	    if (*s == ',' || *s == ':') {
 	      break;
 	    }
 	  }
-	  // p..s is now one VIA field.
+	  // [p..s] is now one VIA field.
 	  if (s == p && *p != ':') {  // BAD!
 	    have_fault = 1;
 	    if (debug>1) printf(" S==P ");
 	    break;
 	  }
 	  if (*p == 'q') break; // APRSIS q-constructs..
+	  ++viaindex;
 
 	  memcpy(viafield, p, s-p);
 	  viafield[s-p] = 0;
@@ -201,21 +228,32 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  p = s;
 	  
 	  // VIA-field picked up, now analyze it..
-	  for (;;) {
-	    int len = 0;
-	    if ((len = match_tracewide(viafield, src->src_trace))) {
-	      count_single_tnc2_tracewide(state, viafield, 1, len);
-	    } else if ((len = match_tracewide(viafield, src->parent->trace))) {
-	      count_single_tnc2_tracewide(state, viafield, 1, len);
-	    } else if ((len = match_tracewide(viafield, src->src_wide))) {
-	      count_single_tnc2_tracewide(state, viafield, 0, len);
-	    } else if ((len = match_tracewide(viafield, src->parent->wide))) {
-	      count_single_tnc2_tracewide(state, viafield, 0, len);
-	    } else {
-	      // Account traced nodes (or some such)
-	      count_single_tnc2_tracewide(state, viafield, 1, 0);
-	    }
-	    break;
+
+	  if (match_transmitter(viafield, src))
+	    return 1; /* Oops, LOOP!  I have transmit this in past
+			 (according to my transmitter callsign present
+			 in a VIA field!)
+		      */
+
+	  if ((len = match_tracewide(viafield, src->src_trace))) {
+	    count_single_tnc2_tracewide(state, viafield, 1, len);
+	  } else if ((len = match_tracewide(viafield, src->parent->trace))) {
+	    count_single_tnc2_tracewide(state, viafield, 1, len);
+	  } else if ((len = match_tracewide(viafield, src->src_wide))) {
+	    count_single_tnc2_tracewide(state, viafield, 0, len);
+	  } else if ((len = match_tracewide(viafield, src->parent->wide))) {
+	    count_single_tnc2_tracewide(state, viafield, 0, len);
+	  } else {
+	    // Account traced nodes (or some such)
+	    count_single_tnc2_tracewide(state, viafield, 1, 0);
+	  }
+	  if (state->fixthis) {
+	    // Argh..  bogus WIDEn seen, which is what UIDIGIs put out..
+	    // Fixing it: We set the missing H-bit, and continue processing.
+	    // (That fixing is done in incoming AX25 address field, which
+	    //  we generally do not touch - with this exception.)
+	    pb->ax25addr[ 7*viaindex + 6 ] |= 0x80;
+	    state->fixthis = 0;
 	  }
 	}
 	if (debug>1) printf(" req=%d,done=%d [%s,%s,%s]\n",
@@ -595,10 +633,36 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
 
-	// if (debug) printf("digipeater_receive() from %s\n", src->src_if->callsign);
+	// Below numbers like "4)" refer to Requirement Specification
+	// paper chapter 2.6: Digipeater Rules
+
+// if (debug) printf("digipeater_receive() from %s\n", src->src_if->callsign);
+
+// FIXME: 4) feed to dupe-filter (transmitter specific)
+// FIXME: 4.1) optional viscous delay!
+//
+//	-- a bottom-half processing begins here..
+// FIXME: 4.2) If the dupe detector on this packet has reached count > 1, drop it.
+//        4.3) First struct pbuf_t stays in dupe-detector (with ++refcount),
+//             but the dupe-counts are held in separate storage separately
+//             for each transmitter's packet history.
+// 
+
+
+// FIXME: 2) Verify that none of our interface callsigns does not match any
+//           of already DIGIPEATED via fields! (fields that have H-bit set)
 
 	// Parse executed and requested WIDEn-N/TRACEn-N info
-	parse_tnc2_hops(&state, src, pb);
+	if (parse_tnc2_hops(&state, src, pb)) {
+		// A fault was observed! -- tests include "not this transmitter"
+		return;
+	}
+
+	if (pb->is_aprs) {
+// FIXME: 3) aprsc style filters checking in service area of the packet..
+	}
+
+	// 5) Hop-count filtering:
 
 	// APRSIS sourced packets have different rules than DIGIPEAT
 	// packets...
@@ -606,12 +670,12 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	  // if (debug) printf(" No remaining hops to execute.\n");
 	  return;
 	}
-	if (state.reqhops > digi->trace->maxreq ||
-	    state.reqhops > digi->wide->maxreq ||
-	    state.tracereq > digi->trace->maxreq ||
-	    state.donehops > digi->trace->maxdone ||
-	    state.donehops > digi->wide->maxdone ||
-	    state.tracedone > digi->trace->maxdone) {
+	if (state.reqhops   >= digi->trace->maxreq  ||
+	    state.reqhops   >= digi->wide->maxreq   ||
+	    state.tracereq  >= digi->trace->maxreq  ||
+	    state.donehops  >= digi->trace->maxdone ||
+	    state.donehops  >= digi->wide->maxdone  ||
+	    state.tracedone >= digi->trace->maxdone) {
 	  if (debug) printf(" Packet exceeds digipeat limits\n");
 	  return;
 	}
@@ -631,31 +695,53 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	    break;
 	}
 
+	// Unprocessed VIA field found
 	if (axaddr < e) {	// VIA-field of interest has been found
-	  if ((len = match_tracewide(viafield, src->src_trace))) {
-	    count_single_tnc2_tracewide(&viastate, viafield, 1, len);
-	  } else if ((len = match_tracewide(viafield, digi->trace))) {
-	    count_single_tnc2_tracewide(&viastate, viafield, 1, len);
-	  } else if ((len = match_tracewide(viafield, src->src_wide))) {
-	    count_single_tnc2_tracewide(&viastate, viafield, 0, len);
-	  } else if ((len = match_tracewide(viafield, digi->wide))) {
-	    count_single_tnc2_tracewide(&viastate, viafield, 0, len);
-	  } else if (strcmp(viafield,digi->transmitter->callsign) == 0) {
-	    // Match on the transmitter callsign without the star.
-	    // Treat it as a TRACE request.
-	    int acont = axaddr[6] & 0x01; // save old address continuation bit
-	    // Put the transmitter callsign in, and set the H-bit.
-	    memcpy(axaddr, digi->transmitter->ax25call, 7);
-	    axaddr[6] |= (0x80 | acont); // Set H-bit
 
-	  } else if (match_aliases(viafield, digi->transmitter)) {
-	    // Match on the aliases.
-	    // Treat it as a TRACE request.
-	    int acont = axaddr[6] & 0x01; // save old address continuation bit
-	    // Put the transmitter callsign in, and set the H-bit.
-	    memcpy(axaddr, digi->transmitter->ax25call, 7);
-	    axaddr[6] |= (0x80 | acont); // Set H-bit
+	  if (pb->digi_like_aprs) {
+	    if ((len = match_tracewide(viafield, src->src_trace))) {
+	      count_single_tnc2_tracewide(&viastate, viafield, 1, len);
+	    } else if ((len = match_tracewide(viafield, digi->trace))) {
+	      count_single_tnc2_tracewide(&viastate, viafield, 1, len);
+	    } else if ((len = match_tracewide(viafield, src->src_wide))) {
+	      count_single_tnc2_tracewide(&viastate, viafield, 0, len);
+	    } else if ((len = match_tracewide(viafield, digi->wide))) {
+	      count_single_tnc2_tracewide(&viastate, viafield, 0, len);
+	    } else if (strcmp(viafield,digi->transmitter->callsign) == 0) {
+	      // Match on the transmitter callsign without the star.
+	      // Treat it as a TRACE request.
+	      int acont = axaddr[6] & 0x01; // save old address continuation bit
+	      // Put the transmitter callsign in, and set the H-bit.
+	      memcpy(axaddr, digi->transmitter->ax25call, 7);
+	      axaddr[6] |= (0x80 | acont); // Set H-bit
+	      
+	    } else if (match_aliases(viafield, digi->transmitter)) {
+	      // Match on the aliases.
+	      // Treat it as a TRACE request.
+	      int acont = axaddr[6] & 0x01; // save old address continuation bit
+	      // Put the transmitter callsign in, and set the H-bit.
+	      memcpy(axaddr, digi->transmitter->ax25call, 7);
+	      axaddr[6] |= (0x80 | acont); // Set H-bit
+	    }
 
+	  } else { // Not "digi_as_aprs" rules
+
+	    if (strcmp(viafield,digi->transmitter->callsign) == 0) {
+	      // Match on the transmitter callsign without the star.
+	      // Treat it as a TRACE request.
+	      int acont = axaddr[6] & 0x01; // save old address continuation bit
+	      // Put the transmitter callsign in, and set the H-bit.
+	      memcpy(axaddr, digi->transmitter->ax25call, 7);
+	      axaddr[6] |= (0x80 | acont); // Set H-bit
+	      
+	    } else if (match_aliases(viafield, digi->transmitter)) {
+	      // Match on the aliases.
+	      // Treat it as a TRACE request.
+	      int acont = axaddr[6] & 0x01; // save old address continuation bit
+	      // Put the transmitter callsign in, and set the H-bit.
+	      memcpy(axaddr, digi->transmitter->ax25call, 7);
+	      axaddr[6] |= (0x80 | acont); // Set H-bit
+	    }
 	  }
 
 	  if (viastate.tracereq > viastate.tracedone) {
@@ -691,19 +777,21 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	  *u++ = 0;
 
 	  char tbuf[2800];
-	  int is_ui = 0, frameaddrlen = 0, tnc2addrlen = 0;
+	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0;
 	  int t2l = ax25_format_to_tnc( state.ax25addr, state.ax25addrlen+6,
 					tbuf, sizeof(tbuf),
 					& frameaddrlen, &tnc2addrlen,
-					& is_ui );
+					& is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
 	  printf("\n out-hdr: '%s'\n",tbuf);
 	}
+
+// FIXME: Feed to interface_transmit_ax25() with new header+body (or perhaps augment that interface to accept split packet?)
 }
 
 
 
-
+// Viscous queue processing needs poll interface for delayed actions
 int  digipeater_prepoll(struct aprxpolls *app) {
 	return 0;
 }
