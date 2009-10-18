@@ -24,8 +24,7 @@
  * --
  */
 
-static int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src,
-				   int markflag)
+int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src, int markflag)
 {
 	int i, c;
 	int ssid;
@@ -92,11 +91,12 @@ int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
 	}
 
 	while (i < 6) {
-		ax25[i] = ' ' << 1;
+		ax25[i] = 0; // ' ' << 1;
 		++i;
 	}
 
 	ax25[6] = ssidflags;
+	if (*text == 0) return 0;
 
 	if (*text == '-') {
 		++text;
@@ -129,23 +129,16 @@ void tnc2_to_ax25()
 	// AX25 format:   dest, src, via1, via2, via3, ... via8
 }
 
-/* Convert the binary packet to TNC2 monitor text format.
-   Return 0 if conversion fails (format errors), 1 when format is OK. */
-
-int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
-		 const int tncid, const int cmdbyte,
-		 const unsigned char *frame, const int framelen)
+int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
+		       char *tnc2buf, const int tnc2buflen,
+		       int *frameaddrlen, int *tnc2addrlen,
+		       int *is_ui)
 {
 	int i, j;
 	const unsigned char *s = frame;
 	const unsigned char *e = frame + framelen;
-	int frameaddrlen = 0;
-
-	char tnc2buf[2800];
 	char *t = tnc2buf;
-	int tnc2len, tnc2addrlen;
 	int viacount = 0;
-
 
 	if (framelen > sizeof(tnc2buf) - 80) {
 		/* Too much ! Too much! */
@@ -167,19 +160,19 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 
 	if (!((i & 0xE0) == 0x60 && (j & 0xE0) == 0xE0)) {
 	  if (debug)
-	    printf("Ax25toTNC2: %s SSID-bytes: %02x,%02x\n", tnc2buf, i,j);
+	    printf("Ax25FmtToTNC2: %s SSID-bytes: %02x,%02x\n", tnc2buf, i,j);
 	}
 
 	if (i < 0 /*  || ((i & 0xE0) != 0x60)*/) { // Top 3 bits should be: 011
 		/* Bad format */
 		if (debug)
-		  printf("Ax25toTNC2: Bad source address; SSID-byte=0x%02x\n",i);
+		  printf("Ax25FmtToTNC2: Bad source address; SSID-byte=0x%02x\n",i);
 		return 0;
 	}
 	if (j < 0/* || ((j & 0xE0) != 0xE0)*/) { // Top 3 bits should be: 111
 		/* Bad format */
 		if (debug)
-		  printf("Ax25toTNC2: Bad destination address; SSID-byte=0x%x\n",j);
+		  printf("Ax25FmtToTNC2: Bad destination address; SSID-byte=0x%x\n",j);
 		return 0;
 	}
 
@@ -191,10 +184,9 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 		for (; s < e;) {
 			*t++ = ',';	/* separator char */
 			i = ax25_to_tnc2_fmtaddress(t, s, 1); // Top 3 bits are:  H11  ( H = "has been digipeated" )
-			if (i < 0 || ((i & 0x60) != 0x60)) {
+			if (i < 0 /* || ((i & 0x60) != 0x60) */) {
 				/* Bad format */
-				if (debug)
-				  printf("Ax25toTNC2: Bad via address; SSID-byte=0x%x\n",i);
+			  if (debug) printf("Ax25FmtToTNC2: Bad via address; addr='%s' SSID-byte=0x%x\n",t,i);
 				return 0;
 			}
 
@@ -207,12 +199,14 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 	}
 	if (viacount > 8) {
 		if (debug)
-		  printf("Ax25toTNC2: Found %d via fields, limit is 8!\n", viacount);
+		  printf("Ax25FmtToTNC2: Found %d via fields, limit is 8!\n", viacount);
 		return 0;
 	}
 
-	frameaddrlen = s - frame;
-	tnc2addrlen  = t - tnc2buf;
+	if (frameaddrlen)
+	  *frameaddrlen = s - frame;
+	if (tnc2addrlen)
+	  *tnc2addrlen  = t - tnc2buf;
 
 	/* Address completed */
 
@@ -223,18 +217,11 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 
 	if ((*s++ != 0x03) || (*s++ != 0xF0)) {
 
-		tnc2len = t - tnc2buf;
-
-		// Send to interface system to receive it..  (digipeater!)
-		// A noop if the interface is actually NULL.
-		interface_receive_ax25(aif, portname, 0,
-				       frame, frameaddrlen, framelen,
-				       tnc2buf, tnc2addrlen, tnc2len);
-
 		/* Not AX.25 UI frame */
-		return 2; /* But say that the frame is OK, and
-			     let it be possibly copied to Linux
-			     internal AX.25 network. */
+		return t - tnc2buf;
+		/* But say that the frame is OK, and
+		   let it be possibly copied to Linux
+		   internal AX.25 network. */
 	}
 
 	/* Copy payload - stop at first LF char */
@@ -254,17 +241,41 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 		t[-1] = 0;
 	}
 
+	*is_ui = 1;
+
 	*t++ = '\r';
 	*t++ = '\n';
-	tnc2len = t - tnc2buf;
+	return t - tnc2buf;
+}
 
+/* Convert the binary packet to TNC2 monitor text format.
+   Return 0 if conversion fails (format errors), 1 when format is OK. */
+
+int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
+		 const int tncid, const int cmdbyte,
+		 const unsigned char *frame, const int framelen)
+{
+	int frameaddrlen = 0;
+
+	char tnc2buf[2800];
+	int tnc2len, tnc2addrlen, is_ui = 0;
+
+	tnc2len = ax25_format_to_tnc( frame, framelen,
+				      tnc2buf, sizeof(tnc2buf),
+				      & frameaddrlen, &tnc2addrlen,
+				      & is_ui );
+
+	if (tnc2len == 0) return 0; // Bad parse result
 
 	// Send to interface system to receive it..  (digipeater!)
 	// A noop if the interface is actually NULL.
-	interface_receive_ax25(aif, portname, 1,
+	interface_receive_ax25(aif, portname, is_ui,
 			       frame, frameaddrlen, framelen,
 			       tnc2buf, tnc2addrlen, tnc2len);
 
-	igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
+	if (is_ui) {
+		igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
+	}
+
 	return 1;
 }

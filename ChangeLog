@@ -1,4 +1,23 @@
+2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, ax25.c, interface.c, digipeater.c, aprx.conf.in,
+	  aprx-complex.conf.in:
+	    - Prefill AX.25 address field formatted ax25callsign
+	      field on all <interface> datastructures.  That comes
+	      handy when doing TRACE processing.
+	    - Put exact "callsigns" of "WIDE", "TRACE", and "RELAY"
+	      into system as interface callsign aliases. When they
+	      are present in the request path, substitute interface
+	      callsign there with H-bit set.
+	    - Update aprx.conf samples to how the system can be
+	      configured.
+
 2009-10-17  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, digipeater.c, interface.c, pbuf.h, parse_aprs.c:
+	    Digipeater preparation, system counts done and requested
+	    distribution operations with source specific as well as
+	    transmitter specific keywords.
 
 	* aprx.h, ax25.c, interface.c, aprsis.c, pbuf.c, parse_aprs.c:
 	    Changed a few "parse failed" returns to "parse OK".

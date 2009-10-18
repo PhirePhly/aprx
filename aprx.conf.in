@@ -169,7 +169,7 @@ erlangfile @VARRUN@/aprx.state
 #<digipeater>
 #    transmitter     $mycall
 #    #ratelimit      120      # default: max 120 packets/minute
-#
+
 #    <source>
 #        source         $mycall
 #    #   viscous-delay  0     # no viscous delay for RF->RF digipeating

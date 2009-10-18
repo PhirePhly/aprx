@@ -127,6 +127,7 @@ pidfile @VARRUN@/aprx.pid
 #<interface>
 #   ax25-device N0CALL
 #   tx-ok false
+#  #alias         RELAY,WIDE,TRACE
 #</interface>
 
 # The  radio serial  option.  Parameters are:
@@ -140,18 +141,17 @@ pidfile @VARRUN@/aprx.pid
 #
 #
 #<interface>
-# serial-device   /dev/ttyUSB0  19200 8n1    KISS
-# <kiss-subif 0>
-#    callsign N0CALL-14
-#    tx-ok    false
-# </kiss-subif>
+#   serial-device   /dev/ttyUSB0  19200 8n1    KISS
+#  #alias         RELAY,WIDE,TRACE
+#   <kiss-subif 0>
+#      callsign N0CALL-14
+#      tx-ok    false
+#   </kiss-subif>
 #</interface>
 #
 #<interface>
-# serial-device   /dev/ttyUSB1  19200 8n1    TNC2
-# <kiss-subif 0>  # Actually it is not KISS subif, but "0" works for TNC2
+#   serial-device   /dev/ttyUSB1  19200 8n1    TNC2
 #   callsign N0CALL-13
-# </kiss-subif>
 #</interface>
 #
 
@@ -204,22 +204,23 @@ pidfile @VARRUN@/aprx.pid
 # KISS-protocol parameters are same as with normal serial port.
 #
 #<interface>
-# tcp-device  12.34.56.78  4001  KISS
-# timeout 900 
-# <kiss-subif 0>
-#    callsign N0CALL-12
-#    tx-ok    false
-# </kiss-subif>
+#   tcp-device  12.34.56.78  4001  KISS
+#   timeout 900 
+#  #alias         RELAY,WIDE,TRACE
+#   <kiss-subif 0>
+#      callsign N0CALL-12
+#      tx-ok    false
+#   </kiss-subif>
 #</interface>
 #
 #<interface>
-# tcp-device  12.34.56.78  4002  TNC2
-# timeout 300
-# <kiss-subif 0>
-#    callsign N0CALL-12
-#    tx-ok    false
-# </kiss-subif>
-#
+#   tcp-device  12.34.56.78  4002  TNC2
+#   timeout 300
+#  #alias         RELAY,WIDE,TRACE
+#   <kiss-subif 0>
+#      callsign N0CALL-12
+#      tx-ok    false
+#   </kiss-subif>
 #</interface>
 
 
@@ -333,6 +334,8 @@ pidfile @VARRUN@/aprx.pid
 #    #</source>
 #    #<source>                  # APRSIS source makes this tx-igate
 #    #    interface   APRSIS
+#    #    viscous-delay    5   # recommendation: 5 seconds delay to
+#    #                         # give RF delivery time make itself known.
 #    #    # .. additional tx-igate options to be defined ..
 #    #</source>
 #
