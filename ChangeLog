@@ -1,5 +1,7 @@
 2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION: 1.91
+
 	* aprx.h, dupecheck.c, digipeater.c, pbuf.c, pbuf.h, aprsis.c,
 	  igate.c, keyhash.c:
 	    Digipeater local instance of dupechecker.  The dupe-checker
