@@ -231,6 +231,7 @@ extern void igate_from_aprsis(const char *ax25, int ax25len);
 extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
 			    int tnc2len, int discard);
 extern void enable_tx_igate(const char *, const char *);
+extern void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len);
 
 /* netax25.c */
 extern void        netax25_init(void);
@@ -336,8 +337,14 @@ typedef struct dupe_record_t {
 	time_t	 t;	// creation time
 	time_t	 t_exp;	// expiration time
 
-	struct pbuf_t *pbuf;
-	int16_t  seen;  // Count of times this packet has been seen
+	struct pbuf_t *pbuf;	// To send packet out of delayed processing,
+				// this pointer must be non-NULL.
+	int16_t  seen;		// Count of times this packet has been seen
+				// on non-delayed processing.  First one will
+				// be sent when pbuf is != NULL.
+	int16_t  delayed_seen;	// Count of times this packet has been seen
+				// on delayed processing.  The packet may get
+				// sent, if "seen" count is zero at delay end.
 	int16_t  refcount; // number of references on this entry
 	
 	int16_t	 alen;	// Address length

@@ -1,5 +1,23 @@
 2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, digipeater.c, dupecheck.c:
+	    - Fixed 3rd party dupechecking
+	    - Made possible to receive something into dupe storage as
+	      delayed observable, and still be able to relay something
+	      that is received from a non-delayed source, and be relayed
+	      out because it is first non-delayed one, and delayed ones
+	      have not been processed yet.
+
+	* aprx.h, igate.c:
+	    Make rflog() public function to be used by multiple parties.
+	    Also mark on the log line the direction to which the packet
+	    was going (R/T), and not only its source interface.
+
+	* ax25.c:
+	    Moved igate_to_aprsis() call before interface_receive_ax25(),
+	    and thus also log received packet on rf.log before it is sent
+	    out anywhere.
+
 	* aprx.h, interface.c, digipeater.c, aprx.8.in, aprx.conf.in,
 	  aprx-complex.conf.in, dupecheck.c:
 	    Moved viscous-delay processor into digipeater's <source>

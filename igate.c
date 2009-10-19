@@ -144,7 +144,8 @@ static int tnc2_forbidden_data(const char *t)
 */
 /* ---------------------------------------------------------- */
 
-static void rflog(const char *portname, int tncid, int discard, const char *tnc2buf, int tnc2len) {
+void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len)
+{
     if (rflogfile) {
 	FILE *fp = fopen(rflogfile, "a");
     
@@ -153,10 +154,9 @@ static void rflog(const char *portname, int tncid, int discard, const char *tnc2
 		struct tm *t = gmtime(&now);
 		strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	  
-		fprintf(fp, "%s %s", timebuf, portname);
-		if (tncid)
-			fprintf(fp, "_%d", tncid);
-		fprintf(fp, " ");
+		fprintf(fp, "%s %s ", timebuf, portname);
+		fprintf(fp, "%s ", istx ? "T":"R");
+
 		if (discard < 0) {
 			fprintf(fp, "*");
 		}
@@ -170,12 +170,10 @@ static void rflog(const char *portname, int tncid, int discard, const char *tnc2
     }
 }
 
-void verblog(const char *portname, int tncid, const char *tnc2buf, int tnc2len) {
+void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
     if (verbout) {
-        printf("%ld\t%s", (long) now, portname);
-	if (tncid)
-	    printf("_%d", tncid);
-	printf("\t#");
+        printf("%ld\t%s ", (long) now, portname);
+	printf("%s \t", istx ? "T":"R");
 	fwrite(tnc2buf, tnc2len, 1, stdout);
 	printf("\n");
     }
@@ -304,7 +302,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
 		verblog(portname, tncid, tnc2buf, tnc2len);
-		rflog(portname, tncid, discard, tnc2buf, tnc2len);
+		rflog(portname, 0, discard, tnc2buf, tnc2len);
 
 		/* Copy the 3rd-party message content into begining of the buffer... */
 		++t;				/* Skip the '}'		*/
@@ -355,8 +353,8 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 
 
 	/* DEBUG OUTPUT TO STDOUT ! */
-	verblog(portname, tncid, tnc2buf, tnc2len);
-	rflog(portname, tncid, discard, tnc2buf, tnc2len);
+	verblog(portname, 0, tnc2buf, tnc2len);
+	rflog(portname, 0, discard, tnc2buf, tnc2len);
 }
 
 
@@ -526,6 +524,9 @@ void igate_from_aprsis(const char *ax25,
 	  if (debug)printf("APRSIS dataframe too short to contain anything\n");
 	  return;
 	}
+
+if (debug)
+rflog("APRSIS  ",0,0,ax25, ax25len-2);
 
 	headsbuf = alloca(colonidx+1);
 	memcpy(headsbuf, ax25, colonidx+1);

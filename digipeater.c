@@ -385,6 +385,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	      break;
 	    }
 	  }
+	  if (*s == ':') break; // End of scannable area
 	  // [p..s] is now one VIA field.
 	  if (s == p && *p != ':') {  // BAD!
 	    have_fault = 1;
@@ -1022,6 +1023,24 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  printf("'\n");
 	}
 
+	if (pb->is_aprs && rflogfile) {
+	  // Essentially Debug logging.. to file
+	  char tbuf[2800];
+	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0;
+	  int t2l = ax25_format_to_tnc( state.ax25addr, state.ax25addrlen+6,
+					tbuf, sizeof(tbuf),
+					& frameaddrlen, &tnc2addrlen,
+					& is_ui, &ui_pid );
+	  tbuf[t2l] = 0;
+	  if (sizeof(tbuf) - pb->ax25datalen > t2l) {
+	    // Have space for body too, skip leading Ctrl+PID bytes
+	    memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2);
+	    t2l += pb->ax25datalen-2;
+
+	    rflog( digi->transmitter->callsign, 1, 0, tbuf, t2l );
+	  }
+	}
+
 	// Feed to interface_transmit_ax25() with new header and body
 	interface_transmit_ax25( digi->transmitter,
 				 state.ax25addr, state.ax25addrlen,
@@ -1056,22 +1075,32 @@ void digipeater_receive( struct digipeater_source *src,
 				printf("Seen this packet %d times\n",dupe->seen);
 			return; // Already Nth observation
 		}
+		if (dupe != NULL && dupe->seen == 1 && src->viscous_delay == 0) {
+		  // Immediate delivery even though the delay queue has
+		  // also a copy.  Remove the pbuf from delayed dupe entry,
+		  // and delete also our knowledge of that duplicate.
+		  // Thus making this case dupe-less immediate delivery.
+		  if (dupe->pbuf != NULL)
+		    pbuf_put(dupe->pbuf);
+		  dupe->pbuf = NULL;
+		  dupe = NULL;
+		}
 
 		// 1.1) optional viscous delay!
 
 		if (src->viscous_delay > 0 && dupe != NULL) {
-		  // Put the dupe_record_t on viscous delay queue..
-		  src->viscous_queue_size += 1;
-		  if (src->viscous_queue_size > src->viscous_queue_space) {
-		    src->viscous_queue_space += 16;
-		    src->viscous_queue = realloc( src->viscous_queue,
-						  sizeof(void*) *
-						  src->viscous_queue_space );
-		  }
-		  src->viscous_queue[ src->viscous_queue_size -1 ] = dupecheck_get(dupe);
-		  
-		   if (debug)printf("%ld ENTER VISCOUS QUEUE: len=%d dupe=%p pbuf=%p\n",
-		                    now, src->viscous_queue_size, dupe, dupe->pbuf);
+			// Put the dupe_record_t on viscous delay queue..
+			src->viscous_queue_size += 1;
+			if (src->viscous_queue_size > src->viscous_queue_space) {
+			  src->viscous_queue_space += 16;
+			  src->viscous_queue = realloc( src->viscous_queue,
+							sizeof(void*) *
+							src->viscous_queue_space );
+			}
+			src->viscous_queue[ src->viscous_queue_size -1 ] = dupecheck_get(dupe);
+			
+			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d dupe=%p pbuf=%p\n",
+					  now, src->viscous_queue_size, dupe, dupe->pbuf);
 		} else {
 			// Directly to backend
 			digipeater_receive_backend(src, pb, NULL);
@@ -1132,9 +1161,17 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	      time_t t = src->viscous_queue[0]->t  + src->viscous_delay;
 	      if (t <= now) {
 		struct dupe_record_t *dupe = src->viscous_queue[i];
-		if (debug)printf("%ld LEAVE VISCOUS QUEUE: %p pbuf=%p\n",
-				 now, dupe, dupe->pbuf);
-		digipeater_receive_backend(src, dupe->pbuf, dupe);
+		if (debug)printf("%ld LEAVE VISCOUS QUEUE: %p pbuf=%p seen=%d dseen=%d\n",
+				 now, dupe, dupe->pbuf, dupe->seen, dupe->delayed_seen);
+		if (dupe->pbuf != NULL && dupe->seen == 0) {
+		  // We send the first from viscous queue as long as
+		  // delayless observation count is zero.
+		  digipeater_receive_backend(src, dupe->pbuf, dupe);
+		}
+		if (dupe->pbuf != NULL) {
+		  pbuf_put(dupe->pbuf);
+		  dupe->pbuf = NULL;
+		}
 		dupecheck_put(dupe);
 		++donecount;
 	      }

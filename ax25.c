@@ -275,15 +275,16 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 
 	if (tnc2len == 0) return 0; // Bad parse result
 
+	// APRS type packets are first rx-igated (and rflog()ed)
+	if (is_aprs) {
+		igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
+	}
+
 	// Send to interface system to receive it..  (digipeater!)
 	// A noop if the interface is actually NULL.
 	interface_receive_ax25(aif, portname, is_aprs, ui_pid,
 			       frame, frameaddrlen, framelen,
 			       tnc2buf, tnc2addrlen, tnc2len);
-
-	if (is_aprs) {
-		igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
-	}
 
 	return 1;
 }
