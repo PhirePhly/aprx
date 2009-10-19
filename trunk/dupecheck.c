@@ -295,6 +295,15 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	int datalen = dlen;
 	char *p;
 
+	/* if (debug && pb->is_aprs) {
+	  printf("dupecheck[1] addr='");
+	  fwrite(addr, alen, 1, stdout);
+	  printf("' data='");
+	  fwrite(data, dlen, 1, stdout);
+	  printf("'\n");
+	} */
+
+
 	// Canonic tail has no SPACEs in data portion!
 	// TODO: how to treat 0 bytes ???
 	
@@ -328,7 +337,16 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 				break; // Invalid 3rd party frame, no ":" in it
 			alen = p - addr;
 			data = p+1;
-			datalen -= alen +1;
+			datalen -= alen +2;
+
+			/* if (debug && pb->is_aprs) {
+			  printf("dupecheck[2] 3rd-party: addr='");
+			  fwrite(addr, alen, 1, stdout);
+			  printf("' data='");
+			  fwrite(data, datalen, 1, stdout);
+			  printf("'\n");
+			} */
+
 			continue;  // repeat the processing!
 		}
 		break; // No repeat necessary in general case
@@ -336,6 +354,14 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	}
 
 	// 2) calculate checksum (from disjoint memory areas)
+
+	/* if (debug && pb->is_aprs) {
+	  printf("dupecheck[3] addr='");
+	  fwrite(addr, addrlen, 1, stdout);
+	  printf("' data='");
+	  fwrite(data, datalen, 1, stdout);
+	  printf("'\n");
+	} */
 
 	hash = keyhash(addr, addrlen, 0);
 	hash = keyhash(data, datalen, hash);
@@ -374,7 +400,11 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 			    memcmp(addr, dp->addresses, addrlen) == 0 &&
 			    memcmp(data, dp->packet,    datalen) == 0) {
 				// PACKET MATCH!
-				dp->seen += 1;
+				if (viscousdelay) {
+				  dp->delayed_seen += 1;
+				} else {
+				  dp->seen += 1;
+				}
 				return dp;
 			}
 			// no packet match.. check next
@@ -396,7 +426,11 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	memcpy(dp->packet,    data, datalen);
 
 	dp->pbuf  = pbuf_get(pb); // increments refcount
-	dp->seen  = 1;  // First observation gets number 1
+	if (viscousdelay) {
+	  dp->delayed_seen  = 1;  // First observation gets number 1
+	} else {
+	  dp->seen  = 1;  // First observation gets number 1
+	}
 
 	dp->hash  = hash;
 	dp->t     = now;
