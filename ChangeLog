@@ -1,3 +1,14 @@
+2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* digipeater.c, igate.c, config.c, aprx.h, aprx-complex.conf.in:
+	    Moved regexp reject filters from old style setup at igate.c
+	    to new style at digipeater.c.  This will not be able to reject
+	    trivially configurable things from Rx-IGate datastreams, but
+	    it can be used to control digipeating.
+
+	* ax25.c:
+	    Remove unnecessary debug printout.
+
 2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION: 1.91

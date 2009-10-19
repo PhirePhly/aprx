@@ -377,20 +377,20 @@ static void cfgparam(struct configfile *cf)
 			printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
+/*
 	} else if (strcmp(name, "ax25-filter") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
 		ax25_filter_add(param1, str);
-
 	} else if (strcmp(name, "ax25-reject-filter") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
 		ax25_filter_add(param1, str);
-
+*/
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",

@@ -325,12 +325,20 @@ pidfile @VARRUN@/aprx.pid
 #    <source>
 #        interface   TXCALL-1
 #    #   ratelimit   60    # default: 60 packets/minute
+#    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
+#    #   #regex-filter  destination  "RE-pattern" # --"--; generic
+#    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
+#    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
 #    #	 filter      "javAPRSSrvr adjunct filters"
 #    #   reject-srccall "LIST,OF,CALLSIGNS"
 #    #   reject-viacall "LIST,OF,CALLSIGNS"
 #    </source>
 #    #<source>                  # Extra receiver(s)
-#    #    interface   RXCALL-1
+#    #   interface   RXCALL-1
+#    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
+#    #   #regex-filter  destination  "RE-pattern" # --"--; generic
+#    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
+#    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
 #    #</source>
 #    #<source>                  # APRSIS source makes this tx-igate
 #    #    interface   APRSIS

@@ -43,6 +43,97 @@ static const struct tracewide default_wide_param = {
 	widewordlens
 };
 
+
+/*
+ * regex_filter_add() -- adds configured regular expressions
+ *                       into forbidden patterns list.
+ * 
+ * These are actually processed on TNC2 format text line, and not
+ * AX.25 datastream per se.
+ */
+static int regex_filter_add(struct configfile *cf,
+			    struct digipeater_source *src,
+			    char *param1,
+			    char *str)
+{
+	int rc;
+	int groupcode = -1;
+	regex_t re, *rep;
+	char errbuf[2000];
+
+	if (strcmp(param1, "source") == 0) {
+		groupcode = 0;
+	} else if (strcmp(param1, "destination") == 0) {
+		groupcode = 1;
+	} else if (strcmp(param1, "via") == 0) {
+		groupcode = 2;
+	} else if (strcmp(param1, "data") == 0) {
+		groupcode = 3;
+	} else {
+		printf("%s:%d Bad RE target: '%s'  must be one of: source, destination, via\n",
+		       cf->name, cf->linenum, param1);
+		return 1;
+	}
+
+	if (!*str) {
+		printf("%s:%d Expected RE pattern missing or a NUL string.\n",
+		       cf->name, cf->linenum);
+		return 1;		/* Bad input.. */
+	}
+
+	param1 = str;
+	str = config_SKIPTEXT(str, NULL); // Handle quoted string
+	str = config_SKIPSPACE(str);
+
+	memset(&re, 0, sizeof(re));
+	rc = regcomp(&re, param1, REG_EXTENDED | REG_NOSUB);
+
+	if (rc != 0) {		/* Something is bad.. */
+		*errbuf = 0;
+		regerror(rc, &re, errbuf, sizeof(errbuf));
+		printf("%s:%d Bad POSIX RE input, error: %s\n",
+		       cf->name, cf->linenum, errbuf);
+		return 1;
+	}
+
+	/* param1 and str were processed successfully ... */
+
+	rep = malloc(sizeof(*rep));
+	*rep = re;
+
+	switch (groupcode) {
+	case 0:
+		src->sourceregscount += 1;
+		src->sourceregs =
+			realloc(src->sourceregs,
+				src->sourceregscount * sizeof(void *));
+		src->sourceregs[src->sourceregscount - 1] = rep;
+		break;
+	case 1:
+		src->destinationregscount += 1;
+		src->destinationregs =
+			realloc(src->destinationregs,
+				src->destinationregscount * sizeof(void *));
+		src->destinationregs[src->destinationregscount - 1] = rep;
+		break;
+	case 2:
+		src->viaregscount += 1;
+		src->viaregs = realloc(src->viaregs,
+				       src->viaregscount * sizeof(void *));
+		src->viaregs[src->viaregscount - 1] = rep;
+		break;
+	case 3:
+		src->dataregscount += 1;
+		src->dataregs =
+			realloc(src->dataregs,
+				src->dataregscount * sizeof(void *));
+		src->dataregs[src->dataregscount - 1] = rep;
+		break;
+	}
+	return 0; // OK state
+}
+
+
 static int match_tracewide(const char *via, const struct tracewide *twp)
 {
 	int i;
@@ -180,7 +271,7 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 	}
 }
 
-static int match_transmitter(char *viafield, struct digipeater_source *src)
+static int match_transmitter(const char *viafield, struct digipeater_source *src)
 {
 	struct aprx_interface *aif = src->parent->transmitter;
 	int tlen = strlen(aif->callsign);
@@ -193,6 +284,70 @@ static int match_transmitter(char *viafield, struct digipeater_source *src)
 	return 0;
 }
 
+static int try_reject_filters(const int  fieldtype,
+			      const char *viafield,
+			      struct digipeater_source *src)
+{
+	int i;
+	int stat = 0;
+	switch (fieldtype) {
+	case 0: // Source
+		for (i = 0; i < src->sourceregscount; ++i) {
+			stat = regexec(src->sourceregs[i],
+				       viafield, 0, NULL, 0);
+			if (stat == 0)
+				return 1;	/* MATCH! */
+		}
+		if (memcmp("MYCALL",viafield,6)==0) return 1;
+		if (memcmp("N0CALL",viafield,6)==0) return 1;
+		if (memcmp("NOCALL",viafield,6)==0) return 1;
+		break;
+	case 1: // Destination
+
+		for (i = 0; i < src->destinationregscount; ++i) {
+			int stat = regexec(src->destinationregs[i],
+					   viafield, 0, NULL, 0);
+			if (stat == 0)
+				return 1;	/* MATCH! */
+		}
+		if (memcmp("MYCALL",viafield,6)==0) return 1;
+		if (memcmp("N0CALL",viafield,6)==0) return 1;
+		if (memcmp("NOCALL",viafield,6)==0) return 1;
+		break;
+	case 2: // Via
+
+		for (i = 0; i < src->viaregscount; ++i) {
+			int stat = regexec(src->viaregs[i],
+					   viafield, 0, NULL, 0);
+			if (stat == 0)
+				return 1;	/* MATCH! */
+		}
+		if (memcmp("MYCALL",viafield,6)==0) return 1;
+		if (memcmp("N0CALL",viafield,6)==0) return 1;
+		if (memcmp("NOCALL",viafield,6)==0) return 1;
+		break;
+	case 3: // Data
+
+		for (i = 0; i < src->dataregscount; ++i) {
+			int stat = regexec(src->dataregs[i],
+					   viafield, 0, NULL, 0);
+			if (stat == 0)
+				return 1;	/* MATCH! */
+		}
+		break;
+	default:
+		if (debug)
+		  printf("try_reject_filters(fieldtype=%d) - CODE BUG\n",
+			 fieldtype);
+		return 1;
+	}
+	if (stat != 0 && stat != REG_NOMATCH) {
+		// Some odd reason for an error?
+		
+	}
+	return 0;
+}
+
 /* Parse executed and requested WIDEn-N/TRACEn-N info */
 static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *src, struct pbuf_t *pb)
 {
@@ -201,11 +356,29 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	char viafield[14];
 	int have_fault = 0;
 	int viaindex = 1; // First via index will be 2..
+	int len;
 
-	if(debug>1) printf(" hops count: %s ",p);
+	if (debug>1) printf(" hops count: %s ",p);
+
+	len = pb->srccall_end - pb->data;
+	memcpy(viafield, pb->data, len);
+	viafield[len] = 0;
+	if (try_reject_filters(0, viafield, src)) {
+	  if (debug>1) printf(" - Src filters reject\n");
+	  return 1; // Src reject filters
+	}
+
+	len = pb->dstcall_end - pb->destcall;
+	memcpy(viafield, pb->destcall, len);
+	viafield[len] = 0;
+	if (try_reject_filters(1, viafield, src)) {
+	  if (debug>1) printf(" - Dest filters reject\n");
+	  return 1; // Dest reject filters
+	}
+
 
 	while (p < pb->info_start) {
-	  int len = 0;
+	  len = 0;
 
 	  for (s = p; s < pb->info_start; ++s) {
 	    if (*s == ',' || *s == ':') {
@@ -228,11 +401,18 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  
 	  // VIA-field picked up, now analyze it..
 
-	  if (match_transmitter(viafield, src))
+	  if (try_reject_filters(2, viafield, src)) {
+	    if (debug>1) printf(" - Via filters reject\n");
+	    return 1; // via reject filters
+	  }
+
+	  if (match_transmitter(viafield, src)) {
+	    if (debug>1) printf(" - Tx match reject\n");
 	    return 1; /* Oops, LOOP!  I have transmit this in past
 			 (according to my transmitter callsign present
 			 in a VIA field!)
 		      */
+	  }
 
 	  if ((len = match_tracewide(viafield, src->src_trace))) {
 	    count_single_tnc2_tracewide(state, viafield, 1, len);
@@ -385,6 +565,9 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	struct aprx_filter       *filters = NULL;
 	struct tracewide    *source_trace = NULL;
 	struct tracewide     *source_wide = NULL;
+	struct digipeater_source regexsrc;
+
+	memset(&regexsrc, 0, sizeof(regexsrc));
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -427,6 +610,9 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		} else if (strcmp(name,"<wide>") == 0) {
 			source_wide  = digipeater_config_tracewide(cf, 0);
 
+		} else if (strcmp(name,"regex-filter") == 0) {
+		  has_fault |= regex_filter_add(cf, &regexsrc, param1, str);
+
 		} else if (strcmp(name,"filter") == 0) {
 		} else if (strcmp(name,"relay-format") == 0) {
 		} else {
@@ -443,10 +629,21 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->src_filters   = filters;
 		source->src_trace     = source_trace;
 		source->src_wide      = source_wide;
+
+		// RE pattern reject filters
+		source->sourceregscount      = regexsrc.sourceregscount;
+		source->sourceregs           = regexsrc.sourceregs;
+		source->destinationregscount = regexsrc.destinationregscount;
+		source->destinationregs      = regexsrc.destinationregs;
+		source->viaregscount         = regexsrc.viaregscount;
+		source->viaregs              = regexsrc.viaregs;
+		source->dataregscount        = regexsrc.dataregscount;
+		source->dataregs             = regexsrc.dataregs;
 	} else {
 		free_tracewide(source_trace);
 		free_tracewide(source_wide);
 		// filters_free(filters);
+		// free regexsrc's allocations
 	}
 
 	return source;
@@ -674,6 +871,11 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	}
 
 	if (pb->is_aprs) {
+	  if (try_reject_filters(3, pb->info_start, src)) {
+	    if (debug>1) printf(" - Data body regexp filters reject\n");
+	    return; // data body regexp reject filters
+	  }
+
 // FIXME: 3) aprsc style filters checking in service area of the packet..
 	}
 

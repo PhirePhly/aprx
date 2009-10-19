@@ -158,10 +158,9 @@ int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
 	j = ax25_to_tnc2_fmtaddress(t, frame + 0, 0);	/* destination */
 	t += strlen(t);
 
-	if (!((i & 0xE0) == 0x60 && (j & 0xE0) == 0xE0)) {
-	  if (debug)
-	    printf("Ax25FmtToTNC2: %s SSID-bytes: %02x,%02x\n", tnc2buf, i,j);
-	}
+//	if (!((i & 0xE0) == 0x60 && (j & 0xE0) == 0xE0)) {
+//	  if (debug) printf("Ax25FmtToTNC2: %s SSID-bytes: %02x,%02x\n", tnc2buf, i,j);
+//	}
 
 	if (i < 0 /*  || ((i & 0xE0) != 0x60)*/) { // Top 3 bits should be: 011
 		/* Bad format */
