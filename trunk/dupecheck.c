@@ -103,6 +103,9 @@ static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 	dp->plen = pktlen;
 
 	++dupecheck_cellgauge;
+
+	dupecheck_get(dp); // increment refcount
+
 	// if(debug)printf("DUPECHECK db alloc() returning dp=%p\n",dp);
 	return dp;
 }
@@ -125,6 +128,22 @@ static void dupecheck_db_free(dupe_record_t *dp)
 	--dupecheck_cellgauge;
 }
 
+// Increment refcount
+dupe_record_t *dupecheck_get(dupe_record_t *dp)
+{
+	dp->refcount += 1;
+	return dp;
+}
+
+// Decrement refcount, when zero, call free
+void dupecheck_put(dupe_record_t *dp)
+{
+	dp->refcount -= 1;
+	if (dp->refcount <= 0) {
+		dupecheck_db_free(dp);
+	}
+}
+
 /*	The  dupecheck_cleanup() is for regular database cleanups,
  *	Call this about once a minute.
  *
@@ -144,11 +163,11 @@ static void dupecheck_cleanup(void)
 	  for (i = 0; i < DUPECHECK_DB_SIZE; ++i) {
 	    dpp = & (dpc->dupecheck_db[i]);
 	    while (( dp = *dpp )) {
-	      if (dp->t < now) {
+	      if (dp->t_exp < now) {
 		/* Old..  discard. */
 		*dpp = dp->next;
 		dp->next = NULL;
-		dupecheck_db_free(dp);
+		dupecheck_put(dp);
 		++cleancount;
 		continue;
 	      }
@@ -216,11 +235,11 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if (dp->t < now) {
+		if (dp->t_exp < now) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
-			dupecheck_db_free(dp);
+			dupecheck_put(dp);
 			continue;
 		}
 		if (dp->hash == hash) {
@@ -245,12 +264,14 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	if (dp == NULL) return NULL; // alloc error!
 	*dpp = dp; // Put it on tail of existing chain
 
-	dp->seen = 1;  // First observation gets number 1
 
 	memcpy(dp->addresses, addr, addrlen);
 	memcpy(dp->packet,    data, datalen);
-	dp->hash = hash;
-	dp->t    = now + dupefilter_storetime;
+
+	dp->seen  = 1;  // First observation gets number 1
+	dp->hash  = hash;
+	dp->t     = now;
+	dp->t_exp = now + dupefilter_storetime;
 	return NULL;
 }
 
@@ -259,7 +280,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
  *  dupecheck_pbuf() returns pointer to dupe record, if pbuf is
  *  a duplicate.  Otherwise it return a NULL.
  */
-dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
+dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int viscousdelay)
 {
 	int i;
 	uint32_t hash, idx;
@@ -339,11 +360,11 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if (dp->t < now) {
+		if (dp->t_exp < now) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
-			dupecheck_db_free(dp);
+			dupecheck_put(dp);
 			continue;
 		}
 		if (dp->hash == hash) {
@@ -371,13 +392,17 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
 	}
 	*dpp = dp; // Put it on tail of existing chain
 
-	dp->pbuf = pbuf_get(pb); // increments refcount
-	dp->seen = 1;  // First observation gets number 1
-
 	memcpy(dp->addresses, addr, addrlen);
 	memcpy(dp->packet,    data, datalen);
-	dp->hash = hash;
-	dp->t    = now + dupefilter_storetime;
+
+	dp->pbuf  = pbuf_get(pb); // increments refcount
+	dp->seen  = 1;  // First observation gets number 1
+
+	dp->hash  = hash;
+	dp->t     = now;
+	dp->t_exp = now + dupefilter_storetime;
+
+	if (viscousdelay > 0) return dp;
 	return NULL;
 }
 

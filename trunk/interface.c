@@ -537,7 +537,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	// Feed it to digipeaters ...
 	for (i = 0; i < aif->digicount; ++i) {
-		digipeater_receive( aif->digipeaters[i], pb);
+		digipeater_receive( aif->digipeaters[i], pb, 0);
 	}
 
 	// .. and finally free up the pbuf (if refcount goes to zero)
@@ -558,6 +558,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned ch
 
 	if (debug)
 	  printf("interface_transmit_ax25(aif=%p, .., axlen=%d)\n",aif,axlen);
+	if (axlen == 0) return;
 
 
 	if (aif == NULL) return;
@@ -583,80 +584,147 @@ void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned ch
  *   - Parse the received frame for possible latter filters
  *   - Feed the resulting parsed packet to each digipeater
  *
+ *
+ *  Paths
+ *
+ * IGates should use the 3rd-party format on RF of
+ * IGATECALL>APRS,GATEPATH}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
+ * where GATEPATH is the path that the gated packet is to follow
+ * on RF. This format will allow IGates to prevent gating the packet
+ * back to APRS-IS.
+ * 
+ * q constructs should never appear on RF.
+ * The I construct should never appear on RF.
+ * Except for within gated packets, TCPIP and TCPXX should not be
+ * used on RF.
+ *
  */
 
-void interface_receive_tnc2(const struct aprx_interface *aif, const char *ifaddress, const char *tnc2buf, const int tnc2len)
+static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,0,     0,0x60 };
+static uint8_t viacall25[7] = { 'W'<<1,'I'<<1,'D'<<1,'E'<<1,'1'<<1,0,0x62 };
+
+
+void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen)
 {
-	int i;
+	int d;
 	struct pbuf_t *pb;
 	const char *p;
-	int tnc2addrlen = 0;
-	int ax25addrlen, ax25len = tnc2len; // A bit less, usually
-	unsigned char ax25buf[2800];
+
+	int tnc2addrlen;
+	int tnc2len;
+	char    *t;
+
+	int ax25addrlen;
+	int ax25len;
+	uint8_t *a;
+	
+	char     tnc2buf[2800];
+	uint8_t  ax25buf[2800];
+
 
 	if (debug)
-	  printf("interface_receive_tnc2() aif=%p, aif->digicount=%d\n",
-		 aif, aif ? aif->digicount : -1);
+	  printf("interface_receive_3rdparty() aif=%p, aif->digicount=%d\n",
+		 aif, aif ? aif->digicount : 0);
 
 
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digicount == 0) return; // No receivers for this source
 
-	p = memchr(tnc2buf, ':', tnc2len);
-	if (p != NULL) {
-		tnc2addrlen = p - tnc2buf;
-	} else {
-		// Bad TNC2 packet, no ':' in it..
-		if (debug)
-		  printf("Not found ':' in TNC2 buffer: '%*s'\n",
-			 tnc2len, tnc2buf);
-		return;
-	}
-
-	// FIXME: Parse the TNC2 format to AX.25 format
-	//        using ax25buf[] storage area.
-
-	// Allocate pbuf, it is born "gotten" (refcount == 1)
-	pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, 0, tnc2len);
-
-	memcpy((void*)(pb->data), tnc2buf, tnc2len);
-	pb->info_start = pb->data + tnc2addrlen + 1;
-	char *p2    = (char*)&pb->info_start[-1]; *p2 = 0;
-	char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
-
-	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
-	p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
-
-	p = pb->data;
-	for ( p = pb->data; p < (pb->info_start); ++p ) {
-		if (*p == '>') {
-			pb->srccall_end = p;
-			pb->destcall    = p+1;
-			continue;
-		}
-		if (*p == ',') {
-			pb->dstcall_end = p;
-			break;
-		}
-	}
-
-	// memcpy(pb->ax25addr, axbuf, axlen);
-	// pb->ax25data    = pb->ax25addr + ax25addrlen;
-	// pb->ax25datalen = ax25len - ax25addrlen;
-
-	// This is APRS packet, parse for APRS meaning ...
-	int rc = parse_aprs(pb);
-	printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
-	       rc ? "OK":"FAIL", srcif, pb->data,
-	       pb->info_start);
-
 	// Feed it to digipeaters ...
-	for (i = 0; i < aif->digicount; ++i) {
-		digipeater_receive( aif->digipeaters[i], pb);
-	}
+	for (d = 0; d < aif->digicount; ++d) {
+	  struct digipeater_source *digisrc = aif->digipeaters[d];
+	  struct digipeater        *digi    = digisrc->parent;
+	  struct aprx_interface    *tx_aif  = digi->transmitter;
 
-	// .. and finally free up the pbuf (if refcount goes to 0)
-	pbuf_put(pb);
+
+	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
+
+	  // FIXME: Parse the TNC2 format to AX.25 format
+	  //        using ax25buf[] storage area.
+	  memcpy(ax25buf,    toaprs, 7);           // AX.25 DEST call
+
+	  // FIXME: should this be IGATECALL, not tx_aif->ax25call ??
+	  memcpy(ax25buf+7,  tx_aif->ax25call, 7); // AX.25 SRC call
+
+	  memcpy(ax25buf+14, viacall25, 7);        // AX.25 VIA call
+
+	  ax25buf[3*7-1] |= 0x01;                  // DEST,SRC,VIA1
+	  ax25addrlen = 3*7;
+	  a = ax25buf + 3*7;
+
+	  *a++ = 0x03; // UI
+	  *a++ = 0xF0; // PID = 0xF0
+
+	  a += sprintf((char*)a, "}%s>%s,TCPIP,%s*:",
+		       fromcall, origtocall, igatecall );
+	  ax25len = a - ax25buf;
+	  if (tnc2datalen + ax25len > sizeof(ax25buf)) {
+	    // Urgh...  Can not fit it in :-(
+	    if(debug)printf("data does not fit into ax25buf: %d > %d\n",
+			    tnc2datalen+ax25len, (int)sizeof(ax25buf));
+	    continue;
+	  }
+	  memcpy(a, tnc2data, tnc2datalen);
+	  ax25len += tnc2datalen;
+
+	  // AX.25 packet is built, now build TNC2 version of it
+	  t = tnc2buf;
+	  t += sprintf(t, "%s>APRS,WIDE1-1", tx_aif->callsign);
+	  tnc2addrlen = t - tnc2buf;
+	  *t++ = ':';
+	  t += sprintf(t, "}%s>%s,TCPIP,%s*:",
+		       fromcall, origtocall, igatecall );
+	  if (tnc2datalen + (t-tnc2buf) +4 > sizeof(tnc2buf)) {
+	    // Urgh...  Can not fit it in :-(
+	    if(debug)printf("data does not fit into tnc2buf: %d > %d\n",
+			    (int)(tnc2datalen+(t-tnc2buf)+4),
+			    (int)sizeof(tnc2buf));
+	    continue;
+	  }
+	  memcpy(t, tnc2data, tnc2datalen);
+	  t += tnc2datalen;
+	  tnc2len = 2 + (t - tnc2buf);
+
+	  // Allocate pbuf, it is born "gotten" (refcount == 1)
+	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+
+	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
+	  pb->info_start = pb->data + tnc2addrlen + 1;
+	  char *p2    = (char*)&pb->info_start[-1]; *p2 = 0;
+	  char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+
+	  int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
+	  p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
+
+	  p = pb->data;
+	  for ( p = pb->data; p < (pb->info_start); ++p ) {
+	    if (*p == '>') {
+	      pb->srccall_end = p;
+	      pb->destcall    = p+1;
+	      continue;
+	    }
+	    if (*p == ',') {
+	      pb->dstcall_end = p;
+	      break;
+	    }
+	  }
+
+	  memcpy(pb->ax25addr, ax25buf, ax25len);
+	  pb->ax25addrlen = ax25addrlen;
+	  pb->ax25data    = pb->ax25addr + ax25addrlen;
+	  pb->ax25datalen = ax25len - ax25addrlen;
+
+	  // This is APRS packet, parse for APRS meaning ...
+	  int rc = parse_aprs(pb);
+	  printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
+		 rc ? "OK":"FAIL", srcif, pb->data,
+		 pb->info_start);
+
+	  digipeater_receive( digisrc, pb, 1);
+
+	  // .. and finally free up the pbuf (if refcount goes to 0)
+	  pbuf_put(pb);
+	}
 }
 
 /*

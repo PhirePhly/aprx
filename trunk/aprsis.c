@@ -1028,9 +1028,9 @@ static int aprsis_comssockread(int fd)
 	/* TODO: do something with the data ?
 	   A receive-only iGate does nothing, but Rx/Tx would do... */
 
-	/* Send the frame to internal AX.25 network */
+	/* Send the frame to Tx-IGate function */
 	if (i > 0)
-		igate_from_aprsis(buf, i+2); // two junk bytes..
+		igate_from_aprsis(buf, i);
 
 	return 1;
 }

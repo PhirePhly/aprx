@@ -1,5 +1,12 @@
 2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, interface.c, digipeater.c, aprx.8.in, aprx.conf.in,
+	  aprx-complex.conf.in, dupecheck.c:
+	    Moved viscous-delay processor into digipeater's <source>
+	    control area.  Implemented Tx-IGate's packet re-formatting
+	    rules on interface.c.  Implemented viscous-delay processing
+	    in digipeater. Added refcounting on dupe_record_t objects.
+
 	* digipeater.c, igate.c, config.c, aprx.h, aprx-complex.conf.in:
 	    Moved regexp reject filters from old style setup at igate.c
 	    to new style at digipeater.c.  This will not be able to reject

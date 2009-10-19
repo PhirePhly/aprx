@@ -37,9 +37,9 @@ mycall  N0CALL-1
 #login     $mycall	# login defaults to $mycall
 
 # APRS-IS server name and portnumber.
-# Every reconnect does re\-resolve the name to IP address.
+# Every reconnect does re-resolve the name to IP address.
 # There can be as many definitions as you want, and they will be
-# used in round\-robin fashion.  Heartbeat and filter definitions
+# used in round-robin fashion.  Heartbeat and filter definitions
 # must follow each server definition.
 
 server    rotate.aprs.net    14580
@@ -172,16 +172,17 @@ erlangfile @VARRUN@/aprx.state
 
 #    <source>
 #        source         $mycall
+#    #   #relay-type    digipeated # default mode is "digipeated"
 #    #   viscous-delay  0     # no viscous delay for RF->RF digipeating
 #    #   ratelimit      120   # default: max 120 packets/minute
 #    #   filter     "..."     # Optional filters to limit digipeated messages
 #    </source>
 #    #<source>                # Adding APRSIS source makes this tx-igate
 #    #    source        APRSIS
-#    #    # %%%% additional tx-igate options to be defined %%%%
-#    #    #  (like relay-format controls, APRSIS->RF in 3rd-party form)
-#    #    viscous-delay 5     # Recommendation, wait 5 sec before tx:in
-#    #   filter     "..."     # Optional filters to limit gated messages
+#    #    relay-type    third-party  # Must define this for APRSIS source!
+#    #    viscous-delay  5    # Recommendation: 5 seconds delay to give
+#    #                        # RF delivery time make itself known.
+#    #    filter     "..."    # Optional filters to limit gated messages
 #    #</source>
 #
 #</digipeater>

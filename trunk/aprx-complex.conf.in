@@ -309,7 +309,6 @@ pidfile @VARRUN@/aprx.pid
 #<digipeater>
 #    transmitter  TXCALL-1
 #    #ratelimit      300   # default: 300 packets/minute
-#    #viscous-delay    0   # default: no viscous delay
 #
 #    #<trace>
 #    #    maxreq     4
@@ -325,6 +324,8 @@ pidfile @VARRUN@/aprx.pid
 #    <source>
 #        interface   TXCALL-1
 #    #   ratelimit   60    # default: 60 packets/minute
+#    #   #relay-type    digipeated # default mode is "digipeated"
+#    #   viscous-delay    0   # default: no viscous delay
 #    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
@@ -335,16 +336,17 @@ pidfile @VARRUN@/aprx.pid
 #    </source>
 #    #<source>                  # Extra receiver(s)
 #    #   interface   RXCALL-1
+#    #   #relay-type    digipeated # default mode is "digipeated"
 #    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
 #    #</source>
 #    #<source>                  # APRSIS source makes this tx-igate
-#    #    interface   APRSIS
-#    #    viscous-delay    5   # recommendation: 5 seconds delay to
-#    #                         # give RF delivery time make itself known.
-#    #    # .. additional tx-igate options to be defined ..
+#    #    interface    APRSIS
+#    #    relay-type   third-party  # Must define this for APRSIS source!
+#    #    viscous-delay    5   # recommendation: 5 seconds delay to give
+#    #                         # RF delivery time make itself known.
 #    #</source>
 #
 #</digipeater>
