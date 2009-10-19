@@ -525,8 +525,7 @@ void igate_from_aprsis(const char *ax25,
 	  return;
 	}
 
-if (debug)
-rflog("APRSIS  ",0,0,ax25, ax25len-2);
+	rflog("APRSIS  ",0,0,ax25, ax25len);
 
 	headsbuf = alloca(colonidx+1);
 	memcpy(headsbuf, ax25, colonidx+1);
@@ -561,28 +560,26 @@ rflog("APRSIS  ",0,0,ax25, ax25len-2);
 	  }
 
 // FIXME: Hmm.. Really ??
-	  if (heads[i][0] == 'q') {
-	      ok_to_relay = 1;
+	  if (heads[i][0] == 'q' && heads[i][1] == 'A') {
+	    int qcode = heads[i][2];
+	    ok_to_relay = 1;
 
-	      // FIXME: Depending on qA? value, following may
-	      //        actually be heads[0], or some other..
-	      igatecall = heads[i+1];
-
-	      heads[i] = NULL;
+	    // Depending on qA? value, following may
+	    // actually be fromcall, or some other..
+	    igatecall = heads[i+1];
+	    switch (qcode) {
+	    case 'C':
+	      igatecall = fromcall;
 	      break;
-
-	    /*
-	    if (strcmp(heads[i], "qAR") == 0) {
-	      // qAR packets will be relayed
-	      ok_to_relay = 1;
-	      heads[i] = NULL;
-	      break;
-	    } else {
-	      // Other than "qAR", not accepted.
+	    case 'X':
 	      ok_to_relay = 0;
 	      break;
+	    default:
+	      break;
 	    }
-	    */
+	    
+	    heads[i] = NULL;
+	    break;
 	  }
 	}
 	if (!ok_to_relay) {
