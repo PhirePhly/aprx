@@ -506,17 +506,17 @@ static struct tracewide *digipeater_config_tracewide(struct configfile *cf, int 
 		// ... actual parameters
 		if (strcmp(name,"maxreq") == 0) {
 		  maxreq = atoi(param1);
-		  if (debug) printf(" maxreq %d\n",maxreq);
+		  // if (debug) printf(" maxreq %d\n",maxreq);
 
 		} else if (strcmp(name,"maxdone") == 0) {
 		  maxdone = atoi(param1);
-		  if (debug) printf(" maxdone %d\n",maxdone);
+		  // if (debug) printf(" maxdone %d\n",maxdone);
 
 		} else if (strcmp(name,"keys") == 0) {
 		  char *k = strtok(param1, ",");
 		  for (; k ; k = strtok(NULL,",")) {
 		    ++nkeys;
-		    if (debug) printf(" n=%d key='%s'\n",nkeys,k);
+		    // if (debug) printf(" n=%d key='%s'\n",nkeys,k);
 		    keywords = realloc(keywords, sizeof(char*) * nkeys);
 		    keywords[nkeys-1] = strdup(k);
 
@@ -558,6 +558,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	char *name, *param1;
 	char *str = cf->buf;
 	int has_fault = 0;
+	int viscous_delay = 0;
 
 	struct aprx_interface *source_aif = NULL;
 	struct digipeater_source  *source = NULL;
@@ -604,17 +605,51 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 				       cf->name, cf->linenum, param1);
 			}
 
+		} else if (strcmp(name, "viscous-delay") == 0) {
+			viscous_delay = atoi(param1);
+			if (debug) printf(" viscous-delay = %d\n",viscous_delay);
+			if (viscous_delay < 0) {
+			  printf("%s:%d Bad value for viscous-delay: '%s'\n",
+				 cf->name, cf->linenum, param1);
+			  viscous_delay = 0;
+			  has_fault = 1;
+			}
+			if (viscous_delay > 9) {
+			  printf("%s:%d Bad value for viscous-delay: '%s'\n",
+				 cf->name, cf->linenum, param1);
+			  viscous_delay = 9;
+			  has_fault = 1;
+			}
+
+		} else if (strcmp(name,"regex-filter") == 0) {
+			if (regex_filter_add(cf, &regexsrc, param1, str)) {
+			  has_fault = 1;
+			}
+
 		} else if (strcmp(name,"<trace>") == 0) {
 			source_trace = digipeater_config_tracewide(cf, 1);
 
 		} else if (strcmp(name,"<wide>") == 0) {
 			source_wide  = digipeater_config_tracewide(cf, 0);
 
-		} else if (strcmp(name,"regex-filter") == 0) {
-		  has_fault |= regex_filter_add(cf, &regexsrc, param1, str);
-
 		} else if (strcmp(name,"filter") == 0) {
-		} else if (strcmp(name,"relay-format") == 0) {
+		  printf("The 'filter' parameter is not yet implemented.\n");
+			has_fault = 1;
+		} else if (strcmp(name,"relay-type") == 0 ||
+			   strcmp(name,"relay-format") == 0) {
+			config_STRLOWER(param1);
+			if (strcmp(param1,"digipeat") == 0) {
+			  relaytype = DIGIRELAY_DIGIPEAT;
+			} else if (strcmp(param1,"digipeated") == 0) {
+			  relaytype = DIGIRELAY_DIGIPEAT;
+			} else if (strcmp(param1,"third-party") == 0) {
+			  relaytype = DIGIRELAY_THIRDPARTY;
+			} else if (strcmp(param1,"3rd-party") == 0) {
+			  relaytype = DIGIRELAY_THIRDPARTY;
+			} else {
+			  printf("%s:%d Digipeater <source>'s %s did not recognize: '%s' \n", cf->name, cf->linenum, name, param1);
+			  has_fault = 1;
+			}
 		} else {
 			has_fault = 1;
 		}
@@ -629,6 +664,8 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->src_filters   = filters;
 		source->src_trace     = source_trace;
 		source->src_wide      = source_wide;
+
+		source->viscous_delay = viscous_delay;
 
 		// RE pattern reject filters
 		source->sourceregscount      = regexsrc.sourceregscount;
@@ -658,7 +695,6 @@ void digipeater_config(struct configfile *cf)
 
 	struct aprx_interface *aif = NULL;
 	int ratelimit = 300;
-	int viscous_delay = 0;
 	int sourcecount = 0;
 	struct digipeater_source **sources = NULL;
 	struct digipeater *digi = NULL;
@@ -704,21 +740,6 @@ void digipeater_config(struct configfile *cf)
 			ratelimit = atoi(param1);
 			if (ratelimit < 10 || ratelimit > 300)
 				ratelimit = 300;
-
-		} else if (strcmp(name, "viscous-delay") == 0) {
-			viscous_delay = atoi(param1);
-			if (viscous_delay < 0) {
-			  printf("%s:%d Bad value for viscous-delay: '%s'\n",
-				 cf->name, cf->linenum, param1);
-			  viscous_delay = 0;
-			  has_fault = 1;
-			}
-			if (viscous_delay > 9) {
-			  printf("%s:%d Bad value for viscous-delay: '%s'\n",
-				 cf->name, cf->linenum, param1);
-			  viscous_delay = 9;
-			  has_fault = 1;
-			}
 
 		} else if (strcmp(name, "<trace>") == 0) {
 			traceparam = digipeater_config_tracewide(cf, 1);
@@ -790,8 +811,6 @@ void digipeater_config(struct configfile *cf)
 
 		digi->transmitter   = aif;
 		digi->ratelimit     = ratelimit;
-		digi->viscous_delay = viscous_delay;
-		digi->viscous_queue = NULL;
 		digi->dupechecker   = dupecheck_new();
 
 		digi->trace         = (traceparam != NULL) ? traceparam : & default_trace_param;
@@ -817,52 +836,33 @@ static int decrement_ssid(unsigned char *ax25addr)
 }
 
 
-
-void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
+static void digipeater_receive_backend(struct digipeater_source *src, struct pbuf_t *pb, dupe_record_t *dupe)
 {
 	int len;
 	struct digistate state;
 	struct digistate viastate;
-	char viafield[14];
 	struct digipeater *digi = src->parent;
-	dupe_record_t *dupe = NULL;
+	char viafield[14];
+
+	//	-- a bottom-half processing begins here..
+	// 1.2) If the dupe detector on this packet has reached count > 1, drop it.
+	// 1.3) First struct pbuf_t stays in dupe-detector (with ++refcount),
+	//      but the dupe-counts are held in separate storage for each
+	//      transmitter's packet history.
+
+	if (dupe != NULL && dupe->seen > 1) {
+		if (debug>1)
+			printf("Seen this packet %d times\n",dupe->seen);
+		return;
+	}
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
 
-	// Below numbers like "4)" refer to Requirement Specification
-	// paper chapter 2.6: Digipeater Rules
-
-	// if (debug) printf("digipeater_receive() from %s\n", src->src_if->callsign);
-
-	//  The dupe-filter exists for APRS frames, possibly for some
-	// selected UI frame types, and definitely not for CONS frames.
-
-	// 1) feed to dupe-filter (transmitter specific)
-
-	if (pb->is_aprs) {
-		dupe = dupecheck_pbuf( digi->dupechecker, pb );
-		if (dupe != NULL &&
-		    dupe->seen > 1) {
-			if (debug>1)
-			  printf("Seen this packet %d times\n",dupe->seen);
-			return; // Already Nth observation
-		}
-	}
-
-// FIXME: 1.1) optional viscous delay!
-//
-//	-- a bottom-half processing begins here..
-// FIXME: 1.2) If the dupe detector on this packet has reached count > 1, drop it.
-//        1.3) First struct pbuf_t stays in dupe-detector (with ++refcount),
-//             but the dupe-counts are held in separate storage separately
-//             for each transmitter's packet history.
-// 
-
-
-//  2) Verify that none of our interface callsigns does not match any
-//     of already DIGIPEATED via fields! (fields that have H-bit set)
-//   ( present implementation: this digi's transmitter callsign is verified)
+	//  2) Verify that none of our interface callsigns does not match any
+	//     of already DIGIPEATED via fields! (fields that have H-bit set)
+	//   ( present implementation: this digi's transmitter callsign is
+	//     verified)
 
 	// Parse executed and requested WIDEn-N/TRACEn-N info
 	if (parse_tnc2_hops(&state, src, pb)) {
@@ -871,12 +871,14 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	}
 
 	if (pb->is_aprs) {
-	  if (try_reject_filters(3, pb->info_start, src)) {
-	    if (debug>1) printf(" - Data body regexp filters reject\n");
-	    return; // data body regexp reject filters
-	  }
+		if (try_reject_filters(3, pb->info_start, src)) {
+			if (debug>1)
+			  printf(" - Data body regexp filters reject\n");
+			return; // data body regexp reject filters
+		}
 
 // FIXME: 3) aprsc style filters checking in service area of the packet..
+
 	}
 
 	// 4) Hop-count filtering:
@@ -910,6 +912,17 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 	  // if (debug>1) printf(" via: %s", viafield);
 	  if (!(axaddr[6] & 0x80)) // No "Has Been Digipeated" bit set
 	    break;
+	}
+
+	switch (src->src_relaytype) {
+	case DIGIRELAY_THIRDPARTY:
+		// Effectively disable the digipeat modifying of address
+		axaddr = e;
+		break;
+	case DIGIRELAY_DIGIPEAT:
+		// Normal functionality
+		break;
+	default: ;
 	}
 
 	// Unprocessed VIA field found
@@ -1004,7 +1017,9 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 					& frameaddrlen, &tnc2addrlen,
 					& is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
-	  printf(" out-hdr: '%s'\n",tbuf);
+	  printf(" out-hdr: '%s' data='",tbuf);
+	  fwrite(pb->ax25data+2, pb->ax25datalen-2, 1, stdout);
+	  printf("'\n");
 	}
 
 	// Feed to interface_transmit_ax25() with new header and body
@@ -1014,11 +1029,130 @@ void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb)
 }
 
 
+void digipeater_receive( struct digipeater_source *src,
+			 struct pbuf_t *pb,
+			 const int do_3rdparty )
+{
+	struct digipeater *digi = src->parent;
+	dupe_record_t *dupe = NULL;
 
-// Viscous queue processing needs poll interface for delayed actions
-int  digipeater_prepoll(struct aprxpolls *app) {
+	// Below numbers like "4)" refer to Requirement Specification
+	// paper chapter 2.6: Digipeater Rules
+
+	if (debug)
+	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
+		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
+
+	//  The dupe-filter exists for APRS frames, possibly for some
+	// selected UI frame types, and definitely not for CONS frames.
+
+	// 1) feed to dupe-filter (transmitter specific)
+
+	if (pb->is_aprs) {
+		dupe = dupecheck_pbuf( digi->dupechecker, pb, src->viscous_delay );
+		if (dupe != NULL &&
+		    dupe->seen > 1) {
+			if (debug>1)
+				printf("Seen this packet %d times\n",dupe->seen);
+			return; // Already Nth observation
+		}
+
+		// 1.1) optional viscous delay!
+
+		if (src->viscous_delay > 0 && dupe != NULL) {
+		  // Put the dupe_record_t on viscous delay queue..
+		  src->viscous_queue_size += 1;
+		  if (src->viscous_queue_size > src->viscous_queue_space) {
+		    src->viscous_queue_space += 16;
+		    src->viscous_queue = realloc( src->viscous_queue,
+						  sizeof(void*) *
+						  src->viscous_queue_space );
+		  }
+		  src->viscous_queue[ src->viscous_queue_size -1 ] = dupecheck_get(dupe);
+		  
+		   if (debug)printf("%ld ENTER VISCOUS QUEUE: len=%d dupe=%p pbuf=%p\n",
+		                    now, src->viscous_queue_size, dupe, dupe->pbuf);
+		} else {
+			// Directly to backend
+			digipeater_receive_backend(src, pb, NULL);
+		}
+	} else {
+		// Directly to backend
+		digipeater_receive_backend(src, pb, NULL);
+	}
+}
+
+
+
+// Viscous queue processing needs poll digis <source>s for delayed actions
+int  digipeater_prepoll(struct aprxpolls *app)
+{
+	int d, s;
+	time_t t;
+	// Over all digipeaters..
+	for (d = 0; d < digi_count; ++d) {
+	  struct digipeater *digi = digis[d];
+	  // Over all sources in those digipeaters
+	  for (s = 0; s < digi->sourcecount; ++s) {
+	    struct digipeater_source * src = digi->sources[s];
+	    // If viscous delay is zero, there is no work...
+	    // if (src->viscous_delay == 0)
+	    //   continue;
+	    // Delay is non-zero, perhaps there is work?
+	    if (src->viscous_queue_size == 0) // Empty queue
+	      continue;
+	    // First entry expires first
+	    t = src->viscous_queue[0]->t + src->viscous_delay;
+	    if (app->next_timeout > t)
+	      app->next_timeout = t;
+	  }
+	}
+
 	return 0;
 }
-int  digipeater_postpoll(struct aprxpolls *app) {
+
+int  digipeater_postpoll(struct aprxpolls *app)
+{
+	int d, s, i, donecount;
+	// Over all digipeaters..
+	for (d = 0; d < digi_count; ++d) {
+	  struct digipeater *digi = digis[d];
+	  // Over all sources in those digipeaters
+	  for (s = 0; s < digi->sourcecount; ++s) {
+	    struct digipeater_source * src = digi->sources[s];
+	    // If viscous delay is zero, there is no work...
+	    // if (src->viscous_delay == 0)
+	    //   continue;
+	    // Delay is non-zero, perhaps there is work?
+	    if (src->viscous_queue_size == 0) // Empty queue
+	      continue;
+	    // Feed backend from viscous queue
+	    donecount = 0;
+	    for (i = 0; i < src->viscous_queue_size; ++i) {
+	      time_t t = src->viscous_queue[0]->t  + src->viscous_delay;
+	      if (t <= now) {
+		struct dupe_record_t *dupe = src->viscous_queue[i];
+		if (debug)printf("%ld LEAVE VISCOUS QUEUE: %p pbuf=%p\n",
+				 now, dupe, dupe->pbuf);
+		digipeater_receive_backend(src, dupe->pbuf, dupe);
+		dupecheck_put(dupe);
+		++donecount;
+	      }
+	    }
+	    if (donecount > 0) {
+	      if (donecount >= src->viscous_queue_size) {
+		src->viscous_queue_size = 0;
+	      } else {
+		// Count of entries left after this processing set
+		i = src->viscous_queue_size - donecount;
+		memcpy(&src->viscous_queue[0],
+		       &src->viscous_queue[donecount],
+		       sizeof(void*) * i);
+		src->viscous_queue_size = i;
+	      }
+	    }
+	  }
+	}
+
 	return 0;
 }

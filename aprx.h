@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <syslog.h>
 #include <regex.h>
-
+#include <alloca.h>
 
 #define CALLSIGNLEN_MAX 9
 
@@ -62,6 +62,7 @@ extern const char *aprsis_login;
 extern int die_now;
 extern const char *mycall;
 extern const char *tocall;
+extern const uint8_t tocall25[7];
 
 extern int fd_nonblockingmode(int fd);
 
@@ -332,10 +333,12 @@ extern int ErlangLinesCount;
 typedef struct dupe_record_t {
 	struct dupe_record_t *next;
 	uint32_t hash;
-	time_t	 t;
+	time_t	 t;	// creation time
+	time_t	 t_exp;	// expiration time
 
 	struct pbuf_t *pbuf;
 	int16_t  seen;  // Count of times this packet has been seen
+	int16_t  refcount; // number of references on this entry
 	
 	int16_t	 alen;	// Address length
 	int16_t	 plen;	// Payload length
@@ -353,8 +356,10 @@ typedef struct dupecheck_t {
 
 extern void           dupecheck_init(void); /* Inits the dupechecker subsystem */
 extern dupecheck_t   *dupecheck_new(void);  /* Makes a new dupechecker  */
+extern dupe_record_t *dupecheck_get(dupe_record_t *dp); // increment refcount
+extern void           dupecheck_put(dupe_record_t *dp); // decrement refcount
 extern dupe_record_t *dupecheck_aprs(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen);     /* aprs checker */
-extern dupe_record_t *dupecheck_pbuf(dupecheck_t *dp, struct pbuf_t *pb); /* pbuf checker */
+extern dupe_record_t *dupecheck_pbuf(dupecheck_t *dp, struct pbuf_t *pb, const int viscousdelay); /* pbuf checker */
 extern int            dupecheck_prepoll(struct aprxpolls *app);
 extern int            dupecheck_postpoll(struct aprxpolls *app);
 
@@ -401,6 +406,11 @@ struct digipeater_source {
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
 
+	int             viscous_delay;
+	int	        viscous_queue_size;
+	int	        viscous_queue_space;
+	dupe_record_t **viscous_queue;
+
 	int sourceregscount;
 	regex_t **sourceregs;
 
@@ -425,17 +435,13 @@ struct digipeater {
 
 	int                        sourcecount;
 	struct digipeater_source **sources;
-
-	int		       viscous_delay;
-	// viscous queue ?
-	void * viscous_queue; // FIXME: What ???
 };
 
 extern int  digipeater_prepoll(struct aprxpolls *app);
 extern int  digipeater_postpoll(struct aprxpolls *app);
 
 extern void digipeater_config(struct configfile *cf);
-extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb);
+extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb, const int do_3rdparty);
 
 
 /* interface.c */
@@ -482,7 +488,7 @@ extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int digi_like_aprs, const unsigned char *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
 extern void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axaddr, const int axaddrlen, const unsigned char *axdata, const int axdatalen);
-extern void interface_receive_tnc2( const struct aprx_interface *aif, const char *ifaddress, const char *tncbuf, const int tnclen);
+extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen);
 extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char *tncbuf, const int tnclen);
 
 

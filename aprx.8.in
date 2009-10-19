@@ -405,7 +405,8 @@ erlangfile @VARRUN@/aprx.state
 #    #    source        APRSIS
 #    #    # %%%% additional tx-igate options to be defined %%%%
 #    #    #  (like relay-format controls, APRSIS\->RF in 3rd-party form)
-#    #    viscous\-delay 5     # Recommendation, wait 5 sec before tx:in
+#    #    viscous\-delay 5     # Recommendation: 5 seconds delay to give 
+#    #                        # RF delivery time make itself known.
 #    #   filter     "..."     # Optional filters to limit gated messages
 #    #</source>
 #

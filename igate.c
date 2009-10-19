@@ -466,8 +466,7 @@ static void pick_heads(char *ax25, int headlen,
 	char *e = ax25 + headlen;
 
 	char *p0 = p;
-	if (debug)
-	  printf(" head parse: ");
+	// if (debug)printf(" head parse: ");
 	while (p <= e) {
 	  p0 = p;
 	  while (p <= e) {
@@ -481,50 +480,58 @@ static void pick_heads(char *ax25, int headlen,
 	      continue; /* too many head parts.. */
 	    heads[*headscount] = p0;
 	    *headscount += 1;
-	    if (debug) {
-	      printf("  %-9s", p0);
-	    }
+	    // if (debug) printf("  %-9s", p0);
 	    break;
 	  }
 	}
 	heads[*headscount] = NULL;
-	if (debug)
-	  printf("\n");
+	// if (debug)printf("\n");
 }
 
-void igate_from_aprsis(const char *ax25, int ax25len)
+void igate_from_aprsis(const char *ax25,
+		       int ax25len) // ax25len contains two junk tail bytes
 {
 	// const char *p = ax25;
 	int colonidx;
 	const char *b;
 	// const char *e = p + ax25len; /* string end pointer */
-	char  axbuf[2000]; /* enough and then some more.. */
+//	char  axbuf[3000]; /* enough and then some more.. */
 	// char  axbuf2[1000]; /* enough and then some more.. */
 	char  *heads[20];
+	char  *headsbuf;
 	int    headscount = 0;
+//	char  *s;
+	char  *igatecall = NULL;
+	char  *fromcall  = NULL;
+	char  *origtocall = NULL;
 
 	if (ax25[0] == '#')
 	  return; // Comment line, timer tick, something such spurious..
 
 	if (ax25len > 520) {
 	  /* Way too large a frame... */
+	  if (debug)printf("APRSIS dataframe length is too large! (%d)\n",ax25len);
 	  return;
 	}
 
-	b = memchr(ax25, ':', ax25len);
+	b = memchr(ax25, ':', ax25len-2);
 	if (b == NULL) {
+	  if (debug)printf("APRSIS dataframe does not have ':' in it\n");
 	  return; // Huh?  No double-colon on line, it is not proper packet line
 	}
 
 	colonidx = b-ax25;
 	if (colonidx+3 >= ax25len) {
 	  /* Not really any data there.. */
+	  if (debug)printf("APRSIS dataframe too short to contain anything\n");
 	  return;
 	}
 
-	memcpy(axbuf, ax25, ax25len);
+	headsbuf = alloca(colonidx+1);
+	memcpy(headsbuf, ax25, colonidx+1);
+
 	headscount = 0;
-	pick_heads(axbuf, colonidx, heads, &headscount);
+	pick_heads(headsbuf, colonidx, heads, &headscount);
 
 	int ok_to_relay = 0;
 	int i;
@@ -542,6 +549,8 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	    }
 	*/
 
+	fromcall   = heads[0];
+	origtocall = heads[1];
 	for (i = 0; i < headscount; ++i) {
 	  /* 3) */
 	  if (forbidden_to_gate_addr(heads[i])) {
@@ -552,6 +561,16 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 // FIXME: Hmm.. Really ??
 	  if (heads[i][0] == 'q') {
+	      ok_to_relay = 1;
+
+	      // FIXME: Depending on qA? value, following may
+	      //        actually be heads[0], or some other..
+	      igatecall = heads[i+1];
+
+	      heads[i] = NULL;
+	      break;
+
+	    /*
 	    if (strcmp(heads[i], "qAR") == 0) {
 	      // qAR packets will be relayed
 	      ok_to_relay = 1;
@@ -562,6 +581,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	      ok_to_relay = 0;
 	      break;
 	    }
+	    */
 	  }
 	}
 	if (!ok_to_relay) {
@@ -579,6 +599,11 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	    printf("Not relayable packet! [5]\n");
 	  return; /* drop it */
 	}
+	if (igatecall == NULL) { // No igatecall found??
+	  if (debug)
+	    printf("Not relayable packet! [6]\n");
+	  return; /* drop it */
+	}
 
 	/* 1) - verify receiving station has been heard recently on radio */
 	
@@ -590,8 +615,9 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	
 
 	/* f) */
-	
-	interface_receive_tnc2( &aprsis_interface, aprsis_interface.callsign,
-				ax25, ax25len );
+
+	interface_receive_3rdparty( &aprsis_interface,
+				    fromcall, origtocall, igatecall,
+				    b, ax25len - (b-ax25) );
 }
 
