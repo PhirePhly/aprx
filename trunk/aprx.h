@@ -22,6 +22,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <syslog.h>
+#include <regex.h>
 
 
 #define CALLSIGNLEN_MAX 9
@@ -399,6 +400,18 @@ struct digipeater_source {
 	struct aprx_filter    *src_filters;
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
+
+	int sourceregscount;
+	regex_t **sourceregs;
+
+	int destinationregscount;
+	regex_t **destinationregs;
+
+	int viaregscount;
+	regex_t **viaregs;
+
+	int dataregscount;
+	regex_t **dataregs;
 };
 
 struct digipeater {

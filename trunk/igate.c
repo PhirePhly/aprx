@@ -11,19 +11,6 @@
  * **************************************************************** */
 
 #include "aprx.h"
-#include <regex.h>
-
-static regex_t **sourceregs;
-static int sourceregscount;
-
-static regex_t **destinationregs;
-static int destinationregscount;
-
-static regex_t **viaregs;
-static int viaregscount;
-
-static regex_t **dataregs;
-static int dataregscount;
 
 static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
 
@@ -35,81 +22,6 @@ void igate_start()
 {
 	aprsisdupe = dupecheck_new();
 
-}
-
-/*
- * ax25_filter_add() -- adds configured regular expressions
- *                      into forbidden patterns list.
- * 
- * These are actually processed on TNC2 format text line, and not
- * AX.25 datastream per se.
- */
-void ax25_filter_add(const char *p1, const char *p2)
-{
-	int rc;
-	int groupcode = -1;
-	regex_t re, *rep;
-	char errbuf[2000];
-
-	if (strcmp(p1, "source") == 0) {
-		groupcode = 0;
-	} else if (strcmp(p1, "destination") == 0) {
-		groupcode = 1;
-	} else if (strcmp(p1, "via") == 0) {
-		groupcode = 2;
-	} else if (strcmp(p1, "data") == 0) {
-		groupcode = 3;
-	} else {
-		printf("Bad RE target: '%s'  must be one of: source, destination, via\n", p1);
-		return;
-	}
-
-	if (!*p2)
-		return;		/* Bad input.. */
-
-	memset(&re, 0, sizeof(re));
-	rc = regcomp(&re, p2, REG_EXTENDED | REG_NOSUB);
-
-	if (rc != 0) {		/* Something is bad.. */
-		if (debug) {
-			*errbuf = 0;
-			regerror(rc, &re, errbuf, sizeof(errbuf));
-			printf("Bad POSIX RE input, error: %s\n", errbuf);
-		}
-	}
-
-	/* p1 and p2 were processed successfully ... */
-
-	rep = malloc(sizeof(*rep));
-	*rep = re;
-
-	switch (groupcode) {
-	case 0:
-		++sourceregscount;
-		sourceregs =
-			realloc(sourceregs,
-				sourceregscount * sizeof(void *));
-		sourceregs[sourceregscount - 1] = rep;
-		break;
-	case 1:
-		++destinationregscount;
-		destinationregs =
-			realloc(destinationregs,
-				destinationregscount * sizeof(void *));
-		destinationregs[destinationregscount - 1] = rep;
-		break;
-	case 2:
-		++viaregscount;
-		viaregs = realloc(viaregs, viaregscount * sizeof(void *));
-		viaregs[viaregscount - 1] = rep;
-		break;
-	case 3:
-		++dataregscount;
-		dataregs =
-			realloc(dataregs, dataregscount * sizeof(void *));
-		dataregs[dataregscount - 1] = rep;
-		break;
-	}
 }
 
 static const char *tnc2_verify_callsign_format(const char *t, int starok, const char *e)
@@ -162,7 +74,6 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok, const 
 
 static const char *tnc2_forbidden_source_stationid(const char *t, const char *e)
 {
-	int i;
 	const char *s;
 
 	s = tnc2_verify_callsign_format(t, 0, e);
@@ -178,43 +89,30 @@ static const char *tnc2_forbidden_source_stationid(const char *t, const char *e)
 	    memcmp("NOCALL", t, 6) == 0)	/* TNC default setting */
 		return NULL;
 
-	for (i = 0; i < sourceregscount; ++i) {
-		int stat = regexec(sourceregs[i], t, 0, NULL, 0);
-		if (stat == 0)
-			return NULL;	/* MATCH! */
-	}
-
 	return s;
 }
 
 static const char *tnc2_forbidden_destination_stationid(const char *t, const char *e)
 {
-	int i;
 	const char *s;
 
 	s = tnc2_verify_callsign_format(t, 0, e);
 	if (!s)
 		return NULL;
 
-	for (i = 0; i < destinationregscount; ++i) {
-	  if (memcmp("TCPIP", t, 5) == 0 ||	/* just plain wrong */
-	      memcmp("TCPXX", t, 5) == 0 ||	/* Forbidden to gate */
-	      memcmp("NOGATE", t, 5) == 0 ||	/* Forbidden to gate */
-	      memcmp("RFONLY", t, 5) == 0 ||	/* Forbidden to gate */
-	      memcmp("N0CALL", t, 6) == 0 ||	/* TNC default setting */
-	      memcmp("NOCALL", t, 6) == 0)	/* TNC default setting */
+	if (memcmp("TCPIP", t, 5) == 0 ||	/* just plain wrong */
+	    memcmp("TCPXX", t, 5) == 0 ||	/* Forbidden to gate */
+	    memcmp("NOGATE", t, 5) == 0 ||	/* Forbidden to gate */
+	    memcmp("RFONLY", t, 5) == 0 ||	/* Forbidden to gate */
+	    memcmp("N0CALL", t, 6) == 0 ||	/* TNC default setting */
+	    memcmp("NOCALL", t, 6) == 0)	/* TNC default setting */
 		return NULL;
-		int stat = regexec(destinationregs[i], t, 0, NULL, 0);
-		if (stat == 0)
-			return NULL;	/* MATCH! */
-	}
 
 	return s;
 }
 
 static const char *tnc2_forbidden_via_stationid(const char *t, const char *e)
 {
-	int i;
 	const char *s;
 
 	s = tnc2_verify_callsign_format(t, 1, e);
@@ -227,15 +125,10 @@ static const char *tnc2_forbidden_via_stationid(const char *t, const char *e)
 	    memcmp("TCPXX", t, 5)  == 0)
 		return NULL;
 
-	for (i = 0; i < viaregscount; ++i) {
-		int stat = regexec(viaregs[i], t, 0, NULL, 0);
-		if (stat == 0)
-			return NULL;	/* MATCH! */
-	}
-
 	return s;
 }
 
+/*
 static int tnc2_forbidden_data(const char *t)
 {
 	int i;
@@ -243,12 +136,12 @@ static int tnc2_forbidden_data(const char *t)
 	for (i = 0; i < dataregscount; ++i) {
 		int stat = regexec(dataregs[i], t, 0, NULL, 0);
 		if (stat == 0)
-			return 1;	/* MATCH! */
+			return 1;	// MATCH!
 	}
 
 	return 0;
 }
-
+*/
 /* ---------------------------------------------------------- */
 
 static void rflog(const char *portname, int tncid, int discard, const char *tnc2buf, int tnc2len) {
@@ -392,11 +285,13 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	/* Now 't' points to data.. */
 
 
+/*
 	if (tnc2_forbidden_data(t)) {
 		if (debug)
 			printf("Forbidden data in TNC2 packet - REGEX match");
 		goto discard;
 	}
+*/
 
 	/* Will not relay messages that begin with '?' char: */
 	if (*t == '?') {
