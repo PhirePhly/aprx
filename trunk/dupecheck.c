@@ -280,7 +280,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
  *  dupecheck_pbuf() returns pointer to dupe record, if pbuf is
  *  a duplicate.  Otherwise it return a NULL.
  */
-dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int viscousdelay)
+dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb)
 {
 	int i;
 	uint32_t hash, idx;
@@ -400,11 +400,7 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 			    memcmp(addr, dp->addresses, addrlen) == 0 &&
 			    memcmp(data, dp->packet,    datalen) == 0) {
 				// PACKET MATCH!
-				if (viscousdelay) {
-				  dp->delayed_seen += 1;
-				} else {
-				  dp->seen += 1;
-				}
+				dp->seen += 1;
 				return dp;
 			}
 			// no packet match.. check next
@@ -426,17 +422,12 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	memcpy(dp->packet,    data, datalen);
 
 	dp->pbuf  = pbuf_get(pb); // increments refcount
-	if (viscousdelay) {
-	  dp->delayed_seen  = 1;  // First observation gets number 1
-	} else {
-	  dp->seen  = 1;  // First observation gets number 1
-	}
+	dp->seen  = 1;  // First observation gets number 1
 
 	dp->hash  = hash;
 	dp->t     = now;
 	dp->t_exp = now + dupefilter_storetime;
 
-	if (viscousdelay > 0) return dp;
 	return NULL;
 }
 

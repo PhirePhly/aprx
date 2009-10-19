@@ -1,12 +1,13 @@
 2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	* aprx.h, digipeater.c, dupecheck.c:
+	* aprx.h, digipeater.c, dupecheck.c, igate.c:
 	    - Fixed 3rd party dupechecking
-	    - Made possible to receive something into dupe storage as
-	      delayed observable, and still be able to relay something
-	      that is received from a non-delayed source, and be relayed
-	      out because it is first non-delayed one, and delayed ones
-	      have not been processed yet.
+	    - Simplified viscous delay and dupechecking.
+	      The dupechecking happens at the start of digipeater_backend(),
+	      which is called after pbuf's have been subjected to a viscous
+	      delay, if every necessary.  First arriving packet is digipeated,
+	      if it has steps to do.  If not, rest are still considered dupes,
+	      and not digipeated.
 
 	* aprx.h, igate.c:
 	    Make rflog() public function to be used by multiple parties.

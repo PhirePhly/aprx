@@ -837,7 +837,7 @@ static int decrement_ssid(unsigned char *ax25addr)
 }
 
 
-static void digipeater_receive_backend(struct digipeater_source *src, struct pbuf_t *pb, dupe_record_t *dupe)
+static void digipeater_receive_backend(struct digipeater_source *src, struct pbuf_t *pb)
 {
 	int len;
 	struct digistate state;
@@ -845,22 +845,24 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	struct digipeater *digi = src->parent;
 	char viafield[14];
 
-	//	-- a bottom-half processing begins here..
-	// 1.2) If the dupe detector on this packet has reached count > 1, drop it.
-	// 1.3) First struct pbuf_t stays in dupe-detector (with ++refcount),
-	//      but the dupe-counts are held in separate storage for each
-	//      transmitter's packet history.
+	//  The dupe-filter exists for APRS frames, possibly for some
+	// selected UI frame types, and definitely not for CONS frames.
 
+	// 1) Feed to dupe-filter (transmitter specific)
+	//    If the dupe detector on this packet has reached
+	//    count > 1, drop it.
+
+	dupe_record_t *dupe = dupecheck_pbuf( digi->dupechecker, pb);
 	if (dupe != NULL && dupe->seen > 1) {
 		if (debug>1)
 			printf("Seen this packet %d times\n",dupe->seen);
-		return;
+		return; // Already Nth observation
 	}
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
 
-	//  2) Verify that none of our interface callsigns does not match any
+	//  2) Verify that none of our interface callsigns does match any
 	//     of already DIGIPEATED via fields! (fields that have H-bit set)
 	//   ( present implementation: this digi's transmitter callsign is
 	//     verified)
@@ -1052,9 +1054,6 @@ void digipeater_receive( struct digipeater_source *src,
 			 struct pbuf_t *pb,
 			 const int do_3rdparty )
 {
-	struct digipeater *digi = src->parent;
-	dupe_record_t *dupe = NULL;
-
 	// Below numbers like "4)" refer to Requirement Specification
 	// paper chapter 2.6: Digipeater Rules
 
@@ -1062,34 +1061,11 @@ void digipeater_receive( struct digipeater_source *src,
 	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
 		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
 
-	//  The dupe-filter exists for APRS frames, possibly for some
-	// selected UI frame types, and definitely not for CONS frames.
-
-	// 1) feed to dupe-filter (transmitter specific)
-
 	if (pb->is_aprs) {
-		dupe = dupecheck_pbuf( digi->dupechecker, pb, src->viscous_delay );
-		if (dupe != NULL &&
-		    dupe->seen > 1) {
-			if (debug>1)
-				printf("Seen this packet %d times\n",dupe->seen);
-			return; // Already Nth observation
-		}
-		if (dupe != NULL && dupe->seen == 1 && src->viscous_delay == 0) {
-		  // Immediate delivery even though the delay queue has
-		  // also a copy.  Remove the pbuf from delayed dupe entry,
-		  // and delete also our knowledge of that duplicate.
-		  // Thus making this case dupe-less immediate delivery.
-		  if (dupe->pbuf != NULL)
-		    pbuf_put(dupe->pbuf);
-		  dupe->pbuf = NULL;
-		  dupe = NULL;
-		}
-
 		// 1.1) optional viscous delay!
 
-		if (src->viscous_delay > 0 && dupe != NULL) {
-			// Put the dupe_record_t on viscous delay queue..
+		if (src->viscous_delay > 0) {
+			// Put the pbuf_t on viscous delay queue..
 			src->viscous_queue_size += 1;
 			if (src->viscous_queue_size > src->viscous_queue_space) {
 			  src->viscous_queue_space += 16;
@@ -1097,17 +1073,17 @@ void digipeater_receive( struct digipeater_source *src,
 							sizeof(void*) *
 							src->viscous_queue_space );
 			}
-			src->viscous_queue[ src->viscous_queue_size -1 ] = dupecheck_get(dupe);
+			src->viscous_queue[ src->viscous_queue_size -1 ] = pbuf_get(pb);
 			
-			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d dupe=%p pbuf=%p\n",
-					  now, src->viscous_queue_size, dupe, dupe->pbuf);
+			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d pbuf=%p\n",
+					  now, src->viscous_queue_size, pb);
 		} else {
 			// Directly to backend
-			digipeater_receive_backend(src, pb, NULL);
+			digipeater_receive_backend(src, pb);
 		}
 	} else {
 		// Directly to backend
-		digipeater_receive_backend(src, pb, NULL);
+		digipeater_receive_backend(src, pb);
 	}
 }
 
@@ -1160,19 +1136,11 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    for (i = 0; i < src->viscous_queue_size; ++i) {
 	      time_t t = src->viscous_queue[0]->t  + src->viscous_delay;
 	      if (t <= now) {
-		struct dupe_record_t *dupe = src->viscous_queue[i];
-		if (debug)printf("%ld LEAVE VISCOUS QUEUE: %p pbuf=%p seen=%d dseen=%d\n",
-				 now, dupe, dupe->pbuf, dupe->seen, dupe->delayed_seen);
-		if (dupe->pbuf != NULL && dupe->seen == 0) {
-		  // We send the first from viscous queue as long as
-		  // delayless observation count is zero.
-		  digipeater_receive_backend(src, dupe->pbuf, dupe);
-		}
-		if (dupe->pbuf != NULL) {
-		  pbuf_put(dupe->pbuf);
-		  dupe->pbuf = NULL;
-		}
-		dupecheck_put(dupe);
+		struct pbuf_t *pb = src->viscous_queue[i];
+		if (debug)printf("%ld LEAVE VISCOUS QUEUE: pbuf=%p\n",
+				 now, pb);
+		digipeater_receive_backend(src, pb);
+		pbuf_put(pb);
 		++donecount;
 	      }
 	    }
