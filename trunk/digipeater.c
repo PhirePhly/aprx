@@ -1077,14 +1077,11 @@ void digipeater_receive( struct digipeater_source *src,
 			
 			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d pbuf=%p\n",
 					  now, src->viscous_queue_size, pb);
-		} else {
-			// Directly to backend
-			digipeater_receive_backend(src, pb);
+			return; // Sent on viscous queue
 		}
-	} else {
-		// Directly to backend
-		digipeater_receive_backend(src, pb);
 	}
+	// Send directly to backend
+	digipeater_receive_backend(src, pb);
 }
 
 

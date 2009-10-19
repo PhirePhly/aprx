@@ -541,13 +541,12 @@ void igate_from_aprsis(const char *ax25,
 	    printf("Not relayable packet! [1]\n");
 	  return;
 	}
-	/*
-	    if (strncmp(heads[1],"RXTLM-",6)==0) {
-	      if (debug)
-	        printf("Not relayable packet! [2]\n");
-	      return;
-	    }
-	*/
+
+	if (strncmp(heads[1],"RXTLM-",6)==0) {
+	  if (debug)
+	    printf("Not relayable packet! [2]\n");
+	  return;
+	}
 
 	fromcall   = heads[0];
 	origtocall = heads[1];

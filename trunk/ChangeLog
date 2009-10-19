@@ -1,12 +1,19 @@
 2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* igate.c:
+	    Reject packets with destcall=RXTLM-* from Tx-IGate.
+
+	* digipeater.c:
+	    Simplify control flow when feeding to viscous queue vs.
+	    when running the backend directly.
+
 	* aprx.h, digipeater.c, dupecheck.c, igate.c:
 	    - Fixed 3rd party dupechecking
 	    - Simplified viscous delay and dupechecking.
 	      The dupechecking happens at the start of digipeater_backend(),
 	      which is called after pbuf's have been subjected to a viscous
-	      delay, if every necessary.  First arriving packet is digipeated,
-	      if it has steps to do.  If not, rest are still considered dupes,
+	      delay, if ever necessary.  First arriving packet is digipeated,
+	      if it has steps to do. If not, rest are still considered dupes,
 	      and not digipeated.
 
 	* aprx.h, igate.c:
