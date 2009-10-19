@@ -450,8 +450,8 @@ extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb,
 
 typedef enum {
 	IFTYPE_UNSET,
-	IFTYPE_SERIAL,
 	IFTYPE_AX25,
+	IFTYPE_SERIAL,
 	IFTYPE_TCPIP,
 	IFTYPE_APRSIS
 } iftype_e;
@@ -460,22 +460,23 @@ struct aprx_interface {
 	iftype_e    iftype;
 	int	    timeout;
 
-	char         *callsign;
-	unsigned char ax25call[7];
+	char       *callsign;      // Callsign of this interface
+	uint8_t     ax25call[7];   // AX.25 address field format callsign
 
 	int	    aliascount;
-	char	  **aliases;
+	char	  **aliases;	   // Alias callsigns for this interface
 
-	int	    subif;
-	int         txok;
+	int	    subif;	   // Sub-interface index - for KISS uses
+	int         txok;	   // This is Tx interface
+	int	    txrefcount;    // Number of digipeaters using this as Tx
 	int	    initlength;
 	char	   *initstring;
 
-	const void        *nax25p; // fix this
-	struct serialport *tty;
+	const void        *nax25p; // used on IFTYPE_AX25
+	struct serialport *tty;    // used on IFTYPE_SERIAL, IFTYPE_TCPIP
 
-	int	                   digicount;
-	struct digipeater_source **digipeaters;
+	int	                   digisourcecount;
+	struct digipeater_source **digisources;
 };
 
 extern struct aprx_interface aprsis_interface;

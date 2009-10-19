@@ -63,7 +63,7 @@ struct aprx_interface aprsis_interface = {
 	IFTYPE_APRSIS, 0, "APRSIS",
 	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
 	0, NULL,
-	0, 0, 0, NULL,
+	0, 0, 0, 0, NULL,
 	NULL, NULL,
 	0, NULL
 };
@@ -482,7 +482,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	if (debug) printf("interface_receive_ax25()\n");
 
 	if (aif == NULL) return;         // Not a real interface for digi use
-	if (aif->digicount == 0) return; // No receivers for this source
+	if (aif->digisourcecount == 0) return; // No receivers for this source
 
 	if (axaddrlen <= 14) return;     // SOURCE>DEST without any VIAs..
 	// Note: Above one disables MICe destaddress-SSID embedded
@@ -536,8 +536,8 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 
 	// Feed it to digipeaters ...
-	for (i = 0; i < aif->digicount; ++i) {
-		digipeater_receive( aif->digipeaters[i], pb, 0);
+	for (i = 0; i < aif->digisourcecount; ++i) {
+		digipeater_receive( aif->digisources[i], pb, 0);
 	}
 
 	// .. and finally free up the pbuf (if refcount goes to zero)
@@ -624,15 +624,15 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	if (debug)
 	  printf("interface_receive_3rdparty() aif=%p, aif->digicount=%d\n",
-		 aif, aif ? aif->digicount : 0);
+		 aif, aif ? aif->digisourcecount : 0);
 
 
 	if (aif == NULL) return;         // Not a real interface for digi use
-	if (aif->digicount == 0) return; // No receivers for this source
+	if (aif->digisourcecount == 0) return; // No receivers for this source
 
 	// Feed it to digipeaters ...
-	for (d = 0; d < aif->digicount; ++d) {
-	  struct digipeater_source *digisrc = aif->digipeaters[d];
+	for (d = 0; d < aif->digisourcecount; ++d) {
+	  struct digipeater_source *digisrc = aif->digisources[d];
 	  struct digipeater        *digi    = digisrc->parent;
 	  struct aprx_interface    *tx_aif  = digi->transmitter;
 

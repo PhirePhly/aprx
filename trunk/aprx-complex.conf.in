@@ -330,9 +330,7 @@ pidfile @VARRUN@/aprx.pid
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
-#    #	 filter      "javAPRSSrvr adjunct filters"
-#    #   reject-srccall "LIST,OF,CALLSIGNS"
-#    #   reject-viacall "LIST,OF,CALLSIGNS"
+#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
 #    </source>
 #    #<source>                  # Extra receiver(s)
 #    #   interface   RXCALL-1
@@ -341,12 +339,15 @@ pidfile @VARRUN@/aprx.pid
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
+#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
 #    #</source>
+#    #### NOTE: Some APRSIS / Tx-IGate processing rules are not yet implemented
 #    #<source>                  # APRSIS source makes this tx-igate
 #    #    interface    APRSIS
 #    #    relay-type   third-party  # Must define this for APRSIS source!
 #    #    viscous-delay    5   # recommendation: 5 seconds delay to give
 #    #                         # RF delivery time make itself known.
+#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
 #    #</source>
 #
 #</digipeater>

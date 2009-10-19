@@ -169,20 +169,19 @@ erlangfile @VARRUN@/aprx.state
 #<digipeater>
 #    transmitter     $mycall
 #    #ratelimit      120      # default: max 120 packets/minute
-
+#
 #    <source>
 #        source         $mycall
 #    #   #relay-type    digipeated # default mode is "digipeated"
 #    #   viscous-delay  0     # no viscous delay for RF->RF digipeating
 #    #   ratelimit      120   # default: max 120 packets/minute
-#    #   filter     "..."     # Optional filters to limit digipeated messages
 #    </source>
+#    #### NOTE: Some APRSIS / Tx-IGate processing rules are not yet implemented
 #    #<source>                # Adding APRSIS source makes this tx-igate
 #    #    source        APRSIS
 #    #    relay-type    third-party  # Must define this for APRSIS source!
 #    #    viscous-delay  5    # Recommendation: 5 seconds delay to give
 #    #                        # RF delivery time make itself known.
-#    #    filter     "..."    # Optional filters to limit gated messages
 #    #</source>
 #
 #</digipeater>

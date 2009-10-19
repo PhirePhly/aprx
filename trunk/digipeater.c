@@ -731,6 +731,11 @@ void digipeater_config(struct configfile *cf)
 			  printf("%s:%d This transmit interface has no TX-OK TRUE setting: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  has_fault = 1;
+			} else if (aif != NULL && aif->txrefcount > 0) {
+			  aif = NULL;
+			  printf("%s:%d This transmit interface is being used on multiple <digipeater>s as transmitter: '%s'\n",
+				 cf->name, cf->linenum, param1);
+			  has_fault = 1;
 			} else if (aif == NULL) {
 			  printf("%s:%d Unknown interface: '%s'\n",
 				 cf->name, cf->linenum, param1);
@@ -804,12 +809,16 @@ void digipeater_config(struct configfile *cf)
 			struct digipeater_source *src = sources[i];
 			src->parent = digi; // Set parent link
 
-			src->src_if->digipeaters = realloc( src->src_if->digipeaters,
-							    (src->src_if->digicount +1) * (sizeof(void*)));
-			src->src_if->digipeaters[src->src_if->digicount] = src;
-			src->src_if->digicount += 1;
+			src->src_if->digisources = realloc( src->src_if->digisources,
+							    (src->src_if->digisourcecount +1) * (sizeof(void*)));
+			src->src_if->digisources[src->src_if->digisourcecount] = src;
+			src->src_if->digisourcecount += 1;
 		}
 
+		aif->txrefcount += 1; // Increment Tx usage Reference count.
+		                      // We permit only one <digipeater> to
+				      // use any given Tx-interface. (Rx:es
+				      // permit multiple uses.)
 		digi->transmitter   = aif;
 		digi->ratelimit     = ratelimit;
 		digi->dupechecker   = dupecheck_new();
