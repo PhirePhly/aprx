@@ -558,7 +558,7 @@ void igate_from_aprsis(const char *ax25,
 	    return;
 	  }
 
-// FIXME: Hmm.. Really ??
+// FIXME: Hmm.. Really ??  q-construct analysis and "ok_to_relay" decission
 	  if (heads[i][0] == 'q' && heads[i][1] == 'A') {
 	    int qcode = heads[i][2];
 	    ok_to_relay = 1;
@@ -602,16 +602,16 @@ void igate_from_aprsis(const char *ax25,
 	  return; /* drop it */
 	}
 
-	/* 1) - verify receiving station has been heard recently on radio */
+	// FIXME: 1) - verify receiving station has been heard recently on radio
 	
 
-	/* 2) - sending station has not been heard recently on radio */
+	// FIXME: 2) - sending station has not been heard recently on radio
 	
 
-	/* 4) */
+	// FIXME: 4) - the sending station has not been heard via the Internet within a predefined time period.
 	
 
-	/* f) */
+	// FIXME: f) - ??
 
 	interface_receive_3rdparty( &aprsis_interface,
 				    fromcall, origtocall, igatecall,

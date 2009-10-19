@@ -1,5 +1,13 @@
 2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION: 1.92
+
+	* digipeater.c, interface.c:
+	    Clean variable naming on digipeater <source> subsystem.
+
+	* aprx.h, aprx.conf.in, aprx-complex.conf.in, igate.c:
+	    Update documentation
+
 	* igate.c:
 	    Reject packets with destcall=RXTLM-* from Tx-IGate.
 

@@ -1,12 +1,13 @@
 
-		APRX    v1.91
+		APRX    v1.92
 
 A receive-only APRS-IS "i-gate" with following properties:
 
    Config file (-f option) default is:  /etc/aprx.conf
    Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
 
-   - IGate functionality is receive only
+   - Rx-IGate functionality works correctly
+   - Tx-IGate is incomplete
 
    - Can do APRS New-N and generic AX.25 node digipeater functionality
      with transmitters  - Not yet with Viscous Digipeater
