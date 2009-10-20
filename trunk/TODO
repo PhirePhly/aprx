@@ -9,21 +9,30 @@
 
 - OpenTRAC support ?  (UI, PID=0x77)
   - Yes, on DIGIPEATER ONLY
-  - Basic digipeater exists now
 
-- "radio NN ... KISS .." to support more esoteric polling modes
+- Digipeating details of non-APRS UI protocols?  Some way to
+  handle "WIDEn-N" on selected PIDs?
 
-- AGWPE interface for Windows ?
+- "<interface> serial-device ... KISS .." to support more
+  esoteric polling modes
+
+- Windows port?
+  - AGWPE interface for Windows ?
+  - BPQ32 interface ?
 
 - Tx-IGate filter rules (igate.c)
 - Proper area filters for digipeat (digipeater.c, filter.c)
 
 - bidirectional relaying capability with areal filters ??
-  (that would make this a full-blown aprsd / aprsdigi replacement..)
 
 - Colorize debug printout (or make another tool to colorize aprx-rf.log)
     - rx-packets green (or blue), tx-packets red
     - port names/callsigns bolded, same with packet source callsigns
 
+- Beacon definitions inside <interface> definitions?
+  They would be sent only to that interface (and to APRSIS)
+
+- Use internal APRS packet parser to validate beacon configurations.
+  This should be able to flag bad input on RAW beacon data.
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009

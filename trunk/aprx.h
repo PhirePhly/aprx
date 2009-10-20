@@ -43,7 +43,7 @@ struct configfile {
 	const char *name;
 	FILE	*fp;
 	int	linenum;
-	char	buf[1024];
+	char	buf[8010];
 };
 
 /* aprxpolls.c */
@@ -345,6 +345,8 @@ typedef struct dupe_record_t {
         int16_t  delayed_seen;  // Count of times this packet has been seen
                                 // on delayed processing.  The packet may get
                                 // sent, if "seen" count is zero at delay end.
+	int16_t  seen_on_transmitter; // Source of where it was seen is same
+				// as this digipeater transmitter.
 	int16_t  refcount; // number of references on this entry
 	
 	int16_t	 alen;	// Address length

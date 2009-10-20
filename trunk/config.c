@@ -10,7 +10,6 @@
 
 #include "aprx.h"
 
-
 const char *aprsis_login;
 
 
@@ -417,12 +416,70 @@ static void cfgparam(struct configfile *cf)
 	}
 }
 
+/*
+ *  This interval parser is originally from ZMailer MTA.
+ *  Slightly expanded to permit white-spaces inside the string.
+ *  (c) Matti Aarnio, Rayan Zachariassen..
+ */
+
+static int parse_interval(string, restp)
+	const char *string;
+	const char **restp;
+{
+	int	intvl = 0;
+	int	val;
+	int	c;
+
+	for (; *string; ++string) {
+
+	  val = 0;
+	  c = *string;
+	  while ('0' <= c && c <= '9') {
+	    val = val * 10 + (c - '0');
+	    c = *++string;
+	  }
+
+	  switch (c) {
+	  case 'd':		/* days */
+	  case 'D':		/* days */
+	    val *= 24;
+	  case 'h':		/* hours */
+	  case 'H':		/* hours */
+	    val *= 60;
+	  case 'm':		/* minutes */
+	  case 'M':		/* minutes */
+	    val *= 60;
+	  case 's':		/* seconds */
+	  case 'S':		/* seconds */
+	    /* val *= 1; */
+	  case '\t':            /* just whitespace */
+	  case ' ':             /* just whitespace */
+	    ++string;
+	    break;
+	  default: /* Not of: "dhms" - maybe string end, maybe junk ? */
+	    if (restp) *restp = string;
+	    return intvl + val;
+	  }
+	  intvl += val;
+	}
+
+	if (restp) *restp = string;
+
+	return intvl;
+}
+
+// Return 0 on OK, != 0 on error
 int config_parse_interval(const char *par, int *resultp)
 {
-	*resultp = atoi(par);
+	const char *rest = NULL;
+	int ret = parse_interval(par, &rest);
+
+	if (*rest != 0) return 1; // Did not consume whole input string
+	*resultp = ret;
 	return 0;
 }
 
+// Return 0 on OK, != 0 on error
 int config_parse_boolean(const char *par, int *resultp)
 {
 	if (strcasecmp(par, "true") == 0 ||
@@ -449,18 +506,50 @@ int config_parse_boolean(const char *par, int *resultp)
 
 void *readconfigline(struct configfile *cf)
 {
-	char *p = fgets(cf->buf, sizeof(cf->buf), cf->fp);
-	cf->buf[sizeof(cf->buf) - 1] = 0;	/* Trunc, just in case.. */
-	if (p != NULL)
-		cf->linenum += 1;
-	return p;
+	char *bufp = cf->buf;
+	int buflen = sizeof(cf->buf);
+	int llen;
+	for (;;) {
+	  char *p = fgets(bufp, buflen, cf->fp);
+	  bufp[buflen - 1] = 0;	/* Trunc, just in case.. */
+	  if (p == NULL) {
+	    if (bufp == cf->buf)
+	      return NULL; // EOF!
+	    return cf->buf; // Got EOF, but got also data before it!
+	  }
+	  cf->linenum += 1;
+	  // Line ending LF ?
+	  p = strchr(bufp, '\n');
+	  if (p != NULL) {
+	    *p-- = 0;
+	    // Possible preceding CR ?
+	    if (*p == '\r')
+	      *p-- = 0;
+	    // Line ending whitespaces ?
+	    while (p > bufp && (*p == ' '||*p == '\t'))
+	      *p-- = 0;
+	    llen = p - bufp;
+	  }
+	  if (*p == '\\') {
+	    bufp = p;
+	    buflen = sizeof(cf->buf) - (p - cf->buf) -1;
+	    continue;
+	  } else {
+	    // Not lone \ at line end.  Not a line with continuation line..
+	    break;
+	  }
+	}
+
+	printf("Config line: '%s'\n",cf->buf);
+
+	return cf->buf;
 }
 
 int configline_is_comment(struct configfile *cf)
 {
 	const char *buf = cf->buf;
 	const int buflen = sizeof(cf->buf);
-	char c = 0, *s;
+	char c = 0;
 	int i;
 
 	for (i = 0; buf[i] != 0 && i < buflen; ++i) {
@@ -470,15 +559,8 @@ int configline_is_comment(struct configfile *cf)
 		/* Anything else, stop scanning */
 		break;
 	}
-	if (c == '#' || c == '\n' || c == '\r')
+	if (c == '#' || c == '\n' || c == '\r' || c == 0)
 		return 1;
-
-	s = strchr(buf, '\n');	/* The trailing NL chopper ... */
-	if (s)
-		*s = 0;
-	s = strchr(buf, '\r');	/* The trailing CR chopper ... */
-	if (s)
-		*s = 0;
 
 	return 0;
 }

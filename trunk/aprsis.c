@@ -30,10 +30,10 @@
 
 
 struct aprsis_host {
-	const char *server_name;
-	const char *server_port;
-	const char *filterparam;
-	const char *login;
+	char *server_name;
+	char *server_port;
+	char *login;
+	char *filterparam;
 	int heartbeat_monitor_timeout;
 };
 
@@ -53,13 +53,10 @@ struct aprsis {
 	char rdline[500];
 };
 
-static int AprsIScount;
-static int AprsISindex;
-static struct aprsis **AprsIS;
+static struct aprsis *AprsIS;
 static struct aprsis_host **AISh;
 static int AIShcount;
 static int AIShindex;
-static int aprsis_multiconnect;
 static int aprsis_sp;		/* up & down talking socket(pair),
 				   parent: write talks down,
 				   child: write talks up. */
@@ -268,17 +265,14 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	aprsis_close(A, "reconnect");
 
-	if (!aprsis_multiconnect) {
-		if (!A->H) {
-			A->H = AISh[0];
-		} else {
-			++AIShindex;
-			if (AIShindex >= AIShcount)
-				AIShindex = 0;
-			A->H = AISh[AIShindex];
-		}
+	if (!A->H) {
+		A->H = AISh[0];
+	} else {
+		++AIShindex;
+		if (AIShindex >= AIShcount)
+			AIShindex = 0;
+		A->H = AISh[AIShindex];
 	}
-
 
 	if (!A->H->login) {
 		if (verbout)
@@ -581,8 +575,8 @@ static void aprsis_readsp(void)
 
 	/* Now queue the thing! */
 
-	for (i = 0; i < AprsIScount; ++i)
-		aprsis_queue_(AprsIS[i], addr, gwcall, text, textlen);
+	if (AprsIS != NULL)
+		aprsis_queue_(AprsIS, addr, gwcall, text, textlen);
 }
 
 int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *text,
@@ -649,120 +643,98 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 
 static int aprsis_prepoll_(struct aprxpolls *app)
 {
-	int idx = 0;		/* returns number of *fds filled.. */
-	int i;
-
 	struct pollfd *pfd;
+	struct aprsis *A = AprsIS;
 
-#if 0
-	if (AprsIScount > 1 && !aprsis_multiconnect)
-		AprsIScount = 1;	/* There can be only one... */
-#endif
+	if (A->last_read == 0)
+		A->last_read = now;	/* mark it non-zero.. */
 
-	for (i = 0; i < AprsIScount; ++i) {
-		struct aprsis *A = AprsIS[i];
+	if (A->server_socket < 0)
+		return -1;	/* Not open, do nothing */
 
-		if (A->last_read == 0)
-			A->last_read = now;	/* mark it non-zero.. */
+	/* Not all aprs-is systems send "heartbeat", but when they do.. */
+	if ((A->H->heartbeat_monitor_timeout > 0) &&
+	    (A->last_read + A->H->heartbeat_monitor_timeout < now)) {
 
-		if (A->server_socket < 0)
-			continue;	/* Not open, do nothing */
+		/*
+		 * More than 120 seconds (2 minutes) since last time
+		 * that APRS-IS systems told us something on the connection.
+		 * There is a heart-beat ticking every 20 or so seconds.
+		 */
 
-		/* Not all aprs-is systems send "heartbeat", but when they do.. */
-		if ((A->H->heartbeat_monitor_timeout > 0) &&
-		    (A->last_read + A->H->heartbeat_monitor_timeout <
-		     now)) {
-
-			/*
-			 * More than 120 seconds (2 minutes) since last time
-			 * that APRS-IS systems told us something on the connection.
-			 * There is a heart-beat ticking every 20 or so seconds.
-			 */
-
-			aprsis_close(A, "heartbeat timeout");
-		}
-
-
-		/* FD is open, lets mark it for poll read.. */
-
-		pfd = aprxpolls_new(app);
-
-		pfd->fd = A->server_socket;
-		pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
-		pfd->revents = 0;
-
-		/* Do we have something for writing ?  */
-		if (A->wrbuf_len)
-			pfd->events |= POLLOUT;
-
-		++idx;
+		aprsis_close(A, "heartbeat timeout");
 	}
 
-	return idx;
+	/* FD is open, lets mark it for poll read.. */
 
+	pfd = aprxpolls_new(app);
+
+	pfd->fd = A->server_socket;
+	pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+	pfd->revents = 0;
+
+	/* Do we have something for writing ?  */
+	if (A->wrbuf_len) {
+		pfd->events |= POLLOUT;
+	}
+
+	return 0;
 }
 
 static int aprsis_postpoll_(struct aprxpolls *app)
 {
-	int i, a;
+	int i;
 	struct pollfd *pfd = app->polls;
+	struct aprsis *A = AprsIS;
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
-		for (a = 0; a < AprsIScount; ++a) {
-			struct aprsis *A = AprsIS[a];
-			if (pfd->fd == A->server_socket
-			    && A->server_socket >= 0) {
-				/* This is APRS-IS socket, and we may have some results.. */
+		if (pfd->fd == A->server_socket && pfd->fd >= 0) {
+			/* This is APRS-IS socket, and we may have some results.. */
 
-				if (pfd->revents & (POLLERR)) {	/* Errors ? */
-					aprsis_close(A,"postpoll_ POLLERR");
-					continue;
-				}
-				if (pfd->revents & (POLLHUP)) {	/* Errors ? */
-					aprsis_close(A,"postpoll_ POLLHUP");
-					continue;
-				}
+			if (pfd->revents & (POLLERR)) {	/* Errors ? */
+				aprsis_close(A,"postpoll_ POLLERR");
+				continue;
+			}
+			if (pfd->revents & (POLLHUP)) {	/* Errors ? */
+				aprsis_close(A,"postpoll_ POLLHUP");
+				continue;
+			}
 
-				if (pfd->revents & POLLIN) {	/* Ready for reading */
-					for (;;) {
-						i = aprsis_sockread(A);
-						if (i == 0) {	/* EOF ! */
-							aprsis_close(A,"postpoll_ EOF");
-							continue;
-						}
-						if (i < 0)
-							break;
+			if (pfd->revents & POLLIN) {	/* Ready for reading */
+				for (;;) {
+					i = aprsis_sockread(A);
+					if (i == 0) {	/* EOF ! */
+						aprsis_close(A,"postpoll_ EOF");
+						continue;
+					}
+					if (i < 0)
+						break;
+				}
+			}
+
+			if (pfd->revents & POLLOUT) {	/* Ready for writing  */
+				/* Normal queue write processing */
+
+				if (A->wrbuf_len > 0 &&
+				    A->wrbuf_cur < A->wrbuf_len) {
+					i = write(A->server_socket,
+						  A->wrbuf +
+						  A->wrbuf_cur,
+						  A->wrbuf_len -
+						  A->wrbuf_cur);
+					if (i < 0)
+						continue;	/* Argh.. nothing */
+					if (i == 0);	/* What ? */
+					A->wrbuf_cur += i;
+					if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all! */
+						A->wrbuf_len = A->wrbuf_cur = 0;
+					} else {
+						/* partial write .. do nothing.. */
 					}
 				}
-
-				if (pfd->revents & POLLOUT) {	/* Ready for writing  */
-					/* Normal queue write processing */
-
-					if (A->wrbuf_len > 0
-					    && A->wrbuf_cur <
-					    A->wrbuf_len) {
-						i = write(A->server_socket,
-							  A->wrbuf +
-							  A->wrbuf_cur,
-							  A->wrbuf_len -
-							  A->wrbuf_cur);
-						if (i < 0)
-							continue;	/* Argh.. nothing */
-						if (i == 0);	/* What ? */
-						A->wrbuf_cur += i;
-						if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all! */
-							A->wrbuf_len =
-								A->
-								wrbuf_cur =
-								0;
-						} else {
-							/* partial write .. do nothing.. */
-						}
-					}
-					/* .. normal queue */
-				}	/* .. POLLOUT */
-			}	/* .. if fd == server_socket */
-		}		/* .. AprsIScount .. */
+				/* .. normal queue */
+			}	/* .. POLLOUT */
+		}	/* .. if fd == server_socket */
 	}			/* .. for .. nfds .. */
 	return 1;		/* there was something we did, maybe.. */
 }
@@ -770,21 +742,9 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 
 static void aprsis_cond_reconnect(void)
 {
-	if (aprsis_multiconnect) {
-		int i;
-		for (i = 0; i < AprsIScount; ++i) {
-			struct aprsis *A = AprsIS[i];
-			if (A->server_socket < 0 &&
-			    A->next_reconnect <= now) {
-				aprsis_reconnect(A);
-			}
-		}
-	} else {
-		struct aprsis *AIS = AprsIS[AprsISindex];
-		if (AIS &&	/* First time around it may trip.. */
-		    AIS->server_socket < 0 && AIS->next_reconnect <= now) {
-			aprsis_reconnect(AIS);
-		}
+	if (AprsIS &&	/* First time around it may trip.. */
+	    AprsIS->server_socket < 0 && AprsIS->next_reconnect <= now) {
+		aprsis_reconnect(AprsIS);
 	}
 }
 
@@ -792,6 +752,8 @@ static void aprsis_cond_reconnect(void)
 /*
  * Main-loop of subprogram handling communication with
  * APRS-IS network servers.
+ *
+ * This starts only when we have at least one <aprsis> defined without errors.
  */
 static void aprsis_main(void)
 {
@@ -849,64 +811,36 @@ static void aprsis_main(void)
 
 
 /*
- *  aprsis_add_server() - 
+ *  aprsis_add_server() - old style configuration
  */
 
 void aprsis_add_server(const char *server, const char *port)
 {
-	struct aprsis *A;
 	struct aprsis_host *H;
 
-	if (aprsis_multiconnect) {
-
-		A = malloc(sizeof(*A));
-		H = malloc(sizeof(*H));
-
-		AprsIS = realloc(AprsIS,
-				 sizeof(AprsIS[0]) * (AprsIScount + 1));
-		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
-
-		AprsIS[AprsIScount] = A;
-		AISh[AIShcount] = H;
-
-		A->H = H;
-
-		++AprsIScount;
-		++AIShcount;
-
-	} else {		/* not multiconnect */
-
-		if (AprsIScount == 0) {
-			AprsIScount = 1;
-
-			A = malloc(sizeof(*A));
-			AprsIS = realloc(AprsIS,
-					 sizeof(AprsIS[0]) * (AprsIScount +
-							      1));
-			AprsIS[0] = A;	/* Always index 0 */
-		} else
-			A = AprsIS[0];	/* Always index 0 */
-
-		H = malloc(sizeof(*H));
-		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
-		AISh[AIShcount] = H;
-
-		++AIShcount;
-		/* No inc on AprsIScount */
-
+	if (AprsIS == NULL) {
+		AprsIS = malloc(sizeof(*AprsIS));
 	}
+
+	H = malloc(sizeof(*H));
+	AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
+	AISh[AIShcount] = H;
+
+	++AIShcount;
+	/* No inc on AprsIScount */
 
 
 	H->server_name = strdup(server);
 	H->server_port = strdup(port);
 	H->heartbeat_monitor_timeout = 120; // Default timeout 120 seconds
-	H->login = aprsis_login;	/* global aprsis_login */
-	if (H->login == NULL) H->login = mycall;
+	H->login       = strdup(aprsis_login);	// global aprsis_login
+	if (H->login == NULL) H->login = strdup(mycall);
 
-	A->server_socket = -1;
-	A->next_reconnect = now;	/* perhaps somewhen latter.. */
+	AprsIS->server_socket = -1;
+	AprsIS->next_reconnect = now;	/* perhaps somewhen latter.. */
 }
 
+// old style configuration
 void aprsis_set_heartbeat_timeout(const int tout)
 {
 	int i = AIShcount;
@@ -919,11 +853,7 @@ void aprsis_set_heartbeat_timeout(const int tout)
 	H->heartbeat_monitor_timeout = tout;
 }
 
-void aprsis_set_multiconnect(void)
-{
-	aprsis_multiconnect = 1;	/* not really implemented.. */
-}
-
+// old style configuration
 void aprsis_set_filter(const char *filter)
 {
 	int i = AIShcount;
@@ -936,6 +866,7 @@ void aprsis_set_filter(const char *filter)
 	H->filterparam = strdup(filter);
 }
 
+// old style configuration
 void aprsis_set_login(const char *login)
 {
 	int i = AIShcount;
@@ -1075,7 +1006,13 @@ void aprsis_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
+	int has_fault = 0;
+	int line0 = cf->linenum;
 
+	struct aprsis_host *AIH = malloc(sizeof(*AIH));
+	memset(AIH, 0, sizeof(*AIH));
+	AIH->login                     = strdup(mycall);
+	AIH->heartbeat_monitor_timeout = 120;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -1094,14 +1031,11 @@ void aprsis_config(struct configfile *cf)
 		str = config_SKIPSPACE(str);
 
 		if (strcmp(name, "</aprsis>") == 0) {
-		  // End of this interface definition
-
-		  // make the interface...
-
+		  // End of this interface definition block
 		  break;
 		}
 
-		// FIXME: aprsis parameters
+		// APRSIS parameters
 
 		// login
 		// server
@@ -1110,42 +1044,103 @@ void aprsis_config(struct configfile *cf)
 
 		if (strcmp(name, "login") == 0) {
 		  config_STRUPPER(param1);
-		  validate_callsign_input(param1,0);
-		  aprsis_login = strdup(param1);
+		  if (!validate_callsign_input(param1,0)) {
+		    // bad input...
+		  }
 		  if (debug)
 		    printf("%s:%d: LOGIN = '%s' '%s'\n",
-			   cf->name, cf->linenum, aprsis_login, str);
+			   cf->name, cf->linenum, param1, str);
+		  AIH->login = strdup(param1);
 
 		} else if (strcmp(name, "server") == 0) {
-		  aprsis_add_server(param1, str);
+
+		  if (AIH->server_name != NULL) {
+		  }
+		  AIH->server_name = strdup(param1);
+
+		  param1 = str;
+		  str = config_SKIPTEXT(str, NULL);
+		  str = config_SKIPSPACE(str);
+		  if ('1' <= *param1 && *param1 <= '9') {
+		    // fixme: more input analysis?
+		    AIH->server_port = strdup(param1);
+		  } else if (*param1 == 0) {
+		    // Default silently!
+		    AIH->server_port = strdup("14580");
+		  } else {
+		    AIH->server_port = strdup("14580");
+		    printf("%s:%d SERVER = '%s' port='%s' is not supplying valid TCP port number, defaulting to '14580'\n",
+			   cf->name, cf->linenum, AIH->server_name, param1);
+		  }
 
 		  if (debug)
 		    printf("%s:%d: SERVER = '%s':'%s'\n",
-			   cf->name, cf->linenum, param1, str);
+			   cf->name, cf->linenum, AIH->server_name, AIH->server_port);
 
 		} else if (strcmp(name, "heartbeat-timeout") == 0) {
 		  int i = 0;
 		  if (config_parse_interval(param1, &i)) {
 		    // FIXME: Report parameter failure ...
+		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%s'  - bad parameter'\n",
+			   cf->name, cf->linenum, param1);
+		    has_fault = 1;
 		  }
-		  if (i < 0)	/* param failure ? */
+		  if (i < 0) {	/* param failure ? */
 		    i = 0;	/* no timeout */
-		  aprsis_set_heartbeat_timeout(i);
+		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%s'  - bad parameter'\n",
+			   cf->name, cf->linenum, param1);
+		    has_fault = 1;
+		  }
+		  AIH->heartbeat_monitor_timeout = i;
 		  
 		  if (debug)
 		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%d' '%s'\n",
 			   cf->name, cf->linenum, i, str);
 
 		} else if (strcmp(name, "filter") == 0) {
-		  aprsis_set_filter(param1);
+		  int l1 = (AIH->filterparam != NULL) ? strlen(AIH->filterparam) : 0;
+		  int l2 = strlen(param1);
+
+		  AIH->filterparam = realloc( AIH->filterparam, l1 + l2 +2 );
+
+		  if (l1 > 0) {
+		    AIH->filterparam[l1] = ' ';
+		    memcpy(&(AIH->filterparam[l1+1]), param1, l2+1);
+		  } else {
+		    memcpy(&(AIH->filterparam[0]), param1, l2+1);
+		  }
 
 		  if (debug)
-		    printf("%s:%d: FILTER = '%s' '%s'\n",
-			   cf->name, cf->linenum, param1, str);
+		    printf("%s:%d: FILTER = '%s' -->  '%s'\n",
+			   cf->name, cf->linenum, param1, AIH->filterparam);
 
 		} else  {
 		  printf("%s:%d: Unknown configuration keyword: '%s'\n",
 			 cf->name, cf->linenum, param1);
 		}
+	}
+	if (AIH->server_name == NULL) {
+	  printf("%s:%d This <aprsis> block does not define server!\n",
+		 cf->name, line0);
+	  has_fault = 1;
+	}
+	if (has_fault) {
+		if (AIH->server_name != NULL) free(AIH->server_name);
+		if (AIH->server_port != NULL) free(AIH->server_port);
+		if (AIH->filterparam != NULL) free(AIH->filterparam);
+		if (AIH->login       != NULL) free(AIH->login);
+		free(AIH);
+		return;
+
+	} else {
+		if (AprsIS == NULL) {
+			AprsIS = malloc(sizeof(*AprsIS));
+			memset(AprsIS, 0, sizeof(*AprsIS));
+			AprsIS->server_socket = -1;
+			AprsIS->next_reconnect = now;	/* perhaps somewhen latter.. */
+		}
+
+		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
+		AISh[AIShcount] = AIH;
 	}
 }

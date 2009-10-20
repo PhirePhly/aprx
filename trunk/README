@@ -10,7 +10,14 @@ A receive-only APRS-IS "i-gate" with following properties:
    - Tx-IGate is incomplete
 
    - Can do APRS New-N and generic AX.25 node digipeater functionality
-     with transmitters  - Not yet with Viscous Digipeater
+     with transmitters
+
+   - Has same-channel Viscous Digipeater functionality to not to digipeat
+     at all, if during initial wait period the packet is heard again.
+
+   - Has cross-interface Viscous Digipeater functionality to not to digipeat,
+     if during the initial wait period the packet is heard on destination
+     interface even once.
 
    - Can receive data from multiple receivers/modems on local machine
      serial ports, both classical and USB.
