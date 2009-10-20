@@ -21,5 +21,9 @@
 - bidirectional relaying capability with areal filters ??
   (that would make this a full-blown aprsd / aprsdigi replacement..)
 
+- Colorize debug printout (or make another tool to colorize aprx-rf.log)
+    - rx-packets green (or blue), tx-packets red
+    - port names/callsigns bolded, same with packet source callsigns
+
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009
