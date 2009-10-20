@@ -164,7 +164,15 @@ erlangfile @VARRUN@/aprx.state
 #  can be at most one digipeater for each transmitter.
 #
 #  In each digipeater there is at least one <source>, usually same
-#  as the transmitter.
+#  as the transmitter.  You may use same <source> on multiple
+#  <digipeater>s. Using multiple instances of same <source> on
+#  a single <digipeater> does not crash the system, but it can cause
+#  packet duplication in case of non-APRS protocols (like AX.25 CONS)
+#
+#  Use only at most two levels of viscous-delay in your <digipeater>.
+#  Immediate sending is by "0", and a delayed sending is any value
+#  from 1 to 9.  This system does not correctly support other than
+#  immediate sending and one level of delay.
 #
 #<digipeater>
 #    transmitter     $mycall
