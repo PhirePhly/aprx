@@ -1,4 +1,27 @@
-2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2009-10-20  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, digipeater.c:
+	    Viscous digipeater special corner cases..
+
+	* aprx.h, config.c, aprx.conf.in, aprx-complex.conf.in
+	    Interval parser for "timeout" and "interval" parameters
+	    used in several places.
+
+	* config.c, aprx.conf.in, aprx-complex.conf.in:
+	    Line continuation (the '\' character at the end of
+	    input line - with possible whitespaces following it)
+	    is now supported.
+	    An interval parser is added; timeouts and intervals
+	    can be defined in human readable way:  3m2s
+
+	* aprx.8.in:
+	    Larger rewrite to bring it up to current version.
+
+	* aprsis.c, aprx.conf.in, aprx-complex.conf.in:
+	    Reworked details of <aprsis> configuring, and internal
+	    operational semantics.  Most notable difference is on
+	    possibility to define used filters in small fragments,
+	    which the system will then catenate.
 
 	* aprx.h, digipeater.c, dupecheck.c:
 	    Returned the viscous delay processing back to version

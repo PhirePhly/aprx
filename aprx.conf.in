@@ -37,28 +37,24 @@ mycall  N0CALL-1
 #login     $mycall	# login defaults to $mycall
 
 # APRS-IS server name and portnumber.
-# Every reconnect does re-resolve the name to IP address.
-# There can be as many definitions as you want, and they will be
-# used in round-robin fashion.  Heartbeat and filter definitions
-# must follow each server definition.
-
 server    rotate.aprs.net    14580
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
-# Enable only if the server you use does present heartbeat.
-# Default value is 3*"heartbeat" + some  -> 120 (seconds)
+# Default value is 3*"heartbeat" + some  --> 120 (seconds)
 #
-#heartbeat-timeout   0    # Disabler in case your server does not do heartbeat
+#heartbeat-timeout   0    # Disabler of heartbeat timeout
 
 # APRS-IS server may support some filter commands.
 # See:  http://www.aprs-is.net/javAPRSFilter.aspx
 #
+# You can define the filter as single long quoted string, or as
+# many short segments with explaining comments following them.
+#
 #filter "possibly multiple filter specs in quotes"
 #
 #filter "m/100"	     # My-Range filter: positions within 100 km from my location
-#filter "m/100 f/OH2XYZ-3/50"  # 100 km of my location, or 50 km of friend's
-
+#filter "f/OH2XYZ-3/50"  # Friend-Range filter: 50 km of friend's last beacon position
 </aprsis>
 
 <logging>
@@ -71,13 +67,15 @@ pidfile @VARRUN@/aprx.pid
 
 
 # rflog defines a rotatable file into which all RF-received packets
-# are logged.
+# are logged.  It can be rotated at any time without need to signal
+# the aprx that the file has been moved.
 #
-rflog @VARLOG@/rf.log
+rflog @VARLOG@/aprx-rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS-IS connection are logged, namely connects and
-# disconnects.
+# disconnects.  It can be rotated at any time without need to
+# signal the aprx that the file has been moved.
 #
 aprxlog @VARLOG@/aprx.log
 
@@ -90,13 +88,13 @@ aprxlog @VARLOG@/aprx.log
 # erlang data over the current period, if the restart is quick,
 # and does not stradle any exact minute.
 # (Do restarts at 15 seconds over an even minute..)
-# This file is around 0.5 MB per each interface talking APRS.
-# Things go BADLY WRONG if this file can not be created or
-# it is corrupted!
+# This file is around 0.7 MB per each interface talking APRS.
+# If this file is not defined and it can not be created,
+# internal non-persistent in-memory storage will be used.
 #
 # Built-in default value is: @VARRUN@/aprx.state
 #
-erlangfile @VARRUN@/aprx.state
+#erlangfile @VARRUN@/aprx.state
 
 </logging>
 

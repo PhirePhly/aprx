@@ -2,7 +2,7 @@
 .LO 8
 .SH NAME
 .B aprx
-\- A receive-only APRS iGate application,
+\- A receive-only APRS iGate application with integrated Digipeater.
 .SH SYNOPSIS
 .B aprx
 .RB [ \-d [ d [ d ]]]
@@ -16,7 +16,7 @@ begun as a
 .I receive-only
 APRS iGate application with minimum system support technology requirements.
 This version has also multi-port digipeater support, and plans include to
-add transmit igate.
+add transmit iGate.
 .PP
 .IP \(bu 3
 The Aprx does not require machine to have any other software in it, than things
@@ -43,7 +43,7 @@ coming in.
 The AX.25 socket listening is not in itself configurable, it is always exists
 in Linux systems, and related configuration parameters are ignored in other
 platforms.
-This socket listening does not need "libax25" to function.
+This socket listening does not need auxiliary "libax25" to function.
 .IP \(bu 3
 The Aprx program can be run without root privileges at least against remote
 serial port servers.  One must change local serial port ownership or
@@ -55,23 +55,23 @@ How that is done is up to the user of this program.
 The Aprx connects with one callsign-ssid pair to APRS-IS core for all received
 radio ports.
 .IP \(bu 3
-The Aprx Rx-IGate knows that messages with following tokens in AX.25 VIA
+The Aprx Rx-iGate knows that messages with following tokens in AX.25 VIA
 fields are not to be relayed into APRS-IS network:
 .RS 9
 .B "RFONLY, NOGATE, TCPIP, TCPXX"
 .RE
 .IP \(bu 3
-The Aprx Rx-IGate knows that following source address prefixes are bogus and
+The Aprx Rx-iGate knows that following source address prefixes are bogus and
 thus messages with them are to be junked:
 .RS 9
 .B "WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL"
 .RE
 .IP \(bu 3
-The Aprx Rx-IGate Drops all
+The Aprx Rx-iGate Drops all
 .I query
 messages ("?").
 .IP \(bu 3
-The Aprx Rx-IGate opens up all 3rd party messages ("}"), and checks the internal
+The Aprx Rx-iGate opens up all 3rd party messages ("}"), and checks the internal
 data if it is OK to be gated out to APRS-IS.
 .IP \(bu 3
 The Aprx has built-in "Erlang monitor" mechanism that telemeters each receiving
@@ -172,36 +172,43 @@ file, and it has default name of:
 
 .SH CONFIGURATION FILE
 The configuration file is used to setup the program to do its job.
-Some configurations can be done without the file, namely a channel
-.I "Erlang monitor"
-siphoning APRS packets off the Linux kernel AX.25 network stack.
 .PP
+You can construct following configurations:
 .PP
-On the configuration file, following additional notes
-.IP \(bu 2
-Most parameters are singletons, that is, there can be only one.
-.IP \(bu 2
-There can be unlimited number of "aprsis-server" lines, and each
-can be followed by own "aprsis-heartbeat-timeout", and "aprsis-filter"
-lines.
-.IP \(bu 2
-There can be unlimited number of "radio" lines.
-.IP \(bu 2
-There can be unlimited number of "netbeacon" lines.
-.IP \(bu 2
-There can be unlimited number of "ax25-filter" lines.
-.IP \(bu 2
-There can be unlimited number of "ax25-rxport" lines.
+.IP \(bu 3
+A
+.I receive-only
+iGate server.
+.IP \(bu 3
+A
+.I "single radio"
+digipeater.  (The most common type of digipeater.)
+.IP \(bu 3
+A
+.I multi-interfaced
+digipeater relaying traffic in between multiple radios.  (On same or on separate frequencies.)
+.IP \(bu 3
+A
+.I "viscuous digipeater,"
+which relays a packet it heard from viscuous source after the viscuous delay,
+.I unless it was heard more times than only once,
+or it was heard from non-viscuous source before the viscuous one was digipeated.
+This allows of making fill-in digipeaters that will not digipeat the packet,
+if that same packet was heard twice or more before the viscuos delay expired.
+.IP \(bu 3
+A digipeater with receive-only iGate server.
 .PP
-The configuration file is read upon program start,
-it is never re-read during process life.
+This package does contain incomplete bi-directional iGate support,
+however as of present version, we do not recommend its use quite yet!
+.PP
 .nf
 \fC
 #
-#  Sample configuration file for the APRX \-\- an Rx\-only APRS iGate
+#  Sample configuration file for the APRX -- an Rx-only APRS iGate with
+#  Digipeater functionality.
 #
 #
-# Simple sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
+# Simple sample configuration file for the APRX-2
 #
 # This configuration is structured with Apache HTTPD style tags
 # which then contain subsystem parameters.
@@ -218,9 +225,9 @@ it is never re-read during process life.
 #
 #
 # Define the parameters in following order:
-#   1)  <aprsis>     ** zero or one
+#   1)  <aprsis>     ** zero to many
 #   2)  <logging>    ** zero or one
-#   3)  <interface>  ** there can be multiple!
+#   3)  <interface>  ** one to many
 #   4)  <beacon>     ** zero to many
 #   5)  <digipeater> ** zero to many (at most one for each Tx)
 #
@@ -233,38 +240,35 @@ it is never re-read during process life.
 mycall  N0CALL-1
 
 <aprsis>
-# The  aprsis-login  parameter: 
+# The  login  parameter: 
 # Station call\-id used for relaying APRS frames into APRS\-IS.
-# This value MUST NOT match any possible AX.25 interface in
-# the system!  Ignore this at your own peril...  The Call\-SSIDs
-# SSID value do not need to be numeric 1..15, "\-R1" works too.
 #
-#login      N0CALL\-R1
+#login      $mycall  # login defaults to $mycall
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
-# There can be as many definitions as you want, and they will be
-# used in round\-robin fashion.  Heartbeat and filter definitions
-# must follow each server definition.
+# Some alternates are shown below, choose something local to you.
 #
-#server    rotate.aprs.net    14580
+server    rotate.aprs.net    14580
 #server    finland.aprs2.net  14580
 #server    igates.aprs.fi     14580
 
 # Some APRS\-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
-# Enable only if the server you use does present heartbeat.
 # Recommended value 3*"heartbeat" + some  \-> 120 (seconds)
 #
-#heartbeat\-timeout   120
+#heartbeat\-timeout  0  # Disabler of heartbeat timeout
 
-# APRS\-IS server may support some filter commands.  Although this
-# program does not transmit out to RF, filter rules can be used to
-# ensure that there is sufficient dataflow from APRS\-IS server to
-# this program that it very likely will not timeout within network
-# monitoring timeout..
+# APRS-IS server may support some filter commands.
+# See:  http://www.aprs-is.net/javAPRSFilter.aspx
 #
-#filter "some filter specs in quotes"
+# You can define the filter as single long quoted string, or as
+# many short segments with explaining comments following them.
+#
+#filter "possibly multiple filter specs in quotes"
+#
+#filter "m/100"          # My-Range filter
+#filter "f/OH2XYZ\-3/50"  # Friend-Range filter
 </aprsis>
 
 
@@ -295,13 +299,13 @@ mycall  N0CALL-1
 # erlang data over the current period, if the restart is quick,
 # and does not stradle any exact minute.
 # (Do restarts at 15 seconds over an even minute..)
-# This file is around 0.5 MB per each interface talking APRS.
-# Things go BADLY WRONG if this file can not be created or
-# it is corrupted!
+# This file is around 0.7 MB per each interface talking APRS.
+# If this file is not defined and can not be created,
+# internal non-persistent in-memory storage will be used.
 #
-# Built\-in default value is: @VARRUN@/aprx.state
+# Built-in default value is: @VARRUN@/aprx.state
 #
-erlangfile @VARRUN@/aprx.state
+#erlangfile @VARRUN@/aprx.state
 
 # erlang\-loglevel is config file edition of the "\-l" option
 # pushing erlang data to syslog(3).
@@ -359,7 +363,7 @@ erlangfile @VARRUN@/aprx.state
 #
 #<interface>
 #   serial\-device /dev/ttyUSB1  19200 8n1    TNC2
-#   #callsign     $mycall  # cEither $mycall macro, or actual callsign
+#   #callsign     $mycall  # Either $mycall macro, or actual callsign
 #   #tx\-ok        false    # TNC2 monitor can not have transmitter
 #</interface>
 #
@@ -374,8 +378,8 @@ erlangfile @VARRUN@/aprx.state
 #  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
 #
 #beacon for N0CALL\-3 raw "!6016.30NR02506.36E&aprx \- an Rx\-only iGate"
-#beacon for $mycall  symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx \- an Rx\-only iGate"
-#
+#beacon for $mycall  symbol "R&" lat "6016.30N" lon "02506.36E"  \\
+                     comment "aprx \- an Rx\-only iGate"
 </beacon>
 
 
@@ -397,22 +401,33 @@ erlangfile @VARRUN@/aprx.state
 #
 #    <source>
 #        source         $mycall
-#    #   viscous\-delay  0     # no viscous delay for RF\->RF digipeating
+#    #   viscous\-delay  0     # no viscous delay for RF\->RF digipeat
 #    #   ratelimit      120   # default: max 120 packets/minute
-#    #   filter     "..."     # Optional filters to limit digipeated messages
 #    </source>
-#    #<source>                # Adding APRSIS source makes this tx\igate
+#\fI    #### NOTE: Some Tx\-iGate processing rules are not yet implemented\fR\fC
+#    #<source>          # Adding APRSIS source makes this tx-igate
 #    #    source        APRSIS
-#    #    # %%%% additional tx-igate options to be defined %%%%
-#    #    #  (like relay-format controls, APRSIS\->RF in 3rd-party form)
-#    #    viscous\-delay 5     # Recommendation: 5 seconds delay to give 
-#    #                        # RF delivery time make itself known.
-#    #   filter     "..."     # Optional filters to limit gated messages
+#    #    relay\-type    third\-party  # Must define this for APRSIS source!
+#    #    viscous\-delay  5 # Recommendation: 5 seconds delay to give
+#    #                     # RF delivery time make itself known.
 #    #</source>
 #
 #</digipeater>
 \fR
 .fi
+.PP
+In the configuration file a line ending backslash (\\) character concatenates
+next input line into itself. Combined result can be up to 8000 bytes long.
+This combination can be a bit surprising:
+.nf
+\fC#beacon .... long text  \\
+       continuation\fR
+.fi
+results in single long input line that begins with '#' (it is comment) and all
+continuations following it have been folded in.
+Presented line number of combined continuation is the line number of the
+.I last
+line segment in this type of multi-line input.
 .PP
 In the configuration file there is special treatment for quoted strings.
 They are stripped of the outer quotes, and "\fC\\\fR" character is processed within
@@ -438,9 +453,8 @@ Places a single-quote on the output string.
 .B "\fC\\\\xHH"
 Lower-case "x" precedes two hex digits which ensemble is then converted to a single byte in the output string.
 .PP
-The complex encodings are for possible init-strings of the external devices,
-.I "however: a nul byte is not possible to produce as it terminates a string!"
-( = "\fC\\x00\fR" )
+The complex encodings are for possible initstrings of the external devices,
+and in particular for initstrings even a nul byte ( \\x00 ) is supported.
 .PP
 A configuration token without surrounding quotes does not understand the backslash escapes.
 
@@ -480,62 +494,60 @@ The
 .I callsign
 option sets port specific callsign when relaying to APRS-IS.
 
-.SH NETBEACON definitions
-Because classical netbeacon definitions are highly error-prone, this program
+.SH BEACON definitions
+Because classical beacon definitions are highly error-prone, this program
 has a new way to define them:
 .IP \(bu 2
-The new way to define netbeacons, however do note that these will be only
+The new way to define beacons, however do note that these will be only
 messages of type "!":
 
 .nf
-\fCnetbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E"\fR
+\fCbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
 \fC       comment "aprx - an Rx-only iGate" \fR
 .fi
-
-(the line is folded for this document)
 
 .IP \(bu 2
 Semi-clasical definition of raw APRS packet:
 
 .nf
-\fCnetbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
-.fi
-
-.IP \(bu 2
-Classical definition of raw APRS packet, albeit given in quotes.
-The "for" callsign will be that of "mycall" parameter, which is
-.B invalid
-for radio network in above recommended form!
-.B Do not use this form!
-
-.nf
-\fCnetbeacon "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+\fCbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
 .fi
 .PP
 The fields and parameters:
+.IP to 8
+An
+.I optional
+"to" parameter tells that this beacon shall be sent only to interface whose
+callsign is named.  Default is to send to all interfaces that have "tx-ok true"
+setting.
+
 .IP for 8
-The
+An
 .I optional
 "for" parameter tells callsign which is claimed as this particular beacon source.
 It must be valid AX.25 callsign in text format.
 When this "for" parameter is not given, value of "mycall" configuration entry is used.
 
 .IP dest 8
-The
+An
 .I optional
 "dest" parameter defaults to "APRS", but can be used to define another value.
 
 .IP via 8
-The
+An
 .I optional
 "via" parameter defaults to nothing, but can be used to define additional
-"VIA" path tokens, for example: "NOGATE".
+"VIA" path tokens, for example: "WIDE1\-1".
 
 .IP symbol 8
-The "symbol" parameter is two character code, which for Rx-only iGate is pair: "R&"
+A
+.I mandatory
+"symbol" parameter is two character code, which for Rx-only iGate is pair: "R&"
 
 .IP lat 8
-This defines
+This
+.I mandatory
+parameter defines
 .I latitude
 coordinate (that is: north/south.)
 It is expected to be of format: "ddmm.mmN" where "dd" defines
@@ -548,7 +560,9 @@ of latitude.
 Then comes literal "N" or "S" indicating hemisphere.
 
 .IP lon 8
-This defines
+This 
+.I mandatory
+parameter defines
 .I longitude
 coordinate (that is: east/west.)
 It is expected to be of format: "dddmm.mmE" where "ddd" defines
@@ -561,15 +575,20 @@ of longitude.
 Then comes literal "E" or "W" indicating hemisphere.
 
 .IP comment 8
-Defines commentary tail on the message.
+This
+.I optional
+parameter defines commentary text tail on the beacon packet.
 
 .IP raw 8
-Defines whole packet in raw AX.25 text format.
+This
+.I alternate
+format defines whole APRS packet content in raw text format.
+.I Currently this type of packets are not validated for syntax at all!
 
 .PP
-The symbol/lat/lon/comment-format supports only "!"-type APRS messages
+The symbol/lat/lon/comment-format supports only "!"-type APRS packets
 for beacons.
-It splits input into small slices that are a bit simpler to validate
+It splits input into small slices that are possible to validate in detail.
 (see "DEBUGGING SYSTEM" above)
 
 

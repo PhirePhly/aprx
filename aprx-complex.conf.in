@@ -5,7 +5,7 @@
 # which then contain subsystem parameters.
 #
 # Define the parameters in following order:
-#   1)  <aprsis>     ** zero or one
+#   1)  <aprsis>     ** zero to many
 #   2)  <logging>    ** zero or one
 #   3)  <interface>  ** there can be multiple!
 #   4)  <netbeacon>  ** zero to many
@@ -14,46 +14,47 @@
 #   7)  <digipeater> ** zero to many (at most one for each Tx)
 #
 
+
+#
+# Global macro for simplified callsign definition:
+# Usable for 99+% of cases.
+#
+
+mycall  N0CALL-1
+
+#  Define possibly multiple APRSIS servers, they are connected to
+#  in Round-Robin fashion.  There also exist DNS RR servers for
+#  this use, one of them is "rotate.aprsis.net".
 <aprsis>
 # The  aprsis-login  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
-# This value MUST NOT match any possible AX.25 interface in
-# the system!  Ignore this at your own peril...  The Call-SSIDs
-# SSID value does not need to be numeric 1..15: "-R1" works too.
 #
-login     N0CALL-R1
+#login     $mycall	# login defaults to $mycall macro
 
 # APRS-IS server name and portnumber.
-# Every reconnect does re\-resolve the name to IP address.
-# There can be as many definitions as you want, and they will be
-# used in round\-robin fashion.  Heartbeat and filter definitions
-# must follow each server definition.
-
+# Every reconnect does re-resolve the name to IP address.
+#
 #server	   igates.aprs.fi     14580
 #server    finland.aprs2.net  14580
 server    rotate.aprs.net    14580
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
-# Enable only if the server you use does present heartbeat.
-# Recommended value 3*"heartbeat" + some  -> 120 (seconds)
+# Default value 3*"heartbeat" + some  --> 120 (seconds)
 #
-#heartbeat-timeout   120
-
-# Additional APRS-IS servers can be entered, by repeating following
-# three configuration entries as many times as are needed.
-#
-#server            rotate.aprs.net 14580
-#heartbeat-timeout 120
+#heartbeat-timeout   0    # Disabler in case your server does not do heartbeat
+#heartbeat-timeout   1m   # Interval of one minute (60 seconds)
 
 # APRS-IS server may support some filter commands.
 # See:  http://www.aprs-is.net/javAPRSFilter.aspx
 #
-# Note: "m/.." filter does not work, because you can not beacon
-#       same ID as is used on APRS-IS login - the aprsis login !
+# You can define the filter as single long quoted string, or as
+# many short segments with explaining comments following them.
 #
-#filter "some filter specs in quotes"
-
+#filter "possibly multiple filter specs in quotes"
+#
+#filter "m/100"	     # My-Range filter: positions within 100 km from my location
+#filter "f/OH2XYZ-3/50"  # Friend-Range filter: 50 km of friend's last beacon position
 </aprsis>
 
 <logging>
@@ -68,7 +69,7 @@ pidfile @VARRUN@/aprx.pid
 # rflog defines a rotatable file into which all RF-received packets
 # are logged.
 #
-#rflog @VARLOG@/rf.log
+#rflog @VARLOG@/aprx-rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS-IS connection are logged, namely connects and
@@ -85,9 +86,9 @@ pidfile @VARRUN@/aprx.pid
 # erlang data over the current period, if the restart is quick,
 # and does not stradle any exact minute.
 # (Do restarts at 15 seconds over an even minute..)
-# This file is around 0.5 MB per each interface talking APRS.
-# Things go BADLY WRONG if this file can not be created or
-# it is corrupted!
+# This file is around 0.7 MB per each interface talking APRS.
+# If this file is not defined or can not be created, internal
+# non-persistent in-memory storage will be used.
 #
 # Built-in default value is: @VARRUN@/aprx.state
 #
@@ -163,10 +164,10 @@ pidfile @VARRUN@/aprx.pid
 #
 # Additional/alternate options for the serial-device
 #
-# "timeout 900" sets a timeout monitor (in seconds) to make
-#    reopen/reconnect if the (tcp) connection to radio has
-#    failed somehow and nothing is heard. Local serial ports
-#    do not (in general) need this.  At APRS silent sites
+# "timeout 15m" sets a timeout monitor (an interval) to make
+#    reopen/reconnect if the serial port/connection to radio
+#    has failed somehow and nothing is heard. Local serial
+#    ports do not in general need this.  At APRS silent sites
 #    this may cause repeated reconnects, but it should not
 #    harm either.  At busy sites this will handle reconnect
 #    gracefully in case of network failures, and timeout
@@ -205,7 +206,7 @@ pidfile @VARRUN@/aprx.pid
 #
 #<interface>
 #   tcp-device  12.34.56.78  4001  KISS
-#   timeout 900 
+#   timeout 15m  # 15 minutes
 #  #alias         RELAY,WIDE,TRACE
 #   <kiss-subif 0>
 #      callsign N0CALL-12
@@ -215,7 +216,7 @@ pidfile @VARRUN@/aprx.pid
 #
 #<interface>
 #   tcp-device  12.34.56.78  4002  TNC2
-#   timeout 300
+#   timeout 5m   # 5 minutes
 #  #alias         RELAY,WIDE,TRACE
 #   <kiss-subif 0>
 #      callsign N0CALL-12

@@ -1056,6 +1056,8 @@ void digipeater_receive( struct digipeater_source *src,
 	//  The dupe-filter exists for APRS frames, possibly for some
 	// selected UI frame types, and definitely not for CONS frames.
 
+	const int source_is_transmitter = (src->src_if == src->parent->transmitter);
+
 	if (debug)
 	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
 		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
@@ -1069,6 +1071,9 @@ void digipeater_receive( struct digipeater_source *src,
 		dupe_record_t *dupe = dupecheck_pbuf( src->parent->dupechecker, pb,
 						      src->viscous_delay);
 		if (dupe == NULL) return; // Oops.. allocation error!
+
+		if (source_is_transmitter)
+			dupe->seen_on_transmitter += 1;
 
 		if (src->viscous_delay == 0) {
 			if (dupe != NULL && dupe->seen > 1) {
