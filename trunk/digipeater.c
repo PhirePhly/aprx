@@ -854,19 +854,6 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	struct digipeater *digi = src->parent;
 	char viafield[14];
 
-	//  The dupe-filter exists for APRS frames, possibly for some
-	// selected UI frame types, and definitely not for CONS frames.
-
-	// 1) Feed to dupe-filter (transmitter specific)
-	//    If the dupe detector on this packet has reached
-	//    count > 1, drop it.
-
-	dupe_record_t *dupe = dupecheck_pbuf( digi->dupechecker, pb);
-	if (dupe != NULL && dupe->seen > 1) {
-		if (debug>1)
-			printf("Seen this packet %d times\n",dupe->seen);
-		return; // Already Nth observation
-	}
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
@@ -1066,11 +1053,32 @@ void digipeater_receive( struct digipeater_source *src,
 	// Below numbers like "4)" refer to Requirement Specification
 	// paper chapter 2.6: Digipeater Rules
 
+	//  The dupe-filter exists for APRS frames, possibly for some
+	// selected UI frame types, and definitely not for CONS frames.
+
 	if (debug)
 	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
 		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
 
 	if (pb->is_aprs) {
+
+		// 1) Feed to dupe-filter (transmitter specific)
+		//    If the dupe detector on this packet has reached
+		//    count > 1, drop it.
+
+		dupe_record_t *dupe = dupecheck_pbuf( src->parent->dupechecker, pb,
+						      src->viscous_delay);
+		if (dupe == NULL) return; // Oops.. allocation error!
+
+		if (src->viscous_delay == 0) {
+			if (dupe != NULL && dupe->seen > 1) {
+				if (debug>1)
+					printf("Seen this packet %d times\n",
+					       dupe->delayed_seen + dupe->seen);
+				return; // Already Nth observation
+			}
+		}
+
 		// 1.1) optional viscous delay!
 
 		if (src->viscous_delay > 0) {
@@ -1082,11 +1090,39 @@ void digipeater_receive( struct digipeater_source *src,
 							sizeof(void*) *
 							src->viscous_queue_space );
 			}
-			src->viscous_queue[ src->viscous_queue_size -1 ] = pbuf_get(pb);
+			src->viscous_queue[ src->viscous_queue_size -1 ] = dupecheck_get(dupe);
 			
 			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d pbuf=%p\n",
 					  now, src->viscous_queue_size, pb);
-			return; // Sent on viscous queue
+			return; // Put on viscous queue
+
+		} else { // No delay, remove the pbuf from dupe_record_t
+			// 
+
+			// 1.x) Analyze dupe checking
+			if (dupe->seen > 1) {
+				if (debug>1)
+					printf("Seen this packet %d times\n",dupe->seen);
+				return; // Already Nth observation
+			}
+
+			if (dupe->seen == 1 && dupe->pbuf == NULL) {
+				// First direct, but dupe record does not have
+				// pbuf anymore indicating that a delayed handling
+				// did process it sometime in past.
+				return;
+			}
+
+			if (dupe->seen == 1) {
+				// First direct, and pbuf exists in dupe record.
+				// It was added first to viscous queue, and a bit
+				// latter came this direct one.   Remove it from
+				// viscous queue, and proceed with direct processing.
+
+				pbuf_put(dupe->pbuf);
+				dupe->pbuf = NULL;
+				dupe = NULL; // Do not do  dupecheck_put() here!
+			}
 		}
 	}
 	// Send directly to backend
@@ -1142,19 +1178,27 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    for (i = 0; i < src->viscous_queue_size; ++i) {
 	      time_t t = src->viscous_queue[0]->t  + src->viscous_delay;
 	      if (t <= now) {
-		struct pbuf_t *pb = src->viscous_queue[i];
-		if (debug)printf("%ld LEAVE VISCOUS QUEUE: pbuf=%p\n",
-				 now, pb);
-		digipeater_receive_backend(src, pb);
-		pbuf_put(pb);
-		++donecount;
+		struct dupe_record_t *dupe = src->viscous_queue[i];
+		if (debug)printf("%ld LEAVE VISCOUS QUEUE: dupe=%p pbuf=%p\n",
+				 now, dupe, dupe->pbuf);
+		if (dupe->pbuf != NULL && dupe->seen == 0) {
+                  // We send the first pbuf from viscous queue as long
+                  // as delayless observation count is zero.
+                  digipeater_receive_backend(src, dupe->pbuf);
+                }
+                if (dupe->pbuf != NULL) {
+                  pbuf_put(dupe->pbuf);
+                  dupe->pbuf = NULL;
+                }
+                dupecheck_put(dupe);
+                ++donecount;
 	      }
 	    }
 	    if (donecount > 0) {
 	      if (donecount >= src->viscous_queue_size) {
 		src->viscous_queue_size = 0;
 	      } else {
-		// Count of entries left after this processing set
+		// Compact the queue left after this processing round
 		i = src->viscous_queue_size - donecount;
 		memcpy(&src->viscous_queue[0],
 		       &src->viscous_queue[donecount],

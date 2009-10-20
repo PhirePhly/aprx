@@ -339,7 +339,12 @@ typedef struct dupe_record_t {
 
 	struct pbuf_t *pbuf;	// To send packet out of delayed processing,
 				// this pointer must be non-NULL.
-	int16_t  seen;		// Count of times this packet has been seen
+        int16_t  seen;          // Count of times this packet has been seen
+                                // on non-delayed processing.  First one will
+                                // be sent when pbuf is != NULL.
+        int16_t  delayed_seen;  // Count of times this packet has been seen
+                                // on delayed processing.  The packet may get
+                                // sent, if "seen" count is zero at delay end.
 	int16_t  refcount; // number of references on this entry
 	
 	int16_t	 alen;	// Address length
@@ -361,7 +366,7 @@ extern dupecheck_t   *dupecheck_new(void);  /* Makes a new dupechecker  */
 extern dupe_record_t *dupecheck_get(dupe_record_t *dp); // increment refcount
 extern void           dupecheck_put(dupe_record_t *dp); // decrement refcount
 extern dupe_record_t *dupecheck_aprs(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen);     /* aprs checker */
-extern dupe_record_t *dupecheck_pbuf(dupecheck_t *dp, struct pbuf_t *pb); /* pbuf checker */
+extern dupe_record_t *dupecheck_pbuf(dupecheck_t *dp, struct pbuf_t *pb, const int viscous_delay); /* pbuf checker */
 extern int            dupecheck_prepoll(struct aprxpolls *app);
 extern int            dupecheck_postpoll(struct aprxpolls *app);
 
@@ -408,10 +413,13 @@ struct digipeater_source {
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
 
-	int             viscous_delay;
-	int	        viscous_queue_size;
-	int	        viscous_queue_space;
-	struct pbuf_t **viscous_queue;
+	// Viscous queue is at <source>, but used dupechecker
+	// is <digipeater> -wide, common to all sources in that
+	// digipeater.
+	int                    viscous_delay;
+	int	               viscous_queue_size;
+	int	               viscous_queue_space;
+	struct dupe_record_t **viscous_queue;
 
 	int sourceregscount;
 	regex_t **sourceregs;

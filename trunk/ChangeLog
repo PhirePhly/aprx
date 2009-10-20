@@ -1,5 +1,12 @@
 2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, digipeater.c, dupecheck.c:
+	    Returned the viscous delay processing back to version
+	    just before "simplified viscous delay and dupechecking".
+	    It really needs to check delayed vs. immediate counts.
+
+2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* VERSION: 1.92
 
 	* digipeater.c, interface.c:

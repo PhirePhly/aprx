@@ -154,7 +154,7 @@ void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int
 		struct tm *t = gmtime(&now);
 		strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	  
-		fprintf(fp, "%s %s ", timebuf, portname);
+		fprintf(fp, "%s %-9s ", timebuf, portname);
 		fprintf(fp, "%s ", istx ? "T":"R");
 
 		if (discard < 0) {
@@ -525,7 +525,7 @@ void igate_from_aprsis(const char *ax25,
 	  return;
 	}
 
-	rflog("APRSIS  ",0,0,ax25, ax25len);
+	rflog("APRSIS",0,0,ax25, ax25len);
 
 	headsbuf = alloca(colonidx+1);
 	memcpy(headsbuf, ax25, colonidx+1);
