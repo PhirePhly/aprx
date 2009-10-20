@@ -1082,6 +1082,13 @@ void digipeater_receive( struct digipeater_source *src,
 		// 1.1) optional viscous delay!
 
 		if (src->viscous_delay > 0) {
+			if (dupe->delayed_seen > 1) {
+				// 2nd or more of same packet from delayed source
+				if (debug>1)
+					printf("Seen this packet %d times\n",
+					       dupe->delayed_seen + dupe->seen);
+				return;
+			}
 			// Put the pbuf_t on viscous delay queue..
 			src->viscous_queue_size += 1;
 			if (src->viscous_queue_size > src->viscous_queue_space) {
