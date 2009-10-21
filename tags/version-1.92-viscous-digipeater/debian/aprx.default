@@ -1,0 +1,10 @@
+#
+# STARTAPRX: start aprx on boot. Should be set to "yes" once you have
+#            configured aprx.
+#
+STARTAPRX="no"
+
+#
+# Additional options that are passed to the Daemon.
+#
+DAEMON_OPTS=""

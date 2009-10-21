@@ -1,0 +1,93 @@
+
+		APRX    v1.92
+
+A receive-only APRS-IS "i-gate" with following properties:
+
+   Config file (-f option) default is:  /etc/aprx.conf
+   Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
+
+   - Rx-IGate functionality works correctly
+   - Tx-IGate is incomplete
+
+   - Can do APRS New-N and generic AX.25 node digipeater functionality
+     with transmitters
+
+   - Has same-channel Viscous Digipeater functionality to not to digipeat
+     at all, if during initial wait period the packet is heard again.
+
+   - Has cross-interface Viscous Digipeater functionality to not to digipeat,
+     if during the initial wait period the packet is heard on destination
+     interface at least once, and at least once from other sources.
+
+   - Can receive data from multiple receivers/modems on local machine
+     serial ports, both classical and USB.
+
+   - Can receive data from remote TCP stream connectable serial ports
+     over the internet.
+
+   - Understands on serial ports:
+       - several KISS protocol variants, plain basic KISS preferred
+       - TNC2 debug style text  (incomplete)
+       - and even AEA "monitor 1" format (incomplete)
+
+   - Connects with one  callsign-ssid  pair to APRS-IS core for all
+     received radio ports
+
+   - Knows that messages with following tokens in VIA fields of the
+     path are not to be relayed into network:
+              RFONLY, NOGATE, TCPIP, TCPXX
+
+   - Knows that following source address prefixes are bogus and thus
+     to be junked:
+              WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL
+     (Actually these are string prefixes, so any WIDE*-* will block, etc.)
+
+   - Does not require machine to have AX.25 protocol support internally!
+
+   - On Linux machine with kernel internal AX.25 protocol support, does
+     listen on internal AX.25 network in promiscuous form, and requires
+     to be running as root to do that.   Does not fail to start in case
+     the port fails to open (running as non-root.)
+
+   - Built-in "erlang-monitor" actually counts bytes per time interval
+     (1 min, 10 min, and 60 min)  on each receiving interface, including
+     all that feed internal AX.25 network.  There are multiple ways to
+     extract the report data.
+
+   - The "erlang-monitor" presumes that system internal time is on sync
+     with the UTC, as is the style in UNIX systems, and makes those
+     reports at exact 1 minute,  10 minutes and exact 60 minutes, cycle
+     depending.   This sync is best maintained with NTP tool.
+
+   - The "erlang-monitor" runs always, and stores data on backing-store
+     file  /tmp/aprx-erlang.dat,  which is mmap()able/read()able to
+     a program for analysis by:
+          - SNMP polling
+          - preanalyzed 1m, 10m, and 60m round-robin arrays
+     File is created if it does not exist.
+
+   - Telemetry reported erlang data is sent out every 20 minutes, and
+     contains summarized data from 10 minute round-robin memory arrays.
+     These are _not_ sent at exact 10 minutes of wall-clock, but exact
+     20 minutes from previous telemetry reporting, and first one is sent
+     20 minutes after program start.
+
+   - Auxiliary utility  aprx-stat  to pull statistics data out of the
+     shared memory segment (essentially obsoleted by direct telemetering
+     the info to APRS-IS.
+
+   - The netbeacons are distributed timewise more evenly around the interval,
+     and even the interval length is varied at random in between 20 and 30
+     minutes.  Number of netbeacons are unlimited, but their minimum transmit
+     interval is 3 seconds making the amount of beacons sendable in 20 minutes
+     to be: 20*60/3 = 400.  All will be sent, but the cycle will just take
+     longer.
+
+   - Source code is at SVN repository: http://repo.ham.fi/svn/aprx
+
+   - This program is also compilable as "EMBEDDED" target without
+     any statistics buffer required at the system disk (or RAM-disk).
+     See the INSTALL file.
+
+
+by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009

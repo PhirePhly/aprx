@@ -1,0 +1,60 @@
+
+		    Viscous Digipeater in APRX
+
+The Viscous Digipeater is variation of AX.25 Digipeater, which puts
+arriving packets into a time delay probation pipe (up to 9 seconds),
+before digipeating them.
+
+One can use a Viscous Digipeater as a fill-in system, which does not
+repeat on band a packet that it hears having already been repeated.
+It does have also benefits on Tx-IGate, which will not re-transmit
+to band something that already was heard there within the small window
+of a few seconds that the probation pipe takes.
+
+
+
+
+
+The trick is that duplicate accounting is done right up front at
+arrival packet arrival time, and depending on what shat kind of source
+a similar packet arrives (or none at all), that delayed packet may
+get bumped off the delay pipe, or even be sent out.
+
+
+The rules are rather complicated, even the following may not be correct:
+
+  Packets arriving from non-viscous sources trump those waiting in
+  viscous queues.  First one arriving will be transmitted, unless
+  the viscous queue has no longer this packet (but it was there.)
+  ( delayed_seen > 0,  seen == 1, pbuf == NULL  -> drop this )
+  ( delayed_seen > 0,  seen == 1, pbuf != NULL  -> clean pbuf, transmit this )
+  ( delayed_seen == 0, seen == 1                -> transmit this )
+
+  Subsequent packets arriving from non-viscous sources are dropped
+  as duplicates ( seen > 1  ->  drop this )
+
+  Packets arriving from any viscous source are dropped, if there
+  already was some direct delivery packet  ( seen > 0  -> drop )
+
+  First packet arriving from any viscous source is put on viscous queue,
+  unless there was non-viscous packet previously.
+  ( delayed_seen == 1, seen > 0   ->  drop this )
+  ( delayed_seen == 1, seen == 0  ->  put this on viscous queue )
+  (( value of seen_on_transmitter depends on precise source ))
+
+  Then among viscous sources:
+   - "Transmitter" kind source: an <interface> which is same as
+     that of <digipeater>'s  transmitter  <interface>.
+   - "Elsewhere" kind source: an <interface> which is some other
+     than that of transmitter's, but has  viscous-delay > 0
+
+  Account the number of viscous sourced packets sourced from "transmitter"
+     if (source_is_transmitter)
+         seen_on_transmitter += 1;
+
+  For second and subsequent viscous sourced packets, if any of observed
+  packets came from transmitter (seen_on_transmitter > 0), then drop
+  current packet, and clear possible viscous queued pbuf.
+
+
+Matti Aarnio,  OH2MQK,   2009-10-21

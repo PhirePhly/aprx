@@ -1,0 +1,364 @@
+#
+#  Sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
+#
+# This configuration is structured with Apache HTTPD style tags
+# which then contain subsystem parameters.
+#
+# Define the parameters in following order:
+#   1)  <aprsis>     ** zero to many
+#   2)  <logging>    ** zero or one
+#   3)  <interface>  ** there can be multiple!
+#   4)  <netbeacon>  ** zero to many
+#   5)  <rfbeacon>   ** zero to many
+#   6)  <rx-igate>   ** Optional Rx-IGate definitions
+#   7)  <digipeater> ** zero to many (at most one for each Tx)
+#
+
+
+#
+# Global macro for simplified callsign definition:
+# Usable for 99+% of cases.
+#
+
+mycall  N0CALL-1
+
+#  Define possibly multiple APRSIS servers, they are connected to
+#  in Round-Robin fashion.  There also exist DNS RR servers for
+#  this use, one of them is "rotate.aprsis.net".
+<aprsis>
+# The  aprsis-login  parameter: 
+# Station callsignSSID used for relaying APRS frames into APRS-IS.
+#
+#login     $mycall	# login defaults to $mycall macro
+
+# APRS-IS server name and portnumber.
+# Every reconnect does re-resolve the name to IP address.
+#
+#server	   igates.aprs.fi     14580
+#server    finland.aprs2.net  14580
+server    rotate.aprs.net    14580
+
+# Some APRS-IS servers tell every about 20 seconds to all contact
+# ports that they are there and alive. Others are just silent.
+# Default value 3*"heartbeat" + some  --> 120 (seconds)
+#
+#heartbeat-timeout   0    # Disabler in case your server does not do heartbeat
+#heartbeat-timeout   1m   # Interval of one minute (60 seconds)
+
+# APRS-IS server may support some filter commands.
+# See:  http://www.aprs-is.net/javAPRSFilter.aspx
+#
+# You can define the filter as single long quoted string, or as
+# many short segments with explaining comments following them.
+#
+#filter "possibly multiple filter specs in quotes"
+#
+#filter "m/100"	     # My-Range filter: positions within 100 km from my location
+#filter "f/OH2XYZ-3/50"  # Friend-Range filter: 50 km of friend's last beacon position
+</aprsis>
+
+<logging>
+
+# pidfile is UNIX way to tell that others that this program is
+# running with given process-id number.  This has compiled-in
+# default value of:  pidfile @VARRUN@/aprx.pid
+#
+pidfile @VARRUN@/aprx.pid
+
+
+# rflog defines a rotatable file into which all RF-received packets
+# are logged.
+#
+#rflog @VARLOG@/aprx-rf.log
+
+# aprxlog defines a rotatable file into which most important 
+# events on APRS-IS connection are logged, namely connects and
+# disconnects.
+#
+#aprxlog @VARLOG@/aprx.log
+
+# erlangfile defines a mmap():able binary file, which stores
+# running sums of interfaces upon which the channel erlang
+# estimator runs, and collects data.
+# Depending on the system, it may be running on a filesystem
+# that actually retains data over reboots, or it may not.
+# With this backing store, the system does not loose cumulating
+# erlang data over the current period, if the restart is quick,
+# and does not stradle any exact minute.
+# (Do restarts at 15 seconds over an even minute..)
+# This file is around 0.7 MB per each interface talking APRS.
+# If this file is not defined or can not be created, internal
+# non-persistent in-memory storage will be used.
+#
+# Built-in default value is: @VARRUN@/aprx.state
+#
+#erlangfile @VARRUN@/aprx.state
+
+# erlang-loglevel is config file version of the "-l" option
+# pushing erlang data to syslog(3).
+# Valid values are (possibly) following: NONE, LOG_DAEMON,
+# LOG_FTP, LOG_LPR, LOG_MAIL, LOG_NEWS, LOG_USER, LOG_UUCP,
+# LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4,
+# LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.  If the parameter value is
+# not acceptable, list of accepted values are printed at startup.
+#
+#erlang-loglevel NONE
+
+# erlanglog defines a rotatable file into which erlang data
+# is written in text form.
+#
+#erlanglog @VARLOG@/erlang.log
+
+# erlang-log1min option logs to syslog/file also 1 minute
+# interval data from the program. (In addition to 10m and 60m.)
+#
+#erlang-log1min
+
+</logging>
+
+
+# ***********  Multiple <interface>  definitions follow   *********
+
+# ax25-device  Lists AX.25 ports by their callsigns that in Linux
+#              systems receive APRS packets.  If none are defined,
+#              the AX.25 network receiver is not enabled.
+#
+# tx-ok        Boolean telling if this device is able to transmit.
+#
+#<interface>
+#   ax25-device N0CALL
+#   tx-ok false
+#  #alias         RELAY,WIDE,TRACE
+#</interface>
+
+# The  radio serial  option.  Parameters are:
+#   - /dev/ttyUSB1    -- tty device
+#   - 19200           -- baud rate, supported ones are:
+#                        1200, 2400, 4800, 9600, 19200, 38400
+#   - 8n1             -- 8-bits, no parity, one stop-bit,
+#                        no other supported modes
+#   - KISS/XORSUM/SMACK -- KISS mode variants
+#     TNC2            -- non-KISS text format variant
+#
+#
+#<interface>
+#   serial-device   /dev/ttyUSB0  19200 8n1    KISS
+#  #alias         RELAY,WIDE,TRACE
+#   <kiss-subif 0>
+#      callsign N0CALL-14
+#      tx-ok    false
+#   </kiss-subif>
+#</interface>
+#
+#<interface>
+#   serial-device   /dev/ttyUSB1  19200 8n1    TNC2
+#   callsign N0CALL-13
+#</interface>
+#
+
+#
+#  "KISS"                  - plain basic KISS mode
+#  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
+#  "SMACK"  alias "CRC16"  - KISS with better CRC
+#  "TNC2"                  - TNC2 monitor format
+#
+# Additional/alternate options for the serial-device
+#
+# "timeout 15m" sets a timeout monitor (an interval) to make
+#    reopen/reconnect if the serial port/connection to radio
+#    has failed somehow and nothing is heard. Local serial
+#    ports do not in general need this.  At APRS silent sites
+#    this may cause repeated reconnects, but it should not
+#    harm either.  At busy sites this will handle reconnect
+#    gracefully in case of network failures, and timeout
+#    value can be shortened.
+#
+# "<kiss-subif 0>" sets optional multiplexer index on KISS type
+#    connections. This id is specific for the multiplexer connection
+#    on given port, and can be in range of 0 thru 7 for SMACK type
+#    links, and up to 15 for KISS, and BPQ type links. 
+#    The kiss-subif is settable only for KISS-type connections.
+#    The subif 0 is settable for TNC2 monitor format.
+#
+# "callsign NAME" sets callsign used in statistics displays,
+#    and when the message is sent to APRS-IS.
+#    If none are given, then it will use physical port name.
+#    There can be multiple callsign parameters, if each are
+#    prefixed with their own  tncid  setting.
+#
+# "tx-ok true" enables transmit. System will then also require
+#    that used callsign is valid for AX.25.
+#
+# "initstring" is of two parts, the keyword, and then a string.
+#    initstring "\xC0\xC0\xFF\xC0\r\nMO 0\rKISS $01\r"
+#    The initstring is a binary string,  "\x00" is encodable.
+#    Of the usual C-style codes only "\r" and "\n" are understood.
+#    The initstring is kiss-subif level option.
+#
+#</interface>
+
+
+# The  radio tcp  option defines a connection to remote socket
+# beyond which is a binary transparent connection to a serial
+# port.  The parameter fields:  literal IP address (IPv4 or IPv6),
+# then literal port number, and finally protocol mode.
+# KISS-protocol parameters are same as with normal serial port.
+#
+#<interface>
+#   tcp-device  12.34.56.78  4001  KISS
+#   timeout 15m  # 15 minutes
+#  #alias         RELAY,WIDE,TRACE
+#   <kiss-subif 0>
+#      callsign N0CALL-12
+#      tx-ok    false
+#   </kiss-subif>
+#</interface>
+#
+#<interface>
+#   tcp-device  12.34.56.78  4002  TNC2
+#   timeout 5m   # 5 minutes
+#  #alias         RELAY,WIDE,TRACE
+#   <kiss-subif 0>
+#      callsign N0CALL-12
+#      tx-ok    false
+#   </kiss-subif>
+#</interface>
+
+
+# ***********  Multiple <netbeacon>  definitions follow   *********
+
+<netbeacon>
+# The  netbeacon  options.  These are sent only to APRSIS, not to
+# any radio transmitters.
+#
+# Parameter string (in quotes) is sent to APRSIS network (without quotes)
+# at varying intervals --  1200-1800 seconds in between restransmits.
+# This interval is intentionally randomized.
+#
+# Multiple netbeacons are evenly distributed for each time period,
+# or at least 3 seconds apart.  First netbeacon is sent to network
+# 30 seconds after connection to APRS-IS.
+#
+# There can be multiple netbeacon options.
+# The parameter sets can vary:
+#  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
+#  b) 'for nnn-n dest "string" raw "string"'
+# The a) form flags on some of possible syntax errors in parameters.
+# It will also create only "!" type messages.  The dest parameter
+# defaults to "APRS", but can be used to give other destinations.
+# The via parameter can be used to add other keywords, like "NOGATE".
+#
+# Writing correct RAW format beacon message is very hard,
+# which is evidenced by the frequency of bad syntax texts
+# people so often put there...   If you can not be persuaded
+# not to do it, then at least VERIFY the beacon result on
+# web service like  findu.com,  or  aprs.fi
+#
+# Symbol  R&   is for "Rx-only iGate"
+#
+#beacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#
+</netbeacon>
+
+
+# ***********  Multiple <rfbeacon>  definitions follow   *********
+
+<rfbeacon>
+#
+#  RF-beacons are sent out to radio transmitters AND to APRSIS.
+#  They are sent to all transmitters that have "tx-ok true" setting
+#  if no "to" entry is defined, and only to defined transmitter, if
+#  the "to" entry is defined.
+#
+#beacon to IFCALL-1 for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#beacon to IFCALL-1 for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+</rfbeacon>
+
+
+#<rx-igate>
+# AX.25 filters block selected messages matching on selected regular
+# expressions.  The expressions are case sensitive, and AX.25 address
+# elements are in all uppercase text.  There can be unlimited number
+# of patterns, type fields are four: "source", "destination", "via",
+# and "data".  These patterns can be used in addition to built-in
+# hard-coded reject rules listed in documentation.
+#
+#   ax25-reject-filter source      "^NOCALL"
+#   ax25-reject-filter destination "^NOCALL"
+#   ax25-reject-filter via         "^NOGATE"
+#   ax25-reject-filter data        "^\\?"
+#
+# Source interfaces from which the IGATE functionality feeds the data out
+#
+#   source   IFCALL-1
+#   source   IFCALL-2
+#</rx-igate>
+
+# ***********  Multiple <digipeater>  definitions follow   *********
+
+#  The digipeater definitions tell transmitters that receive
+#  AX.25 packets from possibly multiple sources, and then what
+#  to do on the AX.25 headers of those messages.
+#
+#  There is one transmitter per digipeater -- and inversely, there
+#  can be at most one digipeater for each transmitter.
+#
+#  In each digipeater there is at least one <source>, usually same
+#  as the transmitter.  You may use same <source> on multiple
+#  <digipeater>s. Using multiple instances of same <source> on
+#  a single <digipeater> does not crash the system, but it can cause
+#  packet duplication in case of non-APRS protocols (like AX.25 CONS)
+#
+#  Use only at most two levels of viscous-delay in your <digipeater>.
+#  Immediate sending is by "0", and a delayed sending is any value
+#  from 1 to 9.  This system does not correctly support other than
+#  immediate sending and one level of delay.
+#
+#
+#<digipeater>
+#    transmitter  TXCALL-1
+#    #ratelimit      300   # default: 300 packets/minute
+#
+#    #<trace>
+#    #    maxreq     4
+#    #    maxdone    4
+#    #    keys       TRACE,WIDE,RELAY
+#    #</trace>
+#    #<wide>
+#    #    maxreq     4
+#    #    maxdone    4
+#    #    keys       WIDE
+#    #</wide>
+#
+#    <source>
+#        interface   TXCALL-1
+#    #   ratelimit   60    # default: 60 packets/minute
+#    #   #relay-type    digipeated # default mode is "digipeated"
+#    #   viscous-delay    0   # default: no viscous delay
+#    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
+#    #   #regex-filter  destination  "RE-pattern" # --"--; generic
+#    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
+#    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
+#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
+#    </source>
+#    #<source>                  # Extra receiver(s)
+#    #   interface   RXCALL-1
+#    #   #relay-type    digipeated # default mode is "digipeated"
+#    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
+#    #   #regex-filter  destination  "RE-pattern" # --"--; generic
+#    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
+#    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
+#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
+#    #</source>
+#    #### NOTE: Some APRSIS / Tx-IGate processing rules are not yet implemented
+#    #<source>                  # APRSIS source makes this tx-igate
+#    #    interface    APRSIS
+#    #    relay-type   third-party  # Must define this for APRSIS source!
+#    #    viscous-delay    5   # recommendation: 5 seconds delay to give
+#    #                         # RF delivery time make itself known.
+#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
+#    #</source>
+#
+#</digipeater>
+

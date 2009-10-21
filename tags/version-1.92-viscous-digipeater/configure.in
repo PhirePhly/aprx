@@ -1,0 +1,149 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT
+AC_CONFIG_SRCDIR([aprx.h])
+
+dnl For automake
+VERSION="`cat VERSION`"
+PACKAGE=aprx
+dnl AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
+
+AC_PROG_MAKE_SET
+
+AC_CONFIG_HEADERS([config.h])
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_GCC_TRADITIONAL
+
+
+dnl AC_PATH_PROG(LD, ld, ld)dnl
+if test -z "$LD" ; then
+  LD="$CC"
+fi
+AC_SUBST(LD,"$LD")
+
+
+dnl Check for headers.
+AC_CHECK_HEADERS(pty.h)
+
+dnl Checks for libraries.
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS(openpty,,
+	       AC_CHECK_LIB(util, openpty,
+			    [AC_DEFINE(HAVE_OPENPTY)] [LIBS="$LIBS -lutil"]))
+
+dnl Check for user options
+AC_ARG_WITH(embedded, [  --with-embedded  When desiring to target as embedded],
+		      [AC_SUBST(EMBEDDED,"-DEMBEDDED")])
+
+
+
+AC_SUBST(LIBSOCKET)dnl
+AC_SUBST(LIBRESOLV)dnl
+
+#
+#  We check for various libraries
+#  - SysVr4 style of "-lsocket" at first (unless in libc)
+#    The hallmark is  connect()  routine (we presume)
+#
+ac_cv_libsocket_both=1
+AC_CHECK_FUNC(connect, ac_cv_libsocket_both=0)
+AC_CHECK_FUNC(gethostbyname, ac_cv_libsocket_both=0)
+if test "$ac_cv_libsocket_both" = 1 ; then
+  # Check cache
+  if test "$ac_cv_func_socket_lxnet" = yes ; then
+    AC_MSG_RESULT([need -lxnet library (cached)])
+    LIBSOCKET="-lnsl -lsocket -lxnet"
+  else
+  if test "$ac_cv_func_socket_lsocket" = yes ; then
+    AC_MSG_RESULT([need -lsocket library (cached)])
+    LIBSOCKET="-lsocket"
+    if test "$ac_cv_func_gethostbyname_lnsl" = yes ; then
+        LIBSOCKET="-lnsl -lsocket"
+    fi
+  else
+    # Well, will this work ?  SysVR4, but not Sun Solaris ?
+    AC_CHECK_LIB(xnet, connect, [LIBSOCKET="-lnsl -lsocket -lxnet"
+                                 ac_cv_func_socket_lsocket=no
+                                 ac_cv_func_socket_lxnet=yes],[
+      AC_CHECK_LIB(socket, connect, [LIBSOCKET="-lsocket"
+                                     ac_cv_func_socket_lsocket=yes],
+                                     ac_cv_func_socket_lsocket=no)
+      if test "$ac_cv_func_socket_lsocket" = yes ; then
+        t_oldLibs="$LIBS"
+        LIBS="$LIBS -lsocket $LIBRESOLV"
+        AC_TRY_LINK([],[gethostbyname();], ,[
+          LIBS="$LIBS -lnsl" # Add this Solaris library..
+          AC_TRY_LINK([],[gethostbyname();],[
+                        LIBSOCKET="-lsocket -lnsl"
+                        ac_cv_func_gethostbyname_lnsl=yes
+                ], [
+                   AC_MSG_ERROR([Weird, '$LIBS' not enough to find  gethostnyname() ?!])
+                ])
+          ])
+        LIBS="$t_oldLibs"
+      fi
+    ])
+  fi
+  fi
+fi
+
+if test "x$LIBRESOLV" = "x"; then
+  # Ok, No  -lresolv,  is this enough for the  _res  to appear ?
+  t_oldLibs="$LIBS"
+  LIBS="$LIBS $LIBSOCKET"
+  ac_cv_var__res_options=no
+  # This following is for IRIX6.4, and I sincerely hope it
+  # will not fail on other systems...  It did! It did!
+  # Many systems don't have idemponent headers, they need specific
+  # includes before latter ones, or the latter ones won't be successful...
+  AC_TRY_LINK([#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>],
+              [_res.options = RES_INIT;],
+                ac_cv_var__res_options=yes);
+  if test "$ac_cv_var__res_options" != "yes"; then
+    AC_MSG_RESULT([Can't do without  -lresolv  to link resolver's  _res.options])
+    LIBS="$LIBS -lresolv"
+  fi
+  LIBS="$t_oldLibs"
+fi
+
+# See about the routines that possibly exist at the libraries..
+LIBS="$t_oldLibs $LIBSOCKET"
+AC_CHECK_FUNCS(socket socketpair)
+LIBS="$t_oldLibs"
+
+if test "$ac_cv_func_socket" = no -a "$LIBSOCKET" != ""; then
+  LIBS="$LIBS $LIBSOCKET"
+  AC_TRY_LINK([],[socket();], ac_cv_func_socket=yes)
+  if test $ac_cv_func_socket = yes; then
+    AC_DEFINE(HAVE_SOCKET)
+    AC_MSG_RESULT([Has  socket()  when using  $LIBSOCKET])
+  fi
+  LIBS="$t_oldLibs"
+fi
+if test "$ac_cv_func_socketpair" = no -a "$LIBSOCKET" != ""; then
+  LIBS="$LIBS $LIBSOCKET"
+  AC_TRY_LINK([],[socketpair();], ac_cv_func_socketpair=yes)
+  if test $ac_cv_func_socketpair = yes; then
+    AC_DEFINE(HAVE_SOCKETPAIR)
+    AC_MSG_RESULT([Has  socketpair()  when using  $LIBSOCKET])
+  fi
+  LIBS="$t_oldLibs"
+fi
+
+AC_TRY_LINK([],[cfmakeraw();], ac_cv_func_cfmakeraw=yes, ac_cv_func_cfmakeraw=no)
+if test "$ac_cv_func_cfmakeraw" = yes; then
+  AC_DEFINE(HAVE_CFMAKERAW)
+  AC_MSG_RESULT([Has  cfmakeraw()  of termios functions.])
+fi
+
+
+
+dnl Output files
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

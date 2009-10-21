@@ -1,0 +1,810 @@
+2009-10-21  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* README.ViscousDigipeater, digipeater.c:
+	    Thinking about what are correct rules on Viscous Digipeat.
+
+	* digipeater.c:
+	    On configuration, make sure that no two <source> definitions
+	    within single <digipeater> definition have same <interface>:s.
+
+2009-10-20  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, digipeater.c:
+	    Viscous digipeater special corner cases..
+
+	* aprx.h, config.c, aprx.conf.in, aprx-complex.conf.in
+	    Interval parser for "timeout" and "interval" parameters
+	    used in several places.
+
+	* config.c, aprx.conf.in, aprx-complex.conf.in:
+	    Line continuation (the '\' character at the end of
+	    input line - with possible whitespaces following it)
+	    is now supported.
+	    An interval parser is added; timeouts and intervals
+	    can be defined in human readable way:  3m2s
+
+	* aprx.8.in:
+	    Larger rewrite to bring it up to current version.
+
+	* aprsis.c, aprx.conf.in, aprx-complex.conf.in:
+	    Reworked details of <aprsis> configuring, and internal
+	    operational semantics.  Most notable difference is on
+	    possibility to define used filters in small fragments,
+	    which the system will then catenate.
+
+	* aprx.h, digipeater.c, dupecheck.c:
+	    Returned the viscous delay processing back to version
+	    just before "simplified viscous delay and dupechecking".
+	    It really needs to check delayed vs. immediate counts.
+
+2009-10-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.92
+
+	* digipeater.c, interface.c:
+	    Clean variable naming on digipeater <source> subsystem.
+
+	* aprx.h, aprx.conf.in, aprx-complex.conf.in, igate.c:
+	    Update documentation
+
+	* igate.c:
+	    Reject packets with destcall=RXTLM-* from Tx-IGate.
+
+	* digipeater.c:
+	    Simplify control flow when feeding to viscous queue vs.
+	    when running the backend directly.
+
+	* aprx.h, digipeater.c, dupecheck.c, igate.c:
+	    - Fixed 3rd party dupechecking
+	    - Simplified viscous delay and dupechecking.
+	      The dupechecking happens at the start of digipeater_backend(),
+	      which is called after pbuf's have been subjected to a viscous
+	      delay, if ever necessary.  First arriving packet is digipeated,
+	      if it has steps to do. If not, rest are still considered dupes,
+	      and not digipeated.
+
+	* aprx.h, igate.c:
+	    Make rflog() public function to be used by multiple parties.
+	    Also mark on the log line the direction to which the packet
+	    was going (R/T), and not only its source interface.
+
+	* ax25.c:
+	    Moved igate_to_aprsis() call before interface_receive_ax25(),
+	    and thus also log received packet on rf.log before it is sent
+	    out anywhere.
+
+	* aprx.h, interface.c, digipeater.c, aprx.8.in, aprx.conf.in,
+	  aprx-complex.conf.in, dupecheck.c:
+	    Moved viscous-delay processor into digipeater's <source>
+	    control area.  Implemented Tx-IGate's packet re-formatting
+	    rules on interface.c.  Implemented viscous-delay processing
+	    in digipeater. Added refcounting on dupe_record_t objects.
+
+	* digipeater.c, igate.c, config.c, aprx.h, aprx-complex.conf.in:
+	    Moved regexp reject filters from old style setup at igate.c
+	    to new style at digipeater.c.  This will not be able to reject
+	    trivially configurable things from Rx-IGate datastreams, but
+	    it can be used to control digipeating.
+
+	* ax25.c:
+	    Remove unnecessary debug printout.
+
+2009-10-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.91
+
+	* aprx.h, dupecheck.c, digipeater.c, pbuf.c, pbuf.h, aprsis.c,
+	  igate.c, keyhash.c:
+	    Digipeater local instance of dupechecker.  The dupe-checker
+	    does recursive analysis of APRS packets for 3rd party
+	    frames, and dupecheck the innermost frame of them.
+	    Cleaned the keyhash.c to contain only FVN-1a hasher.
+
+	* digipeater.c, interface.c, telemetry.c, aprx.h, ttyreader.c,
+	  erlang.c, aprx-stat.c:
+	    Start transmitting digipeated frames to ttyreader's KISS
+	    output.  netax25's similar interface is not tested.
+	    Changed also the Erlang dataset format, and begun to
+	    produce Tx packet counts on telemetry.  Accounting
+	    saves also tx byte counts, but they are not reported.
+
+	* aprx.h, interface.c, digipeater.c, pbuf.h, pbuf.c, ax25.c:
+	    Pass the UI PID information all the way to interface,
+	    where it can be matched against a list of PIDs that will
+	    be treated alike APRS in digipeating.
+	    Have two modes in digipeating: one with interface (and
+	    aliases) as recognized work targets, and other with APRS
+	    wide/trace tags in addition to interface (and aliases).
+
+	* aprx.h, ax25.c, interface.c, digipeater.c, aprx.conf.in,
+	  aprx-complex.conf.in:
+	    - Prefill AX.25 address field formatted ax25callsign
+	      field on all <interface> datastructures.  That comes
+	      handy when doing TRACE processing.
+	    - Put exact "callsigns" of "WIDE", "TRACE", and "RELAY"
+	      into system as interface callsign aliases. When they
+	      are present in the request path, substitute interface
+	      callsign there with H-bit set.
+	    - Update aprx.conf samples to how the system can be
+	      configured.
+
+2009-10-17  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, digipeater.c, interface.c, pbuf.h, parse_aprs.c:
+	    Digipeater preparation, system counts done and requested
+	    distribution operations with source specific as well as
+	    transmitter specific keywords.
+
+	* aprx.h, ax25.c, interface.c, aprsis.c, pbuf.c, parse_aprs.c:
+	    Changed a few "parse failed" returns to "parse OK".
+	    Systematic feed of datapacket "with TNC2 line end CRLF pair".
+
+2009-10-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* erlang.c, aprx.h, ttyreader.c, netax25.c, igate.c:
+	    Clean Erlang accountig API.  Removed unused parameters.
+
+	* interface.c, aprsis.c, igate.c, aprx.h, aprx.c, digipeater.c:
+	    Minimal <digipeater> <source> definition parsers.
+	    Additionally internal "APRSIS" pseudo-interface.
+
+2009-10-15  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, aprx.c, rfbeacon.c:
+	    Add internal "tocall" constant with value "APRX19".
+	    That one will track software versions.
+	    The 'for' keyword on beacons defaults to $mycall.
+
+	* aprx.h, aprx.c, interface.c, config.c, rfbeacon.c, aprsis.c,
+	  ttyreader.c, netbeacon.c:
+	    Config machinery redone towards new style.  Rx-IGate
+	    works again.  (Old config should work too.)
+
+	* aprx.h, pbuf.c, pbuf.h, interface.c, digipeater.c, aprx.c:
+	    Skeletons for pbufs, digipeaters, and their uses in
+	    the interface layer.
+
+	* aprsdigi.c, ax25.c, Makefile.in:
+	    Remove obsolete placeholder.  Things will be done differently.
+
+	* config.c, rfbeacon.c:
+	    The rfbeacon code will be doing all variants of beacons..
+
+	* interface.c, netax25.c, ttyreader.c, aprx.h, ax25.c:
+	    interface_transmit_ax25() is able to transmit a fully formed
+	    AX.25 header+control+body frame to Linux internal AX.25 network
+	    devices as well as to any serial port attached KISS device.
+	    Transmission to TNC2 devices is not supported.
+	    Code is also very careful on checking the AX.25 frame header
+	    structure, and rejecting outright any with invalid header
+	    structure (bad continuation flags, bad chars in callsigns,
+	    not so careful with SSID byte contents - too many are careless
+	    with those :-( )
+
+2009-10-14  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* rfbeacon.c, interface.c, Makefile.in, config.c, aprx.c,
+	  aprx.h, aprx.conf.in, aprsis.c, netbeacon.c:
+	    Add a stub of rfbeacon.
+
+2009-10-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, config.c, netax25.c, ttyreader.c, ax25.c,
+	  aprx.h, ChangeLog:
+	    Feed received AX.25 frames to interface layer for possible
+	    digipeat processing.  (Missing: APRSIS originated frames!)
+
+	* interface.c, ttyreader.c, aprx.h, aprx.conf.in, aprx.8.in:
+	    Remodelled serial-device definitions into interface layer.
+	    Documentation updates to match new system.
+
+2009-10-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsis.c, aprx.h, config.c, netbeacon.c, aprx.conf.in,
+	  VERSION, README, INSTALL, TODO:
+	    <aprsis> interface config with new style entry.
+	    More of <interface> definitions.
+	    Experiments at aprx.conf.in writing.
+
+
+	* Makefile.in, aprx.8.in, aprx.conf.in, aprx.h, config.c,
+	  filter.c, interface.c, netax25.c, netbeacon.c, pbuf.c,
+	  pbuf.h, ttyreader.c:
+	    Incremental work on new style of configurations
+	    as outlined in the Requirement Specification document.
+	    Old style configurations do still work.
+	    Serial port initstring is now binary transparent.
+
+2009-10-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.06
+
+	* netbeacon.c:
+	    Complete beacon coordinate validator code, now it
+	    can detect invalid input values properly.
+
+	* netax25.c, aprsis.c, ttyreader.c, igate.c, aprx.h:
+	    Cleaning gcc -Wall warnings on various platforms,
+	    including OpenBSD.
+
+2009-10-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.05
+
+	* kiss.c, netax25.c, ttyreader.c, aprx.h, ax25.c:
+	    Write the SMACK frame with correctly escaped CRC.
+	    Fixed also serial-port initstring handling.
+
+2009-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.04
+
+	* netax25.c:
+	    When writing AX.25 KISS frame to kernel, try to do it
+	    up to 3 times.  Also add some debug statements on
+	    ax25-rxport processing.
+
+	* VERSION: 1.03
+
+	* ttyreader.c:
+	    Fix on serial port startup - always turn on flows on
+	    the port, and explicitely flush the driver level
+	    buffers discarding possibly accumulated data.
+
+2009-09-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION:  1.02
+
+	* erlang.c, aprx-stat.c, aprx.h:
+	    Remove subport from erlang codes, having "tncid N" on serial
+	    port definitions takes care of this kind of things.
+
+	* kiss.c, ttyreader.c, netax25.c, ax25.h:
+	    Moved KISS/SMACK encoder to separate module, the CRC16 calculator
+	    went there as well.  For each ttyreader sub-tncid there is
+	    separately opened KISS-pty channel on Linux systems with given
+	    callsign as interface's writer channel.  The  netax25 ax25-port
+	    reader does not accept packets with source callsign as any of
+	    our ttyreader callsigns.
+
+	* erlang.c:
+	    Fix the erlang_find() to really find the interface call.
+
+2009-09-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* cellmalloc.c, netax25.c, keyhash.c:
+	    Compiling at OS/X found a few odd problems, corrected.
+
+2009-08-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.8.in, aprx.conf.in, config.c, aprx.h, aprx.c, telemetry.c,
+	  netax25.c, netbeacon.c, aprsis.c, ttyreader.c, erlang.c, 
+	  aprx-stat.c:
+	    Rename the "mycall" configuration parameter to "aprsis-login",
+	    what it really is being used at.  There is no "mycall", anywhere!
+
+	* dupecheck.c, aprx.h, aprx.c, [dupecheck.h]:
+	    Removed dupecheck.h after incorporating it into aprx.h.
+	    Added the poll-interfaces to handle housekeeping operations.
+
+	* beacon.c -> netbeacon.c, Makefile.in, aprsis.c, aprx.c, aprx.h:
+	    Change file name, and all references therein.
+	    A preparation for separate RF beacons.
+
+	* netbeacon.c, aprx.8.in, aprx.conf.in:
+	    Add "netbeacon dest APRS via NOGATE ..."  options for configuration.
+
+	* netbeacon.c:
+	    Use float math to determine next event times for all beacons
+	    for smoother distribution.
+
+2009-08-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile.in, dupecheck.c, dupecheck.h, aprx.c, aprx.h, aprsis.c:
+	    Add infrastructure for future:  dupecheck()
+
+	* telemetry.c:
+	    Add "NOGATE" on telemetry messages transmitted to APRSIS.
+
+	* igate.c:
+	    Deeper look into Rx-IGate specs revealed couple missing details.
+	    More bits towards Tx-IGate.
+
+2009-08-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION, INSTALL:
+	    Mark version as: 1.00
+
+	* aprx.c:
+	    Document '-L' option.
+
+	* aprx.h, aprsis.c, beacon.c, igate.c:
+	    New internal API to pass data from  aprx proper, and APRS-IS
+	    communicator.  This is able to carry binary (including NUL
+	    bytes) data both on received AX.25 address, and frame content.
+
+	* telemetry.c:
+	    Change a bit on information texts, and transmit frequency.
+
+	* aprx.conf.in, aprx.8.in:
+	    Edit prototype configurations, and documentation
+
+	* aprx.c, aprx.h, igate.c, cellmalloc.h, historydb.h, historydb.c,
+	  keyhash.h, keyhash.c, pbuf.h, parse_aprs.c:
+	    Preparing infrastructure for TX capable i-gate, and digipeater.
+
+2009-02-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile.in, aprsdigi.c, igate.c, aprx.h, ax25.c, ttyreader.c,
+	  netax25.c, aprsis.c:
+	    Move rx-igate code to igate.c,and make initial moves to
+	    collect information about what to do for tx-igate.
+
+	* PROTOCOLS, TODO, README:
+	    Document updates.
+
+2008-12-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, aprsis.c, netax25.c, configure.in, ttyreader.c, Makefile.in:
+	    Compile testing to get this to work on Solaris 10.
+	    Also fixes on PIPE failure handling (correct SIGPIPE ignoring)
+	    on platforms other than Linux -- and possibly also for Linux.
+	    Now this should drop in to FreeBSD and OS/X as well.
+
+2008-10-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* netax25.c, aprx.8.in:
+	    Turned upside-down the meaning of  ax25-rxport  config
+	    parameter.  There is no longer a wild-card receiving
+	    mode in Linux internal AX.25 network receiving.
+	    All APRS receiving interface callsigns must be listed
+	    explicitely.
+
+	* netax25.c, ttyreader.c, aprx.h:
+	    SMACK probe transmits on link that is configured for it.
+	    Also offers some debug messages on SMACK activation.
+
+	* beacon.c, ax25.c:
+	    Cleaning debug printouts
+
+2008-07-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* config.c:
+	    Function for validate of callsign input syntax
+
+	* telemetry.c:
+	    Please the compiler a bit, increment the telemetry
+	    sequence number only after all telemetered interfaces
+	    have been reported.
+
+	* aprsis.c:
+	    If there is need to reconnect to APRSIS, pick all possible
+	    IP addresses for it, and use them all.  Also improved
+	    the use of new IP resolver API a bit.
+
+	* ttyreader.c:
+	    Explicitely set "KISSSTATE_SYNCHUNT = 0" in enumeration.
+	    Memory blocks are created with memset() call clearing them.
+
+	* aprx.h, beacon.c:
+	    Compiler pleasing
+
+	* erlang.c:
+	    One-off array size handling, resulted in SEGV...
+
+2008-04-11  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION:
+	    0.22:
+
+	* erlang.c:
+	    Auto-embed the erlang-dataset if backing-store open fails.
+
+	* ttyreader.c:
+	    Mark closed socket as closed.
+
+2008-03-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION:
+	    0.21
+
+	* telemetry.c:
+	    New "send Erlang data as telemetry packets to APRS-IS"
+	    subsystem.
+
+	* aprsis.c:
+	    Fix the APRS-IS network login protocol.  There are TWO
+	    parameter strings after the "vers" keyword.
+
+	* configure.in, Makefile.in, erlang.c:
+	    Support compilation as embedded target.  Then the erlang
+	    datasets are not off-loadable to the memory mapped files,
+	    rather they are very small in-memory tables.
+
+	* erlang.c, aprx.h, telemetry.c, ax25.c, aprx-stat.c:
+	    Support for telemetry sending out info on received packets.
+
+	* beacon.c:
+	    Improve input validation.
+
+2008-02-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: aprx-0.18
+
+	* aprx.8.in, aprx.conf.in, beacon.c:
+	    New syntax to define netbeacons.  Also support older methods.
+
+	* config.c:
+	    Bug in  config_SKIPTEXT  quoted string termination scanning.
+
+	* netax25.c, aprsis.c, aprx.h:
+	    Removing dead code, hooks for future "TNC2 -> AX.25"
+
+	* ttyreader.c:
+	    Send received KISS frames to system internal AX.25 network,
+	    if host has such (such as Linux)
+
+2008-02-03  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* configure.in, netax25.c,
+	    autodetect header <pty.h>, and libutil function openpty().
+
+	* netax25.c, aprx.h, aprx.c:
+	    Rearranged  netax25 module initing - to happen _latter_.
+
+	* ttyreader.c, aprx.h, netax25.c:
+	    kissencoder() function
+
+	* ttyreader.c, aprx.h, netax25.c:
+	    On Linux, use openpty() to create an AX.25pseudo-device on
+	    which we then can push AX.25 format packets received from
+	    non-AX.25 interfaces.  This will itself also _ignore_ packets
+	    received from this created interface.
+
+	* beacon.c:
+	    "for" attribute for beacon messages, thus this system
+	    can claim to be sending the beacons on behalf of others.
+
+	* ax25.c, aprx.h:
+	    parse_ax25addr() function.
+
+	* config.c, aprx.8.in, aprx.conf.in:
+	    The mycall parameter must be all uppercase AX.25 valid
+	    callsign, and must not be same as any other callsign
+	    in system internal AX.25 network.  (This is meaningful
+	    only on Linux systems..)
+
+	* Makefile.in:
+	    Just some cleanup
+
+2008-01-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsis.c:
+	    Spotted watchdog doing reconnects every 2 minutes
+	    (like it is supposed to be), and realized that
+	    it really should not care what the server says,
+	    just that server is saying something...
+
+	* erlang.c:
+	    A bug in backing-store map protection logic.
+
+	* aprx.c:
+	    See if pidfile exists.  If it does and the start
+	    is not for foreground, refuse to run if process
+	    given in the pidfile does exist.
+
+	* aprx.8.in, config.c, netax25.c, ttyreader.c, aprsis.c,
+	  aprx.h, ax25.c, aprx.conf.in, beacon.c:
+	    New "callsign" config parameter for "radio serial" ports.
+	    messages received from given port are sent out using that
+	    callsign.    Revamp the whole config parsing.
+
+	* aprsis.c:
+	    Smarter main-loop to aprs-is loop  message pass preparation
+	    and usage codes -- pass a struct block as message leader.
+
+	* ttyreader.c, netax25.c, aprsis, ax25.c, beacon.c, aprx.h:
+	    Pass explicite parameter towards the APRSIS telling, which
+	    callsign (radio receiver) the message came in from.
+
+	* aprx.h, config.c, ttyreader.c, beacon.c:
+	    Rework config parameter line parsing.  Just one param is
+	    processed by the main config reader loop, any further are
+	    tasks of the individual subroutines (ttyreader, beacon)
+
+
+2008-01-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* erlang.c:
+	    Properly handle r/o share mapping of the aprx.state erlang
+	    dataset.  This mode is used by the  aprx-stat  program.
+
+	* netax25.c, aprx.conf.in, aprx.8.in:
+	    For each AX.25 socket received packet, query reception
+	    interface address and reformat it to TNC2 format.
+	    Use that for reception reports, logs, filters etc.
+	    Reason: port names given in /etc/ax25/axports do not
+	    persist at all!  Even clean system boot may yield
+	    different port names than what the file lists.
+
+	* Version 0.17
+
+	* INSTALL, README:
+	    Minor edits
+
+	* configure.in, Makefile.in, debian/rules, rpm/aprx.spec.in,
+	  Makefile:
+	    A bit more coherency on make system regarding linking.
+	    Remove generated  Makefile.  (Keep generated  configure !)
+
+	* config.c, ttyreader.c, aprx.conf.in, aprx.8.in:
+	    Call the "serialport"  now with name "radio".
+	    (Also old one works, so old config does not break.)
+
+	* aprx.h, netax25.c, ax25.c, ttyreader.c:
+	    Pass port name down to tnc2_rxgate() function where
+	    it is used in rf.log outputs.  A distributed multi-
+	    receiver setup log is somewhat .. odd looking when
+	    most receivers get same packet.
+
+	* logrotate.arpx.in:
+	    Rotate weekly, and compress immediately.
+	    Monthly turned out to be too much for "embedded"
+	    OH1GSM-1 system.
+
+2008-01-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* configure.in, configure, debian/rules, rpm/aprx.spec.in,
+	  rpm/aprx.init, Makefile, config.h.in:
+	    More RPM / configure rework.
+
+	* configure.in, configure, Makefile.in, Makefile, config.h.in,
+	  install-sh, rpm/aprx.spec.in, debian/rules:
+	    Had to add minimalistic  configure  script into system for
+	    the RPM multi-target compilation to work. 
+
+	* Makefile, rpm/aprx.spec.in, rpm/aprx.default, rpm/aprx.init:
+	    RPM package build framework, including init and logrotate -scripts
+
+2008-01-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version 0.16
+
+	* erlang.c:
+	    Make the logged data narrower - to usually fit in 80 char lines.
+
+	* aprx.c:
+	    Always close STDIN from reading, and replace it with
+	    a file handle opened on /dev/null.
+	    When daemoning, close also STDOUT and STDERR, and
+	    replace them with handles writing to /dev/null.
+	    .. and do it as late as possible.
+
+	* aprx.h, aprx.c, config.c, erlang.c, aprx.8.in, aprx.conf.in,
+	  aprx-stat.c:
+	    Add (and document) option for logging erlang data on separate
+	    file without any runtime options or need to divert stdout
+	    or syslog anywhere.
+
+2008-01-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, ttyreader.c, erlang.c, netax25.c, aprx-stat.c:
+	    When talking with multi-drop KISS, account each TNC
+	    separately.
+
+2008-01-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version 0.15
+
+	* erlang.c:
+	    Do not double-open the state backingstore file
+
+	* aprsis.c:
+	    Remember to close the opened log files.
+
+	* ttyreader.c:
+	    Support case of _no_ serialports (reading only via AX.25 net)
+
+	* Makefile, logrotate.aprx.in:
+	    Put aprx logs on /var/log/aprx/,  and have monthly rotate.
+
+	* debian/*, Makefile:
+	    Debian package building infrastructure
+
+	* aprx.8.in, aprx.conf.in:
+	    A bit elaboration on how to add multiple entries of
+	    aprsis-server, and  serialport  definitions.
+
+	* aprsis.c, ttyreader.c, aprx.8.in, aprx.conf.in:
+	    Remove last vestiges of program having any hardwired limits
+	    on number of anything.  There are (of course) lots of
+	    parameters that are singletons, but all multiples are
+	    now unlimited (within memory limits..)
+
+	* Makefile:
+	    "make install"  does install the  CFGFILE (aprx.conf)
+	    if it does not have to overwrite the thing.
+	    "make dist" is even more interesting beast..
+
+2008-01-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version 0.14
+
+	* ttyreader.c, aprx.conf.in, aprx.8.in:
+	    Support TNC2 monitor format on reception.
+
+	* ttyreader.c, aprx.conf.in, aprx.8.in:
+	    Overload the "serialport" configuration option with a mechanism
+	    to define a IP-literal addressable remote TCP port somewhere
+	    with e.g. KISS TNC on it.
+
+2008-01-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile:
+	    Radical revisioning, Best Current Practice
+
+	* aprx.c:
+	    Write aprx.pid  file in all cases, not only when starting
+	    as daemon.
+
+	* version 0.13
+
+	* aprx.h, aprx.c, erlang.c, aprx-stat.c:
+	    Modifications on shared memory segment head, stores
+	    MYCALL, correct running process PID.
+
+	* INSTALL:
+	    Some text fixes
+
+	* aprx-stat.c, aprx.h, erlang.c:
+	    Report also server process PID on the SNMP dataset,
+	    and time in seconds since it was started.
+
+	* ax25.c:
+	    Verify TNC2 format APRS message's FROM>DEST,VIA,VIA:
+	    callsigns to be of proper syntax.
+
+	* Makefile, aprx.8, aprx.8.in, aprx-stat.8, aprx-stat.8.in,
+	  aprx.conf, aprx.conf.in:
+	    Centralized a bit of configuring into Makefile, generating
+	    files from *.in versions.
+
+	* aprxpolls.c:
+	    Library function used everywhere, part of "eliminate fixed
+	    size preallocations" -task.
+
+	* aprsis.c:
+	    Debug logging improvements, parent death detection.
+	    Preserved MAXAPRSIS setting - of 10 servers.
+
+	* ttyreader.c:
+	    Unfix the number of TTYs, now can be as many as one wants.
+
+	* config.c, aprx.c, aprx.h, aprx.conf.in, aprx.8.in:
+	    pidfile configuration parameter, and its usage
+
+2008-01-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION, arpx.c, Makefile, aprx.8, aprx.8.in,
+	  aprx-stat.8, aprx-stat.8.in:
+	    Define system version in VERSION file, have it stamped
+	    on programs and packages.
+
+	* config.c:
+	    The "aprxlog" and "rflog" parameters were interchanged
+	    at some point.
+
+	* aprx.c, aprsis.c, beacon.c:
+	    Complain loudly with -d or -v options on, and if the
+	    configuration does not set global  mycall  parameter.
+	    Do not refuse to run, though!  This is perfectly valid
+	    for things like Erlang-monitoring.
+
+2007-12-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version aprx-v0.12
+
+	* PROTOCOLS:
+	    Writeup of existing (and planned) protocols that this
+	    software uses.
+
+	* ax25.c:
+	    Correct processing of 3rd-party frames.
+	    Also separate TNC2 formatted frame Rx-igateing rules
+	    from AX.25-to-TNC2 format translation routine.
+
+	* ax25.c, beacon.c, aprsis.c:
+	    Centralize the APRSIS communication line ending CRLF char pair
+	    addition into common code, not distributed all over.
+
+2007-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* version aprx-v0.11
+
+	* TODO, README:
+	    Cleanup
+
+	* config.c, netax25.c, aprx.8, aprx.conf:
+	    Config option "ax25-rxport" - Limits acceptance of APRS
+	    packets only from listed Linux AX.25 ports.
+
+	* ttyreader.c, aprx.conf, aprx.8:
+	    Reworked a bit of the serialport config options.
+	    Now initstring, and various KISS modes are configurable
+
+	* erlang.c:
+	    Carefull approach on erlang-file opening, if file exists,
+	    and is non-zero size, open it only if magics match.
+
+	* config.c:
+	    config_SKIPTEXT() terminates all scanned strings with NUL byte,
+	    and moves to byte following it, if the termination byte was not
+	    a NUL byte originally.
+
+	* aprx-stat.c, aprx-stat.8:
+	    Option -t  to show timestamps differently.
+
+	* Makefile, man-to-html.sh:
+	    Produce decent format HTML versions of the man-pages.
+
+	* config.c, erlang.c, aprx.8, aprx.conf:
+	    Added "erlang-log1min" option to control 1 minute interval
+	    Erlang sampling logging behaviour.
+
+	* Makefile:
+	    Fix "make install" of man-pages
+
+	* version aprx-v0.10
+
+	* aprx-stat.c, aprx-stat.8, erlang.c, Makefile:
+	    Statistics reporter tool.
+
+	* aprsis.c, config.c, aprx.8, aprx.conf:
+	    Multiple aprsis-server  config definitions are now
+	    supported, and used in round-robin fashion.
+
+	* ax25.c, config.c, aprx.8, aprx.conf:
+	    Config option  ax25-filter
+
+	* ttyreader.c, erlang.c:
+	    Magic channel capacity constant expressions updated..
+
+2007-12-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, aprx.h, aprsis.c, aprx.8, aprx.conf, ax25.c, erlang.c:
+	    Multiple configuration file options, rf-log, and aprx-log -files,
+	    related documentation.
+
+	* config.c, aprx.8:
+	    Special quoted-string escape processing.
+
+	* version aprx-v0.08
+
+	* erlang.c, aprx.c, aprx.h:
+	    Erlang data has now a mmap():ed filesystem based backing-store.
+	    Erlang-data can be syslog()ed, and independently of that,
+	    it can be printed on STDOUT.  Default syslog facility is "NONE".
+
+	* Great Rename -- the thing is now called:  aprx
+
+2007-12-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsg.8, erlang.c, aprsg.c, netax25.c, ttyreader.c:
+	    Erlang logging now uses syslog(3), unless explicitely told to use
+	    output to stdout.  Also the Erlang log format was altered a bit,
+	    now it reports also number of packets in the interval.
+
+	* erlang.c, Makefile:
+	    "make ERLANG1=1" compiles in also 1 minute erlang logging interval.
+
+	* aprsis.c:
+	    Code refactored to put the APRS-IS communication into its own
+	    fork()ed sub-process communicating via a socketpair() with the
+	    main loop.   Now reconnection time with the APRS-IS server does
+	    not affect functionality of the main loop.
+
+2007-12-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* ChangeLog
+	   Opened for the first time.  Version 0.06.
+

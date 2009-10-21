@@ -1,0 +1,34 @@
+
+          INSTALL of  APRX 1.92
+
+A rough-cut version of the installation instructions
+
+  1) Start with  ./configure  --parameters
+     For a small memory system without writable /tmp
+     you have to use  --with-embedded   option.
+
+  2) Cleanliness is good start:
+
+         $ make clean
+
+  3) Compile the thing:
+
+         $ make
+
+  4) There is automatic "install" as:
+
+         # make install
+
+      with several presumptions about directories fixed
+      into the Makefile (possibly some adjustments are
+      required, depending upon your environment.)
+
+  5) Edit the configuration file to match your system:
+
+        # emacs /etc/aprx.conf
+
+     See the  aprx(8) man-page for more info (man 8 aprx)
+
+  6) Program startup scripts ("init-scripts") exist for
+     couple system environments, others may need manual
+     adapting.

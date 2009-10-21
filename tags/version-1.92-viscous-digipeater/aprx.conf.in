@@ -1,0 +1,193 @@
+#
+# Simple sample configuration file for the APRX-2  -- an APRS iGate and Digipeater
+#
+# This configuration is structured with Apache HTTPD style tags
+# which then contain subsystem parameters.
+#
+
+#
+# For simple case, you need to adjust 4 things:
+#   - Mycall parameter
+#   - Select correct type of interface (ax25-device or serial-device)
+#   - Optionally set a beacon telling where this system is
+#   - Optionally enable digipeater with or without tx-igate
+#
+
+#
+#
+# Define the parameters in following order:
+#   1)  <aprsis>     ** zero or one
+#   2)  <logging>    ** zero or one
+#   3)  <interface>  ** there can be multiple!
+#   4)  <beacon>     ** zero to many
+#   5)  <digipeater> ** zero to many (at most one for each Tx)
+#
+
+#
+# Global macro for simplified callsign definition:
+# Usable for 99+% of cases.
+#
+
+mycall  N0CALL-1
+
+<aprsis>
+# The  aprsis login  parameter: 
+# Station callsignSSID used for relaying APRS frames into APRS-IS.
+#
+#login     $mycall	# login defaults to $mycall
+
+# APRS-IS server name and portnumber.
+server    rotate.aprs.net    14580
+
+# Some APRS-IS servers tell every about 20 seconds to all contact
+# ports that they are there and alive. Others are just silent.
+# Default value is 3*"heartbeat" + some  --> 120 (seconds)
+#
+#heartbeat-timeout   0    # Disabler of heartbeat timeout
+
+# APRS-IS server may support some filter commands.
+# See:  http://www.aprs-is.net/javAPRSFilter.aspx
+#
+# You can define the filter as single long quoted string, or as
+# many short segments with explaining comments following them.
+#
+#filter "possibly multiple filter specs in quotes"
+#
+#filter "m/100"	     # My-Range filter: positions within 100 km from my location
+#filter "f/OH2XYZ-3/50"  # Friend-Range filter: 50 km of friend's last beacon position
+</aprsis>
+
+<logging>
+
+# pidfile is UNIX way to tell that others that this program is
+# running with given process-id number.  This has compiled-in
+# default value of:  pidfile @VARRUN@/aprx.pid
+#
+pidfile @VARRUN@/aprx.pid
+
+
+# rflog defines a rotatable file into which all RF-received packets
+# are logged.  It can be rotated at any time without need to signal
+# the aprx that the file has been moved.
+#
+rflog @VARLOG@/aprx-rf.log
+
+# aprxlog defines a rotatable file into which most important 
+# events on APRS-IS connection are logged, namely connects and
+# disconnects.  It can be rotated at any time without need to
+# signal the aprx that the file has been moved.
+#
+aprxlog @VARLOG@/aprx.log
+
+# erlangfile defines a mmap():able binary file, which stores
+# running sums of interfaces upon which the channel erlang
+# estimator runs, and collects data.
+# Depending on the system, it may be running on a filesystem
+# that actually retains data over reboots, or it may not.
+# With this backing store, the system does not loose cumulating
+# erlang data over the current period, if the restart is quick,
+# and does not stradle any exact minute.
+# (Do restarts at 15 seconds over an even minute..)
+# This file is around 0.7 MB per each interface talking APRS.
+# If this file is not defined and it can not be created,
+# internal non-persistent in-memory storage will be used.
+#
+# Built-in default value is: @VARRUN@/aprx.state
+#
+#erlangfile @VARRUN@/aprx.state
+
+</logging>
+
+
+# ***********  Multiple <interface> definitions can follow   *********
+
+# ax25-device  Lists AX.25 ports by their callsigns that in Linux
+#              systems receive APRS packets.  If none are defined,
+#              or the system is not Linux, the AX.25 network receiver
+#              is not enabled.
+#
+# tx-ok        Boolean telling if this device is able to transmit.
+#
+#<interface>
+#   ax25-device $mycall
+#   #tx-ok      false  # transmitter enable defaults to false
+#</interface>
+
+# The  TNC serial  options.  Parameters are:
+#   - /dev/ttyUSB1    -- tty device
+#   - 19200           -- baud rate, supported ones are:
+#                        1200, 2400, 4800, 9600, 19200, 38400
+#   - 8n1             -- 8-bits, no parity, one stop-bit,
+#                        no other supported modes
+#   - "KISS"                  - plain basic KISS mode
+#   - "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
+#   - "SMACK"  alias "CRC16"  - KISS with real CRC
+#   - "TNC2"                  - TNC2 monitor format
+#
+#<interface>
+#   serial-device /dev/ttyUSB0  19200 8n1    KISS
+#   #callsign     $mycall  # callsign defaults to $mycall
+#   #tx-ok        false    # transmitter enable defaults to false
+#</interface>
+#
+#<interface>
+#   serial-device /dev/ttyUSB1  19200 8n1    TNC2
+#   #callsign     $mycall  # callsign defaults to $mycall
+#   #tx-ok        false    # TNC2 monitor can not have transmitter
+#</interface>
+#
+
+
+# ***********  Multiple <beacon>  definitions can follow   *********
+<beacon>
+#
+#  Beacons are sent out to radio transmitters AND to APRSIS.
+#  They are sent to all transmitters that have "tx-ok true" setting
+#  if no "to" entry is defined, and only to defined transmitter, if
+#  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
+#
+#beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon to $mycall  symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
+#
+</beacon>
+
+
+# ***********  <digipeater>  definition(s) follow   *********
+#
+#  The digipeater definitions tell transmitters that receive
+#  AX.25 packets from possibly multiple sources, and then what
+#  to do on the AX.25 headers of those messages.
+#
+#  There is one transmitter per digipeater -- and inversely, there
+#  can be at most one digipeater for each transmitter.
+#
+#  In each digipeater there is at least one <source>, usually same
+#  as the transmitter.  You may use same <source> on multiple
+#  <digipeater>s. Using multiple instances of same <source> on
+#  a single <digipeater> does not crash the system, but it can cause
+#  packet duplication in case of non-APRS protocols (like AX.25 CONS)
+#
+#  Use only at most two levels of viscous-delay in your <digipeater>.
+#  Immediate sending is by "0", and a delayed sending is any value
+#  from 1 to 9.  This system does not correctly support other than
+#  immediate sending and one level of delay.
+#
+#<digipeater>
+#    transmitter     $mycall
+#    #ratelimit      120      # default: max 120 packets/minute
+#
+#    <source>
+#        source         $mycall
+#    #   #relay-type    digipeated # default mode is "digipeated"
+#    #   viscous-delay  0     # no viscous delay for RF->RF digipeating
+#    #   ratelimit      120   # default: max 120 packets/minute
+#    </source>
+#    #### NOTE: Some APRSIS / Tx-IGate processing rules are not yet implemented
+#    #<source>                # Adding APRSIS source makes this tx-igate
+#    #    source        APRSIS
+#    #    relay-type    third-party  # Must define this for APRSIS source!
+#    #    viscous-delay  5    # Recommendation: 5 seconds delay to give
+#    #                        # RF delivery time make itself known.
+#    #</source>
+#
+#</digipeater>

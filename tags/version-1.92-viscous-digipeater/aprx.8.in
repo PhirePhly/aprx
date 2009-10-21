@@ -1,0 +1,661 @@
+.TH aprx 8 "@DATEVERSION@"
+.LO 8
+.SH NAME
+.B aprx
+\- A receive-only APRS iGate application with integrated Digipeater.
+.SH SYNOPSIS
+.B aprx
+.RB [ \-d [ d [ d ]]]
+.RB [ \-e ]
+.RB [ \-v ]
+.RB [ \-l " \fIsyslogfacilityname\fR]"
+.RB [ \-f " \fI@CFGFILE@\fR]"
+.SH DESCRIPTION
+.B aprx
+begun as a
+.I receive-only
+APRS iGate application with minimum system support technology requirements.
+This version has also multi-port digipeater support, and plans include to
+add transmit iGate.
+.PP
+.IP \(bu 3
+The Aprx does not require machine to have any other software in it, than things
+in UNIX standard libc. In particular no special AX.25 libraries at all, nor
+widgets or even C++ runtime.
+.IP \(bu 3
+Any UNIX platform should work for the Aprx, or be trivially ported.
+(uCLinux needing a bit more work.)
+.IP \(bu 3
+The Aprx can listen "TNC2 monitor" and "KISS" speaking TNCs on any serial ports.
+.IP \(bu 3
+For Aprx the serial port can be ordinary host computer port, a USB serial port,
+or remote port on a remote server behind the internet, like cisco router AUX
+ports (port 4001, TCP STREAM without TELNET escapes.)
+.IP \(bu 3
+The Aprx does not require machine to have AX.25 protocol support internally!
+(Thus this works also on e.g. Solaris and BSD machines without PF\_AX25 sockets.)
+.IP \(bu 3
+On Linux machine with kernel internal AX.25 protocol support, can listen
+on it with promiscuous mode, and in order to use that, must be started as
+.I root
+user, and be configured to list interface callsigns that APRS packets are
+coming in.
+The AX.25 socket listening is not in itself configurable, it is always exists
+in Linux systems, and related configuration parameters are ignored in other
+platforms.
+This socket listening does not need auxiliary "libax25" to function.
+.IP \(bu 3
+The Aprx program can be run without root privileges at least against remote
+serial port servers.  One must change local serial port ownership or
+access-groups (if any are used) to userid that runs the program and possibly
+do several changes of file paths in configuration file beginning
+with its location (startup parameter).
+How that is done is up to the user of this program.
+.IP \(bu 3
+The Aprx connects with one callsign-ssid pair to APRS-IS core for all received
+radio ports.
+.IP \(bu 3
+The Aprx Rx-iGate knows that messages with following tokens in AX.25 VIA
+fields are not to be relayed into APRS-IS network:
+.RS 9
+.B "RFONLY, NOGATE, TCPIP, TCPXX"
+.RE
+.IP \(bu 3
+The Aprx Rx-iGate knows that following source address prefixes are bogus and
+thus messages with them are to be junked:
+.RS 9
+.B "WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL"
+.RE
+.IP \(bu 3
+The Aprx Rx-iGate Drops all
+.I query
+messages ("?").
+.IP \(bu 3
+The Aprx Rx-iGate opens up all 3rd party messages ("}"), and checks the internal
+data if it is OK to be gated out to APRS-IS.
+.IP \(bu 3
+The Aprx has built-in "Erlang monitor" mechanism that telemeters each receiving
+interface to APRS-IS. It can also syslog the interface specific channel occupancy,
+and optionally can output to STDOUT.
+.IP \(bu 3
+The Aprx can be run on systems without writable storage, even with very little
+memory, like on NSLU2, and OpenWrt platforms.
+.IP \(bu 3
+The Aprx (since version 1.91) can do digipeater functions.
+.PP
+.SH OPTIONS
+The
+.B aprx
+has following runtime options:
+.TP
+.B "\-d"
+Turn on verbose debugging, outputs data to STDOUT.
+.TP
+.B "\-dd"
+the "more debug" mode shows also details of network interaction with
+the APRS-IS network service.
+.TP
+.B "\-ddd"
+the "even more debug" mode shows also detail classification of
+every kind of frame received in KISS variants.
+.TP
+.B "\-e"
+.I "Erlang output"
+prints 10 minute and 60 minute traffic accumulation byte counts, and guestimates
+on channel occupancy, alias "Erlang".
+These outputs are sent to STDOUT, which system operator may choose to log elsewere.
+This is independent if the "\-l" option below.
+.TP
+.BI "\-f " "@CFGFILE@"
+Configuration file, given path is built-in default, and can be overridden by the program runner.
+.TP
+.BR "\-l" " \fIsyslogfacilityname\fR"
+Defines
+.RB syslog (3)
+facility code used by the erlang reporter by defining its name.
+Default value is:
+.BR NONE ,
+and accepted values are:
+.BR LOG_DAEMON ,
+.BR LOG_FTP ,
+.BR LOG_LPR ,
+.BR LOG_MAIL ,
+.BR LOG_NEWS ,
+.BR LOG_USER ,
+.BR LOG_UUCP ,
+.BR LOG_LOCAL0 ,
+.BR LOG_LOCAL1 ,
+.BR LOG_LOCAL2 ,
+.BR LOG_LOCAL3 ,
+.BR LOG_LOCAL4 ,
+.BR LOG_LOCAL5 ,
+.BR LOG_LOCAL6 ,
+.BR LOG_LOCAL7 .
+That list is subject to actual facility code set in the system,
+and in any case if you specify a code that is not known, then the program
+will complain during the startup, and report it.
+This is independent of the "\-e" option above.
+.TP
+.B "\-v"
+Verbose logging of received traffic to STDOUT.
+Lines begin with reception timestamp (UNIX time_t seconds), then TAB,
+and either data as is, or with prefix byte: "*" for "discarded due to data content",
+or possibly "#" for "discarded due to APRS-IS being unreachable".
+.PP
+.SS DEBUGGING SYSTEM
+Use parameter set 
+.B "\-ddv"
+(or
+.BR "\-dddv" )
+to test new configuration by running it synchronously to console.
+.PP
+.SS NORMAL OPERATION
+Running the
+.B aprx
+program without any of option flags:
+.BR "\-d" ,
+.BR "\-v" ", or"
+.B "\-e"
+reads possibly given configuration, then automatically backgrounds the process, and writes
+.IR pidfile .
+When the process whose number written in
+.I pidfile
+is then sent a SIGTERM signal, it automatically shuts down itself, and removes the
+.IR pidfile .
+The
+.I pidfile
+can be runtime configured with the
+.BI \-f " @CFGFILE@"
+file, and it has default name of:
+.IR "@VARRUN@/aprx.pid" .
+.PP
+
+.SH CONFIGURATION FILE
+The configuration file is used to setup the program to do its job.
+.PP
+You can construct following configurations:
+.PP
+.IP \(bu 3
+A
+.I receive-only
+iGate server.
+.IP \(bu 3
+A
+.I "single radio"
+digipeater.  (The most common type of digipeater.)
+.IP \(bu 3
+A
+.I multi-interfaced
+digipeater relaying traffic in between multiple radios.  (On same or on separate frequencies.)
+.IP \(bu 3
+A
+.I "viscuous digipeater,"
+which relays a packet it heard from viscuous source after the viscuous delay,
+.I unless it was heard more times than only once,
+or it was heard from non-viscuous source before the viscuous one was digipeated.
+This allows of making fill-in digipeaters that will not digipeat the packet,
+if that same packet was heard twice or more before the viscuos delay expired.
+.IP \(bu 3
+A digipeater with receive-only iGate server.
+.PP
+This package does contain incomplete bi-directional iGate support,
+however as of present version, we do not recommend its use quite yet!
+.PP
+.nf
+\fC
+#
+#  Sample configuration file for the APRX -- an Rx-only APRS iGate with
+#  Digipeater functionality.
+#
+#
+# Simple sample configuration file for the APRX-2
+#
+# This configuration is structured with Apache HTTPD style tags
+# which then contain subsystem parameters.
+#
+
+#
+# For simple case, you need to adjust 4 things:
+#   - Mycall parameter
+#   - Select correct type of interface (ax25-device or serial-device)
+#   - Optionally set a beacon telling where this system is
+#   - Optionally enable digipeater with or without tx-igate
+#
+
+#
+#
+# Define the parameters in following order:
+#   1)  <aprsis>     ** zero to many
+#   2)  <logging>    ** zero or one
+#   3)  <interface>  ** one to many
+#   4)  <beacon>     ** zero to many
+#   5)  <digipeater> ** zero to many (at most one for each Tx)
+#
+
+#
+# Global macro for simplified callsign definition:
+# Usable for 99+% of cases.
+#
+
+mycall  N0CALL-1
+
+<aprsis>
+# The  login  parameter: 
+# Station call\-id used for relaying APRS frames into APRS\-IS.
+#
+#login      $mycall  # login defaults to $mycall
+
+# APRS-IS server name and portnumber.
+# Every reconnect does re\-resolve the name to IP address.
+# Some alternates are shown below, choose something local to you.
+#
+server    rotate.aprs.net    14580
+#server    finland.aprs2.net  14580
+#server    igates.aprs.fi     14580
+
+# Some APRS\-IS servers tell every about 20 seconds to all contact
+# ports that they are there and alive. Others are just silent.
+# Recommended value 3*"heartbeat" + some  \-> 120 (seconds)
+#
+#heartbeat\-timeout  0  # Disabler of heartbeat timeout
+
+# APRS-IS server may support some filter commands.
+# See:  http://www.aprs-is.net/javAPRSFilter.aspx
+#
+# You can define the filter as single long quoted string, or as
+# many short segments with explaining comments following them.
+#
+#filter "possibly multiple filter specs in quotes"
+#
+#filter "m/100"          # My-Range filter
+#filter "f/OH2XYZ\-3/50"  # Friend-Range filter
+</aprsis>
+
+
+<logging>
+# pidfile is UNIX way to tell that others that this program is
+# running with given process-id number.  This has compiled-in
+# default value of:  pidfile @VARRUN@/aprx.pid
+#
+#pidfile @VARRUN@/aprx.pid
+
+# rflog defines a rotatable file into which all RF-received packets
+# are logged.
+#
+#rflog @VARLOG@/aprx\-rf.log
+
+# aprxlog defines a rotatable file into which most important 
+# events on APRS\-IS connection are logged, namely connects and
+# disconnects.
+#
+#aprxlog @VARLOG@/aprx.log
+
+# erlangfile defines a mmap():able binary file, which stores
+# running sums of interfaces upon which the channel erlang
+# estimator runs, and collects data.
+# Depending on the system, it may be running on a filesystem
+# that actually retains data over reboots, or it may not.
+# With this backing store, the system does not loose cumulating
+# erlang data over the current period, if the restart is quick,
+# and does not stradle any exact minute.
+# (Do restarts at 15 seconds over an even minute..)
+# This file is around 0.7 MB per each interface talking APRS.
+# If this file is not defined and can not be created,
+# internal non-persistent in-memory storage will be used.
+#
+# Built-in default value is: @VARRUN@/aprx.state
+#
+#erlangfile @VARRUN@/aprx.state
+
+# erlang\-loglevel is config file edition of the "\-l" option
+# pushing erlang data to syslog(3).
+# Valid values are (possibly) following: NONE, LOG_DAEMON,
+# LOG_FTP, LOG_LPR, LOG_MAIL, LOG_NEWS, LOG_USER, LOG_UUCP,
+# LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4,
+# LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.  If the parameter value is
+# not acceptable, list of accepted values are printed at startup.
+#
+#erlang\-loglevel NONE
+
+# erlanglog defines a rotatable file into which erlang data
+# is written in text form.
+#
+#erlanglog @VARLOG@/erlang.log
+
+# erlang\-log1min option logs to syslog/file also 1 minute
+# interval data from the program. (In addition to 10m and 60m.)
+#
+#erlang\-log1min
+</logging>
+
+
+
+# ***********  Multiple <interface> definitions can follow   *********
+
+# ax25\-device  Lists AX.25 ports by their callsigns that in Linux
+#              systems receive APRS packets.  If none are defined,
+#              or the system is not Linux, the AX.25 network receiver
+#              is not enabled.
+#
+# tx\-ok        Boolean telling if this device is able to transmit.
+#
+#<interface>
+#   ax25\-device $mycall  # Either $mycall macro, or actual callsign
+#   #tx\-ok      false  # transmitter enable defaults to false
+#</interface>
+
+# The  TNC serial  options.  Parameters are:
+#   \- /dev/ttyUSB1    \-\- tty device
+#   \- 19200           \-\- baud rate, supported ones are:
+#                        1200, 2400, 4800, 9600, 19200, 38400
+#   \- 8n1             \-\- 8\-bits, no parity, one stop\-bit,
+#                        no other supported modes
+#   \- "KISS"                  \- plain basic KISS mode
+#   \- "XORSUM" alias "BPQCRC" \- KISS with BPQ "CRC" byte
+#   \- "SMACK"  alias "CRC16"  \- KISS with real CRC
+#   \- "TNC2"                  \- TNC2 monitor format
+#
+#<interface>
+#   serial\-device /dev/ttyUSB0  19200 8n1    KISS
+#   #callsign     $mycall  # Either $mycall macro, or actual callsign
+#   #tx\-ok        false    # transmitter enable defaults to false
+#</interface>
+#
+#<interface>
+#   serial\-device /dev/ttyUSB1  19200 8n1    TNC2
+#   #callsign     $mycall  # Either $mycall macro, or actual callsign
+#   #tx\-ok        false    # TNC2 monitor can not have transmitter
+#</interface>
+#
+
+
+# ***********  Multiple <beacon>  definitions can follow   *********
+<beacon>
+#
+#  Beacons are sent out to all radio transmitters AND to APRSIS.
+#  They are sent to all transmitters that have "tx\-ok true" setting
+#  if no "to" entry is defined, and only to defined transmitter, if
+#  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
+#
+#beacon for N0CALL\-3 raw "!6016.30NR02506.36E&aprx \- an Rx\-only iGate"
+#beacon for $mycall  symbol "R&" lat "6016.30N" lon "02506.36E"  \\
+                     comment "aprx \- an Rx\-only iGate"
+</beacon>
+
+
+# ***********  <digipeater>  definition(s) follow   *********
+#
+#  The digipeater definitions tell transmitters that receive
+#  AX.25 packets from possibly multiple sources, and then what
+#  to do on the AX.25 headers of those messages.
+#
+#  There is one transmitter per digipeater \-\- and inversely, there
+#  can be at most one digipeater for each transmitter.
+#
+#  In each digipeater there is at least one <source>, usually same
+#  as the transmitter.
+#
+#<digipeater>
+#    transmitter     $mycall
+#    #ratelimit      120      # default: max 120 packets/minute
+#
+#    <source>
+#        source         $mycall
+#    #   viscous\-delay  0     # no viscous delay for RF\->RF digipeat
+#    #   ratelimit      120   # default: max 120 packets/minute
+#    </source>
+#\fI    #### NOTE: Some Tx\-iGate processing rules are not yet implemented\fR\fC
+#    #<source>          # Adding APRSIS source makes this tx-igate
+#    #    source        APRSIS
+#    #    relay\-type    third\-party  # Must define this for APRSIS source!
+#    #    viscous\-delay  5 # Recommendation: 5 seconds delay to give
+#    #                     # RF delivery time make itself known.
+#    #</source>
+#
+#</digipeater>
+\fR
+.fi
+.PP
+In the configuration file a line ending backslash (\\) character concatenates
+next input line into itself. Combined result can be up to 8000 bytes long.
+This combination can be a bit surprising:
+.nf
+\fC#beacon .... long text  \\
+       continuation\fR
+.fi
+results in single long input line that begins with '#' (it is comment) and all
+continuations following it have been folded in.
+Presented line number of combined continuation is the line number of the
+.I last
+line segment in this type of multi-line input.
+.PP
+In the configuration file there is special treatment for quoted strings.
+They are stripped of the outer quotes, and "\fC\\\fR" character is processed within
+the source string to produce an output string.
+The escapes are:
+.TP
+.B "\fC\\\\n"
+Produces newline character (Control-J) on the output string.
+.TP
+.B "\fC\\\\r"
+Produces carriage return character (Control-M) on the output string.
+.TP
+.B "\fC\\\\\\\\"
+Places a back-slash on the output string.
+.TP
+.B "\fC\\\\""
+.\" foo "
+Places a double-quote on the output string.
+.TP
+.B "\fC\\\\'"
+Places a single-quote on the output string.
+.TP
+.B "\fC\\\\xHH"
+Lower-case "x" precedes two hex digits which ensemble is then converted to a single byte in the output string.
+.PP
+The complex encodings are for possible initstrings of the external devices,
+and in particular for initstrings even a nul byte ( \\x00 ) is supported.
+.PP
+A configuration token without surrounding quotes does not understand the backslash escapes.
+
+
+.SH RADIO PORTS
+Radio ports can be connected several ways to this program:
+.IP \(bu 2
+AX.25 network interfaced ports (Linux, kissattach et al.)
+.IP \(bu 2
+Local serial ports in the machine
+.RI ( " radio serial /dev/ttyS0 " )
+.IP \(bu 2
+Local USB serial ports in the machine
+.RI ( " radio serial /dev/ttyUSB0 " )
+.IP \(bu 2
+Remote served serial ports over a TCP stream.
+.RI ( " radio tcp 12.34.56.78 4001 " )
+.br
+Implemented to talk with Cisco AUX ports on "range 4000"
+(TCP STREAM, no TELNET escapes)
+.PP
+The serial port name tells what kind of port is in question,
+and while port baud-rate (9600) and character settings (8n1)
+must always be set, they are ignored for the remote connection.
+.PP
+The KISS encapsulation details must also be specified, and they
+are used in all cases.
+.PP
+The
+.I tncid
+option sets up KISS multiplexer parameter so that subsequent
+.I callsign
+option applies only on designated sub-port.
+Default value is zero (0).
+.PP
+The
+.I callsign
+option sets port specific callsign when relaying to APRS-IS.
+
+.SH BEACON definitions
+Because classical beacon definitions are highly error-prone, this program
+has a new way to define them:
+.IP \(bu 2
+The new way to define beacons, however do note that these will be only
+messages of type "!":
+
+.nf
+\fCbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
+\fC       comment "aprx - an Rx-only iGate" \fR
+.fi
+
+.IP \(bu 2
+Semi-clasical definition of raw APRS packet:
+
+.nf
+\fCbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+.fi
+.PP
+The fields and parameters:
+.IP to 8
+An
+.I optional
+"to" parameter tells that this beacon shall be sent only to interface whose
+callsign is named.  Default is to send to all interfaces that have "tx-ok true"
+setting.
+
+.IP for 8
+An
+.I optional
+"for" parameter tells callsign which is claimed as this particular beacon source.
+It must be valid AX.25 callsign in text format.
+When this "for" parameter is not given, value of "mycall" configuration entry is used.
+
+.IP dest 8
+An
+.I optional
+"dest" parameter defaults to "APRS", but can be used to define another value.
+
+.IP via 8
+An
+.I optional
+"via" parameter defaults to nothing, but can be used to define additional
+"VIA" path tokens, for example: "WIDE1\-1".
+
+.IP symbol 8
+A
+.I mandatory
+"symbol" parameter is two character code, which for Rx-only iGate is pair: "R&"
+
+.IP lat 8
+This
+.I mandatory
+parameter defines
+.I latitude
+coordinate (that is: north/south.)
+It is expected to be of format: "ddmm.mmN" where "dd" defines
+.I two digits
+of
+.I degrees
+of latitude, and "mm.mm" defines two digits + decimal dot + two digits of
+.I minutes
+of latitude.
+Then comes literal "N" or "S" indicating hemisphere.
+
+.IP lon 8
+This 
+.I mandatory
+parameter defines
+.I longitude
+coordinate (that is: east/west.)
+It is expected to be of format: "dddmm.mmE" where "ddd" defines
+.I three digits
+of
+.I degrees
+of longitude, and "mm.mm" defines two digits + decimal dot + two digits of
+.I minutes
+of longitude.
+Then comes literal "E" or "W" indicating hemisphere.
+
+.IP comment 8
+This
+.I optional
+parameter defines commentary text tail on the beacon packet.
+
+.IP raw 8
+This
+.I alternate
+format defines whole APRS packet content in raw text format.
+.I Currently this type of packets are not validated for syntax at all!
+
+.PP
+The symbol/lat/lon/comment-format supports only "!"-type APRS packets
+for beacons.
+It splits input into small slices that are possible to validate in detail.
+(see "DEBUGGING SYSTEM" above)
+
+
+.SH NOTES: ERLANG
+The
+.I Erlang
+is telecom measurement of channel occupancy, and in this application sense
+it does tell how much traffic there is on the radio channel.
+.PP
+Most radio transmitters are not aware of all transmitters on channel,
+and thus there can happen a collision causing loss of both messages.
+The higher the channel activity, the more likely that collision is.
+For further details, refer to statistical mathematics books, or perhaps
+on Wikipedia.
+.PP
+In order to measure channel activity, the
+.B aprx
+program suite has these built-in statistics counter and summary estimators.
+.PP
+The
+.I Erlag
+value that the estimators present are likely somewhat
+.I underestimating
+the true channel occupancy simply because it calculates estimate of channel
+bit transmit rate, and thus a per-minute character capacity.
+It does not know true frequency of bit-stuffing events of the HDLC framing,
+nor each transmitter pre- and port frame PTT times. The transmitters need to
+stabilize their transmit oscillators in many cases, which may take up to
+around 500 ms!
+The counters are not aware of this preamble-, nor postamble-times.
+.PP
+The HDLC bit stuffing ratio is guessed to be 1:1.025 (1 extra bit every 5 bytes)
+
+.SH NOTES: PROGRAM NAME
+Initially this program had name
+.IR aprsg-ng ,
+which was too close to another (a less low-tech C++ approach) program had.
+
+.SH BUGS/WARTS
+The
+.IR Erlang -monitor
+mechanisms are of rudimentary quality, and can seriously underestimate
+the channel occupancy by ignoring pre- and postample transmissions.
+.PP
+On serial lines supports really only 8n1 mode, not at all like: 7e1.
+On the other hand, there really is no sensible usage for anything but 8n1...
+
+.SH SEE ALSO
+Couple web sites:
+.IR "http://www.aprs-is.net/" ,
+.IR "http://www.aprs2.net/" ,
+.I "http://wiki.ham.fi/Aprx.en"
+.PP
+.BR aprx-stat (8)
+
+.SH AUTHOR
+This little piece was written by
+.I "Matti Aarnio, OH2MQK"
+during a dark and rainy fall and winter of 2007-2008 after a number
+of discussions grumbling about current breed of available software
+for APRS iGate use in Linux (or of any UNIX) platforms.
+Fall and winter 2009-2010 saw appearance of digipeater functionality.
+.PP
+Principal contributors and test users include:
+.IR "Pentti Gronlund, OH3BK" ,
+.IR "Reijo Hakala, OH1GWK" .
+Debian packaging by
+.IR "Kimmo Jukarinen, OH3GNU" .
+Testing of SMACK variant of KISS by
+.IR "Patrick Hertenstein, DL1GHN" .

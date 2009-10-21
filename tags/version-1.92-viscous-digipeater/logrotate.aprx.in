@@ -1,0 +1,8 @@
+@VARLOG@/rf.log @VARLOG@/aprx.log  @VARLOG@/erlang.log {
+	weekly
+	rotate 4
+	compress
+	missingok
+	notifempty
+	create 644 root adm
+}

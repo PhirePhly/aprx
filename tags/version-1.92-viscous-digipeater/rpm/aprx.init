@@ -1,0 +1,86 @@
+#!/bin/bash
+#
+# chkconfig: - 16 84
+# description: Start up a receive only APRS igate
+# processname: aprx
+# config: /etc/sysconfig/aprx
+
+### BEGIN INIT INFO
+# Provides: aprx
+# Required-Start: $syslog $local_fs
+# Required-Stop: $syslog $local_fs
+# Default-Start:  2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop aprx
+# Description: Monitor and gateway radio amateur APRS radio network datagrams
+### END INIT INFO
+
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# Check that networking is up.
+[ "${NETWORKING}" = "no" ] && exit 0
+
+# defaults
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/aprx
+NAME=aprx
+DESC="aprx igate"
+
+# source the config, if it exists
+if [ -f /etc/sysconfig/aprx ] ; then
+   . /etc/sysconfig/aprx
+fi
+
+test -x $DAEMON || exit 0
+
+if [ "$STARTAPRX" != "yes" ];then
+	echo "Starting of $NAME not enabled in /etc/sysconfig/$NAME."
+	exit 0
+fi
+
+set -e
+
+
+case "$1" in
+  start)
+	echo -n $"Starting aprx server: "
+	$DAEMON
+	disown -ar
+	usleep 500000
+	status $NAME &> /dev/null && echo_success || echo_failure
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/$NAME
+	echo
+	;;
+  stop)
+	echo -n $"Shutting down aprx server: "
+	killproc $DAEMON
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$NAME
+	echo_success
+	;;
+  restart|reload)
+        $0 stop
+        $0 start
+	RETVAL=$?
+        ;;
+  condrestart)
+        if [ -f /var/lock/subsys/$NAME ]; then
+                $0 stop
+		$0 start
+        fi
+	RETVAL=$?
+        ;;
+  status)
+        status $NAME
+	RETVAL=$?
+        ;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|reload|condrestart|status}"
+	exit 1
+esac
+
+exit $RETVAL

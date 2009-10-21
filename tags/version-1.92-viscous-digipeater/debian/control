@@ -1,0 +1,22 @@
+Source: aprx
+Section: hamradio
+Priority: extra
+Maintainer: HAM APRX release  maintenance <aprx@ham>
+Build-Depends: debhelper (>= 4)
+Standards-Version: 3.7.2
+
+Package: aprx
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: A receive-only APRS igate
+ Aprx is a receive-only (ie. RF to NET only) APRS igate.
+ It supports multiple KISS-TNCs on serial ports  and listening 
+ to any kernel ax.25 network interfaces.
+ .
+ Additional features include a built-in "erlang-monitor" to analyze
+ activity level of radio channels.
+ .
+ This software requires a valid (and unique) ham radio callsign to
+ operate fully and is therefore useful mainly for licensed radio
+ amateurs.
+

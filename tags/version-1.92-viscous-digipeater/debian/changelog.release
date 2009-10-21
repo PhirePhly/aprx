@@ -1,0 +1,12 @@
+aprx (@VERSION@) unstable; urgency=low
+
+  * See main ChangeLog.
+
+ -- aprx maintainer <arpx@ham>  @RFCDATE@
+
+aprx (0.0.0-1) unstable; urgency=low
+
+  * Initial debianization.
+
+ -- Kimmo Jukarainen <oh3gnu@ham>  Thu,  3 Jan 2008 20:35:29 +0200
+
