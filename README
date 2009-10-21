@@ -17,7 +17,7 @@ A receive-only APRS-IS "i-gate" with following properties:
 
    - Has cross-interface Viscous Digipeater functionality to not to digipeat,
      if during the initial wait period the packet is heard on destination
-     interface even once.
+     interface at least once, and at least once from other sources.
 
    - Can receive data from multiple receivers/modems on local machine
      serial ports, both classical and USB.

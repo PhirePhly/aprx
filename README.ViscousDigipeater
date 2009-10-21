@@ -34,7 +34,7 @@ The rules are rather complicated, even the following may not be correct:
   as duplicates ( seen > 1  ->  drop this )
 
   Packets arriving from any viscous source are dropped, if there
-  alread was some direct delivery packet  ( seen > 0  -> drop )
+  already was some direct delivery packet  ( seen > 0  -> drop )
 
   First packet arriving from any viscous source is put on viscous queue,
   unless there was non-viscous packet previously.
