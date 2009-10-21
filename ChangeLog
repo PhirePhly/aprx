@@ -1,3 +1,14 @@
+2009-10-21  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* README.ViscousDigipeater, digipeater.c:
+	    Thinking about what are correct rules on Viscous Digipeat.
+
+	* digipeater.c:
+	    On configuration, make sure that <source> definitions
+	    within the <digipeater> definition are referring to
+	    unique <interface>:s.  That is, no two <source>:s can
+	    have same <interface>.
+
 2009-10-20  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, digipeater.c:

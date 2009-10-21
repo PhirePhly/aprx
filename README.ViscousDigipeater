@@ -1,0 +1,52 @@
+
+		    Viscous Digipeater in APRX
+
+The Viscous Digipeater is variation of AX.25 Digipeater, which puts
+arriving packets into a time delay queue (up to 9 seconds), before
+processing them.
+
+The trick is that duplicate accounting is done right up front at
+arrival packet arrival time, and depending on how many packets have
+been seen at the time of viscous queue releasing the packet, the
+packet may get transmitted, or not.
+
+One can use a Viscous Digipeater as a fill-in system, which does not
+repeat on band a packet that it hears having already been repeated.
+It does have also benefits on Tx-IGate, which will not re-transmit
+to band something that already was heard there.
+
+The rules are rather complicated, even the following may not be correct:
+
+  Packets arriving from non-viscous sources trump those waiting in
+  viscous queues.  First one arriving will be transmitted, unless
+  the viscous queue has no longer this packet (but it was there.)
+  ( delayed_seen == 0, seen == 1                -> transmit )
+  ( delayed_seen > 0,  seen == 1, pbuf != NULL  -> clean pbuf, transmit )
+  ( delayed_seen > 0,  seen == 1, pbuf == NULL  -> drop )
+
+  Subsequent packets arriving from non-viscous sources are dropped
+  as duplicates ( seen > 1  ->  drop )
+
+  First packet arriving from any viscous source is put on viscous queue,
+  unless there was non-viscous packet previously.
+  ( delayed_seen == 1, seen == 0  ->  put on viscous queue )
+  ( delayed_seen == 1, seen > 0   ->  drop )
+  (( value of seen_on_transmitter depends on precise source ))
+
+  Then among viscous sources:
+
+  If the previous were from elsewhere and this is from elsewere,
+  discard this, KEEP pbuf.
+  (!source_is_transmitter, seen_on_transmitter == 0, delayed_seen > 1)
+
+  If first one was from transmitter and this one is from elsewhere,
+  discard this, KEEP pbuf.
+  (!source_is_transmitter, seen_on_transmitter == 1, delayed_seen > 1)
+
+  If the previous were from elsewhere and this is from transmitter,
+  discard this, DROP pbuf.
+  (source_is_transmitter, seen_on_transmitter == 1, delayed_seen > 1)
+ 
+  If first one was from transmitter and this one is from transmitter,
+  discard this, DROP pbuf.
+  (source_is_transmitter, seen_on_transmitter > 1, delayed_seen > 1)
