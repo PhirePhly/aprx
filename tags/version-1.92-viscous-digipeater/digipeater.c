@@ -1148,6 +1148,9 @@ void digipeater_receive( struct digipeater_source *src,
 
 			if (dupe->delayed_seen > 1) {
 			  // 2nd or more of same packet from delayed source
+			  if (debug>1)
+			    printf("Seen this packet %d times\n",
+				   dupe->delayed_seen + dupe->seen);
 
 			  // If any of them is transmitter interface, then
 			  // drop the queued packet, and drop current one.
@@ -1161,9 +1164,6 @@ void digipeater_receive( struct digipeater_source *src,
 			    }
 
 			  }
-			  if (debug>1)
-			    printf("Seen this packet %d times\n",
-				   dupe->delayed_seen + dupe->seen);
 			  return;
 			}
 
