@@ -540,7 +540,8 @@ void *readconfigline(struct configfile *cf)
 	  }
 	}
 
-	printf("Config line: '%s'\n",cf->buf);
+	if (debug)
+	  printf("Config line: '%s'\n",cf->buf);
 
 	return cf->buf;
 }

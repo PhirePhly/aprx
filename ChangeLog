@@ -1,5 +1,12 @@
 2009-10-21  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* config.c:
+	    Clean away some superflous debugs.
+
+	* digipeater.c:
+	    Viscous mode debug printout crashes on SEGV.. Oops.
+	    (without debug the bug does not hit.)
+
 	* README.ViscousDigipeater, digipeater.c:
 	    Thinking about what are correct rules on Viscous Digipeat.
 
