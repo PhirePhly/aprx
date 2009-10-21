@@ -34,13 +34,12 @@ The rules are rather complicated, even the following may not be correct:
   as duplicates ( seen > 1  ->  drop this )
 
   Packets arriving from any viscous source are dropped, if there
-  already was some direct delivery packet  ( seen > 0  -> drop )
+  already was some direct delivery packet
+  ( delayed_seen > 0, seen > 0   -> drop )
 
   First packet arriving from any viscous source is put on viscous queue,
   unless there was non-viscous packet previously.
-  ( delayed_seen == 1, seen > 0   ->  drop this )
   ( delayed_seen == 1, seen == 0  ->  put this on viscous queue )
-  (( value of seen_on_transmitter depends on precise source ))
 
   Then among viscous sources:
    - "Transmitter" kind source: an <interface> which is same as
