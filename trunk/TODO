@@ -8,7 +8,7 @@
   - ...
 
 - OpenTRAC support ?  (UI, PID=0x77)
-  - Yes, on DIGIPEATER ONLY
+  - Yes, on DIGIPEATER ONLY - what about WIDEn-N ? Y/N ?
 
 - Digipeating details of non-APRS UI protocols?  Some way to
   handle "WIDEn-N" on selected PIDs?
@@ -34,5 +34,9 @@
 
 - Use internal APRS packet parser to validate beacon configurations.
   This should be able to flag bad input on RAW beacon data.
+
+- Special treatment of viscous fill-in digi?
+     tx when:  seen==0, delayed_seen == 1, (seen_transmitter == 1)
+
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009
