@@ -1081,15 +1081,9 @@ void digipeater_receive( struct digipeater_source *src,
 		//    If the dupe detector on this packet has reached
 		//    count > 1, drop it.
 
-		dupe_record_t *dupe = dupecheck_pbuf( src->parent->dupechecker, pb,
-						      src->viscous_delay);
+		dupe_record_t *dupe = dupecheck_pbuf( src->parent->dupechecker,
+						      pb, src->viscous_delay);
 		if (dupe == NULL) return; // Oops.. allocation error!
-
-		// Depending on source definition, the transmitter is
-		// either non-viscuous or viscuous.  Single variable 
-		// can account it.
-		if (source_is_transmitter)
-			dupe->seen_on_transmitter += 1;
 
 		// 1.1) optional viscous delay!
 
@@ -1134,50 +1128,49 @@ void digipeater_receive( struct digipeater_source *src,
 		} else {  // src->viscous_delay > 0
 
 			// First packet on viscous source arrives here
-			// with   delayed_seen = 1
+			// with   dupe->delayed_seen = 1
 
+			// Has this been seen on direct channel?
 			if (dupe->seen > 0) {
 			  // Already processed thru direct processing,
-			  // no point in adding it to viscous delay queue
+			  // no point in adding this to viscous delay queue
 			  if (debug>1)
 			    printf("Seen this packet %d times\n",
 				   dupe->delayed_seen + dupe->seen);
 			  return;
 			}
 
+			// Depending on source definition, the transmitter is
+			// either non-viscous or viscous.  We care about it
+			// only when the source is viscous:
+			if (source_is_transmitter)
+				dupe->seen_on_transmitter += 1;
+
 			if (dupe->delayed_seen > 1) {
 			  // 2nd or more of same packet from delayed source
 
-// FIXME:
-//  If the previous were from elsewhere and this is from elsewere,
-//  discard this, KEEP pbuf.
-//  (!source_is_transmitter, seen_on_transmitter == 0, delayed_seen > 1)
-//
-//  If first one was from transmitter and this one is from elsewhere,
-//  discard this, KEEP pbuf.
-//  (!source_is_transmitter, seen_on_transmitter == 1, delayed_seen > 1)
-//
-//  If the previous were from elsewhere and this is from transmitter,
-//  discard this, DROP pbuf.
-//  (source_is_transmitter, seen_on_transmitter == 1, delayed_seen > 1)
-// 
-//  If first one was from transmitter and this one is from transmitter,
-//  discard this, DROP pbuf.
-//  (source_is_transmitter, seen_on_transmitter > 1, delayed_seen > 1)
+			  // If any of them is transmitter interface, then
+			  // drop the queued packet, and drop current one.
+			  if (dupe->seen_on_transmitter > 0) {
 
-			  // If pbuf is on delayed queue, drop it.
-			  if (dupe->pbuf != NULL) {
-			    pbuf_put(dupe->pbuf);
-			    dupe->pbuf = NULL;
-			    dupe = NULL; // Do not do  dupecheck_put() here!
+			    // If pbuf is on delayed queue, drop it.
+			    if (dupe->pbuf != NULL) {
+			      pbuf_put(dupe->pbuf);
+			      dupe->pbuf = NULL;
+			      dupe = NULL; // Do not do  dupecheck_put() here!
+			    }
+
 			  }
 			  if (debug>1)
 			    printf("Seen this packet %d times\n",
 				   dupe->delayed_seen + dupe->seen);
 			  return;
 			}
+
 			// First time that we have seen this packet at all.
-			// Put the pbuf_t on viscous delay queue..
+			// Put the pbuf_t on viscous delay queue.. (Put
+			// this dupe_record_t there, and the pbuf_t pointer
+			// is already in that dupe_record_t.)
 			src->viscous_queue_size += 1;
 			if (src->viscous_queue_size > src->viscous_queue_space) {
 			  src->viscous_queue_space += 16;
@@ -1185,7 +1178,8 @@ void digipeater_receive( struct digipeater_source *src,
 							sizeof(void*) *
 							src->viscous_queue_space );
 			}
-			src->viscous_queue[ src->viscous_queue_size -1 ] = dupecheck_get(dupe);
+			src->viscous_queue[ src->viscous_queue_size -1 ]
+				= dupecheck_get(dupe);
 			
 			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d pbuf=%p\n",
 					  now, src->viscous_queue_size, pb);
@@ -1249,14 +1243,13 @@ int  digipeater_postpoll(struct aprxpolls *app)
 		struct dupe_record_t *dupe = src->viscous_queue[i];
 		if (debug)printf("%ld LEAVE VISCOUS QUEUE: dupe=%p pbuf=%p\n",
 				 now, dupe, dupe->pbuf);
-		if (dupe->pbuf != NULL && dupe->seen == 0) {
-                  // We send the first pbuf from viscous queue as long
-                  // as delayless observation count is zero.
-		  // Actually the "dupe->seen==0" test is just a backup,
-		  // as first direct removes the pbuf.
+		if (dupe->pbuf != NULL) {
+                  // We send the pbuf from viscous queue, if it still is
+		  // present in the dupe record.  (For example direct sourced
+		  // packets remove a packet from queued dupe record.)
                   digipeater_receive_backend(src, dupe->pbuf);
-                }
-                if (dupe->pbuf != NULL) {
+
+		  // Remove the delayed pbuf from this dupe record.
                   pbuf_put(dupe->pbuf);
                   dupe->pbuf = NULL;
                 }
@@ -1266,6 +1259,7 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    }
 	    if (donecount > 0) {
 	      if (donecount >= src->viscous_queue_size) {
+		// All cleared
 		src->viscous_queue_size = 0;
 	      } else {
 		// Compact the queue left after this processing round
