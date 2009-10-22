@@ -14,7 +14,9 @@
 struct beaconmsg {
 	time_t nexttime;
 	const struct aprx_interface *interface;
+	const char *src;
 	const char *dest;
+	const char *via;
 	const char *msg;
 };
 
@@ -46,8 +48,6 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 	char *lat  = NULL;
 	char *lon  = NULL;
 	char *comment = NULL;
-	char  beaconaddr[64];
-	int   beaconaddrlen;
 	const struct aprx_interface *aif = NULL;
 
 	*buf = 0;
@@ -225,20 +225,10 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 
 	if (destaddr == NULL)
 		destaddr = tocall;
-	if (via == NULL) {
-		beaconaddrlen = snprintf(beaconaddr, sizeof(beaconaddr),
-					 "%s>%s", srcaddr, destaddr);
-	} else {
-		beaconaddrlen = snprintf(beaconaddr, sizeof(beaconaddr),
-					 "%s>%s,%s", srcaddr, destaddr, via);
-	}
-	if (beaconaddrlen >= sizeof(beaconaddr)) {
-		// BAD BAD!  Too big?
-		if (debug)
-		  printf("Constructed beacon address header is too big. (over %d chars long)\n",(int)sizeof(beaconaddr)-2);
-		goto discard_bm;
-	}
-	bm->dest      = strdup(beaconaddr);
+
+	bm->src       = srcaddr != NULL ? strdup(srcaddr) : NULL;
+	bm->dest      = strdup(destaddr);
+	bm->via       = via != NULL ? strdup(via) : NULL;
 	bm->interface = aif;
 
 	if (!bm->msg) {
@@ -264,9 +254,17 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 
 	if (debug) {
 	  if (netonly)
-		printf("NETBEACON FOR '%s'  '%s'\n", bm->dest, bm->msg);
+	    printf("NET");
 	  else
-		printf("RFBEACON FOR '%s'  '%s'\n", bm->dest, bm->msg);
+	    printf("RF");
+	  printf("BEACON FOR ");
+	  if (srcaddr == NULL)
+	    printf("***>%s", destaddr);
+	  else
+	    printf("%s>,%s",srcaddr,destaddr);
+	  if (via != NULL)
+	    printf(",%s", via);
+	  printf("'  '%s'\n", bm->msg);
 	}
 
 	/* realloc() works also when old ptr is NULL */
@@ -345,7 +343,7 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 	        beacon_nexttime    = beacon_last_nexttime;
 	}
 	
-	destlen = strlen(bm->dest);
+	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 	txtlen  = strlen(bm->msg);
 
 	if (debug) {
@@ -362,30 +360,56 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	/* Send them all also as netbeacons.. */
-	aprsis_queue(bm->dest, destlen, aprsis_login, bm->msg, txtlen);
-
 	/* Send those (rf)beacons.. (a noop if interface == NULL) */
 	if (bm->interface != NULL) {
-		char *txtbuf = alloca(destlen + 2 + txtlen);
-		memcpy(txtbuf, bm->dest, destlen);
-		txtbuf[destlen] = ':';
-		memcpy(txtbuf+destlen+1, bm->msg, txtlen);
+		char *destbuf = alloca(destlen + 2 +
+				      strlen(bm->interface->callsign));
+		const char *src =
+		  (bm->src != NULL) ? bm->src : bm->interface->callsign;
 
-		interface_transmit_tnc2(bm->interface,
-					txtbuf, destlen + 1 + txtlen );
+		if (bm->via != NULL)
+		  sprintf(destbuf,"%s>%s,%s:",src,bm->dest,bm->via);
+		else
+		  sprintf(destbuf,"%s>%s", src, bm->dest);
+
+		// Send them all also as netbeacons..
+		aprsis_queue(destbuf, strlen(destbuf),
+			     aprsis_login, bm->msg, txtlen);
+
+		// And to interfaces
+		interface_transmit_beacon(bm->interface,
+					  src,
+					  bm->dest,
+					  bm->via,
+					  bm->msg, strlen(bm->msg));
 	} 
-	/*
 	else {
-		for ( i = 0; i < all_interfaces_count; ++i ) {
-			if (all_interfaces[i]->txok) {
-				interface_receive_tnc2(all_interfaces[i],
-						       bm->dest,
-						       bm->msg, txtlen);
-			}
+	    for ( i = 0; i < all_interfaces_count; ++i ) {
+		const struct aprx_interface *aif = all_interfaces[i];
+		if (aif->txok) {
+		    char *destbuf = alloca(destlen + 2 +
+					   strlen(aif->callsign));
+		    const char *src =
+		      (bm->src != NULL) ? bm->src : aif->callsign;
+
+		    if (bm->via != NULL)
+		      sprintf(destbuf,"%s>%s,%s:",src,bm->dest,bm->via);
+		    else
+		      sprintf(destbuf,"%s>%s", src, bm->dest);
+
+		    // Send them all also as netbeacons..
+		    aprsis_queue(destbuf, strlen(destbuf),
+				 aprsis_login, bm->msg, txtlen);
+
+		    // .. and send to all interfaces..
+		    interface_transmit_beacon(aif,
+					      src,
+					      bm->dest,
+					      bm->via,
+					      bm->msg, strlen(bm->msg));
 		}
+	    }
 	}
-	*/
 
 	return 0;
 }

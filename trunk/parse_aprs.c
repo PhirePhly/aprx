@@ -417,32 +417,32 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	 *   0          1          23            4          5          6              7
 	 * /^[\x26-\x7f][\x26-\x61][\x1c-\x7f]{2}[\x1c-\x7d][\x1c-\x7f][\x21-\x7b\x7d][\/\\A-Z0-9]/
 	 */
-	if (body[0] < 0x26 || (unsigned char)body[0] > 0x7f) {
+	if (body[0] < 0x26 || (uint8_t)body[0] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 1");
 		return 0;
 	}
-	if (body[1] < 0x26 || (unsigned char)body[1] > 0x61) {
+	if (body[1] < 0x26 || (uint8_t)body[1] > 0x61) {
 		DEBUG_LOG("..bad infofield column 2");
 		return 0;
 	}
-	if (body[2] < 0x1c || (unsigned char)body[2] > 0x7f) {
+	if (body[2] < 0x1c || (uint8_t)body[2] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 3");
 		return 0;
 	}
-	if (body[3] < 0x1c || (unsigned char)body[3] > 0x7f) {
+	if (body[3] < 0x1c || (uint8_t)body[3] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 4");
 		return 0;
 	}
-	if (body[4] < 0x1c || (unsigned char)body[4] > 0x7d) {
+	if (body[4] < 0x1c || (uint8_t)body[4] > 0x7d) {
 		DEBUG_LOG("..bad infofield column 5");
 		return 0;
 	}
-	if (body[5] < 0x1c || (unsigned char)body[5] > 0x7f) {
+	if (body[5] < 0x1c || (uint8_t)body[5] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 6");
 		return 0;
 	}
-	if ((body[6] < 0x21 || (unsigned char)body[6] > 0x7b)
-		&& (unsigned char)body[6] != 0x7d) {
+	if ((body[6] < 0x21 || (uint8_t)body[6] > 0x7b)
+		&& (uint8_t)body[6] != 0x7d) {
 		DEBUG_LOG("..bad infofield column 7");
 		return 0;
 	}

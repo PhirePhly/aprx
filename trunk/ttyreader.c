@@ -150,8 +150,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 		    printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", now, S->ttyname, tncid);
 
 		if (S->smack_probe[tncid] < now) {
-		    unsigned char probe[4];
-		    unsigned char kissbuf[12];
+		    uint8_t probe[4];
+		    uint8_t kissbuf[12];
 		    int kisslen;
 
 		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
@@ -498,7 +498,7 @@ static int ttyreader_pulltext(struct serialport *S)
 /*
  *  ttyreader_kisswrite()  -- write out buffered data
  */
-void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned char *ax25raw, const int ax25rawlen)
+void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen)
 {
 	int i, len, ssid;
 	char kissbuf[2300];

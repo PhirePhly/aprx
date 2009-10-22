@@ -24,7 +24,7 @@
  * --
  */
 
-int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src, int markflag)
+int ax25_to_tnc2_fmtaddress(char *dest, const uint8_t *src, int markflag)
 {
 	int i, c;
 	int ssid;
@@ -67,8 +67,8 @@ int ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src, int markflag)
 	return c;
 }
 
-
-int parse_ax25addr(unsigned char ax25[7], const char *text, int ssidflags)
+// Return 0 on OK, != 0 on errors
+int parse_ax25addr(uint8_t ax25[7], const char *text, int ssidflags)
 {
 	int i = 0;
 	int ssid = 0;
@@ -129,14 +129,14 @@ void tnc2_to_ax25()
 	// AX25 format:   dest, src, via1, via2, via3, ... via8
 }
 
-int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
+int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 		       char *tnc2buf, const int tnc2buflen,
 		       int *frameaddrlen, int *tnc2addrlen,
 		       int *is_aprs, int *ui_pid)
 {
 	int i, j;
-	const unsigned char *s = frame;
-	const unsigned char *e = frame + framelen;
+	const uint8_t *s = frame;
+	const uint8_t *e = frame + framelen;
 	char *t = tnc2buf;
 	int viacount = 0;
 
@@ -261,7 +261,7 @@ int ax25_format_to_tnc(const unsigned char *frame, const int framelen,
 
 int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 		 const int tncid, const int cmdbyte,
-		 const unsigned char *frame, const int framelen)
+		 const uint8_t *frame, const int framelen)
 {
 	int frameaddrlen = 0;
 

@@ -1,3 +1,14 @@
+2009-10-22  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, rfbeacon.c, interface.c:
+	    Implemented new infra for sending APRS beacons to radio
+	    interfaces.  Incoming request will at first construct
+	    the AX.25 header, then send that to physical interfaces.
+
+	* aprx.h, ax25.c, digipeater.c, interface.c, kiss.c, pbuf.h,
+	  pbuf.c, netax25.c, parse_aprs.c, rfbeacon.c, ttyreader.c:
+	    Changed all instances of 'unsigned char' to 'uint8_t'.
+
 2009-10-21  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* config.c:

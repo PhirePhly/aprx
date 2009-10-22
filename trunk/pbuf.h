@@ -105,11 +105,11 @@ struct pbuf_t {
 
 	char symbol[3]; /* 2(+1) chars of symbol, if any, NUL for not found */
 
-	unsigned char *ax25addr;	// Start of AX.25 address
-	int	       ax25addrlen;	// length of AX.25 address
+	uint8_t *ax25addr;	// Start of AX.25 address
+	int      ax25addrlen;	// length of AX.25 address
 
-	unsigned char *ax25data;	// Start of AX.25 data after addresses
-	int	       ax25datalen;	// length of that data
+	uint8_t *ax25data;	// Start of AX.25 data after addresses
+	int      ax25datalen;	// length of that data
 
 	char data[1];
 };

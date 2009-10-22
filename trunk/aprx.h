@@ -133,14 +133,14 @@ struct serialport {
 	struct aprx_interface	*interface[16];
 
 
-	unsigned char rdbuf[2000];	/* buffering area for raw stream read */
+	uint8_t rdbuf[2000];	/* buffering area for raw stream read */
 	int rdlen, rdcursor;	/* rdlen = last byte in buffer,
 				   rdcursor = next to read.
 				   When rdlen == 0, buffer is empty.    */
-	unsigned char rdline[2000];	/* processed into lines/records       */
+	uint8_t rdline[2000];	/* processed into lines/records       */
 	int rdlinelen;		/* length of this record                */
 
-	unsigned char wrbuf[4000];	/* buffering area for raw stream read */
+	uint8_t wrbuf[4000];	/* buffering area for raw stream read */
 	int wrlen, wrcursor;	/* wrlen = last byte in buffer,
 				   wrcursor = next to write.
 				   When wrlen == 0, buffer is empty.    */
@@ -158,23 +158,23 @@ extern void ttyreader_register(struct serialport *tty);
 // extern void               ttyreader_setlineparam(struct serialport *tty, const char *ttyname, const int baud, int const kisstype);
 // extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
 extern void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
-extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const unsigned char *ax25raw, const int ax25rawlen);
+extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
 
 
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
-extern int  ax25_to_tnc2_fmtaddress(char *dest, const unsigned char *src,
+extern int  ax25_to_tnc2_fmtaddress(char *dest, const uint8_t *src,
 				    int markflag);
 extern int  ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 			 const int tncid, const int cmdbyte,
-			 const unsigned char *frame, const int framelen);
+			 const uint8_t *frame, const int framelen);
 extern void ax25_filter_add(const char *p1, const char *p2);
-extern int  ax25_format_to_tnc(const unsigned char *frame, const int framelen,
+extern int  ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 			       char *tnc2buf, const int tnc2buflen,
 			       int *frameaddrlen, int *tnc2addrlen,
 			       int *is_aprs, int *ui_pid);
-extern int  parse_ax25addr(unsigned char ax25[7], const char *text,
+extern int  parse_ax25addr(uint8_t ax25[7], const char *text,
 			   int ssidflags);
 
 
@@ -241,7 +241,7 @@ extern int         netax25_prepoll(struct aprxpolls *);
 extern int         netax25_postpoll(struct aprxpolls *);
 extern void        netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *aif);
 extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
-extern void        netax25_sendto(const void *nax25, const unsigned char *txbuf, const int txlen);
+extern void        netax25_sendto(const void *nax25, const uint8_t *txbuf, const int txlen);
 
 /* telemetry.c */
 extern void telemetry_start(void);
@@ -274,7 +274,7 @@ struct erlangline {
 	const void *refp;
 	int index;
 	char name[31];
-	unsigned char __subport;
+	uint8_t __subport;
 	time_t last_update;
 
 	int erlang_capa;	/* bytes, 1 minute                      */
@@ -382,7 +382,7 @@ extern int            dupecheck_postpoll(struct aprxpolls *app);
 #define KISS_TFEND (0xDC)
 #define KISS_TFESC (0xDD)
 
-extern int crc16_calc(unsigned char *buf, int n); /* SMACK's CRC16 */
+extern int crc16_calc(uint8_t *buf, int n); /* SMACK's CRC16 */
 extern int kissencoder(void *, int, const void *, int, int);
 
 
@@ -499,10 +499,10 @@ extern void interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 
-extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int digi_like_aprs, const unsigned char *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
-extern void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axaddr, const int axaddrlen, const unsigned char *axdata, const int axdatalen);
+extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int ui_pid, const uint8_t *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
+extern void interface_transmit_ax25(const struct aprx_interface *aif, const void *axaddr, const int axaddrlen, const void *axdata, const int axdatalen);
 extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen);
-extern void interface_transmit_tnc2(const struct aprx_interface *aif, const char *tncbuf, const int tnclen);
+extern int  interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *tncbuf, const int tnclen);
 
 
 /* pbuf.c */

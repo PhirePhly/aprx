@@ -21,8 +21,8 @@ struct digistate {
 	int tracedone;
 	int traces;
 
-	int           ax25addrlen;
-	unsigned char ax25addr[90]; // 70 for address, a bit more for "body"
+	int     ax25addrlen;
+	uint8_t ax25addr[90]; // 70 for address, a bit more for "body"
 };
 
 
@@ -361,6 +361,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	if (debug>1) printf(" hops count: %s ",p);
 
 	len = pb->srccall_end - pb->data;
+	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
 	memcpy(viafield, pb->data, len);
 	viafield[len] = 0;
 	if (try_reject_filters(0, viafield, src)) {
@@ -369,6 +370,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	}
 
 	len = pb->dstcall_end - pb->destcall;
+	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
 	memcpy(viafield, pb->destcall, len);
 	viafield[len] = 0;
 	if (try_reject_filters(1, viafield, src)) {
@@ -395,8 +397,10 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  if (*p == 'q') break; // APRSIS q-constructs..
 	  ++viaindex;
 
-	  memcpy(viafield, p, s-p);
-	  viafield[s-p] = 0;
+	  len = s-p;
+	  if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
+	  memcpy(viafield, p, len);
+	  viafield[len] = 0;
 	  if (*s == ',') ++s;
 	  p = s;
 	  
@@ -848,7 +852,7 @@ void digipeater_config(struct configfile *cf)
 }
 
 
-static int decrement_ssid(unsigned char *ax25addr)
+static int decrement_ssid(uint8_t *ax25addr)
 {
 	int ssid = (ax25addr[6] >> 1) & 0x0F;
 	if (ssid > 0)
@@ -914,8 +918,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	state.ax25addrlen = pb->ax25addrlen;
 	memcpy(state.ax25addr, pb->ax25addr, pb->ax25addrlen);
-	unsigned char *axaddr = state.ax25addr + 14;
-	unsigned char *e      = state.ax25addr + state.ax25addrlen;
+	uint8_t *axaddr = state.ax25addr + 14;
+	uint8_t *e      = state.ax25addr + state.ax25addrlen;
 
 	// Search for first AX.25 VIA field that does not have H-bit set:
 	for (; axaddr < e; axaddr += 7) {
@@ -1016,7 +1020,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  }
 	}
 	if (debug) {
-	  unsigned char *u = state.ax25addr + state.ax25addrlen;
+	  uint8_t *u = state.ax25addr + state.ax25addrlen;
 	  *u++ = 0;
 	  *u++ = 0;
 	  *u++ = 0;

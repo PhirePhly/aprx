@@ -144,7 +144,7 @@ static int crc_table[] = {
 	0x4100, 0x81c1, 0x8081,	0x4040
 };
 
-int crc16_calc(unsigned char *buf, int n)
+int crc16_calc(uint8_t *buf, int n)
 {
 	int crc = 0;
 
@@ -163,9 +163,9 @@ int crc16_calc(unsigned char *buf, int n)
 int kissencoder( void *kissbuf, int kissspace,
 		 const void *pktbuf, int pktlen, int cmdbyte )
 {
-	unsigned char *kb = kissbuf;
-	unsigned char *ke = kb + kissspace - 3;
-	const unsigned char *pkt = pktbuf;
+	uint8_t *kb = kissbuf;
+	uint8_t *ke = kb + kissspace - 3;
+	const uint8_t *pkt = pktbuf;
 	int i;
 	int crc = crc_table[cmdbyte & 0xFF];
 
@@ -218,7 +218,7 @@ int kissencoder( void *kissbuf, int kissspace,
 	}
 	if (kb < ke) {
 		*kb++ = KISS_FEND;
-		return (kb - (unsigned char *) (kissbuf));
+		return (kb - (uint8_t *) (kissbuf));
 	} else {
 		/* Didn't fit in... */
 		return 0;

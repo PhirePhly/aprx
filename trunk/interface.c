@@ -472,9 +472,9 @@ void interface_config(struct configfile *cf)
  */
 
 void interface_receive_ax25(const struct aprx_interface *aif,
-			    const char *ifaddress, int is_aprs, int ui_pid,
-			    const unsigned char *axbuf, const int axaddrlen, const int axlen,
-			    const char *tnc2buf, const int tnc2addrlen, const int tnc2len)
+			    const char *ifaddress, const int is_aprs, const int ui_pid,
+			    const uint8_t *axbuf, const int axaddrlen, const int axlen,
+			    const char    *tnc2buf, const int tnc2addrlen, const int tnc2len)
 {
 	int i;
 	int digi_like_aprs = is_aprs;
@@ -549,10 +549,10 @@ void interface_receive_ax25(const struct aprx_interface *aif,
  *
  */
 
-void interface_transmit_ax25(const struct aprx_interface *aif, const unsigned char *axaddr, const int axaddrlen, const unsigned char *axdata, const int axdatalen)
+void interface_transmit_ax25(const struct aprx_interface *aif, const void *axaddr, const int axaddrlen, const void *axdata, const int axdatalen)
 {
 	int axlen = axaddrlen + axdatalen;
-	unsigned char *axbuf = alloca(axlen);
+	uint8_t *axbuf = alloca(axlen);
 	memcpy(axbuf, axaddr, axaddrlen);
 	memcpy(axbuf + axaddrlen, axdata, axdatalen);
 
@@ -728,15 +728,85 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 }
 
 /*
- * Process transmit of AX.25 packet in TNC2 form  -- for beacons
- *
+ * Process transmit of APRS beacons
  */
 
-void interface_transmit_tnc2(const struct aprx_interface *aif, const char *txbuf, const int txlen)
+int interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *txbuf, const int txlen)
 {
+	uint8_t ax25addr[90];
+	int     ax25addrlen;
+	int	have_fault = 0;
+	int	viaindex   = 1; // First via field will be index 2
+
 	if (debug)
-	  printf("interface_transmit_tnc2() aif=%p, aif->txok=%d aif->callsign='%s'\n",
+	  printf("interface_transmit_beacon() aif=%p, aif->txok=%d aif->callsign='%s'\n",
 		 aif, aif ? aif->txok : 0, aif ? aif->callsign : "<nil>");
 
-	if (aif == NULL) return;
+	if (aif == NULL)    return 0;
+	if (aif->txok == 0) return 0; // Sorry, no Tx
+	
+	if (parse_ax25addr(ax25addr +  7, src,  0x60)) {
+	  if (debug) printf("parse_ax25addr('%s') failed.\n", src);
+	  return -1;
+	}
+	if (parse_ax25addr(ax25addr +  0, dest, 0x60)) {
+	  if (debug) printf("parse_ax25addr('%s') failed.\n", dest);
+	  return -1;
+	}
+	ax25addrlen = 14; // Initial Src+Dest without any Via.
+
+
+	if (via != NULL) {
+	  char    viafield[12];
+	  const char *s, *p = via;
+	  const char *ve = via + strlen(via);
+
+	  while (p < ve) {
+	    int len;
+	    
+	    for (s = p; s < ve; ++s) {
+	      if (*s == ',') {
+		break;
+	      }
+	    }
+	    if (s >= ve) break; // End of scannable area
+	    // [p..s] is now one VIA field.
+	    if (s == p) {  // BAD!
+	      have_fault = 1;
+	      if (debug>1) printf(" S==P ");
+	      break;
+	    }
+	    ++viaindex;
+	    if (viaindex >= 10) {
+	      if (debug) printf("too many via-fields: '%s'\n", via);
+	      return -1; // Too many VIA fields
+	    }
+
+	    len = s - p;
+	    if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
+	    memcpy(viafield, p, len);
+	    viafield[len] = 0;
+	    if (*s == ',') ++s;
+	    p = s;
+	    // VIA-field picked up, now parse it..
+
+	    if (parse_ax25addr(ax25addr + viaindex * 7, viafield, 0x60)) {
+	      // Error on VIA field value
+	      if (debug) printf("parse_ax25addr('%s') failed.\n", viafield);
+	      return -1;
+	    }
+	    ax25addrlen += 7;
+	  }
+	}
+
+	ax25addr[ax25addrlen-1] |= 0x01; // set address field end bit
+	// Insert Control and PID bytes on end of address block
+	ax25addr[ax25addrlen++] = 0x03;  // Control field "UI"
+	ax25addr[ax25addrlen++] = 0xF0;  // PID code that APRS uses
+
+	interface_transmit_ax25( aif,
+				 ax25addr, ax25addrlen,
+				 txbuf, txlen);
+
+	return 0;
 }
