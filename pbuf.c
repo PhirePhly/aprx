@@ -44,7 +44,7 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 
 	// pb->destcall = pb->data + axlen;
 	if (axlen > 0)
-		pb->ax25addr = (unsigned char*)pb->data+tnc2len+1;
+		pb->ax25addr = (uint8_t*)pb->data + tnc2len+1;
 
 	return pb;
 }

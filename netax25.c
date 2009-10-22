@@ -57,7 +57,7 @@ static const void* netax25_openpty(const char *mycall)
 	int disc;
 	struct termios tio;
 	char devname[64];
-	unsigned char ax25call[7];
+	uint8_t ax25call[7];
 	struct ifreq ifr;
 	int fd = -1;
 	struct netax25_pty *nax25;
@@ -160,7 +160,7 @@ static const void* netax25_openpty(const char *mycall)
 void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 {
 	int rc, p;
-	unsigned char ax25buf[2100];
+	uint8_t ax25buf[2100];
 	const struct netax25_pty *nax25 = nax25p;
 
 	/* kissencoder() takes AX.25 frame, and adds framing + cmd-byte */
@@ -224,7 +224,7 @@ static int    ax25ttyportscount;
 /* config interface:  ax25-rxport: callsign */
 void netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *interface)
 {
-	unsigned char ax25call[7];
+	uint8_t ax25call[7];
 	if (parse_ax25addr(ax25call, callsign, 0x60)) {
 		// Not valid per AX.25 rules
 		return;
@@ -351,7 +351,7 @@ int netax25_prepoll(struct aprxpolls *app)
 	return 1;
 }
 
-static int ax25_fmtaddress(char *dest, const unsigned char *src)
+static int ax25_fmtaddress(char *dest, const uint8_t *src)
 {
 	int i, c;
 
@@ -385,11 +385,11 @@ static int rxsock_read( const int fd )
 	// union {
 	  struct sockaddr sa;
 	//  struct full_sockaddr_ax25 sax;
-	//  unsigned char sab[200];
+	//  uint8_t sab[200];
 	// } sa;
 	// struct iovec    iov[1];
-	// unsigned char msgbuf[1000];
-	unsigned char rxbuf[3000];
+	// uint8_t msgbuf[1000];
+	uint8_t rxbuf[3000];
 
 	struct ifreq ifr;
 	socklen_t asize;
@@ -437,7 +437,7 @@ static int rxsock_read( const int fd )
 		return 1;	/* there may be more on this socket */
 	}
 	/* OK, AX.25 address.  Print it out in text. */
-	ax25_fmtaddress(ifaddress, (unsigned char*)ifr.ifr_hwaddr.sa_data);
+	ax25_fmtaddress(ifaddress, (uint8_t*)ifr.ifr_hwaddr.sa_data);
 
 	if (debug > 1)
 		printf("Received frame from '%s' len %d\n",
@@ -490,11 +490,11 @@ static int txsock_read( const int fd )
 	// union {
 	  struct sockaddr sa;
 	//  struct full_sockaddr_ax25 sax;
-	//  unsigned char sab[200];
+	//  uint8_t sab[200];
 	// } sa;
 	// struct iovec    iov[1];
-	// unsigned char msgbuf[1000];
-	unsigned char rxbuf[3000];
+	// uint8_t msgbuf[1000];
+	uint8_t rxbuf[3000];
 
 	struct ifreq ifr;
 	socklen_t asize;
@@ -542,7 +542,7 @@ static int txsock_read( const int fd )
 		return 1;	/* there may be more on this socket */
 	}
 	/* OK, AX.25 address.  Print it out in text. */
-	ax25_fmtaddress(ifaddress, (unsigned char*)ifr.ifr_hwaddr.sa_data);
+	ax25_fmtaddress(ifaddress, (uint8_t*)ifr.ifr_hwaddr.sa_data);
 
 	if (debug > 1)
 		printf("Received frame from '%s' len %d\n",
@@ -629,7 +629,7 @@ int netax25_postpoll(struct aprxpolls *app)
 
 
 
-void netax25_sendto(const void *nax25p, const unsigned char *txbuf, const int txlen)
+void netax25_sendto(const void *nax25p, const uint8_t *txbuf, const int txlen)
 {
 	const struct netax25_pty *nax25 = nax25p;
 
@@ -676,7 +676,7 @@ void netax25_sendax25_tnc2(const void *tnc2, int tnc2len)
 {
 }
 
-void netax25_sendto(const void *nax25, const unsigned char *txbuf, const int txlen)
+void netax25_sendto(const void *nax25, const uint8_t *txbuf, const int txlen)
 {
 }
 #endif
