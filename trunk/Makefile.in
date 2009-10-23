@@ -58,11 +58,10 @@ PROGAPRX=	aprx
 PROGSTAT=	$(PROGAPRX)-stat
 
 LIBS=		@LIBS@ @LIBRESOLV@ @LIBSOCKET@ -lm
-OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o netbeacon.o config.o	\
+OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o rfbeacon.o config.o	\
 		netax25.o erlang.o aprxpolls.o telemetry.o igate.o	\
 		cellmalloc.o historydb.o keyhash.o parse_aprs.o		\
-		dupecheck.o  kiss.o interface.o rfbeacon.o pbuf.o	\
-		digipeater.o
+		dupecheck.o  kiss.o interface.o pbuf.o digipeater.o
 
 OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
 

@@ -376,33 +376,12 @@ static void cfgparam(struct configfile *cf)
 			printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
-/*
-	} else if (strcmp(name, "ax25-filter") == 0) {
-		if (debug)
-			printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-
-		ax25_filter_add(param1, str);
-	} else if (strcmp(name, "ax25-reject-filter") == 0) {
-		if (debug)
-			printf("%s:%d: AX25-REJECT-FILTER '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
-
-		ax25_filter_add(param1, str);
-*/
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 		if (debug)
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
 		netax25_addrxport(param1, str, NULL);
-
-	} else if (strcmp(name, "netbeacon") == 0) {
-		netbeacon_set(param1, str);
-
-		if (debug)
-			printf("%s:%d: NETBEACON = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
 
 	} else if (strcmp(name, "radio") == 0) {
 		if (debug)
@@ -509,6 +488,7 @@ void *readconfigline(struct configfile *cf)
 	char *bufp = cf->buf;
 	int buflen = sizeof(cf->buf);
 	int llen;
+	cf->linenum = cf->linenum_i;
 	for (;;) {
 	  char *p = fgets(bufp, buflen, cf->fp);
 	  bufp[buflen - 1] = 0;	/* Trunc, just in case.. */
@@ -517,7 +497,7 @@ void *readconfigline(struct configfile *cf)
 	      return NULL; // EOF!
 	    return cf->buf; // Got EOF, but got also data before it!
 	  }
-	  cf->linenum += 1;
+	  cf->linenum_i += 1;
 	  // Line ending LF ?
 	  p = strchr(bufp, '\n');
 	  if (p != NULL) {
@@ -570,8 +550,9 @@ void readconfig(const char *name)
 {
 	struct configfile cf;
 
-	cf.linenum = 0;
-	cf.name    = name;
+	cf.linenum_i = 0;
+	cf.linenum   = 0;
+	cf.name      = name;
 
 	if ((cf.fp = fopen(name, "r")) == NULL)
 		return;

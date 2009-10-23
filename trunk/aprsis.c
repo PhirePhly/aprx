@@ -421,7 +421,6 @@ static void aprsis_reconnect(struct aprsis *A)
 	A->last_read = now;
 
 	aprsis_queue_(A, NULL, "", aprsislogincmd, strlen(aprsislogincmd));
-	netbeacon_reset();
 
 	return;			/* just a place-holder */
 }

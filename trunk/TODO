@@ -36,7 +36,9 @@
   This should be able to flag bad input on RAW beacon data.
 
 - Special treatment of viscous fill-in digi?
-     tx when:  seen==0, delayed_seen == 1, (seen_transmitter == 1)
+   - tx when:  seen==0, delayed_seen == 1, (seen_transmitter == 1)
+   - optionally tx only when seeing first transmit of the request,
+     not on any latter ones.
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009
