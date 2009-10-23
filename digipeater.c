@@ -14,12 +14,16 @@ static int digi_count;
 static struct digipeater **digis;
 
 struct digistate {
-	int fixthis;
-	int reqhops;
-	int donehops;
+	int hopsreq;
+	int hopsdone;
 	int tracereq;
 	int tracedone;
-	int traces;
+	int digireq;
+	int digidone;;
+
+	int fixthis;
+	int fixall;
+	int probably_first_heard;
 
 	int     ax25addrlen;
 	uint8_t ax25addr[90]; // 70 for address, a bit more for "body"
@@ -158,7 +162,7 @@ static int match_aliases(const char *via, struct aprx_interface *txif)
 	return 0;
 }
 
-static void count_single_tnc2_tracewide(struct digistate *state, const char *viafield, const int istrace, const int matchlen)
+static int count_single_tnc2_tracewide(struct digistate *state, const char *viafield, const int istrace, const int matchlen, const int viaindex)
 {
 	const char *p = viafield + matchlen;
 	const char reqc = p[0];
@@ -170,104 +174,116 @@ static void count_single_tnc2_tracewide(struct digistate *state, const char *via
 
 	// Non-matched case, may have H-bit flag
 	if (matchlen == 0) {
-		state->reqhops  += 0;
-		state->donehops += 0;
-		state->traces   += hasHflag;
+	  /*
+		state->hopsreq  += 0;
+		state->hopsdone += 0;
+		state->tracereq  += 0;
+		state->tracedone += 0;
+	  */
+		state->digireq  += 1;
+		state->digidone += hasHflag;
+		if (viaindex == 2 && !hasHflag)
+		  state->probably_first_heard = 1;
 		// if (debug>1) printf(" a[req=%d,done=%d,trace=%d]",0,0,hasHflag);
-		return;
+		return 0;
 	}
 
-/*  // Handle these two via transmitter aliases
-	// WIDE*  ?
-	if (reqc == '*' && c == 0) {
-		state->reqhops  += 1;
-		state->donehops += 1;
-		if (istrace) {
-		  state->tracereq  += 1;
-		  state->tracedone += 1;
-		}
-		if (debug>1) printf(" b[req=%d,done=%d]",1,1);
-		return;
-	}
-	// WIDE  ?
-	if (reqc == 0) {
-		state->reqhops  += 1;
-		// state->donehops += 0;
-		if (istrace) {
-		  state->tracereq  += 1;
-		  //state->tracedone += 1;
-		}
-		if (debug>1) printf(" c[req=%d,done=%d]",1,0);
-		return;
-	}
-*/
 	// Is the character following matched part one of: [1-7]
 	if (!('1' <= reqc && reqc <= '7')) {
 		// Not a digit, this is single matcher..
-		state->reqhops  += 1;
-		state->donehops += hasHflag;
+		state->hopsreq  += 1;
+		state->hopsdone += hasHflag;
 		if (istrace) {
 		  state->tracereq  += 1;
 		  state->tracedone += hasHflag;
 		}
+		if (viaindex == 2 && !hasHflag)
+		  state->probably_first_heard = 1;
 		// if (debug>1) printf(" d[req=%d,done=%d]",1,hasHflag);
-		return;
+		return 0;
 	}
 
 	req = reqc - '0';
 
 	if (c == '*' && remc == 0) { // WIDE1*
-		state->reqhops  += req;
-		state->donehops += req;
+		state->hopsreq  += req;
+		state->hopsdone += req;
 		if (istrace) {
 		  state->tracereq  += req;
 		  state->tracedone += req;
 		}
 		// if (debug>1) printf(" e[req=%d,done=%d]",req,req);
-		return;
+		return 0;
 	}
 	if (c == 0) { // Bogus WIDE1 - uidigi puts these out.
 		state->fixthis = 1;
-		state->reqhops  += req;
-		state->donehops += req;
+		state->hopsreq  += req;
+		state->hopsdone += req;
 		if (istrace) {
 		  state->tracereq  += req;
 		  state->tracedone += req;
 		}
 		// if (debug>1) printf(" E[req=%d,done=%d]",req,req);
-		return;
+		return 0;
 	}
 	// Not WIDE1-
 	if (c != '-') {
-		state->reqhops  += 1;
-		state->donehops += hasHflag;
+		state->hopsreq  += 1;
+		state->hopsdone += hasHflag;
 		if (istrace) {
 		  state->tracereq  += 1;
 		  state->tracedone += hasHflag;
 		}
 		// if (debug>1) printf(" f[req=%d,done=%d]",1,hasHflag);
-		return;
+		return 0;
 	}
 
-	// OK, it is "WIDEn-" plus something
-	if ('0' <= remc  && remc <= '7') {
-	  state->reqhops  += req;
+	// OK, it is "WIDEn-" plus "N"
+	if ('0' <= remc  && remc <= '7' && p[3] == 0) {
+	  state->hopsreq  += req;
 	  done = req - (remc - '0');
-	  state->donehops += done;
+	  state->hopsdone += done;
+	  if (done < 0) {
+	    // Something like "WIDE3-7", which is definitely bogus!
+	    state->fixall = 1;
+	    if (viaindex == 2 && !hasHflag)
+	      state->probably_first_heard = 1;
+	    return 0;
+	  }
 	  if (istrace) {
 	    state->tracereq  += req;
 	    state->tracedone += done;
 	  }
+	  if (viaindex == 2) {
+	    if (memcmp("TRACE",viafield,5)==0) // A real "TRACE" in first slot?
+	      state->probably_first_heard = 1;
+
+	    else if (!hasHflag && req == done) // WIDE3-3 on first slot
+	      state->probably_first_heard = 1;
+	  }
 	  // if (debug>1) printf(" g[req=%d,done=%d%s]",req,done,hasHflag ? ",Hflag!":"");
+	  return 0;
+
+	} else if (('8' <= remc && remc <= '9' && p[3] == 0) ||
+		   (remc == '1' && '0' <= p[3] && p[3] <= '5' && p[4] == 0)) {
+	  // The request has SSID value in range of 8 to 15
+	  state->fixall = 1;
+	  if (viaindex == 2 && !hasHflag)
+	    state->probably_first_heard = 1;
+	  return 0;
+
 	} else {
 	  // Yuck, impossible/syntactically invalid
-	  state->reqhops  += 1;
-	  state->donehops += hasHflag;
+	  state->hopsreq  += 1;
+	  state->hopsdone += hasHflag;
 	  if (istrace) {
 	    state->tracereq  += 1;
 	    state->tracedone += hasHflag;
 	  }
+	  if (viaindex == 2 && !hasHflag)
+	    state->probably_first_heard = 1;
 	  // if (debug>1) printf(" h[req=%d,done=%d]",1,hasHflag);
+	  return 1;
 	}
 }
 
@@ -379,7 +395,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	}
 
 
-	while (p < pb->info_start) {
+	while (p < pb->info_start && !have_fault) {
 	  len = 0;
 
 	  for (s = p; s < pb->info_start; ++s) {
@@ -420,19 +436,20 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  }
 
 	  if ((len = match_tracewide(viafield, src->src_trace))) {
-	    count_single_tnc2_tracewide(state, viafield, 1, len);
+	    have_fault = count_single_tnc2_tracewide(state, viafield, 1, len, viaindex);
 	  } else if ((len = match_tracewide(viafield, src->parent->trace))) {
-	    count_single_tnc2_tracewide(state, viafield, 1, len);
+	    have_fault = count_single_tnc2_tracewide(state, viafield, 1, len, viaindex);
 	  } else if ((len = match_tracewide(viafield, src->src_wide))) {
-	    count_single_tnc2_tracewide(state, viafield, 0, len);
+	    have_fault = count_single_tnc2_tracewide(state, viafield, 0, len, viaindex);
 	  } else if ((len = match_tracewide(viafield, src->parent->wide))) {
-	    count_single_tnc2_tracewide(state, viafield, 0, len);
+	    have_fault = count_single_tnc2_tracewide(state, viafield, 0, len, viaindex);
 	  } else {
 	    // Account traced nodes (or some such)
-	    count_single_tnc2_tracewide(state, viafield, 1, 0);
+	    have_fault = count_single_tnc2_tracewide(state, viafield, 1, 0, viaindex);
 	  }
-	  if (state->fixthis) {
+	  if (state->fixthis || state->fixall) {
 	    // Argh..  bogus WIDEn seen, which is what UIDIGIs put out..
+	    // Also some other broken requests are "fixed": like WIDE3-7
 	    // Fixing it: We set the missing H-bit, and continue processing.
 	    // (That fixing is done in incoming AX25 address field, which
 	    //  we generally do not touch - with this exception.)
@@ -441,9 +458,9 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  }
 	}
 	if (debug>1) printf(" req=%d,done=%d [%s,%s,%s]\n",
-			    state->reqhops,state->donehops,
+			    state->hopsreq,state->hopsdone,
 			    have_fault ? "FAULT":"OK",
-			    (state->reqhops > state->donehops) ? "DIGIPEAT":"DROP",
+			    (state->hopsreq > state->hopsdone) ? "DIGIPEAT":"DROP",
 			    (state->tracereq > state->tracedone) ? "TRACE":"WIDE");
 	return have_fault;
 }
@@ -864,7 +881,7 @@ static int decrement_ssid(uint8_t *ax25addr)
 
 static void digipeater_receive_backend(struct digipeater_source *src, struct pbuf_t *pb)
 {
-	int len;
+	int len, viaindex;
 	struct digistate state;
 	struct digistate viastate;
 	struct digipeater *digi = src->parent;
@@ -900,18 +917,21 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	// APRSIS sourced packets have different rules than DIGIPEAT
 	// packets...
-	if (state.reqhops <= state.donehops) {
+	if (state.hopsreq <= state.hopsdone) {
 	  // if (debug) printf(" No remaining hops to execute.\n");
 	  return;
 	}
-	if (state.reqhops   > digi->trace->maxreq  ||
-	    state.reqhops   > digi->wide->maxreq   ||
+	if (state.hopsreq   > digi->trace->maxreq  ||
+	    state.hopsreq   > digi->wide->maxreq   ||
 	    state.tracereq  > digi->trace->maxreq  ||
-	    state.donehops  > digi->trace->maxdone ||
-	    state.donehops  > digi->wide->maxdone  ||
+	    state.hopsdone  > digi->trace->maxdone ||
+	    state.hopsdone  > digi->wide->maxdone  ||
 	    state.tracedone > digi->trace->maxdone) {
 	  if (debug) printf(" Packet exceeds digipeat limits\n");
-	  return;
+	  if (!state.probably_first_heard)
+	    return;
+	  else
+	    state.fixall = 1;
 	}
 
 	// if (debug) printf(" Packet accepted to digipeat!\n");
@@ -922,9 +942,15 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	uint8_t *e      = state.ax25addr + state.ax25addrlen;
 
 	// Search for first AX.25 VIA field that does not have H-bit set:
-	for (; axaddr < e; axaddr += 7) {
+	viaindex = 1; // First via field is number 2
+	for (; axaddr < e; axaddr += 7, ++viaindex) {
 	  ax25_to_tnc2_fmtaddress(viafield, axaddr, 0);
 	  // if (debug>1) printf(" via: %s", viafield);
+
+	  // Initial parsing said that things are seriously wrong..
+	  // .. and we will digipeat the packet with all H-bits set.
+	  if (state.fixall) axaddr[6] |= 0x80;
+
 	  if (!(axaddr[6] & 0x80)) // No "Has Been Digipeated" bit set
 	    break;
 	}
@@ -949,13 +975,13 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  // 7) WIDEn-N treatment (as well as transmitter matching digi)
 	  if (pb->digi_like_aprs) {
 	    if ((len = match_tracewide(viafield, src->src_trace))) {
-	      count_single_tnc2_tracewide(&viastate, viafield, 1, len);
+	      count_single_tnc2_tracewide(&viastate, viafield, 1, len, viaindex);
 	    } else if ((len = match_tracewide(viafield, digi->trace))) {
-	      count_single_tnc2_tracewide(&viastate, viafield, 1, len);
+	      count_single_tnc2_tracewide(&viastate, viafield, 1, len, viaindex);
 	    } else if ((len = match_tracewide(viafield, src->src_wide))) {
-	      count_single_tnc2_tracewide(&viastate, viafield, 0, len);
+	      count_single_tnc2_tracewide(&viastate, viafield, 0, len, viaindex);
 	    } else if ((len = match_tracewide(viafield, digi->wide))) {
-	      count_single_tnc2_tracewide(&viastate, viafield, 0, len);
+	      count_single_tnc2_tracewide(&viastate, viafield, 0, len, viaindex);
 	    } else if (strcmp(viafield,digi->transmitter->callsign) == 0) {
 	      // Match on the transmitter callsign without the star.
 	      // Treat it as a TRACE request.
@@ -1012,7 +1038,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    memcpy(axaddr, digi->transmitter->ax25call, 7);
 	    axaddr[6] |= 0x80; // Set H-bit
 
-	  } else if (viastate.reqhops > viastate.donehops) {
+	  } else if (viastate.hopsreq > viastate.hopsdone) {
 	    if (debug) printf(" VIA on %s!\n",viafield);
 	    int newssid = decrement_ssid(axaddr);
 	    if (newssid <= 0)

@@ -1,3 +1,23 @@
+2009-10-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* rfbeacon.c:
+	    Fix the debug printout of beacon to be sent.
+
+	* aprx.h, config.c: readconfigline()
+	    Keep the cf->linenum showing first source line number on
+	    continued multiline.  This helps a bit on debugging, and
+	    similar things are already done when a (sub)group parser
+	    is reporting where that subgroup begins in case of missing
+	    parameters in a group.
+
+	* digipeater.c:
+	    Validating received requests better. Now marking also probable
+	    situations that can say "this came from originator to me directly"
+
+	* netbeacon.c, rfbeacon.c, config.c, aprx.h, aprx.c, aprsis.c,
+	  Makefile.in:
+	    Removing the old netbeacon code.
+
 2009-10-22  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, rfbeacon.c, interface.c:

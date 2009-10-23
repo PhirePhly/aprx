@@ -229,20 +229,26 @@ pidfile @VARRUN@/aprx.pid
 
 <netbeacon>
 # The  netbeacon  options.  These are sent only to APRSIS, not to
-# any radio transmitters.
+# any radio transmitters.  Beacon entries are same for <netbeacon>,
+# <rfbeacon> and <beacon>.
 #
-# Parameter string (in quotes) is sent to APRSIS network (without quotes)
-# at varying intervals --  1200-1800 seconds in between restransmits.
-# This interval is intentionally randomized.
+# The beacon messages are sent out at varying intervals --  14 to 18 minutes
+# in between cycle repeats. This interval is intentionally randomized.
 #
 # Multiple netbeacons are evenly distributed for each time period,
-# or at least 3 seconds apart.  First netbeacon is sent to network
-# 30 seconds after connection to APRS-IS.
+# or at least 3 seconds apart.  First netbeacon is sent out 30 seconds
+# after connection to APRS-IS, first rfbeacon is sent out 30 seconds
+# after system start.
 #
 # There can be multiple netbeacon options.
+# 'for' parameter sets claimed origination address.
+# 'to'  parameter picks an interface (must be "tx-ok true" type)
+# 'via' sets radio distribution pattern, default: none.
+#
 # The parameter sets can vary:
 #  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
 #  b) 'for nnn-n dest "string" raw "string"'
+#
 # The a) form flags on some of possible syntax errors in parameters.
 # It will also create only "!" type messages.  The dest parameter
 # defaults to "APRS", but can be used to give other destinations.

@@ -42,7 +42,8 @@ struct aprx_interface; // Forward declarator
 struct configfile {
 	const char *name;
 	FILE	*fp;
-	int	linenum;
+	int	linenum_i; // internal linenum
+	int	linenum;   // externally presented, first line of folded multilines
 	char	buf[8010];
 };
 
@@ -192,15 +193,6 @@ extern int  aprsis_postpoll(struct aprxpolls *app);
 extern void aprsis_init(void);
 extern void aprsis_start(void);
 extern void aprsis_config(struct configfile *cf);
-
-/* netbeacon.c */
-extern int  validate_degmin_input(const char *s, int maxdeg);
-
-extern void netbeacon_set(const char *s, char *);
-extern void netbeacon_reset(void);
-extern int  netbeacon_prepoll(struct aprxpolls *app);
-extern int  netbeacon_postpoll(struct aprxpolls *app);
-extern void netbeacon_config(struct configfile *cf);
 
 /* rfbeacon.c */
 extern int  rfbeacon_prepoll(struct aprxpolls *app);

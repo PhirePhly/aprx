@@ -502,7 +502,7 @@ The new way to define beacons, however do note that these will be only
 messages of type "!":
 
 .nf
-\fCbeacon for N0CALL-13 symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
+\fCbeacon symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
 \fC       comment "aprx - an Rx-only iGate" \fR
 .fi
 
@@ -510,7 +510,7 @@ messages of type "!":
 Semi-clasical definition of raw APRS packet:
 
 .nf
-\fCbeacon for N0CALL-14 raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+\fCbeacon raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
 .fi
 .PP
 The fields and parameters:
@@ -578,6 +578,8 @@ Then comes literal "E" or "W" indicating hemisphere.
 This
 .I optional
 parameter defines commentary text tail on the beacon packet.
+If you need characters outside US-ASCII character set, use of UTF-8 encoded
+UNICODE character set is recommended.
 
 .IP raw 8
 This
