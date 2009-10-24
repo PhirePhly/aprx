@@ -497,7 +497,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
-	struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len+2);
+	struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
 
 	memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	pb->data[tnc2len] = 0;
@@ -529,7 +529,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	// If APRS packet, then parse for APRS meaning ...
 	if (is_aprs) {
-		int rc = parse_aprs(pb);
+		int rc = parse_aprs(pb, 0); // don't look inside 3rd party
 		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
 		printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
 		       rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
@@ -582,7 +582,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		// The Linux netax25 sender takes same data as this interface
 		netax25_sendto( aif->nax25p,
 				axaddr, axaddrlen,
-				axdata+2, axdatalen-2 );
+				axdata+2, axdatalen-2 ); // without Control+PID
 		break;
 	default:
 		break;
@@ -698,14 +698,14 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  tnc2len = (t - tnc2buf);
 
 	  // Allocate pbuf, it is born "gotten" (refcount == 1)
-	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len+2);
+	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
 
 	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	  pb->info_start = pb->data + tnc2addrlen + 1;
 	  char *p2    = (char*)&pb->info_start[-1]; *p2 = 0;
 	  char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
 
-	  int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
+	  int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
 	  p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
 
 	  p = pb->data;
@@ -727,7 +727,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  pb->ax25datalen = ax25len - ax25addrlen;
 
 	  // This is APRS packet, parse for APRS meaning ...
-	  int rc = parse_aprs(pb);
+	  int rc = parse_aprs(pb, 1); // look inside 3rd party
 	  printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
 		 rc ? "OK":"FAIL", srcif, pb->data,
 		 pb->info_start);
@@ -837,8 +837,8 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	  strcpy( axbuf, axaddrbuf );
 	  a = axbuf + strlen(axbuf);
 	  *a++ = ':';
-	  memcpy(a, txbuf+2, txlen-2);
-	  a += txlen -2;
+	  memcpy(a, txbuf+2, txlen-2); // forget control+pid bytes..
+	  a += txlen -2;   // final assembled message end pointer
 
 	  rflog(aif->callsign, 1, 0, axbuf, a - axbuf);
 	}

@@ -348,7 +348,7 @@ typedef struct dupe_record_t {
 	char	 packetbuf[200]; /* 99.9+ % of time this is enough.. */
 } dupe_record_t;
 
-#define DUPECHECK_DB_SIZE 64        /* Hash index table size - per dupechecker */
+#define DUPECHECK_DB_SIZE 16     /* Hash index table size - per dupechecker */
 
 typedef struct dupecheck_t {
 	struct dupe_record_t *dupecheck_db[DUPECHECK_DB_SIZE]; /* Hash index table */
@@ -503,4 +503,4 @@ extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, cons
 
 
 /* parse_aprs.c */
-extern int parse_aprs(struct pbuf_t *pb);
+extern int parse_aprs(struct pbuf_t *pb, const int look_into_3rd_party );

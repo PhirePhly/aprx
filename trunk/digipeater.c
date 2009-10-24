@@ -1060,7 +1060,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 					& is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
 	  printf(" out-hdr: '%s' data='",tbuf);
-	  fwrite(pb->ax25data+2, pb->ax25datalen-2, 1, stdout);
+	  fwrite(pb->ax25data+2, pb->ax25datalen-2,  // without Control+PID
+		 1, stdout);
 	  printf("'\n");
 	}
 
@@ -1075,8 +1076,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  tbuf[t2l] = 0;
 	  if (sizeof(tbuf) - pb->ax25datalen > t2l && t2l > 0) {
 	    // Have space for body too, skip leading Ctrl+PID bytes
-	    memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2);
-	    t2l += pb->ax25datalen-2;
+	    memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skiped
+	    t2l += pb->ax25datalen-2; // tbuf size sans Ctrl+PID
 
 	    rflog( digi->transmitter->callsign, 1, 0, tbuf, t2l );
 	  }

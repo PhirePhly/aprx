@@ -92,7 +92,7 @@ void historydb_dump_entry(FILE *fp, struct history_cell_t *hp)
 	fprintf(fp, "%d\t%d\t", hp->packettype, hp->flags);
 	fprintf(fp, "%f\t%f\t", hp->lat, hp->lon);
 	fprintf(fp, "%d\t", hp->packetlen);
-	fwrite(hp->packet, hp->packetlen-2, 1, fp); /* without terminating CRLF */
+	fwrite(hp->packet, hp->packetlen, 1, fp);
 	fprintf(fp, "\n"); /* newline */
 }
 

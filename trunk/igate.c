@@ -497,8 +497,7 @@ static void pick_heads(char *ax25, int headlen,
 	// if (debug)printf("\n");
 }
 
-void igate_from_aprsis(const char *ax25,
-		       int ax25len) // ax25len contains two junk tail bytes
+void igate_from_aprsis(const char *ax25, int ax25len)
 {
 	// const char *p = ax25;
 	int colonidx;
@@ -523,7 +522,7 @@ void igate_from_aprsis(const char *ax25,
 	  return;
 	}
 
-	b = memchr(ax25, ':', ax25len-2);
+	b = memchr(ax25, ':', ax25len);
 	if (b == NULL) {
 	  if (debug)printf("APRSIS dataframe does not have ':' in it\n");
 	  return; // Huh?  No double-colon on line, it is not proper packet line
