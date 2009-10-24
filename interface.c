@@ -479,10 +479,11 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	int i;
 	int digi_like_aprs = is_aprs;
 
-	if (debug) printf("interface_receive_ax25()\n");
-
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digisourcecount == 0) return; // No receivers for this source
+
+	if (debug) printf("interface_receive_ax25()\n");
+
 
 	if (axaddrlen <= 14) return;     // SOURCE>DEST without any VIAs..
 	// Note: Above one disables MICe destaddress-SSID embedded
@@ -496,7 +497,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 
 	// Allocate pbuf, it is born "gotten" (refcount == 1)
-	struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
+	struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len+2);
 
 	memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	pb->data[tnc2len] = 0;
@@ -694,10 +695,10 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  }
 	  memcpy(t, tnc2data, tnc2datalen);
 	  t += tnc2datalen;
-	  tnc2len = 2 + (t - tnc2buf);
+	  tnc2len = (t - tnc2buf);
 
 	  // Allocate pbuf, it is born "gotten" (refcount == 1)
-	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len+2);
 
 	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	  pb->info_start = pb->data + tnc2addrlen + 1;

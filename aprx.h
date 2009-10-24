@@ -220,8 +220,7 @@ extern int  erlang_postpoll(struct aprxpolls *app);
 /* igate.c */
 extern void igate_start(void);
 extern void igate_from_aprsis(const char *ax25, int ax25len);
-extern void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf,
-			    int tnc2len, int discard);
+extern void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard);
 extern void enable_tx_igate(const char *, const char *);
 extern void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len);
 

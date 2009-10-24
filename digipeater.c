@@ -1073,7 +1073,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 					& frameaddrlen, &tnc2addrlen,
 					& is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
-	  if (sizeof(tbuf) - pb->ax25datalen > t2l) {
+	  if (sizeof(tbuf) - pb->ax25datalen > t2l && t2l > 0) {
 	    // Have space for body too, skip leading Ctrl+PID bytes
 	    memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2);
 	    t2l += pb->ax25datalen-2;

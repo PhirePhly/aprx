@@ -387,13 +387,19 @@ static int ttyreader_pullkiss(struct serialport *S)
 
 static int ttyreader_pulltnc2(struct serialport *S)
 {
+	const uint8_t *p;
+	int addrlen = 0;
+	p = memchr(S->rdline, ':', S->rdlinelen);
+	if (p != NULL)
+	  addrlen = (int)(p - S->rdline);
+
 	erlang_add(S->ttycallsign[0], ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	/* Send the frame to internal AX.25 network */
 	/* netax25_sendax25_tnc2(S->rdline, S->rdlinelen); */
 
 	/* S->rdline[] has text line without line ending CR/LF chars   */
-	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), S->rdlinelen, 0);
+	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), addrlen, S->rdlinelen, 0);
 
 	return 0;
 }

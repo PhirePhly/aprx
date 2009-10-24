@@ -764,6 +764,7 @@ static int parse_aprs_object(struct pbuf_t *pb, const char *body, const char *bo
  *	Parse an APRS item
  *
  *	APRS PROTOCOL REFERENCE 1.0.1 Chapter 11, page 59 (69 in PDF)
+ *
  */
 
 static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body_end)
@@ -823,6 +824,7 @@ static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body
  *
  * TODO: Recognize TELEM packets in !/=@ packets too!
  *
+ *	Return 0 for parse failures, 1 for OK.
  */
 
 int parse_aprs(struct pbuf_t *pb)
@@ -832,6 +834,7 @@ int parse_aprs(struct pbuf_t *pb)
 	const char *body;
 	const char *body_end;
 	const char *pos_start;
+	const char *info_start = pb->info_start;
 
 	if (!pb->info_start)
 		return 0;
@@ -856,21 +859,43 @@ int parse_aprs(struct pbuf_t *pb)
 	 * Perl module to C
 	 */
 	
-	/* length of the info field: length of the packet - length of header - CRLF */
-	paclen = pb->packet_len - (pb->info_start - pb->data) - 2;
-	/* Check the first character of the packet and determine the packet type */
-	packettype = *pb->info_start;
-	
-	/* failed parsing */
-	// fprintf(stderr, "parse_aprs (%d):\n", paclen);
-	// fwrite(pb->info_start, paclen, 1, stderr);
-	// fprintf(stderr, "\n");
-	
-	/* body is right after the packet type character */
-	body = pb->info_start + 1;
 	/* ignore the CRLF in the end of the body */
-	body_end = pb->data + pb->packet_len - 2;
-	
+	body_end = pb->data + pb->packet_len -2;
+
+	do {
+		/* body is right after the packet type character */
+		body     = info_start + 1;
+
+		/* length of the info field: */
+		paclen = body_end - info_start;
+
+		// Check the first character of the packet and
+		// determine the packet type
+		packettype = *info_start;
+
+		/* Exit this loop unless it is 3rd-party frame */
+		if (packettype != '}') break;
+
+		// Look for ':' character separating address block
+		// from 3rd-party body
+		info_start = memchr(body, ':', (int)(body_end - body));
+		if (info_start == NULL) {
+			// Not valid 3rd party frame!
+			return 0;
+		}
+		pb->packettype |= T_THIRDPARTY;
+		return 1; // Correct 3rd-party, don't look further.
+
+		/*
+
+		// Skip over the ':'
+		++info_start;
+		continue;  // and loop..
+
+		*/
+
+	} while(1);
+
 	switch (packettype) {
 	/* the following are obsolete mic-e types: 0x1c 0x1d 
 	 * case 0x1c:
@@ -886,7 +911,7 @@ int parse_aprs(struct pbuf_t *pb)
 		return 0;
 
 	case '!':
-		if (pb->info_start[1] == '!') { /* Ultimeter 2000 */
+		if (*body == '!') { /* Ultimeter 2000 - "tnc2addr:!!" */
 			pb->packettype |= T_WX;
 			return 0;
 		}

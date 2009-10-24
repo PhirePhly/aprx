@@ -33,8 +33,10 @@ int ax25_to_tnc2_fmtaddress(char *dest, const uint8_t *src, int markflag)
 	/* 6 bytes of station callsigns in shifted ASCII format.. */
 	for (i = 0; i < 6; ++i, ++src) {
 		c = (*src) & 0xFF;
-		if (c & 1)
-			return -c;	/* Bad address-end flag ? */
+		if (c & 1) {
+			*dest = 0;
+			return ~c;	/* Bad address-end flag ? */
+		}
 
 		/* Don't copy spaces or 0 bytes */
 		c = c >> 1;
@@ -47,7 +49,8 @@ int ax25_to_tnc2_fmtaddress(char *dest, const uint8_t *src, int markflag)
 		     ('0' <= c && c <= '9'))) {
 			*dest++ = c;
 		} else {
-			return -c; // Bad character in callsign
+			*dest = 0;
+			return ~c; // Bad character in callsign
 		}
 	}
 	/* 7th byte carries SSID et.al. bits */
@@ -60,7 +63,7 @@ int ax25_to_tnc2_fmtaddress(char *dest, const uint8_t *src, int markflag)
 	}
 
 	if ((c & 0x80) && markflag) {
-		*dest++ = '*';	/* Has been repeated, or some such.. */
+		*dest++ = '*';	/* Has been digipeated.. */
 	}
 	*dest = 0;
 
@@ -161,6 +164,7 @@ int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 	i = ax25_to_tnc2_fmtaddress(t, frame + 7, 0);	/* source */
 	t += strlen(t);
 	*t++ = '>';
+	*t = 0; // end-string, just in case..
 
 	j = ax25_to_tnc2_fmtaddress(t, frame + 0, 0);	/* destination */
 	t += strlen(t);
@@ -189,6 +193,7 @@ int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 
 		for (; s < e;) {
 			*t++ = ',';	/* separator char */
+			*t = 0; // end-string, just in case..
 			i = ax25_to_tnc2_fmtaddress(t, s, 1); // Top 3 bits are:  H11  ( H = "has been digipeated" )
 			if (i < 0 /* || ((i & 0x60) != 0x60) */) {
 				/* Bad format */
@@ -209,10 +214,8 @@ int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 		return 0;
 	}
 
-	if (frameaddrlen)
-	  *frameaddrlen = s - frame;
-	if (tnc2addrlen)
-	  *tnc2addrlen  = t - tnc2buf;
+	*frameaddrlen = s - frame;
+	*tnc2addrlen  = t - tnc2buf;
 
 	/* Address completed */
 
@@ -220,7 +223,7 @@ int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 		return 0;		/* never happens ?? */
 
 	*t++ = ':';		/* end of address */
-	*t = 0; // temporary string NUL termination
+	*t = 0; // end-string, just in case..
 
 	if (s[0] != 0x03) {
 		// Not AX.25 UI frame
@@ -257,9 +260,6 @@ int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 	}
 
 	*is_aprs = 1;
-
-	*t++ = '\r';
-	*t++ = '\n';
 	return t - tnc2buf;
 }
 
@@ -273,7 +273,7 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 	int frameaddrlen = 0;
 
 	char tnc2buf[2800];
-	int tnc2len, tnc2addrlen, is_aprs = 0, ui_pid = 0;
+	int tnc2len = 0, tnc2addrlen = 0, is_aprs = 0, ui_pid = 0;
 
 	tnc2len = ax25_format_to_tnc( frame, framelen,
 				      tnc2buf, sizeof(tnc2buf),
@@ -284,7 +284,7 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 
 	// APRS type packets are first rx-igated (and rflog()ed)
 	if (is_aprs) {
-		igate_to_aprsis(portname, tncid, tnc2buf, tnc2len-2, 0);
+	  igate_to_aprsis(portname, tncid, tnc2buf, tnc2addrlen, tnc2len, 0);
 	}
 
 	// Send to interface system to receive it..  (digipeater!)

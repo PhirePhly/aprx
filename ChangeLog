@@ -1,5 +1,22 @@
 2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* igate.c, aprx.h, ax25.c, ttyreader.c
+	    Restructured 3rd-party frame rx-igate processing so that it
+	    does not need to alter TNC2 format buffer in any way.
+	    This caused some weird things to happen in digipeater on cases
+	    of 3rd-party frames.
+	    Also modified ax25-to-tnc2 UI-formatter so that there will
+	    always be zero termination of output text string.
+
+	* interface.c, digipeater.c:
+	    Small restructuring while debugging other things.
+
+	* parse_aprs.c:
+	    Parse APRS 3rd-party frame content, and recognize real
+	    3rd-party frame for sure.
+
+2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* VERSION: 1.93
 
 	* ttyreader.c, erlang.c:

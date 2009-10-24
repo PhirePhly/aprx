@@ -172,7 +172,7 @@ void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int
 
 void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
     if (verbout) {
-        printf("%ld\t%s ", (long) now, portname);
+        printf("%ld\t%-9s ", (long) now, portname);
 	printf("%s \t", istx ? "T":"R");
 	fwrite(tnc2buf, tnc2len, 1, stdout);
 	printf("\n");
@@ -185,16 +185,23 @@ void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
  * It does presume that the record is in a buffer that can be written on!
  */
 
-void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len, int discard)
+void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard0)
 {
-	char *t, *t0;
+	const char *tp, *t, *t0;
 	const char *s;
+	const char *ae;
 	const char *e;
+	int discard = discard0;
+
+	tp = tnc2buf;           // 3rd-party recursion moves tp
+	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
+	e  = tp + tnc2len;      // stays the same all the time
+
+	rflog(portname, 0, discard, tp, tnc2len);
 
       redo_frame_filter:;
 
-	t = tnc2buf;
-	e = tnc2buf + tnc2len;
+	t  = tp;
 	t0 = NULL;
 
 	/* t == beginning of the TNC2 format packet */
@@ -234,9 +241,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 		goto discard;
 	}
 
-	while (*t && t < e) {
-		if (*t == ':')
-			break;
+	while (*t && t < ae) {
 		if (*t == ',') {
 			++t;
 		} else {
@@ -278,7 +283,7 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
 		goto discard;
 	}
-	t0 = t;
+	t0 = t;  // Start of payload
 
 	/* Now 't' points to data.. */
 
@@ -301,15 +306,20 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	/* Messages begining with '}' char are 3rd-party frames.. */
 	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
-		verblog(portname, tncid, tnc2buf, tnc2len);
-		rflog(portname, 0, discard, tnc2buf, tnc2len);
+		verblog(portname, tncid, tp, tnc2len);
 
 		/* Copy the 3rd-party message content into begining of the buffer... */
 		++t;				/* Skip the '}'		*/
+		tp = t;
 		tnc2len = e - t;		/* New length		*/
-		e = tnc2buf + tnc2len;		/* New end pointer	*/
-		memcpy(tnc2buf, t, tnc2len);	/* Move the content	*/
-		tnc2buf[tnc2len] = 0;
+		// end pointer (e) does not change
+		// Address end must be searched again
+		ae = memchr(tp, ':', tnc2len);
+		if (ae == NULL) {
+		  // Bad 3rd-party frame
+		  goto discard;
+		}
+		tnc2addrlen = (int)(ae - tp);
 
 		/* .. and redo the filtering. */
 		goto redo_frame_filter;
@@ -339,7 +349,13 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	/*
 	  printf("alen=%d  tlen=%d  tnc2buf=%s\n",t0-1-tnc2buf, e-t0, tnc2buf);
 	*/
-	discard = aprsis_queue(tnc2buf, t0-1-tnc2buf, portname, t0, e - t0); /* Send it.. */
+	discard = aprsis_queue(tp, tnc2addrlen, portname, t0, e - t0); /* Send it.. */
+	/* DEBUG OUTPUT TO STDOUT ! */
+	verblog(portname, tncid, tp, tnc2len);
+
+	// Log the innermost form of packet to be sent out..
+	if (tp != tnc2buf || discard != discard0)
+	  rflog(portname, 0, discard, tp, tnc2len);
 
 	if (0) {
  discard:;
@@ -350,11 +366,6 @@ void igate_to_aprsis(const char *portname, int tncid, char *tnc2buf, int tnc2len
 	if (discard) {
 		erlang_add(portname, ERLANG_DROP, tnc2len, 1);
 	}
-
-
-	/* DEBUG OUTPUT TO STDOUT ! */
-	verblog(portname, 0, tnc2buf, tnc2len);
-	rflog(portname, 0, discard, tnc2buf, tnc2len);
 }
 
 
