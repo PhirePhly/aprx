@@ -113,7 +113,7 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -f config.log config.status config.h
-	rm -rf autom4te.cache
+	rm -rf autom4te.cache *.log
 
 # -------------------------------------------------------------------- #
 
