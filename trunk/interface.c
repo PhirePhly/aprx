@@ -518,7 +518,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		}
 	}
 
-	int tnc2infolen = tnc2len - tnc2addrlen -3; /* ":" +  "\r\l" */
+	int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
 	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
 
 	// Copy incoming AX.25 frame into its place too.
