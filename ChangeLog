@@ -1,5 +1,10 @@
 2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    As a final part of <interface> definition, check if
+	    the default tnc-subid (0) has associated ttycallsign
+	    defined, and netax25 pty not enabled.  If so, create it.
+
 	* parse_aprs.c, interface.c, aprx.h:
 	    Depending upon usage, either do not look inside 3rd-party
 	    frame, or do look inside.   For Tx-iGate call paths we need

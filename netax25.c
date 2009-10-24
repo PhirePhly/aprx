@@ -68,6 +68,8 @@ static const void* netax25_openpty(const char *mycall)
 
 	if (parse_ax25addr(ax25call, mycall, 0x60)) {
 		// Not valid per AX.25 rules
+	  if (debug)
+	    printf(" netax25_openpty('%s') failed to parse the parameter string as valid AX.25 callsign. Not opening kernel pty.\n", mycall);
 		return NULL;
 	}
 
@@ -87,6 +89,8 @@ static const void* netax25_openpty(const char *mycall)
 		pty_slave = -1;
 		if (fd >= 0)
 			close(fd);
+		if (debug)
+		  printf("netax25_openpty() error exit.\n");
 		return NULL;		/* D'uh.. */
 	}
 
