@@ -827,7 +827,7 @@ static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body
  *	Return 0 for parse failures, 1 for OK.
  */
 
-int parse_aprs(struct pbuf_t *pb)
+int parse_aprs(struct pbuf_t *pb, const int look_inside_3rd_party)
 {
 	char packettype, poschar;
 	int paclen;
@@ -860,7 +860,7 @@ int parse_aprs(struct pbuf_t *pb)
 	 */
 	
 	/* ignore the CRLF in the end of the body */
-	body_end = pb->data + pb->packet_len -2;
+	body_end = pb->data + pb->packet_len; // NOTE! Difference from original aprsc code
 
 	do {
 		/* body is right after the packet type character */
@@ -884,15 +884,12 @@ int parse_aprs(struct pbuf_t *pb)
 			return 0;
 		}
 		pb->packettype |= T_THIRDPARTY;
-		return 1; // Correct 3rd-party, don't look further.
-
-		/*
+		if (!look_inside_3rd_party)
+			return 1; // Correct 3rd-party, don't look further.
 
 		// Skip over the ':'
 		++info_start;
 		continue;  // and loop..
-
-		*/
 
 	} while(1);
 

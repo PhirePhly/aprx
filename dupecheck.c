@@ -228,9 +228,10 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	// 3) lookup if same checksum is in some hash bucket chain
 	//  3b) compare packet...
 	//    3b1) flag as F_DUPE if so
-	idx ^= (idx >> 24); /* fold the hash bits.. */
-	idx ^= (idx >> 12); /* fold the hash bits.. */
-	idx ^= (idx >>  6); /* fold the hash bits.. */
+	// DUPECHECK_DB_SIZE == 16 -> 4 bits index
+	idx ^= (idx >> 16); /* fold the hash bits.. */
+	idx ^= (idx >>  8); /* fold the hash bits.. */
+	idx ^= (idx >>  4); /* fold the hash bits.. */
 	i = idx % DUPECHECK_DB_SIZE;
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
@@ -288,8 +289,9 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	const char *addr = pb->data;
 	int   alen = pb->dstcall_end - addr;
 
-	const char *data = pb->info_start;
-	int   dlen = pb->packet_len-2 - (data - addr); // payload sans CRLF
+	const char *dataend = pb->data + pb->packet_len;
+	const char *data    = pb->info_start;
+	int   dlen = dataend - data;
 
 	int addrlen = alen;
 	int datalen = dlen;
@@ -337,7 +339,7 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 				break; // Invalid 3rd party frame, no ":" in it
 			alen = p - addr;
 			data = p+1;
-			datalen -= alen +2;
+			datalen = dataend - data;
 
 			/* if (debug && pb->is_aprs) {
 			  printf("dupecheck[2] 3rd-party: addr='");
@@ -379,9 +381,10 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	// 3) lookup if same checksum is in some hash bucket chain
 	//  3b) compare packet...
 	//    3b1) flag as F_DUPE if so
-	idx ^= (idx >> 24); /* fold the hash bits.. */
-	idx ^= (idx >> 12); /* fold the hash bits.. */
-	idx ^= (idx >>  6); /* fold the hash bits.. */
+	// DUPECHECK_DB_SIZE == 16 -> 4 bits index
+	idx ^= (idx >> 16); /* fold the hash bits.. */
+	idx ^= (idx >>  8); /* fold the hash bits.. */
+	idx ^= (idx >>  4); /* fold the hash bits.. */
 	i = idx % DUPECHECK_DB_SIZE;
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {

@@ -1,5 +1,22 @@
 2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* parse_aprs.c, interface.c, aprx.h:
+	    Depending upon usage, either do not look inside 3rd-party
+	    frame, or do look inside.   For Tx-iGate call paths we need
+	    the analysis!
+
+	* parse_aprs.c, interface.c, historydb.c, digipeater.c,
+	  rfbeacon.c, dupecheck.c, igate.c:
+	    Removed codes ignoring "trailing CRLF in APRS frame tail".
+	    They kept causing more trouble than good.  The parse_aprs.c
+	    is anyway diverged from its origins a bit more than I would
+	    like, so no need to maintain mess related on its original
+	    environment.
+
+	* dupecheck.c, aprx.h:
+	    Adjust dupecheck hash bucket size - 16 is quite sufficient
+	    enough even for a very busy igate/digi!
+
 	* igate.c, aprx.h, ax25.c, ttyreader.c
 	    Restructured 3rd-party frame rx-igate processing so that it
 	    does not need to alter TNC2 format buffer in any way.
