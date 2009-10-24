@@ -459,6 +459,15 @@ void interface_config(struct configfile *cf)
 
 		}
 	}
+
+
+	// With enough defaults being used, the callsign is defined
+	// by global "macro"  mycall,  and never ends up activating
+	// the tty -> linux kernel kiss/smack pty  interface.
+	if (aif->tty->netax25[0] == NULL &&
+	    aif->tty->ttycallsign[0] != NULL) {
+		aif->tty->netax25[0] = netax25_open(aif->tty->ttycallsign[0]);
+	}
 }
 
 

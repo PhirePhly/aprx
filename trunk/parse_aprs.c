@@ -827,7 +827,7 @@ static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body
  *	Return 0 for parse failures, 1 for OK.
  */
 
-int parse_aprs(struct pbuf_t *pb, const int look_inside_3rd_party)
+int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 {
 	char packettype, poschar;
 	int paclen;
@@ -886,6 +886,13 @@ int parse_aprs(struct pbuf_t *pb, const int look_inside_3rd_party)
 		pb->packettype |= T_THIRDPARTY;
 		if (!look_inside_3rd_party)
 			return 1; // Correct 3rd-party, don't look further.
+
+		// Look once inside the 3rd party frame,
+		// this is used in aprx's tx-igate, which builds
+		// the 3rd-party frame before parsing message-to-be-tx:ed
+		// .. and doing content filters.
+		--look_inside_3rd_party;
+		pb->packettype = 0;
 
 		// Skip over the ':'
 		++info_start;
