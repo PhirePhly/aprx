@@ -1,5 +1,8 @@
 2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* rfbeacon.c -> beacon.c, aprx.h, aprx.c, config.c, Makefile.in:
+	    Rename  rfbeacon.c  to  beacon.c.
+
 	* interface.c:
 	    As a final part of <interface> definition, check if
 	    the default tnc-subid (0) has associated ttycallsign

@@ -310,15 +310,15 @@ static void cfgparam(struct configfile *cf)
 	  return;
 	}
 	if (strcmp(name, "<netbeacon>") == 0) {
-	  rfbeacon_config(cf,1);
+	  beacon_config(cf,1);
 	  return;
 	}
 	if (strcmp(name, "<rfbeacon>") == 0) {
-	  rfbeacon_config(cf,0);
+	  beacon_config(cf,0);
 	  return;
 	}
 	if (strcmp(name, "<beacon>") == 0) {
-	  rfbeacon_config(cf,-1);
+	  beacon_config(cf,-1);
 	  return;
 	}
 	if (strcmp(name, "<logging>") == 0) {
