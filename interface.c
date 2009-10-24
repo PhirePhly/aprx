@@ -464,7 +464,8 @@ void interface_config(struct configfile *cf)
 	// With enough defaults being used, the callsign is defined
 	// by global "macro"  mycall,  and never ends up activating
 	// the tty -> linux kernel kiss/smack pty  interface.
-	if (aif->tty->netax25[0] == NULL &&
+	if (aif->tty != NULL &&
+	    aif->tty->netax25[0] == NULL &&
 	    aif->tty->ttycallsign[0] != NULL) {
 		aif->tty->netax25[0] = netax25_open(aif->tty->ttycallsign[0]);
 	}
@@ -767,6 +768,10 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 	if (aif == NULL)    return 0;
 	if (aif->txok == 0) return 0; // Sorry, no Tx
+
+	// _FOR_VALGRIND_  -- and just in case for normal use
+	memset(ax25addr, 0, sizeof(ax25addr));
+	memset(axaddrbuf, 0, sizeof(axaddrbuf));
 	
 	if (parse_ax25addr(ax25addr +  7, src,  0x60)) {
 	  if (debug) printf("parse_ax25addr('%s') failed.\n", src);

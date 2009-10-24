@@ -63,7 +63,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 		k = E->e1_cursor;
 		t = E->e1_max;
 		if (t > 20)
-			t = 20;	/* Up to 20 of 1 minute samples */
+			t = 20;	// Up to 20 of 1 minute samples
 		erlcapa = E->erlang_capa;
 		for (j = 0; j < t; ++j) {
 			--k;
@@ -73,15 +73,32 @@ int telemetry_postpoll(struct aprxpolls *app)
 				erlmax = E->e1[k].bytes_rx;
 		}
 		k = (int) (200.0 / erlcapa * (float) erlmax);
-		if (k > 255)
-			k = 255;
+		// if (k > 255) k = 255;
 		s += sprintf(s, "%03d,", k);
 
+		erlmax = 0;
+		k = E->e1_cursor;
+		t = E->e1_max;
+		if (t > 20)
+			t = 20;	// Up to 20 of 1 minute samples
+		erlcapa = E->erlang_capa;
+		for (j = 0; j < t; ++j) {
+			--k;
+			if (k < 0)
+				k = E->e1_max - 1;
+			if (E->e1[k].bytes_tx > erlmax)
+				erlmax = E->e1[k].bytes_tx;
+		}
+		k = (int) (200.0 / erlcapa * (float) erlmax);
+		// if (k > 255) k = 255;
+		s += sprintf(s, "%03d,", k);
+
+/*
 		erlmax = 0;
 		k = E->e10_cursor;
 		t = E->e10_max;
 		if (t > 2)
-			t = 2;	/* Up to 2 of 10 minute samples */
+			t = 2;	// Up to 2 of 10 minute samples
 		erlcapa = E->erlang_capa;
 		for (j = 0; j < t; ++j) {
 			--k;
@@ -91,9 +108,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 				erlmax = E->e10[k].bytes_rx;
 		}
 		k = (int) (20.0 / erlcapa * (float) erlmax);
-		if (k > 255)
-			k = 255;
+		// if (k > 255) k = 255;
 		s += sprintf(s, "%03d,", k);
+*/
 
 		erlmax = 0;
 		k = E->e1_cursor;
@@ -149,13 +166,13 @@ int telemetry_postpoll(struct aprxpolls *app)
 			/* Send every 5h20m or thereabouts. */
 
 			s = buf + sprintf(buf,
-					  ":%-9s:PARM.Max 1m,Max 10m,RxPkts,DropRxPkts, TxPkts",
+					  ":%-9s:PARM.Max 1m,Max 1m,RxPkts,IGateDropRx,TxPkts",
 					  E->name);
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
 				     buf, (int) (s - buf));
 
 			s = buf + sprintf(buf,
-					  ":%-9s:UNIT.Erlang,Erlang,count 10m,count 10m, count 10m",
+					  ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
 					  E->name);
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
 				     buf, (int) (s - buf));

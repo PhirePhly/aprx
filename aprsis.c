@@ -109,7 +109,10 @@ static void aprsis_close(struct aprsis *A, const char *why)
 		if (fp) {
 			char timebuf[60];
 			struct tm *t = gmtime(&now);
-			strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+			// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+			sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
+				t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+				t->tm_hour,t->tm_min,t->tm_sec);
 
 			fprintf(fp, "%s CLOSE APRSIS %s:%s %s\n", timebuf,
 				A->H->server_name, A->H->server_port,
@@ -161,8 +164,8 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 	if ((sizeof(A->wrbuf) - 10) <= (A->wrbuf_len + len)) {
 		/* The string does not fit in, perhaps it needs compacting ? */
 		if (A->wrbuf_cur > 0) {	/* Compacting is possible ! */
-			memmove(A->wrbuf, A->wrbuf + A->wrbuf_cur,
-				A->wrbuf_len - A->wrbuf_cur);
+			memcpy(A->wrbuf, A->wrbuf + A->wrbuf_cur,
+			       A->wrbuf_len - A->wrbuf_cur);
 			A->wrbuf_len -= A->wrbuf_cur;
 			A->wrbuf_cur = 0;
 		}
@@ -282,8 +285,11 @@ static void aprsis_reconnect(struct aprsis *A)
 			if (fp) {
 				char timebuf[60];
 				struct tm *t = gmtime(&now);
-				strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S",
-					 t);
+				// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S",t);
+				sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
+					t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+					t->tm_hour,t->tm_min,t->tm_sec);
+
 
 				fprintf(fp,
 					"%s FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n",
@@ -329,8 +335,10 @@ static void aprsis_reconnect(struct aprsis *A)
 			if (fp) {
 				char timebuf[60];
 				struct tm *t = gmtime(&now);
-				strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S",
-					 t);
+				// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S",t);
+				sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
+					t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+					t->tm_hour,t->tm_min,t->tm_sec);
 
 				fprintf(fp,
 					"%s FAIL - Connect to %s:%s failed: %s\n",
@@ -398,7 +406,10 @@ static void aprsis_reconnect(struct aprsis *A)
 		if (fp) {
 			char timebuf[60];
 			struct tm *t = gmtime(&now);
-			strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+			// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+			sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
+				t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+				t->tm_hour,t->tm_min,t->tm_sec);
 
 			fprintf(fp, "%s CONNECT APRSIS %s:%s\n", timebuf,
 				A->H->server_name, A->H->server_port);
@@ -603,6 +614,7 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 	if (newlen > buflen) {
 		buflen = newlen;
 		buf = realloc(buf, buflen);
+		memset(buf, 0, buflen); // (re)init it to silence valgrind
 	}
 
 	head.then    = now;
@@ -626,7 +638,7 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 	len = p - buf;
 
 #ifndef MSG_NOSIGNAL
-# define MSG_NOSIGNAL 0 /* This exists only on Linux, the  */
+# define MSG_NOSIGNAL 0 /* This exists only on Linux  */
 #endif
 	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL);	/* No SIGPIPE if the
 							   receiver is out,

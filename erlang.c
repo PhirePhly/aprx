@@ -441,7 +441,10 @@ static void erlang_time_end(void)
 		fp = fopen(erlanglogfile, "a");
 	}
 
-	strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	// strftime(logtime, sizeof(logtime), "%Y-%m-%d %H:%M", wallclock);
+	sprintf(logtime, "%04d-%02d-%02d %02d:%02d",
+		wallclock->tm_year+1900,wallclock->tm_mon+1,wallclock->tm_mday,
+		wallclock->tm_hour,wallclock->tm_min);
 
 	if (now >= erlang_time_end_1min) {
 		erlang_time_end_1min += 60;

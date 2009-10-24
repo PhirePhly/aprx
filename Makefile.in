@@ -20,13 +20,15 @@ srcdir = @srcdir@
 VPATH = @srcdir@
 @SET_MAKE@
 
+PROF=		# used by 'make profile'
+
 # Compiler and flags
 CC=		@CC@
-CFLAGS=		@CFLAGS@ $(DEFS)
+CFLAGS=		@CFLAGS@
 
 # Linker and flags
 LD=		@LD@
-LDFLAGS=	@LDFLAGS@
+LDFLAGS=	@LDFLAGS@ $(PROF)
 
 INSTALL=	$(srcdir)/install-sh
 INSTALL_PROGRAM=$(INSTALL)  -m 755
@@ -61,9 +63,10 @@ LIBS=		@LIBS@ @LIBRESOLV@ @LIBSOCKET@ -lm
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o	\
 		netax25.o erlang.o aprxpolls.o telemetry.o igate.o	\
 		cellmalloc.o historydb.o keyhash.o parse_aprs.o		\
-		dupecheck.o  kiss.o interface.o pbuf.o digipeater.o
+		dupecheck.o  kiss.o interface.o pbuf.o digipeater.o	\
+		valgrind.o
 
-OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o
+OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o valgrind.o
 
 # man page sources, will be installed as $(PROGAPRX).8 / $(PROGSTAT).8
 MANAPRX := 	aprx.8
@@ -76,6 +79,15 @@ MAN=		$(MANAPRX) $(MANSTAT)
 
 .PHONY: 	all
 all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf
+
+valgrind:
+		@echo "Did you do 'make clean' before 'make valgrind' ?"
+		make all CFLAGS="${CFLAGS} -D_FOR_VALGRIND_"
+
+profile:
+		@echo "Did you do 'make clean' before 'make profile' ?"
+		make all PROF="-pg"
+
 
 $(PROGAPRX):	$(OBJSAPRX) VERSION Makefile
 		$(LD) $(LDFLAGS) -o $@ $(OBJSAPRX) $(LIBS)
@@ -118,8 +130,8 @@ distclean: clean
 # -------------------------------------------------------------------- #
 
 %.o: %.c VERSION Makefile
-	$(CC) $(CFLAGS) -c $<
-	@$(CC) -MM $(CFLAGS) $< > $(@:.o=.d)
+	$(CC) $(CFLAGS)  $(PROF) $(DEFS) -c $<
+	@$(CC) -MM $(CFLAGS) $(PROF) $(DEFS) $< > $(@:.o=.d)
 
 $(MAN:=.html): %.html : %
 	sh man-to-html.sh $< > $@

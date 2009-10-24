@@ -98,6 +98,7 @@ static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 	// directly malloced block is fine as is
 	dp = malloc(pktlen + sizeof(*dp));
 	memset(dp, 0, sizeof(*dp));
+	dp->packet = dp->packetbuf; // always suitable size
 #endif
 	dp->alen = alen;
 	dp->plen = pktlen;

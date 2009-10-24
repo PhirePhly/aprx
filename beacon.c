@@ -119,7 +119,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
 	const char *via      = NULL;
-	char *buf  = alloca(strlen(p1) + strlen(str ? str : "") + 10);
+	int buflen = strlen(p1) + strlen(str ? str : "") + 10;
+	char *buf  = alloca(buflen);
 	const char *to   = NULL;
 	char *code = NULL;
 	char *lat  = NULL;
@@ -128,6 +129,10 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	char *type    = NULL;
 	const struct aprx_interface *aif = NULL;
 	int has_fault = 0;
+
+#ifdef _FOR_VALGRIND_
+	memset(buf, 0, buflen);
+#endif
 
 	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
@@ -331,10 +336,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		if (!type) type = "!";
 		if (code && strlen(code) == 2 && lat && strlen(lat) == 8 &&
 		    lon && strlen(lon) == 9) {
-			sprintf(buf, "%s%s%c%s%c", type, lat, code[0], lon,
-				code[1]);
-			if (comment)
-				strcat(buf, comment);
+			sprintf(buf, "%s%s%c%s%c%s", type, lat, code[0], lon,
+				code[1], comment ? comment : "");
 			bm->msg = strdup(buf);
 		} else {
 			if (!code || (code && strlen(code) != 2))

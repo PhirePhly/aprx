@@ -1,4 +1,32 @@
+2009-10-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c:
+	    That final part of <interface> thing (below) can only
+	    be done, if this interface has non-null tty field.
+
+	* Makefile.in, 
+	    "make valgrind" - helps debugging some screwups..
+
+	* digipeater.c:
+	    Stop scanning the viscous queue, once time limit exceeds
+	    current time.
+
+	* aprxpolls.c:
+	    A screwup on allocations found with valgrind.  Oops!
+
+	* netax25.c, aprsis.c, dupecheck.c, ttyreader.c, erlang.c,
+	  aprx.c, aprx.h, ax25.c, beacon.c, igate.c, historydb.c,
+	  valgrind.c, Makefile.in:
+	    Code changes to clean valgrind outputs on nuisance messages.
+	    And at least one bugfix for valgrind environment...
+
 2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* telemetry.c:
+	    Changed telemetry channel 2:  Erlangs from bytes_tx accounting.
+	    Now there is separate channel load graph showing how much this
+	    transmitter is affecting the channel.
+	    Give also better label for channel 4: IGateDropRx
 
 	* rfbeacon.c -> beacon.c, aprx.h, aprx.c, config.c, Makefile.in:
 	    Rename  rfbeacon.c  to  beacon.c.

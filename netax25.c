@@ -103,6 +103,7 @@ static const void* netax25_openpty(const char *mycall)
 	memcpy(&nax25->ax25addr.sax25_call, ax25call, sizeof(ax25call));
 
 	/* setup termios parameters for this line.. */
+	memset(&tio, 0, sizeof(tio));
 	aprx_cfmakeraw(&tio, 0);
 	tio.c_cc[VMIN] = 1;	/* pick at least one char .. */
 	tio.c_cc[VTIME] = 3;	/* 0.3 seconds timeout - 36 chars @ 1200 baud */
@@ -196,7 +197,11 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	    if (fp) {
 	      char timebuf[60];
 	      struct tm *t = gmtime(&now);
-	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      // strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
+		      t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+		      t->tm_hour,t->tm_min,t->tm_sec);
+
 	      fprintf(fp, "%s netax25_sendax25(%s,len=%d) wrote %d bytes\n", timebuf, nax25->callsign, ax25len, p);
 	      fclose(fp);
 	    }

@@ -1270,9 +1270,9 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    // Feed backend from viscous queue
 	    donecount = 0;
 	    for (i = 0; i < src->viscous_queue_size; ++i) {
-	      time_t t = src->viscous_queue[0]->t  + src->viscous_delay;
+	      struct dupe_record_t *dupe = src->viscous_queue[i];
+	      time_t t = dupe->t + src->viscous_delay;
 	      if (t <= now) {
-		struct dupe_record_t *dupe = src->viscous_queue[i];
 		if (debug)printf("%ld LEAVE VISCOUS QUEUE: dupe=%p pbuf=%p\n",
 				 now, dupe, dupe->pbuf);
 		if (dupe->pbuf != NULL) {
@@ -1287,6 +1287,8 @@ int  digipeater_postpoll(struct aprxpolls *app)
                 }
                 dupecheck_put(dupe);
                 ++donecount;
+	      } else {
+		break; // found a case we are not yet interested in.
 	      }
 	    }
 	    if (donecount > 0) {
