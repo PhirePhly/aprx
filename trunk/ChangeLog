@@ -1,5 +1,7 @@
 2009-10-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION 1.94
+
 	* interface.c:
 	    That final part of <interface> thing (below) can only
 	    be done, if this interface has non-null tty field.
