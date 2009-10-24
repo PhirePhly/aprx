@@ -316,9 +316,9 @@ void interface_config(struct configfile *cf)
 		    printf("%s:%d: AX25-DEVICE '%s' '%s'\n",
 			   cf->name, cf->linenum, param1, str);
 
-		  netax25_addrxport(param1, str, aif);
 		  aif->callsign = strdup(param1);
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
+		  aif->nax25p = netax25_addrxport(param1, aif);
 		  
 		  interface_store(aif);
 
@@ -547,30 +547,41 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 /*
  * Process AX.25 packet transmit; beacons, digi output, igate output...
  *
+ *   - aif:    output interface
+ *   - axaddr: ax.25 address
+ *   - axdata: payload content, with control and PID bytes prefixing them
  */
 
-void interface_transmit_ax25(const struct aprx_interface *aif, const void *axaddr, const int axaddrlen, const void *axdata, const int axdatalen)
+void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen)
 {
 	int axlen = axaddrlen + axdatalen;
-	uint8_t *axbuf = alloca(axlen);
-	memcpy(axbuf, axaddr, axaddrlen);
-	memcpy(axbuf + axaddrlen, axdata, axdatalen);
+	uint8_t *axbuf;
 
-	if (debug)
-	  printf("interface_transmit_ax25(aif=%p, .., axlen=%d)\n",aif,axlen);
+	if (debug) {
+	  const char *callsign = "";
+	  if (aif != NULL) callsign=aif->callsign;
+	  printf("interface_transmit_ax25(aif=%p[%s], .., axlen=%d)\n",
+		 aif, callsign, axlen);
+	}
 	if (axlen == 0) return;
-
-
 	if (aif == NULL) return;
+
 
 	switch (aif->iftype) {
 	case IFTYPE_SERIAL:
 	case IFTYPE_TCPIP:
 		// If there is linetype error, kisswrite detects it.
+		// Make it into single buffer to give to KISS sender
+		axbuf = alloca(axlen);
+		memcpy(axbuf, axaddr, axaddrlen);
+		memcpy(axbuf + axaddrlen, axdata, axdatalen);
 		ttyreader_kisswrite(aif->tty, aif->subif, axbuf, axlen);
 		break;
 	case IFTYPE_AX25:
-		netax25_sendto(aif->nax25p, axbuf, axlen);
+		// The Linux netax25 sender takes same data as this interface
+		netax25_sendto( aif->nax25p,
+				axaddr, axaddrlen,
+				axdata+2, axdatalen-2 );
 		break;
 	default:
 		break;
@@ -737,6 +748,8 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	int     ax25addrlen;
 	int	have_fault = 0;
 	int	viaindex   = 1; // First via field will be index 2
+	char    axaddrbuf[128];
+	char    *a = axaddrbuf;
 
 	if (debug)
 	  printf("interface_transmit_beacon() aif=%p, aif->txok=%d aif->callsign='%s'\n",
@@ -755,11 +768,20 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	}
 	ax25addrlen = 14; // Initial Src+Dest without any Via.
 
+	if (rflogfile)
+	  a += sprintf(axaddrbuf, "%s>%s", src, dest);
+	*a = 0;
 
 	if (via != NULL) {
 	  char    viafield[12];
 	  const char *s, *p = via;
 	  const char *ve = via + strlen(via);
+
+	  if (rflogfile) {
+	    *a++ = ',';
+	    strncpy(a, via, sizeof(axaddrbuf)-(a-axaddrbuf)-3);
+	    axaddrbuf[sizeof(axaddrbuf)-3] = 0; // zero-terminate..
+	  }
 
 	  while (p < ve) {
 	    int len;
@@ -769,7 +791,6 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 		break;
 	      }
 	    }
-	    if (s >= ve) break; // End of scannable area
 	    // [p..s] is now one VIA field.
 	    if (s == p) {  // BAD!
 	      have_fault = 1;
@@ -800,13 +821,26 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	}
 
 	ax25addr[ax25addrlen-1] |= 0x01; // set address field end bit
-	// Insert Control and PID bytes on end of address block
-	ax25addr[ax25addrlen++] = 0x03;  // Control field "UI"
-	ax25addr[ax25addrlen++] = 0xF0;  // PID code that APRS uses
+
 
 	interface_transmit_ax25( aif,
 				 ax25addr, ax25addrlen,
 				 txbuf, txlen);
+
+	if (rflogfile) {
+	  int     axlen;
+	  char    *axbuf;
+
+	  axlen = txlen + strlen(axaddrbuf);
+	  axbuf = alloca(axlen+3);
+	  strcpy( axbuf, axaddrbuf );
+	  a = axbuf + strlen(axbuf);
+	  *a++ = ':';
+	  memcpy(a, txbuf+2, txlen-2);
+	  a += txlen -2;
+
+	  rflog(aif->callsign, 1, 0, axbuf, a - axbuf);
+	}
 
 	return 0;
 }

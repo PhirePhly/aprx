@@ -9,7 +9,6 @@
  * **************************************************************** */
 
 #include "aprx.h"
-#include <math.h>
 
 struct beaconmsg {
 	time_t nexttime;
@@ -134,10 +133,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 	memset(bm, 0, sizeof(*bm));
 
 	if (debug) {
-	  if (netonly > 0)
-		printf("NETBEACON parameters: ");
-	  else
-		printf("RFBEACON parameters: ");
+	  printf("BEACON parameters: ");
 	}
 
 	while (*p1) {
@@ -243,7 +239,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 			if (debug)
 				printf("symbol '%s' ", code);
 
-		} else if (strcmp(p1, "comment") == 0) {
+		} else if (strcmp(p1, "type") == 0) {
 			/* text up to .. 40 chars */
 
 			type = str;
@@ -373,6 +369,16 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 
 	beacon_msgs[beacon_msgs_count++] = bm;
 	beacon_msgs[beacon_msgs_count] = NULL;
+	
+	if (bm->msg != NULL) {  // Make this into AX.25 UI frame
+	                        // with leading control byte..
+	  int len = strlen(bm->msg) + 3;
+	  char *msg = realloc((void*)bm->msg, len);
+	  memmove(msg+2, msg, len-2);
+	  msg[0] = 0x03;  // Control byte
+	  msg[1] = 0xF0;  // PID 0xF0
+	  bm->msg = msg;
+	}
 
 	rfbeacon_reset();
 
@@ -428,9 +434,9 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 			       beacon_cycle/60.0, r, beacon_increment);
 		for (i = 0; i < beacon_msgs_count; ++i) {
 			beacon_msgs[i]->nexttime =
-			  now + round(i * beacon_increment);
+			  now + (long)(i * beacon_increment + 0.5);
 		}
-		beacon_last_nexttime = now + round(beacon_msgs_count * beacon_increment);
+		beacon_last_nexttime = now + (long)(beacon_msgs_count * beacon_increment + 0.5);
 	}
 
 	/* --- now the business of sending ... */
@@ -444,29 +450,16 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 	}
 	
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
-	txtlen  = strlen(bm->msg);
-
-	if (debug) {
-	  printf("Now beaconing: ");
-	  if (bm->interface != NULL)
-	    printf("to interface %s ",bm->interface->callsign);
-	  else
-	    printf("to all tx-interfaces ");
-	  printf(" '%s>%s", bm->src, bm->dest);
-	  if (bm->via)
-	    printf(",%s", bm->via);
-	  printf("' -> '%s',  next beacon in %.2f minutes\n",
-		 bm->msg, round((beacon_nexttime - now)/60.0));
-	}
+	txtlen  = strlen(bm->msg+2); // Skip Control+PID bytes
 
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/* Send those (rf)beacons.. (a noop if interface == NULL) */
 	if (bm->interface != NULL) {
-		char *destbuf = alloca(destlen + 2 +
-				      strlen(bm->interface->callsign));
-		const char *src =
-		  (bm->src != NULL) ? bm->src : bm->interface->callsign;
+		const char *callsign = bm->interface->callsign;
+		int   len  = destlen + 2 + strlen(callsign);
+		char *destbuf = alloca(len);
+		const char *src = (bm->src != NULL) ? bm->src : callsign;
 
 		if (bm->via != NULL)
 		  sprintf(destbuf,"%s>%s,%s:",src,bm->dest,bm->via);
@@ -475,39 +468,88 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 
 		// Send them all also as netbeacons..
 		aprsis_queue(destbuf, strlen(destbuf),
-			     aprsis_login, bm->msg, txtlen);
+			     aprsis_login, bm->msg+2, txtlen);
+
+		if (bm->via || strcmp(src, callsign) != 0) {
+		  len     = ((bm->via ? strlen(bm->via) : 0) +
+			     strlen(callsign));
+		  destbuf = alloca(len + 5); // recycled for: viabuf!
+		  if (strcmp(src, callsign) != 0) {
+		    if (bm->via != NULL)
+		      sprintf( destbuf, "%s*,%s", callsign, bm->via );
+		    else
+		      sprintf( destbuf, "%s*", callsign );
+		  } else {
+		    strcpy( destbuf, bm->via );
+		  }
+		} else {
+		  destbuf = NULL;
+		}
+
+		if (debug) {
+		  printf("Now beaconing to interface %s '%s>%s",
+			 callsign, src, bm->dest);
+		  if (destbuf) printf(",%s", destbuf);
+		  printf("' -> '%s',  next beacon in %.2f minutes\n",
+			 bm->msg+2, ((beacon_nexttime - now)/60.0));
+		}
 
 		// And to interfaces
 		interface_transmit_beacon(bm->interface,
 					  src,
 					  bm->dest,
-					  bm->via,
-					  bm->msg, strlen(bm->msg));
+					  destbuf,  // re-written via
+					  bm->msg, txtlen+2);
 	} 
 	else {
 	    for ( i = 0; i < all_interfaces_count; ++i ) {
 		const struct aprx_interface *aif = all_interfaces[i];
 		if (aif->txok) {
-		    char *destbuf = alloca(destlen + 2 +
-					   strlen(aif->callsign));
+		    const char *callsign = aif->callsign;
+		    int   len  = destlen + 2 + strlen(callsign);
+		    char *destbuf = alloca(len);
 		    const char *src =
-		      (bm->src != NULL) ? bm->src : aif->callsign;
+		      (bm->src != NULL) ? bm->src : callsign;
 
 		    if (bm->via != NULL)
-		      sprintf(destbuf,"%s>%s,%s:",src,bm->dest,bm->via);
+		      sprintf(destbuf,"%s>%s,%s:", src, bm->dest, bm->via);
 		    else
 		      sprintf(destbuf,"%s>%s", src, bm->dest);
 
 		    // Send them all also as netbeacons..
 		    aprsis_queue(destbuf, strlen(destbuf),
-				 aprsis_login, bm->msg, txtlen);
+				 aprsis_login, bm->msg+2, txtlen);
+
+		    if (bm->via || strcmp(src, callsign) != 0) {
+		      len     = ((bm->via ? strlen(bm->via) : 0) +
+				 strlen(callsign));
+		      destbuf = alloca(len + 5); // recycled for: viabuf!
+		      if (strcmp(src, callsign) != 0) {
+			if (bm->via != NULL)
+			  sprintf( destbuf, "%s*,%s", callsign, bm->via );
+			else
+			  sprintf( destbuf, "%s*", callsign );
+		      } else {
+			strcpy( destbuf, bm->via );
+		      }
+		    } else {
+		      destbuf = NULL;
+		    }
+
+		    if (debug) {
+		      printf("Now beaconing to interface %s '%s>%s",
+			     callsign, src, bm->dest);
+		      if (destbuf) printf(",%s", destbuf);
+		      printf("' -> '%s',  next beacon in %.2f minutes\n",
+			     bm->msg+2, ((beacon_nexttime - now)/60.0));
+		    }
 
 		    // .. and send to all interfaces..
 		    interface_transmit_beacon(aif,
 					      src,
 					      bm->dest,
-					      bm->via,
-					      bm->msg, strlen(bm->msg));
+					      destbuf, // re-written via
+					      bm->msg, txtlen+2);
 		}
 	    }
 	}

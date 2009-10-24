@@ -381,7 +381,7 @@ static void cfgparam(struct configfile *cf)
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
-		netax25_addrxport(param1, str, NULL);
+		netax25_addrxport(param1, NULL);
 
 	} else if (strcmp(name, "radio") == 0) {
 		if (debug)
