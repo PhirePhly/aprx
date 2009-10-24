@@ -297,7 +297,8 @@ static struct erlangline *erlang_findline(const char *portname,
 					  int bytes_per_minute)
 {
 	int i;
-	struct erlangline *E = NULL;
+	struct erlangline *E;
+	if (portname == NULL) return NULL;
 
 	if (bytes_per_minute == 0)
 	  bytes_per_minute = (int) ((1200.0 * 60) / 8.2); // Default of 1200 bps
@@ -305,6 +306,7 @@ static struct erlangline *erlang_findline(const char *portname,
 	/* Allocate a new ErlangLines[] entry for this object,
 	   if no existing one is found.. */
 
+	E = NULL;
 	if (ErlangLines) {
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			if (strcmp(portname, ErlangLines[i]->name) == 0) {
@@ -355,8 +357,10 @@ void erlang_set(const char *portname, int bytes_per_minute)
  */
 void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 {
-	struct erlangline *E =
-		erlang_findline(portname, (int) ((1200.0 * 60) / 8.2));
+	struct erlangline *E;
+	if (!portname) return;
+
+	E = erlang_findline(portname, (int) ((1200.0 * 60) / 8.2));
 
 	if (debug > 1)
 	  printf("erlang_add(%s, %d, %d, %d)\n", portname, erl, bytes, packets);

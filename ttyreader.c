@@ -57,6 +57,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 		/* printf(" ..bad CMD byte\n"); */
 		if (debug)
 			printf("%ld\tTTY %s: Bad CMD byte on KISS frame: %02x\n", now, S->ttyname, cmdbyte);
+		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 		return -1;
 	}
 
@@ -69,6 +70,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 	      if (debug > 0) {
 		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it!\n", now, S->ttyname, cmdbyte);
 	      }
+	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+	      return -1;
 	    }
 	}
 
@@ -83,6 +86,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 		  if (debug > 0) {
 		    printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it!\n", now, S->ttyname, cmdbyte);
 		  }
+		  erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+		  return -1;
 		}
 
 		for (i = 1; i < S->rdlinelen; ++i)
@@ -91,6 +96,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 		if (xorsum != 0) {
 			if (debug)
 				printf("%ld\tTTY %s tncid %d: Received bad BPQCRC: %02x\n", now, S->ttyname, tncid, xorsum);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 			return -1;
 		}
 		S->rdlinelen -= 1;	/* remove the sum-byte from tail */
@@ -108,6 +114,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 	      if (debug > 0) {
 		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it!\n", now, S->ttyname, cmdbyte);
 	      }
+	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+	      return -1;
 	    }
 
 	    if ((cmdbyte & 0x8F) == 0x80) {
@@ -131,6 +139,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 			if (debug)
 				printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC\n",
 				       now, S->ttyname, tncid);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 			return -1;	/* The CRC was invalid.. */
 		}
 
@@ -184,6 +193,8 @@ static int ttyreader_kissprocess(struct serialport *S)
 		if (debug)
 		    printf("%ld\tTTY %s: Bad CMD byte on expected SMACK frame: %02x,  len=%d\n",
 			   now, S->ttyname, cmdbyte, S->rdlinelen);
+		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+		return -1;
 	    }
 	}
 
@@ -192,6 +203,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 
 		/* Too short frame.. */
 		/* printf(" ..too short a frame for anything\n");  */
+		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 		return -1;
 	}
 

@@ -1,3 +1,29 @@
+2009-10-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.93
+
+	* ttyreader.c, erlang.c:
+	    Feeding in generated random noise did raise a few errors
+	    in KISS frame processing, and erlang accounting.
+	    KISS tncid:s sometimes did not have a callsign associated
+	    with them, and then erlang accounting blew up...
+
+	* interface.c, rfbeacon.c, ax25.c, aprx.h:
+	    Beacons to radio interfaces, KISS works best, NET-AX.25 less
+	    well -- transmits OK UI frames, transmit of arbitrary other
+	    types of frames is necessary for generic digipeating.
+
+	* digipeater.c:
+	    Add alias to config parameter 'transmit' -> 'transmitter'.
+
+	* netax25.c, config.c:
+	    Removed unused parameter on  netax25_addrxport().
+	    Rebuilt netax25_sendto(), however it sends out only UI frames..
+	    Removed pre-created tx_socket, and associated codes.
+
+	* configure.in:
+	    Remove unused autoconf test for  cfmakeraw()..
+
 2009-10-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* rfbeacon.c:

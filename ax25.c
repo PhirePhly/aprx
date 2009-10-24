@@ -77,7 +77,7 @@ int parse_ax25addr(uint8_t ax25[7], const char *text, int ssidflags)
 	while (i < 6) {
 		c = *text;
 
-		if (c == '-' || c == '\0')
+		if (c == '-' || c == '*' || c == '\0')
 			break;
 		if (!(('A' <= c && c <= 'Z') || ('0' <= c && c <= '9'))) {
 			// Valid chars: [A-Z0-9]
@@ -91,7 +91,7 @@ int parse_ax25addr(uint8_t ax25[7], const char *text, int ssidflags)
 	}
 
 	while (i < 6) {
-		ax25[i] = 0; // ' ' << 1;
+		ax25[i] = ' ' << 1; // they are wanted as spaces..
 		++i;
 	}
 
@@ -100,19 +100,26 @@ int parse_ax25addr(uint8_t ax25[7], const char *text, int ssidflags)
 
 	if (*text == '-') {
 		++text;
-	} else {
+	} else if ( *text != '*' && *text != 0) {
 		return 1;
 	}
 
-	for (; (*text != '\0') &&
+	for (; (*text != '\0') && (*text != '*') &&
 	       ('0' <= *text) && (*text <= '9'); ++text) {
 
 		ssid = ssid * 10 + (*text - '0');
 	}
 
+	if (*text == '*') {
+		++text;
+		ssidflags |= 0x80; // Set H-bit..
+		ax25[6]   |= 0x80; // Set H-bit..
+	}
+
 	if (ssid > 15 || *text != '\0') {
 		return 1; // Bad values
 	}
+	ssid &= 0x0F; // Limit it to 4 bits
 
 	ax25[6] = (ssid << 1) | ssidflags;
 

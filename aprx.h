@@ -231,9 +231,9 @@ extern void        netax25_start(void);
 extern const void* netax25_open(const char *ifcallsign);
 extern int         netax25_prepoll(struct aprxpolls *);
 extern int         netax25_postpoll(struct aprxpolls *);
-extern void        netax25_addrxport(const char *callsign, char *str, const struct aprx_interface *aif);
+extern void      * netax25_addrxport(const char *callsign, const struct aprx_interface *aif);
 extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
-extern void        netax25_sendto(const void *nax25, const uint8_t *txbuf, const int txlen);
+extern void        netax25_sendto(const void *nax25, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
 
 /* telemetry.c */
 extern void telemetry_start(void);
@@ -492,7 +492,7 @@ extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 
 extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int ui_pid, const uint8_t *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
-extern void interface_transmit_ax25(const struct aprx_interface *aif, const void *axaddr, const int axaddrlen, const void *axdata, const int axdatalen);
+extern void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
 extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen);
 extern int  interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *tncbuf, const int tnclen);
 

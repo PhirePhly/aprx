@@ -136,14 +136,6 @@ if test "$ac_cv_func_socketpair" = no -a "$LIBSOCKET" != ""; then
   LIBS="$t_oldLibs"
 fi
 
-AC_TRY_LINK([],[cfmakeraw();], ac_cv_func_cfmakeraw=yes, ac_cv_func_cfmakeraw=no)
-if test "$ac_cv_func_cfmakeraw" = yes; then
-  AC_DEFINE(HAVE_CFMAKERAW)
-  AC_MSG_RESULT([Has  cfmakeraw()  of termios functions.])
-fi
-
-
-
 dnl Output files
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

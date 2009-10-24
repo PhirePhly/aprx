@@ -743,7 +743,8 @@ void digipeater_config(struct configfile *cf)
 		if (strcmp(name, "</digipeater>") == 0) {
 			break;
 		}
-		if (strcmp(name, "transmit") == 0) {
+		if (strcmp(name, "transmit") == 0 ||
+		    strcmp(name, "transmitter") == 0) {
 			if (strcmp(param1,"$mycall") == 0)
 			  param1 = strdup(mycall);
 
@@ -1084,7 +1085,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	// Feed to interface_transmit_ax25() with new header and body
 	interface_transmit_ax25( digi->transmitter,
 				 state.ax25addr, state.ax25addrlen,
-				 pb->ax25data, pb->ax25datalen );
+				 (const char*)pb->ax25data, pb->ax25datalen );
 }
 
 
