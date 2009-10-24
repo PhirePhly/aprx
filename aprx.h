@@ -194,10 +194,10 @@ extern void aprsis_init(void);
 extern void aprsis_start(void);
 extern void aprsis_config(struct configfile *cf);
 
-/* rfbeacon.c */
-extern int  rfbeacon_prepoll(struct aprxpolls *app);
-extern int  rfbeacon_postpoll(struct aprxpolls *app);
-extern void rfbeacon_config(struct configfile *cf, const int netonly);
+/* beacon.c */
+extern int  beacon_prepoll(struct aprxpolls *app);
+extern int  beacon_postpoll(struct aprxpolls *app);
+extern void beacon_config(struct configfile *cf, const int netonly);
 
 /* config.c */
 extern void *readconfigline(struct configfile *cf);

@@ -17,6 +17,7 @@ struct beaconmsg {
 	const char *dest;
 	const char *via;
 	const char *msg;
+	int	    netonly;
 };
 
 static struct beaconmsg **beacon_msgs;
@@ -107,13 +108,13 @@ int validate_degmin_input(const char *s, int maxdeg)
 }
 
 
-static void rfbeacon_reset(void)
+static void beacon_reset(void)
 {
 	beacon_nexttime = now + 30;	/* start 30 seconds from now */
 	beacon_msgs_cursor = 0;
 }
 
-static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const int netonly)
+static void beacon_set(struct configfile *cf, const char *p1, char *str, const int netonly)
 {
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
@@ -380,7 +381,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 	  bm->msg = msg;
 	}
 
-	rfbeacon_reset();
+	beacon_reset();
 
 	if (0) {
 	discard_bm:
@@ -391,7 +392,7 @@ static void rfbeacon_set(struct configfile *cf, const char *p1, char *str, const
 	return;
 }
 
-int rfbeacon_prepoll(struct aprxpolls *app)
+int beacon_prepoll(struct aprxpolls *app)
 {
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
@@ -405,7 +406,7 @@ int rfbeacon_prepoll(struct aprxpolls *app)
 }
 
 
-int rfbeacon_postpoll(struct aprxpolls *app)
+int beacon_postpoll(struct aprxpolls *app)
 {
 	int  destlen;
 	int  txtlen, msglen;
@@ -431,7 +432,7 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 		if (beacon_increment < 3.0)
 			beacon_increment = 3.0;	/* Minimum interval: 3 seconds ! */
 		if (debug)
-			printf("rfbeacons cycle: %.2f minutes, r: %d, increment: %.1f seconds\n",
+			printf("beacons cycle: %.2f minutes, r: %d, increment: %.1f seconds\n",
 			       beacon_cycle/60.0, r, beacon_increment);
 		for (i = 0; i < beacon_msgs_count; ++i) {
 			beacon_msgs[i]->nexttime =
@@ -560,7 +561,7 @@ int rfbeacon_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-void rfbeacon_config(struct configfile *cf, const int netonly)
+void beacon_config(struct configfile *cf, const int netonly)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -593,7 +594,7 @@ void rfbeacon_config(struct configfile *cf, const int netonly)
 		}
 
 		if (strcmp(name, "beacon") == 0) {
-		  rfbeacon_set(cf, param1, str, netonly);
+		  beacon_set(cf, param1, str, netonly);
 		} else {
 		  printf("%s:%d Unknown config keyword: '%s'\n",
 			 cf->name, cf->linenum, name);
