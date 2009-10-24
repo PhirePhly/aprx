@@ -7,7 +7,6 @@
  * (c) Matti Aarnio - OH2MQK,  2007-2009                            *
  *                                                                  *
  * **************************************************************** */
-
 #include "aprx.h"
 
 /* Bits used only in the main program.. */

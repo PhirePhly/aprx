@@ -22,12 +22,15 @@ void aprxpolls_reset(struct aprxpolls *app)
 
 struct pollfd *aprxpolls_new(struct aprxpolls *app)
 {
+	struct pollfd *p;
 	app->pollcount += 1;
 	if (app->pollcount >= app->pollsize) {
 		app->pollsize += 8;
 		app->polls = realloc(app->polls,
-				     sizeof(struct pollfd *) *
-				     app->pollsize);
+				     sizeof(struct pollfd) * app->pollsize);
 	}
-	return &(app->polls[app->pollcount - 1]);
+	
+	p = &(app->polls[app->pollcount - 1]);
+	memset(p, 0, sizeof(struct pollfd));
+	return p;
 }

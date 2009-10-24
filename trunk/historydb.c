@@ -9,7 +9,6 @@
 
 #include "aprx.h"
 
-#include <string.h>
 #include <strings.h>
 #include <ctype.h>
 #include <math.h>

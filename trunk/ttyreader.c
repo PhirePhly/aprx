@@ -238,7 +238,11 @@ static int ttyreader_kissprocess(struct serialport *S)
 	    if (fp) {
 	      char timebuf[60];
 	      struct tm *t = gmtime(&now);
-	      strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      // strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
+	      sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
+		      t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+		      t->tm_hour,t->tm_min,t->tm_sec);
+
 	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message\n", timebuf, S->ttycallsign[tncid], S->rdlinelen-1);
 	      fclose(fp);
 	    }
@@ -703,8 +707,8 @@ static void ttyreader_lineread(struct serialport *S)
 	/* Consumed something, and our read cursor is not in the beginning ? */
 	if (S->rdcursor > 0 && S->rdcursor < S->rdlen) {
 		/* Compact the input buffer! */
-		memmove(S->rdbuf, S->rdbuf + S->rdcursor,
-			S->rdlen - S->rdcursor);
+		memcpy(S->rdbuf, S->rdbuf + S->rdcursor,
+		       S->rdlen - S->rdcursor);
 	}
 	S->rdlen -= S->rdcursor;
 	S->rdcursor = 0;

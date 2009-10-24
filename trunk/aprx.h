@@ -18,7 +18,44 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#define __need_size_t
+#define __need_NULL
+#include <stddef.h>
+#ifdef _FOR_VALGRIND_
+#define strdup  aprx_strdup
+#define strcmp  aprx_strcmp
+#define strncmp aprx_strncmp
+#define memcmp  aprx_memcmp
+#define memcpy  aprx_memcpy
+#define memchr  aprx_memchr
+#define strlen  aprx_strlen
+#define strcpy  aprx_strcpy
+#define strncpy aprx_strncpy
+#define strchr  aprx_strchr
+
+// Single char at the time naive implementations for valgrind runs
+extern int     memcmp(const char *p1, const char *p2, size_t n);
+extern void   *memcpy(void *dest, const void *src, size_t n);
+extern size_t  strlen(const char *p);
+extern char   *strdup(const char *s);
+extern int     strcmp(const char *s1, const char *s2);
+extern int     strncmp(const char *s1, const char *s2, size_t n);
+extern char   *strcpy(char *dest, const char *src);
+extern char   *strncpy(char *dest, const char *src, size_t n);
+extern void   *memchr(const void *s, int c, size_t n);
+extern char   *strchr(const char *s, int c);
+
+// extern declarators for standard functions
+extern void *memset(void *s, int c, size_t n);
+extern char *strerror(const int n);
+extern void *memmove(void *dest, const void *src, size_t n);
+extern char *strtok(char *str, const char *delim);
+extern int   strcasecmp(const char *s1, const char *s2);
+
+#else
 #include <string.h>
+#endif
+
 #include <termios.h>
 #include <errno.h>
 #include <syslog.h>
