@@ -1,12 +1,22 @@
 2009-10-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* netax25.c, interface.c, aprx.h:
+	    Use Link-Level mechanism to send arbitrary AX.25 packets to
+	    desired devices.  Added also a about once minute run code
+	    that checks current AX.25 devices in the system, and maps
+	    necessary ifindex:es to netdevices wanting to do IO.
+	    And all parameters to 'netax25_sendto()' are const..
+
+	* aprx.h, aprx.c, aprx-stat.c, aprsis.c, erlang.c, igate.c:
+	    Commonly used strftime() got put into  printtime() function.
+
 	* VERSION 1.94
 
 	* interface.c:
 	    That final part of <interface> thing (below) can only
 	    be done, if this interface has non-null tty field.
 
-	* Makefile.in, 
+	* Makefile.in
 	    "make valgrind" - helps debugging some screwups..
 
 	* digipeater.c:

@@ -151,11 +151,7 @@ void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int
     
 	if (fp) {
 		char timebuf[60];
-		struct tm *t = gmtime(&now);
-		// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-		sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
-			t->tm_year+1900,t->tm_mon+1,t->tm_mday,
-			t->tm_hour,t->tm_min,t->tm_sec);
+		printtime(timebuf, sizeof(timebuf), now);
 	  
 		fprintf(fp, "%s %-9s ", timebuf, portname);
 		fprintf(fp, "%s ", istx ? "T":"R");

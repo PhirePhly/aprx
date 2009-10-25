@@ -237,11 +237,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 	    FILE *fp = fopen(aprxlogfile, "a");
 	    if (fp) {
 	      char timebuf[60];
-	      struct tm *t = gmtime(&now);
-	      // strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-	      sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
-		      t->tm_year+1900,t->tm_mon+1,t->tm_mday,
-		      t->tm_hour,t->tm_min,t->tm_sec);
+	      printtime(timebuf, sizeof(timebuf), now);
 
 	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message\n", timebuf, S->ttycallsign[tncid], S->rdlinelen-1);
 	      fclose(fp);

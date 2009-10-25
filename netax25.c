@@ -18,17 +18,56 @@
 
 #ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 
-#include <net/if.h>
-#include <netinet/if_ether.h>
-#include <netinet/in.h>
 #include <sys/ioctl.h>
+#include <net/if.h>
+#include <netpacket/packet.h>
+#include <netinet/if_ether.h>
+
+#include <netinet/in.h>
+
 #include <netax25/ax25.h>
 
 
-#if defined(HAVE_OPENPTY)
-#ifdef HAVE_PTY_H
-#include <pty.h>
-#endif
+/*
+ * Link-level device access
+ *
+ * s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_AX25));
+ *
+ */
+
+/*
+struct sockaddr_ll
+  {
+    unsigned short int sll_family;
+    unsigned short int sll_protocol;
+    int sll_ifindex;
+    unsigned short int sll_hatype;
+    unsigned char sll_pkttype;
+    unsigned char sll_halen;
+    unsigned char sll_addr[8];
+  };
+
+SOCK_RAW Sending uses  sll_ifindex  and  sll_protocol
+
+*/
+
+struct netax25_dev {
+	int		ifindex;
+	int16_t		protocol;
+	uint8_t		ax25addr[7];
+	uint8_t		rxok;
+	uint8_t		txok;
+	uint8_t         scan;
+	char		devname[IFNAMSIZ];
+	char		callsign[10];
+	const struct aprx_interface *interface;
+};
+
+
+static struct netax25_dev **netax25_devs;
+static int                  netax25_devcount;
+
+
 
 /*
  *  Talking to Linux kernel 2.6.x, using SMACK type frames
@@ -37,16 +76,37 @@
  *  frame on that KISS port for any number of reasons,
  *  including writing incompletely buffered data, then
  *  kernel will be able to notice that frame it received
- *  is not valid, and discard it.  (Maybe... P = 2^-16 to
+ *  is not valid, and discards it.  (Maybe... P = 2^-16 to
  *  accepting of error frame in spite of these controls.)
  */
 
 struct netax25_pty {
 	int                          fd;
+	int			     ifindex;
 	const char                  *callsign;
 	const struct aprx_interface *interface;
 	struct sockaddr_ax25         ax25addr;
 };
+
+
+static int rx_socket = -1;
+static int tx_socket = -1;
+
+static struct netax25_pty **ax25rxports;
+static int                  ax25rxportscount;
+
+static char **ax25ttyports;
+static int   *ax25ttyfds;
+static int    ax25ttyportscount;
+
+
+
+
+
+#if defined(HAVE_OPENPTY)
+#ifdef HAVE_PTY_H
+#include <pty.h>
+#endif
 
 static void netax25_addttyport(const char *callsign,
 			       const int masterfd, const int slavefd);
@@ -96,6 +156,7 @@ static const void* netax25_openpty(const char *mycall)
 
 	nax25 = calloc( 1,sizeof(*nax25) );
 	nax25->fd       = pty_master;
+	nax25->ifindex  = -1;
 	nax25->callsign = mycall;
 
 	nax25->ax25addr.sax25_family = PF_AX25;
@@ -196,11 +257,7 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	    FILE *fp = fopen(aprxlogfile, "a");
 	    if (fp) {
 	      char timebuf[60];
-	      struct tm *t = gmtime(&now);
-	      // strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-	      sprintf(timebuf, "%04d-%02d-%02d %02d:%02d:%02d",
-		      t->tm_year+1900,t->tm_mon+1,t->tm_mday,
-		      t->tm_hour,t->tm_min,t->tm_sec);
+	      printtime(timebuf, sizeof(timebuf), now);
 
 	      fprintf(fp, "%s netax25_sendax25(%s,len=%d) wrote %d bytes\n", timebuf, nax25->callsign, ax25len, p);
 	      fclose(fp);
@@ -220,14 +277,141 @@ void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
 }
 #endif				/* HAVE_OPENPTY */
 
-static int rx_socket = -1;
+static int is_ax25ttyport(const char *callsign)
+{
+	int i;
+	for (i = 0; i < ax25ttyportscount; ++i) {
+		if (strcmp(callsign,ax25ttyports[i]) == 0)
+			return 1; // Have match
+	}
+	return 0; // No match
+}
 
-static struct netax25_pty **ax25rxports;
-static int                  ax25rxportscount;
 
-static char **ax25ttyports;
-static int   *ax25ttyfds;
-static int    ax25ttyportscount;
+static int scan_linux_devices() {
+	FILE *fp;
+	struct ifreq ifr;
+	char buffer[512], *s;
+	int fd;
+	struct netax25_dev ax25dev, *d;
+	int i;
+
+	// Mark all devices ready for scanning
+	for (i = 0; i < netax25_devcount; ++i)
+	  netax25_devs[i]->scan = 0;
+
+	fd = socket(PF_FILE, SOCK_DGRAM, 0);
+	if (fd < 0) {
+	  // ... error
+	  if (debug)printf("Can not create socket(PF_FILE,SOCK_DGRAM,0); errno=%d\n", errno);
+	  return -1;
+	}
+	fp = fopen("/proc/net/dev", "r");
+	if (fp == NULL) {
+	  if (debug)printf("Can not open /proc/net/dev for reading; errno=%d\n", errno);
+	  close(fd);
+	  // ... error
+	  return -1;
+	}
+	// Two header lines
+	s = fgets(buffer, sizeof(buffer), fp);
+	s = fgets(buffer, sizeof(buffer), fp);
+	// Then network interface names
+	while (!feof(fp)) {
+	  if (!fgets(buffer, sizeof(buffer), fp))
+	    break; // EOF
+	  s = strchr(buffer, ':');
+	  if (s) *s = 0;
+	  s = buffer;
+	  while (*s == ' '||*s == '\t') ++s;
+	  memset(&ifr, 0, sizeof(ifr));
+	  strncpy(ifr.ifr_name, s, IFNAMSIZ-1);
+	  ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+	  // Is it active?
+	  if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
+	    // error
+	    continue;
+	  }
+	  if (!(ifr.ifr_flags & IFF_UP))
+	    continue;  // not active, try next
+	  
+	  // Does it have AX.25 HW address ?
+	  if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
+	    // Error
+	    continue;
+	  }
+	  if (ifr.ifr_hwaddr.sa_family != ARPHRD_AX25)
+	    continue;  // Not AX.25 HW address, try next
+
+	  memset(&ax25dev, 0, sizeof(ax25dev));
+	  memcpy(ax25dev.devname,  ifr.ifr_name, IFNAMSIZ);
+	  memcpy(ax25dev.ax25addr, ifr.ifr_hwaddr.sa_data, 7); // AX.25 address
+	  ax25_to_tnc2_fmtaddress(ax25dev.callsign, ax25dev.ax25addr, 0); // in text
+
+	  if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
+	    // Error
+	    continue;
+	  }
+	  ax25dev.ifindex = ifr.ifr_ifindex;
+
+	  // Store/Update internal kernel interface index list
+
+	  d = NULL;
+	  for (i = 0; i < netax25_devcount; ++i) {
+	    d = netax25_devs[i];
+	    if (d->ifindex == ax25dev.ifindex) {
+	      d->scan = 1;  // The ifindex does not change during interface lifetime
+	      break;
+	    }
+	    d = NULL;
+	  }
+	  if (d == NULL) {
+	    // Not in known interfaces, add a new one..
+	    d = malloc(sizeof(*d));
+	    ++netax25_devcount;
+	    netax25_devs = realloc( netax25_devs,
+				    sizeof(void*) * netax25_devcount );
+	    netax25_devs[netax25_devcount-1] = d;
+	    memcpy(d, &ax25dev, sizeof(*d));
+	    d->scan = 1;
+	    d->rxok = !is_ax25ttyport(d->callsign);
+	  }
+
+	}
+	fclose(fp);
+	close(fd);
+	// Remove devices no longer known
+	for (i = 0; i < netax25_devcount; ++i) {
+	  if (netax25_devs[i]->scan == 0) {
+	    int j;
+	    if (debug>1)printf("Compating netax25_devs[] i=%d callsign=%s\n",
+			       i, netax25_devs[i]->callsign);
+	    free(netax25_devs[i]);
+	    for (j = i+1; j < netax25_devcount; ++j) {
+	      netax25_devs[j-1] = netax25_devs[j];
+	    }
+	    --netax25_devcount;
+	  }
+	}
+
+	// Link interfaces
+	for (i = 0; i < netax25_devcount; ++i) {
+	  int j;
+	  struct netax25_dev *d = netax25_devs[i];
+	  for (j = 0; j < ax25rxportscount; ++j) {
+	    if (strcmp(ax25rxports[j]->callsign,d->callsign) == 0) {
+	      d->interface = ax25rxports[j]->interface;
+	      ax25rxports[j]->ifindex = d->ifindex;
+	    }
+	  }
+	}
+
+	return 0;
+}
+
+
+
 
 /* config interface:  ax25-rxport: callsign */
 void *netax25_addrxport(const char *callsign, const struct aprx_interface *interface)
@@ -270,15 +454,6 @@ static void netax25_addttyport(const char *callsign,
 	++ax25ttyportscount;
 }
 
-static int is_ax25ttyport(const char *callsign)
-{
-	int i;
-	for (i = 0; i < ax25ttyportscount; ++i) {
-		if (strcmp(callsign,ax25ttyports[i]) == 0)
-			return 1; // Have match
-	}
-	return 0; // No match
-}
 
 /* Nothing much in early init */
 void netax25_init(void)
@@ -292,10 +467,10 @@ void netax25_start(void)
 	int rx_protocol;
 
 	rx_socket = -1;			/* Initialize for early bail-out  */
+	tx_socket = -1;
 
 	if (!ax25rxports) return;	/* No configured receiver ports.
 					   No receiver socket creation. */
-
 
 	rx_protocol = ETH_P_AX25;	/* Choosing ETH_P_ALL would pick also
 					   outbound packets, but also all of
@@ -303,20 +478,26 @@ void netax25_start(void)
 					   picks only inbound-at-ax25-devices
 					   ..packets.  */
 
-	rx_socket = socket(PF_PACKET, SOCK_PACKET, htons(rx_protocol));
-
-	if (rx_socket < 0)
-		rx_socket =
-			socket(PF_PACKET, SOCK_PACKET, htons(rx_protocol));
+	rx_socket = socket(PF_PACKET, SOCK_RAW, htons(rx_protocol));
+	tx_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_AX25));
 
 	if (rx_socket < 0) {
 		i = errno;
 		/* D'uh..  could not open it, report and leave it at that. */
-		if (debug)
-			fprintf(stderr,
-				"aprx: Could not open socket(PF_PACKET,SOCK_PACKET,ETH_P_AX25) for listening.  Errno=%d (%s)"
-				" -- not a big deal unless you want to receive via AX.25 sockets.\n",
-				i, strerror(i));
+		fprintf(stderr,
+			"aprx: Could not open socket(PF_PACKET,SOCK_RAW,ETH_P_AX25) for listening.  Errno=%d (%s)"
+			" -- not a big deal unless you want to receive via AX.25 sockets.\n",
+			i, strerror(i));
+		return;
+	}
+
+	if (tx_socket < 0) {
+		i = errno;
+		/* D'uh..  could not open it, report and leave it at that. */
+		fprintf(stderr,
+			"aprx: Could not open socket(PF_PACKET,SOCK_RAW,ETH_P_AX25) for sending.  Errno=%d (%s)"
+			" -- not a big deal unless you want to send via AX.25 sockets.\n",
+			i, strerror(i));
 		return;
 	}
 
@@ -331,10 +512,17 @@ const void* netax25_open(const char *ifcallsign)
 	return netax25_openpty(ifcallsign);
 }
 
+static time_t next_scantime;
+
 int netax25_prepoll(struct aprxpolls *app)
 {
 	struct pollfd *pfd;
 	int i;
+
+	if (next_scantime <= now) {
+	  next_scantime = now + 60; // 1 minute+ from now -- exact timing is not important
+	  scan_linux_devices();
+	}
 
 	if (rx_socket >= 0) {
 		/* FD is open, lets mark it for poll read.. */
@@ -357,135 +545,125 @@ int netax25_prepoll(struct aprxpolls *app)
 	return 1;
 }
 
-static int ax25_fmtaddress(char *dest, const uint8_t *src)
-{
-	int i, c;
-
-	/* We really should verify that  */
-
-	/* 6 bytes of station callsigns in shifted ASCII format.. */
-	for (i = 0; i < 6; ++i, ++src) {
-		c = *src;
-		if (c & 1)
-			return (-(int) (c));	/* Bad address-end flag ? */
-
-		/* Don't copy spaces or 0 bytes */
-		if (c != 0 && c != 0x40)
-			*dest++ = c >> 1;
-	}
-	/* 7th byte carries SSID et.al. bits */
-	c = *src;
-	if ((c >> 1) % 16) {	/* don't print SSID==0 value */
-		dest += sprintf(dest, "-%d", (c >> 1) % 16);
-	}
-
-	*dest = 0;
-
-	return c;
-}
-
-
 static int rxsock_read( const int fd )
 {
-	// struct msghdr msgh;
-	// union {
-	  struct sockaddr sa;
-	//  struct full_sockaddr_ax25 sax;
-	//  uint8_t sab[200];
-	// } sa;
-	// struct iovec    iov[1];
-	// uint8_t msgbuf[1000];
+	struct sockaddr_ll sll;
+	socklen_t sllsize;
+	int rcvlen, ifindex, i;
+	struct netax25_dev *netdev;
 	uint8_t rxbuf[3000];
 
-	struct ifreq ifr;
-	socklen_t asize;
-	int rcvlen;
-	char ifaddress[12]; /* max size: 6+1+2 chars */
-
-	const struct aprx_interface *aif = NULL;
-
-	/*
-	msgh.msg_name       = & sa;
-	msgh.msg_namelen    = sizeof(sa);
-	msgh.msg_iov        = iov;
-	msgh.msg_iovlen     = 1;
-	msgh.msg_control    = msgbuf;
-	msgh.msg_controllen = sizeof(msgbuf);
-	msgh.msg_flags      = 0;
-	iov[0].iov_base        = rxbuf;
-	iov[0].iov_len         = sizeof(rxbuf);
-	*/
-
-	// memset(&sa, 0, sizeof(sa));
-
-	asize = sizeof(sa);
-	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf), 0, &sa, &asize);
-
-
-	// rcvlen = recvmsg(fd, &msgh, MSG_DONTWAIT);
+	sllsize = sizeof(sll);
+	rcvlen = recvfrom(fd, rxbuf, sizeof(rxbuf), 0, (struct sockaddr*)&sll, &sllsize);
 
 	if (rcvlen < 0) {
 		return 0;	/* No more at this time.. */
 	}
 
-	if (debug) {
-	  // printf("netax25rx packet from %s length %d family=%d\n", &sa.sax.fsa_ax25.sax25_call, rcvlen, sa.sax.fsa_ax25.sax25_family);
-	  printf("netax25rx packet from rx_socket; device %s data length %d address family=%d\n", sa.sa_data, rcvlen, sa.sa_family);
+/*
+struct sockaddr_ll
+  {
+    unsigned short int sll_family;	= PF_PACKET
+    unsigned short int sll_protocol;	= 200 ?
+    int sll_ifindex;			= 4
+    unsigned short int sll_hatype;	= 3 = SOCK_RAW ?
+    unsigned char sll_pkttype;		= 0
+    unsigned char sll_halen;		= 0
+    unsigned char sll_addr[8];		= random
+  };
+
+netax25rx packet len=54 from rx_socket;  family=17 protocol=200 ifindex=4 hatype=3
+					 pkttype=0 halen=0  addr=84:f9:ca:bf:d7:04:f3:b7
+
+Data:  00 82 a0 aa 64 6a 9c e0 9e 90 70 9a b0 94 60 ae 92 88 8a 64 40 61 03 f0 3d 36 33 35 33 2e ...
+Text:  00 82 a0 aa  d  j 9c e0 9e 90  p 9a b0 94  ` ae 92 88 8a  d  @  a 03 f0  =  6  3  5  3  . ...
+AX25:  00  A  P  U  2  5  N  p  O  H  8  M  X  J  0  W  I  D  E  2     0 01  x 1e 1b 19 1a 19 17 ...
+
+Leads with 00 byte, then AX.25 address..
+
+*/
+
+	if (sll.sll_family   != PF_PACKET         ||
+	    sll.sll_protocol != htons(ETH_P_AX25) ||
+	    sll.sll_hatype   != SOCK_RAW          ||
+	    sll.sll_pkttype  != 0                 ||
+	    sll.sll_halen    != 0                 ||
+	    rxbuf[0]         != 0 ) {
+	  return 1; // Not of our interest
+	}
+	ifindex = sll.sll_ifindex;
+
+	if (debug>1) {
+	  printf("netax25rx packet len=%d from rx_socket;  family=%d protocol=%x ifindex=%d hatype=%d pkttype=%d halen=%d\n",
+		 rcvlen, sll.sll_family, sll.sll_protocol, sll.sll_ifindex, sll.sll_hatype, sll.sll_pkttype, sll.sll_halen);
+/*
+	  printf(" addr=%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+		 sll.sll_addr[0],sll.sll_addr[1],sll.sll_addr[2],sll.sll_addr[3],
+		 sll.sll_addr[4],sll.sll_addr[5],sll.sll_addr[6],sll.sll_addr[7]);
+
+		  int i;
+		  printf("Data: ");
+		  for (i = 0; i < rcvlen; ++i)
+		    printf(" %02x", rxbuf[i]);
+		  printf("\n");
+		  printf("Text: ");
+		  for (i = 0; i < rcvlen; ++i) {
+		    uint8_t c = rxbuf[i];
+		    if (32 <= c && c <= 126)
+		      printf("  %c", c);
+		    else
+		      printf(" %02x", c);
+		  }
+		  printf("\n");
+		  printf("AX25: ");
+		  for (i = 0; i < rcvlen; ++i) {
+		    uint8_t c = rxbuf[i] >> 1;
+		    if (32 <= c && c <= 126)
+		      printf("  %c", c);
+		    else
+		      printf(" %02x", c);
+		  }
+		  printf("\n");
+*/
+ 	}
+
+	netdev = NULL;
+	for (i = 0; i < netax25_devcount; ++i) {
+	  if (netax25_devs[i]->ifindex == ifindex) {
+	    netdev = netax25_devs[i];
+	    break;
+	  }
+	}
+	if (netdev == NULL) {
+	  // Not found from Ax.25 devices
+	  if (debug>1) printf(".. not from known AX.25 device\n");
+	  return 1;
 	}
 
-	/* Query AX.25 for the address from whence
-	   this came in.. */
-	// memcpy(ifr.ifr_name, &sa.sax.fsa_ax25.sax25_call, sizeof(ifr.ifr_name));
-	memcpy(ifr.ifr_name, &sa.sa_data, sizeof(ifr.ifr_name));
-	if (ioctl(rx_socket, SIOCGIFHWADDR, &ifr) < 0
-	    || ifr.ifr_hwaddr.sa_family != AF_AX25) {
-		/* not AX.25 so ignore this packet .. */
-		return 1;	/* there may be more on this socket */
-	}
-	/* OK, AX.25 address.  Print it out in text. */
-	ax25_fmtaddress(ifaddress, (uint8_t*)ifr.ifr_hwaddr.sa_data);
+	if (debug) printf("Received frame of %d bytes from %s: %s\n",
+			  rcvlen, netdev->devname, netdev->callsign);
 
-	if (debug > 1)
-		printf("Received frame from '%s' len %d\n",
-		       ifaddress, rcvlen);
-
-	if (is_ax25ttyport(ifaddress)) {
-		if (debug > 1) printf("%s is ttyport which we serve.\n",ifaddress);
-		return 1;	/* We drop our own packets,
-				   if we ever see them */
-	}
-
-	if (ax25rxports) {
-		/* We have a list of AX.25 ports
-		   (callsigns) where we limit
-		   the reception from! */
-		int j, ok = 0;
-		for (j = 0; j < ax25rxportscount; ++j) {
-			if (strcmp(ifaddress,ax25rxports[j]->callsign) == 0) {
-				aif = ax25rxports[j]->interface;
-				ok = 1;	/* Found match ! */
-				break;
-			}
+	// if (is_ax25ttyport(netdev->callsign)) {
+	if (!netdev->rxok) {
+		if (debug > 1) {
+		  printf("%s is ttyport which we serve.\n",netdev->callsign);
 		}
-		if (!ok) {
-			if (debug > 1) printf("%s is not known on  ax25-rxport definitions.\n",ifaddress);
-			return 1;	/* No match :-(  */
-		}
+		return 1; // We drop our own packets, if we ever see them
 	}
 
-	/* Now: actual AX.25 frame reception,
-	   and transmit via ax25_to_tnc2() ! */
+	/// Now: actual AX.25 frame reception,
+	//   and transmit via ax25_to_tnc2() !
 
 	/*
 	 * "+10" is a magic constant for trying
 	 * to estimate channel occupation overhead
 	 */
-	erlang_add(ifaddress, ERLANG_RX, rcvlen + 10, 1); // rxsock_read()
+	erlang_add(netdev->callsign, ERLANG_RX, rcvlen + 10, 1); // rxsock_read()
 
 	// Send it to Rx-IGate, validates also AX.25 header bits,
 	// and returns non-zero only when things are OK for processing.
 	// Will internally also send to interface layer, if OK.
-	ax25_to_tnc2(aif, ifaddress, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
+	ax25_to_tnc2(netdev->interface, netdev->callsign, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
 
 	return 1;
 }
@@ -527,77 +705,48 @@ int netax25_postpoll(struct aprxpolls *app)
 
 
 
-/*
- *	Compare two ax.25 addresses
- */
-static int ax25_compare(const ax25_address *a, const ax25_address *b)
-{
-	if ((a->ax25_call[0] & 0xFE) != (b->ax25_call[0] & 0xFE))
-		return 1;
-
-	if ((a->ax25_call[1] & 0xFE) != (b->ax25_call[1] & 0xFE))
-		return 1;
-
-	if ((a->ax25_call[2] & 0xFE) != (b->ax25_call[2] & 0xFE))
-		return 1;
-
-	if ((a->ax25_call[3] & 0xFE) != (b->ax25_call[3] & 0xFE))
-		return 1;
-
-	if ((a->ax25_call[4] & 0xFE) != (b->ax25_call[4] & 0xFE))
-		return 1;
-
-	if ((a->ax25_call[5] & 0xFE) != (b->ax25_call[5] & 0xFE))
-		return 1;
-
- 	if ((a->ax25_call[6] & 0x1E) != (b->ax25_call[6] & 0x1E))	/* SSID without control bit */
- 		return 2;
-
- 	return 0;
-}
-
-void netax25_sendto(const void *nax25p, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen)
+void netax25_sendto(const void *nax25p, const uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen)
 {
 	const struct netax25_pty *nax25 = nax25p;
-	struct full_sockaddr_ax25 srcsax;
-	struct full_sockaddr_ax25 dstsax;
-	int tx_socket = socket(PF_AX25,   SOCK_DGRAM, 0);
-	int digilen = axaddrlen - 14;
-	int srclen, dstlen;
+	struct sockaddr_ll sll;
+	char c0[1];
+	struct iovec iovec[3];
+	struct msghdr mh;
+	int i, len;
 
-	axaddr[6] &= 0xFE;
-	axaddr[13] &= 0xFE;
-	
-	srclen = sizeof(srcsax.fsa_ax25);
-	memset(&srcsax, 0, sizeof(srcsax));
-	srcsax.fsa_ax25.sax25_family = PF_AX25;
-	srcsax.fsa_ax25.sax25_ndigis = 0;
-	memcpy(srcsax.fsa_ax25.sax25_call.ax25_call, axaddr+7, 7);
-	if (ax25_compare(&srcsax.fsa_ax25.sax25_call,
-			 (const ax25_address *)nax25->interface->ax25call)) {
-	  // source call
-	  srclen = sizeof(srcsax);
-	  srcsax.fsa_ax25.sax25_ndigis = 1;
-	  memcpy(srcsax.fsa_digipeater, nax25->interface->ax25call, 7);
+	if (tx_socket < 0) {
+	  if (debug>1) printf("netax25_sendto() tx_socket = -1, can not do..\n");
+	  return; // D'uh..
+	}
+	if (nax25->ifindex < 0) {
+	  if (debug>1) printf("netax25_sendto() ifindex < 0, can not do..\n");
+	  return; // D'uh..
 	}
 
-	dstlen = sizeof(dstsax.fsa_ax25);
-	memset(&dstsax, 0, sizeof(dstsax));
-	dstsax.fsa_ax25.sax25_family = PF_AX25;
-	memcpy(dstsax.fsa_ax25.sax25_call.ax25_call, axaddr, 7);
-	if (digilen > 0) {
-	  dstsax.fsa_ax25.sax25_ndigis = digilen / 7;
-	  axaddr[14-1] &= 0xFE;
-	  memcpy(&dstsax.fsa_digipeater, axaddr + 14, digilen);
-	  dstlen = sizeof(dstsax);
-	}
-	
-	bind(tx_socket, (struct sockaddr *)&srcsax, sizeof(srcsax));
+	memset(&sll, 0, sizeof(sll));
+	sll.sll_family   = PF_PACKET;
+	sll.sll_ifindex  = nax25->ifindex;
+	sll.sll_protocol = htons(ETH_P_AX25);
+	sll.sll_hatype   = SOCK_RAW;
 
-	sendto(tx_socket, axdata, axdatalen, 0, // That NOSIGNAL is Linux specific, but so is AX.25 too...
-	       (struct sockaddr *)&dstsax, sizeof(dstsax));
+	c0[0] = 0;
+	iovec[0].iov_base = c0;
+	iovec[0].iov_len  = 1;
+	iovec[1].iov_base = (void*)axaddr; // silence the compiler
+	iovec[1].iov_len  = axaddrlen;
+	iovec[2].iov_base = (void*)axdata; // silence the compiler
+	iovec[2].iov_len  = axdatalen;
+	len = 1+axaddrlen+axdatalen; // for debugging
 
-	close(tx_socket);
+	memset(&mh, 0, sizeof(mh));
+	mh.msg_name    = &sll;
+	mh.msg_namelen = sizeof(sll);
+	mh.msg_iov     = iovec;
+	mh.msg_iovlen  = 3;
+
+	errno = 0;
+	i = sendmsg(tx_socket, &mh, 0);
+	if (debug>1)printf("netax25_sendto() the sendmsg len=%d rc=%d errno=%d\n", len, i, errno);
 
 	erlang_add(nax25->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);  // netax25_sendto()
 }
