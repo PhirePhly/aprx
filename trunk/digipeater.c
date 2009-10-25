@@ -287,7 +287,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	}
 }
 
-static int match_transmitter(const char *viafield, struct digipeater_source *src)
+static int match_transmitter(const char *viafield, const struct digipeater_source *src)
 {
 	struct aprx_interface *aif = src->parent->transmitter;
 	int tlen = strlen(aif->callsign);
@@ -380,6 +380,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
 	memcpy(viafield, pb->data, len);
 	viafield[len] = 0;
+	// if (debug>2)printf(" srccall='%s'",viafield);
 	if (try_reject_filters(0, viafield, src)) {
 	  if (debug>1) printf(" - Src filters reject\n");
 	  return 1; // Src reject filters
@@ -389,6 +390,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
 	memcpy(viafield, pb->destcall, len);
 	viafield[len] = 0;
+	// if (debug>2)printf(" destcall='%s'",viafield);
 	if (try_reject_filters(1, viafield, src)) {
 	  if (debug>1) printf(" - Dest filters reject\n");
 	  return 1; // Dest reject filters
@@ -1221,6 +1223,16 @@ void digipeater_receive( struct digipeater_source *src,
 	}
 	// Send directly to backend
 	digipeater_receive_backend(src, pb);
+}
+
+dupecheck_t *digipeater_find_dupecheck(const struct aprx_interface *aif)
+{
+	int i;
+	for (i = 0; i < digi_count; ++i) {
+	  if (aif == digis[i]->transmitter)
+	    return digis[i]->dupechecker;
+	}
+	return NULL;
 }
 
 

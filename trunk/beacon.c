@@ -395,34 +395,76 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	return;
 }
 
-int beacon_prepoll(struct aprxpolls *app)
+void beacon_config(struct configfile *cf, const int netonly)
 {
-	if (!aprsis_login)
-		return 0;	/* No mycall !  hoh... */
-	if (!beacon_msgs)
-		return 0;	/* Nothing to do */
+	char *name, *param1;
+	char *str = cf->buf;
 
-	if (beacon_nexttime < app->next_timeout)
-		app->next_timeout = beacon_nexttime;
+	while (readconfigline(cf) != NULL) {
+		if (configline_is_comment(cf))
+			continue;	/* Comment line, or empty line */
 
-	return 0;		/* No poll descriptors, only time.. */
+		// It can be severely indented...
+		str = config_SKIPSPACE(cf->buf);
+
+		name = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+		config_STRLOWER(name);
+
+		param1 = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+
+		if (netonly > 0) {
+		  if (strcmp(name, "</netbeacon>") == 0)
+		    break;
+		} else if (netonly < 0) {
+		  if (strcmp(name, "</beacon>") == 0)
+		    break;
+		} else {
+		  if (strcmp(name, "</rfbeacon>") == 0)
+		    break;
+		}
+
+		if (strcmp(name, "beacon") == 0) {
+		  beacon_set(cf, param1, str, netonly);
+		} else {
+		  printf("%s:%d Unknown config keyword: '%s'\n",
+			 cf->name, cf->linenum, name);
+		  continue;
+		}
+	}
+}
+
+static void fix_beacon_time(char *msg, int msglen)
+{
+	int hour, min, sec;
+	char hms[8];
+
+	msg += 2; msglen -= 2; // Skip Control+PID
+
+	if (*msg != ';' || msglen < 38) return; // wrong type, or too short
+
+	// ;434.775-B*111111z6044.06N/02612.79Er
+
+	sec = now % (3600*24);
+	hour = sec / 3600;
+	min  = (sec / 60) % 60;
+	sec  = sec % 60;
+	sprintf(hms, "%02d%02d%02dh", hour, min, sec);
+	memcpy( msg+11, hms, 7 ); // Overwrite with new time
 }
 
 
-int beacon_postpoll(struct aprxpolls *app)
+
+static void beacon_now(void) 
 {
 	int  destlen;
 	int  txtlen, msglen;
 	int  i;
 	struct beaconmsg *bm;
 	const char *txt;
-
-	if (!aprsis_login)
-		return 0;	/* No mycall !  hoh... */
-	if (!beacon_msgs)
-		return 0;	/* Nothing to do */
-	if (beacon_nexttime > now)
-		return 0;	/* Too early.. */
 
 	if (beacon_msgs_cursor == 0) {
 		float beacon_cycle, beacon_increment;
@@ -469,9 +511,11 @@ int beacon_postpoll(struct aprxpolls *app)
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
 
 		if (bm->via != NULL)
-		  sprintf(destbuf,"%s>%s,%s:",src,bm->dest,bm->via);
+		  sprintf(destbuf,"%s>%s,%s",src,bm->dest,bm->via);
 		else
 		  sprintf(destbuf,"%s>%s", src, bm->dest);
+
+		fix_beacon_time((char*)bm->msg, msglen);
 
 		// Send them all also as netbeacons..
 		aprsis_queue(destbuf, strlen(destbuf),
@@ -519,9 +563,11 @@ int beacon_postpoll(struct aprxpolls *app)
 		      (bm->src != NULL) ? bm->src : callsign;
 
 		    if (bm->via != NULL)
-		      sprintf(destbuf,"%s>%s,%s:", src, bm->dest, bm->via);
+		      sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
 		    else
 		      sprintf(destbuf,"%s>%s", src, bm->dest);
+		    
+		    fix_beacon_time((char*)bm->msg, msglen);
 
 		    // Send them all also as netbeacons..
 		    aprsis_queue(destbuf, strlen(destbuf),
@@ -560,48 +606,32 @@ int beacon_postpoll(struct aprxpolls *app)
 		}
 	    }
 	}
-
-	return 0;
 }
 
-void beacon_config(struct configfile *cf, const int netonly)
+int beacon_prepoll(struct aprxpolls *app)
 {
-	char *name, *param1;
-	char *str = cf->buf;
+	if (!aprsis_login)
+		return 0;	/* No mycall !  hoh... */
+	if (!beacon_msgs)
+		return 0;	/* Nothing to do */
 
-	while (readconfigline(cf) != NULL) {
-		if (configline_is_comment(cf))
-			continue;	/* Comment line, or empty line */
+	if (beacon_nexttime < app->next_timeout)
+		app->next_timeout = beacon_nexttime;
 
-		// It can be severely indented...
-		str = config_SKIPSPACE(cf->buf);
+	return 0;		/* No poll descriptors, only time.. */
+}
 
-		name = str;
-		str = config_SKIPTEXT(str, NULL);
-		str = config_SKIPSPACE(str);
-		config_STRLOWER(name);
 
-		param1 = str;
-		str = config_SKIPTEXT(str, NULL);
-		str = config_SKIPSPACE(str);
+int beacon_postpoll(struct aprxpolls *app)
+{
+	if (!aprsis_login)
+		return 0;	/* No mycall !  hoh... */
+	if (!beacon_msgs)
+		return 0;	/* Nothing to do */
+	if (beacon_nexttime > now)
+		return 0;	/* Too early.. */
 
-		if (netonly > 0) {
-		  if (strcmp(name, "</netbeacon>") == 0)
-		    break;
-		} else if (netonly < 0) {
-		  if (strcmp(name, "</beacon>") == 0)
-		    break;
-		} else {
-		  if (strcmp(name, "</rfbeacon>") == 0)
-		    break;
-		}
+	beacon_now();
 
-		if (strcmp(name, "beacon") == 0) {
-		  beacon_set(cf, param1, str, netonly);
-		} else {
-		  printf("%s:%d Unknown config keyword: '%s'\n",
-			 cf->name, cf->linenum, name);
-		  continue;
-		}
-	}
+	return 0;
 }
