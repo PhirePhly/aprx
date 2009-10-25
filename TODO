@@ -16,11 +16,6 @@
 - "<interface> serial-device ... KISS .." to support more
   esoteric polling modes
 
-- Fix transmission of other than UI frames on Linux AX.25 network stack.
-  The  socket(PF_AX25, SOCK_DGRAM, 0) does produce UI frames of exactly
-  what APRS wants.
-
-
 - Windows port?
   - AGWPE interface for Windows ?
   - BPQ32 interface ?
