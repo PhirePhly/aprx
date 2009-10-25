@@ -1,17 +1,17 @@
-		     APRX   1.94
+				 APRX   1.94
 
-		  	TODO
+				TODO / Wishlist
 
 - system integration bits, like init-scripts..
   - Debian Linux
   - Fedora Linux
   - ...
 
-- OpenTRAC support ?  (UI, PID=0x77)
-  - Yes, on DIGIPEATER ONLY - what about WIDEn-N ? Y/N ?
 
 - Digipeating details of non-APRS UI protocols?  Some way to
   handle "WIDEn-N" on selected PIDs?
+- OpenTRAC support ?  (UI, PID=0x77)
+  - Yes, on DIGIPEATER ONLY - what about WIDEn-N ? Y/N ?
 
 - "<interface> serial-device ... KISS .." to support more
   esoteric polling modes
@@ -39,6 +39,26 @@
    - tx when:  seen==0, delayed_seen == 1, (seen_transmitter == 1)
    - optionally tx only when seeing first transmit of the request,
      not on any latter ones.
+
+- Calculate and note APRS DXes (like digi_ned does) ?
+- Calculate ALOHA range, and publish it?
+
+
+BoB:
+	Shucks, it would sure be nice if EVERY DIGIPEATER also had a
+	little smarts and could also report on its own RSSI.
+
+	That would give some people a clue what the digipeater is
+	hearing on its input.  In its 10 minute beacon it could report:
+
+		"176RX, 109TX, 243 busy"
+
+	ON a ten minute basis (total 600 1 sec slots) this tells us that
+	176 packets were decoded at th is site, 109 were elegible for
+	further digipeating, and another 243 seconds the channel was
+	busy with other collisions and non decodable traffic.  Leaving
+	72 secnds the channel was clear.
+
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009

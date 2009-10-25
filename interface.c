@@ -761,6 +761,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	int	viaindex   = 1; // First via field will be index 2
 	char    axaddrbuf[128];
 	char    *a = axaddrbuf;
+	dupecheck_t *dupechecker;
 
 	if (debug)
 	  printf("interface_transmit_beacon() aif=%p, aif->txok=%d aif->callsign='%s'\n",
@@ -768,6 +769,8 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 	if (aif == NULL)    return 0;
 	if (aif->txok == 0) return 0; // Sorry, no Tx
+
+	dupechecker = digipeater_find_dupecheck(aif);
 
 	// _FOR_VALGRIND_  -- and just in case for normal use
 	memset(ax25addr, 0, sizeof(ax25addr));
@@ -783,8 +786,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	}
 	ax25addrlen = 14; // Initial Src+Dest without any Via.
 
-	if (rflogfile)
-	  a += sprintf(axaddrbuf, "%s>%s", src, dest);
+	a += sprintf(axaddrbuf, "%s>%s", src, dest);
 	*a = 0;
 
 	if (via != NULL) {
@@ -792,11 +794,9 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	  const char *s, *p = via;
 	  const char *ve = via + strlen(via);
 
-	  if (rflogfile) {
-	    *a++ = ',';
-	    strncpy(a, via, sizeof(axaddrbuf)-(a-axaddrbuf)-3);
-	    axaddrbuf[sizeof(axaddrbuf)-3] = 0; // zero-terminate..
-	  }
+	  *a++ = ',';
+	  strncpy(a, via, sizeof(axaddrbuf)-(a-axaddrbuf)-3);
+	  axaddrbuf[sizeof(axaddrbuf)-3] = 0; // just in case do zero-terminate..
 
 	  while (p < ve) {
 	    int len;
@@ -838,9 +838,19 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	ax25addr[ax25addrlen-1] |= 0x01; // set address field end bit
 
 
+	// Feed to dupe-filter (transmitter specific)
+
+	if (dupechecker != NULL)
+	  dupecheck_aprs( dupechecker,
+			  axaddrbuf, strlen(axaddrbuf),
+			  txbuf+2, txlen-2  ); // ignore Ctrl+PID
+
+	// Transmit it to actual radio interface
+
 	interface_transmit_ax25( aif,
 				 ax25addr, ax25addrlen,
 				 txbuf, txlen);
+
 
 	if (rflogfile) {
 	  int     axlen;

@@ -1,5 +1,10 @@
 2009-10-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* digipeater.c, beacon.c, interface.c, aprx.h:
+	    Put all beacons on digipeater's transmitter duplicate checker
+	    storage.  Now a beacon with WIDE2-2 path will not be repeated
+	    by message originator.  Re-organized beacon's code base.
+
 	* netax25.c, interface.c, aprx.h:
 	    Use Link-Level mechanism to send arbitrary AX.25 packets to
 	    desired devices.  Added also a about once minute run code
