@@ -592,7 +592,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		// The Linux netax25 sender takes same data as this interface
 		netax25_sendto( aif->nax25p,
 				axaddr, axaddrlen,
-				axdata+2, axdatalen-2 ); // without Control+PID
+				axdata, axdatalen ); // without Control+PID
 		break;
 	default:
 		break;

@@ -116,6 +116,7 @@ extern const char *aprxlogfile;
 extern const char *erlanglogfile;
 extern const char *pidfile;
 
+extern void printtime(char *buf, int buflen, time_t t);
 
 /* ttyreader.c */
 typedef enum {
@@ -269,7 +270,7 @@ extern int         netax25_prepoll(struct aprxpolls *);
 extern int         netax25_postpoll(struct aprxpolls *);
 extern void      * netax25_addrxport(const char *callsign, const struct aprx_interface *aif);
 extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
-extern void        netax25_sendto(const void *nax25, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
+extern void        netax25_sendto(const void *nax25, const uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
 
 /* telemetry.c */
 extern void telemetry_start(void);
