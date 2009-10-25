@@ -38,7 +38,7 @@ A receive-only APRS-IS "i-gate" with following properties:
               RFONLY, NOGATE, TCPIP, TCPXX
 
    - Knows that following source address prefixes are bogus and thus
-     to be junked:
+     to be junked at Rx-iGate:
               WIDE, RELAY, TRACE, TCPIP, TCPXX, NOCALL, N0CALL
      (Actually these are string prefixes, so any WIDE*-* will block, etc.)
 

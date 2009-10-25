@@ -335,7 +335,8 @@ server    rotate.aprs.net    14580
 # ax25\-device  Lists AX.25 ports by their callsigns that in Linux
 #              systems receive APRS packets.  If none are defined,
 #              or the system is not Linux, the AX.25 network receiver
-#              is not enabled.
+#              is not enabled.  Used technologies need at least
+#              Linux kernel 2.4.x
 #
 # tx\-ok        Boolean telling if this device is able to transmit.
 #

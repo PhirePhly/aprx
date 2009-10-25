@@ -121,13 +121,15 @@ pidfile @VARRUN@/aprx.pid
 
 # ax25-device  Lists AX.25 ports by their callsigns that in Linux
 #              systems receive APRS packets.  If none are defined,
-#              the AX.25 network receiver is not enabled.
+#              or the system is not Linux, the AX.25 network receiver
+#              is not enabled.  Used technologies need at least
+#              Linux kernel 2.4.x
 #
 # tx-ok        Boolean telling if this device is able to transmit.
 #
 #<interface>
-#   ax25-device N0CALL
-#   tx-ok false
+#   ax25-device   $mycall
+#   tx-ok true    # There be transmitter there!
 #  #alias         RELAY,WIDE,TRACE
 #</interface>
 
@@ -225,12 +227,9 @@ pidfile @VARRUN@/aprx.pid
 #</interface>
 
 
-# ***********  Multiple <netbeacon>  definitions follow   *********
+# ***********  Multiple <beacon>  definitions follow   *********
 
-<netbeacon>
-# The  netbeacon  options.  These are sent only to APRSIS, not to
-# any radio transmitters.  Beacon entries are same for <netbeacon>,
-# <rfbeacon> and <beacon>.
+<beacon>
 #
 # The beacon messages are sent out at varying intervals --  14 to 18 minutes
 # in between cycle repeats. This interval is intentionally randomized.
@@ -265,24 +264,10 @@ pidfile @VARRUN@/aprx.pid
 #beacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
 #beacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 #
-</netbeacon>
+</beacon>
 
 
-# ***********  Multiple <rfbeacon>  definitions follow   *********
-
-<rfbeacon>
-#
-#  RF-beacons are sent out to radio transmitters AND to APRSIS.
-#  They are sent to all transmitters that have "tx-ok true" setting
-#  if no "to" entry is defined, and only to defined transmitter, if
-#  the "to" entry is defined.
-#
-#beacon to IFCALL-1 for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
-#beacon to IFCALL-1 for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
-</rfbeacon>
-
-
-#<rx-igate>
+#<rx-igate>  ## FIXME: to be written
 # AX.25 filters block selected messages matching on selected regular
 # expressions.  The expressions are case sensitive, and AX.25 address
 # elements are in all uppercase text.  There can be unlimited number
@@ -296,6 +281,7 @@ pidfile @VARRUN@/aprx.pid
 #   ax25-reject-filter data        "^\\?"
 #
 # Source interfaces from which the IGATE functionality feeds the data out
+# By default it feeds from all configured <interface>s.
 #
 #   source   IFCALL-1
 #   source   IFCALL-2
@@ -339,18 +325,18 @@ pidfile @VARRUN@/aprx.pid
 #
 #    <source>
 #        interface   TXCALL-1
-#    #   ratelimit   60    # default: 60 packets/minute
-#    #   #relay-type    digipeated # default mode is "digipeated"
-#    #   viscous-delay    0   # default: no viscous delay
+#    #   ratelimit   60          # default: 60 packets/minute
+#    #   #relay-type    digipeat # default mode is "digipeat"
+#    #   viscous-delay    0      # default: no viscous delay
 #    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
 #    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
 #    </source>
-#    #<source>                  # Extra receiver(s)
+#    #<source>                   # Extra receiver(s)
 #    #   interface   RXCALL-1
-#    #   #relay-type    digipeated # default mode is "digipeated"
+#    #   #relay-type    digipeat # default mode is "digipeat"
 #    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
