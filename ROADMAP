@@ -2,19 +2,20 @@
 
 
 Version 1
-    - APRS Rx-only iGate, channel activity monitoring and telemetry
-      	   - OK
+    - APRS Rx-only iGate				- Complete, working
+    - channel activity monitoring and telemetry		- Complete, working
 
 
 Version 2
-    - Digipeater				- Beta
-    - Radio beacons				- Beta
-    - Bidirection (Rx/Tx) APRS iGate		- Incomplere
+    - Digipeater					- Beta
+    - Radio beacons					- Beta
+    - Bidirection (Rx/Tx) APRS iGate			- Incomplete
 
 Version 3:
     - Port to ucLinux
     - Port to Windows
 
 Version 4:
-    - Automated coverage statistics analyzer, and reporting it via
-      digi node identity beacons.
+    - Automated coverage statistics analyzer, and
+      reporting it via digi node identity beacons.
+    - Automated coverage plotting
