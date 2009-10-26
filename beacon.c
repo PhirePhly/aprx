@@ -17,7 +17,7 @@ struct beaconmsg {
 	const char *dest;
 	const char *via;
 	const char *msg;
-	int	    netonly;
+	int	    beaconmode; // -1: net only, 0: both, +1: radio only
 };
 
 static struct beaconmsg **beacon_msgs;
@@ -114,7 +114,7 @@ static void beacon_reset(void)
 	beacon_msgs_cursor = 0;
 }
 
-static void beacon_set(struct configfile *cf, const char *p1, char *str, const int netonly)
+static void beacon_set(struct configfile *cf, const char *p1, char *str, const int beaconmode)
 {
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
@@ -306,7 +306,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	if (debug)
 		printf("\n");
 
-	if (aif == NULL && !netonly) {
+	if (aif == NULL && beaconmode >= 0) {
 		if (debug)
 			printf("%s:%d Lacking 'to' keyword for this beacon definition.\n",
 			       cf->name, cf->linenum);
@@ -330,6 +330,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	bm->dest      = strdup(destaddr);
 	bm->via       = via != NULL ? strdup(via) : NULL;
 	bm->interface = aif;
+	bm->beaconmode = beaconmode;
 
 	if (!bm->msg) {
 		/* Not raw packet, perhaps composite ? */
@@ -353,11 +354,18 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	}
 
 	if (debug) {
-	  if (netonly)
-	    printf("NET");
-	  else
-	    printf("RF");
-	  printf("BEACON FOR ");
+	  switch (beaconmode) {
+	  case 1:
+	    printf("RFONLY");
+	    break;
+	  case 0:
+	    printf("RF+NET");
+	    break;
+	  default:
+	    printf("NETONLY");
+	    break;
+	  }
+	  printf(" BEACON FOR ");
 	  if (srcaddr == NULL)
 	    printf("***>%s", destaddr);
 	  else
@@ -395,10 +403,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	return;
 }
 
-void beacon_config(struct configfile *cf, const int netonly)
+void beacon_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
+	int   beaconmode = 0;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -416,19 +425,27 @@ void beacon_config(struct configfile *cf, const int netonly)
 		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
 
-		if (netonly > 0) {
-		  if (strcmp(name, "</netbeacon>") == 0)
-		    break;
-		} else if (netonly < 0) {
-		  if (strcmp(name, "</beacon>") == 0)
-		    break;
-		} else {
-		  if (strcmp(name, "</rfbeacon>") == 0)
-		    break;
-		}
+		if (strcmp(name, "</beacon>") == 0)
+		  break;
 
 		if (strcmp(name, "beacon") == 0) {
-		  beacon_set(cf, param1, str, netonly);
+		  beacon_set(cf, param1, str, beaconmode);
+
+		} else if (strcmp(name, "beaconmode") == 0) {
+		  if (strcasecmp(param1, "both") == 0) {
+		    beaconmode = 0;
+
+		  } else if (strcasecmp(param1,"radio") == 0) {
+		    beaconmode = 1;
+
+		  } else if (strcasecmp(param1,"aprsis") == 0) {
+		    beaconmode = -1;
+
+		  } else {
+		    printf("%s:%d Unknown beaconmode parameter keyword: '%s'\n",
+			   cf->name, cf->linenum, param1);
+		  }
+
 		} else {
 		  printf("%s:%d Unknown config keyword: '%s'\n",
 			 cf->name, cf->linenum, name);
@@ -517,24 +534,28 @@ static void beacon_now(void)
 
 		fix_beacon_time((char*)bm->msg, msglen);
 
-		// Send them all also as netbeacons..
-		aprsis_queue(destbuf, strlen(destbuf),
-			     aprsis_login, txt, txtlen);
+		if (bm->beaconmode <= 0) {
+		  // Send them all also as netbeacons..
+		  aprsis_queue(destbuf, strlen(destbuf),
+			       aprsis_login, txt, txtlen);
+		}
 
-		if (bm->via || strcmp(src, callsign) != 0) {
-		  len     = ((bm->via ? strlen(bm->via) : 0) +
-			     strlen(callsign));
-		  destbuf = alloca(len + 5); // recycled for: viabuf!
-		  if (strcmp(src, callsign) != 0) {
-		    if (bm->via != NULL)
-		      sprintf( destbuf, "%s*,%s", callsign, bm->via );
-		    else
-		      sprintf( destbuf, "%s*", callsign );
+		if (bm->beaconmode >= 0) {
+		  if (bm->via || strcmp(src, callsign) != 0) {
+		    len     = ((bm->via ? strlen(bm->via) : 0) +
+			       strlen(callsign));
+		    destbuf = alloca(len + 5); // recycled for: viabuf!
+		    if (strcmp(src, callsign) != 0) {
+		      if (bm->via != NULL)
+			sprintf( destbuf, "%s*,%s", callsign, bm->via );
+		      else
+			sprintf( destbuf, "%s*", callsign );
+		    } else {
+		      strcpy( destbuf, bm->via );
+		    }
 		  } else {
-		    strcpy( destbuf, bm->via );
+		    destbuf = NULL;
 		  }
-		} else {
-		  destbuf = NULL;
 		}
 
 		if (debug) {
@@ -569,24 +590,27 @@ static void beacon_now(void)
 		    
 		    fix_beacon_time((char*)bm->msg, msglen);
 
-		    // Send them all also as netbeacons..
-		    aprsis_queue(destbuf, strlen(destbuf),
-				 aprsis_login, txt, txtlen);
-
-		    if (bm->via || strcmp(src, callsign) != 0) {
-		      len     = ((bm->via ? strlen(bm->via) : 0) +
-				 strlen(callsign));
-		      destbuf = alloca(len + 5); // recycled for: viabuf!
-		      if (strcmp(src, callsign) != 0) {
-			if (bm->via != NULL)
-			  sprintf( destbuf, "%s*,%s", callsign, bm->via );
-			else
-			  sprintf( destbuf, "%s*", callsign );
+		    if (bm->beaconmode <= 0) {
+		      // Send them all also as netbeacons..
+		      aprsis_queue(destbuf, strlen(destbuf),
+				   aprsis_login, txt, txtlen);
+		    }
+		    if (bm->beaconmode >= 0) {
+		      if (bm->via || strcmp(src, callsign) != 0) {
+			len     = ((bm->via ? strlen(bm->via) : 0) +
+				   strlen(callsign));
+			destbuf = alloca(len + 5); // recycled for: viabuf!
+			if (strcmp(src, callsign) != 0) {
+			  if (bm->via != NULL)
+			    sprintf( destbuf, "%s*,%s", callsign, bm->via );
+			  else
+			    sprintf( destbuf, "%s*", callsign );
+			} else {
+			  strcpy( destbuf, bm->via );
+			}
 		      } else {
-			strcpy( destbuf, bm->via );
+			destbuf = NULL;
 		      }
-		    } else {
-		      destbuf = NULL;
 		    }
 
 		    if (debug) {

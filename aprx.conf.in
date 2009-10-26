@@ -142,10 +142,15 @@ aprxlog @VARLOG@/aprx.log
 # ***********  Multiple <beacon>  definitions can follow   *********
 <beacon>
 #
-#  Beacons are sent out to radio transmitters AND to APRSIS.
+#  Beacons are sent out to radio transmitters AND/OR APRSIS.
+#  Default if "both", other modes are settable.
+#
+#beaconmode { aprsis | both | radio }
+#
 #  They are sent to all transmitters that have "tx-ok true" setting
 #  if no "to" entry is defined, and only to defined transmitter, if
 #  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
+#
 #
 #beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
 #beacon to $mycall  symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
