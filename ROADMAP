@@ -8,14 +8,21 @@ Version 1
 
 Version 2
     - Digipeater					- Beta
+      - Analyze and detect station distance (as a part  - Incomplete
+        of geographical filters still missing)
     - Radio beacons					- Beta
     - Bidirection (Rx/Tx) APRS iGate			- Incomplete
 
-Version 3:
+Version 2.5
     - Port to ucLinux
+
+Version 3:
     - Port to Windows
+
 
 Version 4:
     - Automated coverage statistics analyzer, and
       reporting it via digi node identity beacons.
+            "ALOHA circles"
+
     - Automated coverage plotting
