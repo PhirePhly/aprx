@@ -309,16 +309,8 @@ static void cfgparam(struct configfile *cf)
 	  digipeater_config(cf);
 	  return;
 	}
-	if (strcmp(name, "<netbeacon>") == 0) {
-	  beacon_config(cf,1);
-	  return;
-	}
-	if (strcmp(name, "<rfbeacon>") == 0) {
-	  beacon_config(cf,0);
-	  return;
-	}
 	if (strcmp(name, "<beacon>") == 0) {
-	  beacon_config(cf,-1);
+	  beacon_config(cf);
 	  return;
 	}
 	if (strcmp(name, "<logging>") == 0) {
@@ -464,6 +456,7 @@ int config_parse_boolean(const char *par, int *resultp)
 	if (strcasecmp(par, "true") == 0 ||
 	    strcmp(par, "1") == 0 ||
 	    strcasecmp(par, "yes") == 0 ||
+	    strcasecmp(par, "on") == 0 ||
 	    strcasecmp(par, "y") == 0) {
 
 		*resultp = 1;
@@ -472,6 +465,7 @@ int config_parse_boolean(const char *par, int *resultp)
 	} else if (strcasecmp(par, "false") == 0 ||
 		   strcmp(par, "0") == 0 ||
 		   strcasecmp(par, "no") == 0 ||
+		   strcasecmp(par, "off") == 0 ||
 		   strcasecmp(par, "n") == 0) {
 
 		*resultp = 0;

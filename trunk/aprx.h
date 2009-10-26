@@ -235,7 +235,7 @@ extern void aprsis_config(struct configfile *cf);
 /* beacon.c */
 extern int  beacon_prepoll(struct aprxpolls *app);
 extern int  beacon_postpoll(struct aprxpolls *app);
-extern void beacon_config(struct configfile *cf, const int netonly);
+extern void beacon_config(struct configfile *cf);
 
 /* config.c */
 extern void *readconfigline(struct configfile *cf);

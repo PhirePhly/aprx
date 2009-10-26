@@ -231,6 +231,11 @@ pidfile @VARRUN@/aprx.pid
 
 <beacon>
 #
+#  Beacons are sent out to radio transmitters AND/OR APRSIS.
+#  Default if "both", other modes are settable.
+#
+#beaconmode { aprsis | both | radio }
+#
 # The beacon messages are sent out at varying intervals --  14 to 18 minutes
 # in between cycle repeats. This interval is intentionally randomized.
 #

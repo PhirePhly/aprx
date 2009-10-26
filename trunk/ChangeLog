@@ -1,5 +1,10 @@
 2009-10-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* beacon.c, config.c, aprx.h, aprx.conf.in, aprx-complex.conf.in,
+	  aprx.8.in:
+	    Added a 'beaconmode { aprsis | both | radio }' config option,
+	    which says where the beacons are sent to.
+
 	* ROADMAP
 	    Development roadmap for first digit of version number
 
