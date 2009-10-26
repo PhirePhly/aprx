@@ -1,3 +1,8 @@
+2009-10-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* ROADMAP
+	    Development roadmap for first digit of version number
+
 2009-10-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* digipeater.c, beacon.c, interface.c, aprx.h:
