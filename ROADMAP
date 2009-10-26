@@ -1,0 +1,20 @@
+		Aprx Roadmap and Future Directions
+
+
+Version 1
+    - APRS Rx-only iGate, channel activity monitoring and telemetry
+      	   - OK
+
+
+Version 2
+    - Digipeater				- Beta
+    - Radio beacons				- Beta
+    - Bidirection (Rx/Tx) APRS iGate		- Incomplere
+
+Version 3:
+    - Port to ucLinux
+    - Port to Windows
+
+Version 4:
+    - Automated coverage statistics analyzer, and reporting it via
+      digi node identity beacons.

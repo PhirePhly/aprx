@@ -23,7 +23,7 @@ struct digistate {
 
 	int fixthis;
 	int fixall;
-	int probably_first_heard;
+	int probably_heard_direct;
 
 	int     ax25addrlen;
 	uint8_t ax25addr[90]; // 70 for address, a bit more for "body"
@@ -183,7 +183,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 		state->digireq  += 1;
 		state->digidone += hasHflag;
 		if (viaindex == 2 && !hasHflag)
-		  state->probably_first_heard = 1;
+		  state->probably_heard_direct = 1;
 		// if (debug>1) printf(" a[req=%d,done=%d,trace=%d]",0,0,hasHflag);
 		return 0;
 	}
@@ -198,7 +198,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 		  state->tracedone += hasHflag;
 		}
 		if (viaindex == 2 && !hasHflag)
-		  state->probably_first_heard = 1;
+		  state->probably_heard_direct = 1;
 		// if (debug>1) printf(" d[req=%d,done=%d]",1,hasHflag);
 		return 0;
 	}
@@ -247,7 +247,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	    // Something like "WIDE3-7", which is definitely bogus!
 	    state->fixall = 1;
 	    if (viaindex == 2 && !hasHflag)
-	      state->probably_first_heard = 1;
+	      state->probably_heard_direct = 1;
 	    return 0;
 	  }
 	  if (istrace) {
@@ -256,10 +256,10 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	  }
 	  if (viaindex == 2) {
 	    if (memcmp("TRACE",viafield,5)==0) // A real "TRACE" in first slot?
-	      state->probably_first_heard = 1;
+	      state->probably_heard_direct = 1;
 
 	    else if (!hasHflag && req == done) // WIDE3-3 on first slot
-	      state->probably_first_heard = 1;
+	      state->probably_heard_direct = 1;
 	  }
 	  // if (debug>1) printf(" g[req=%d,done=%d%s]",req,done,hasHflag ? ",Hflag!":"");
 	  return 0;
@@ -269,7 +269,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	  // The request has SSID value in range of 8 to 15
 	  state->fixall = 1;
 	  if (viaindex == 2 && !hasHflag)
-	    state->probably_first_heard = 1;
+	    state->probably_heard_direct = 1;
 	  return 0;
 
 	} else {
@@ -281,7 +281,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	    state->tracedone += hasHflag;
 	  }
 	  if (viaindex == 2 && !hasHflag)
-	    state->probably_first_heard = 1;
+	    state->probably_heard_direct = 1;
 	  // if (debug>1) printf(" h[req=%d,done=%d]",1,hasHflag);
 	  return 1;
 	}
@@ -906,6 +906,16 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	}
 
 	if (pb->is_aprs) {
+
+		if (state.probably_heard_direct) {
+		  // Collect a decaying average of distances to stations?
+		  //  .. could auto-beacon an aloha-circle - maybe
+		  //  .. note: this does not get packets that have no VIA fields.
+		  // Score of direct DX:es?
+		  //  .. note: this does not get packets that have no VIA fields.
+		}
+		// Keep score of all DX packets?
+
 		if (try_reject_filters(3, pb->info_start, src)) {
 			if (debug>1)
 			  printf(" - Data body regexp filters reject\n");
@@ -931,7 +941,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    state.hopsdone  > digi->wide->maxdone  ||
 	    state.tracedone > digi->trace->maxdone) {
 	  if (debug) printf(" Packet exceeds digipeat limits\n");
-	  if (!state.probably_first_heard)
+	  if (!state.probably_heard_direct)
 	    return;
 	  else
 	    state.fixall = 1;
