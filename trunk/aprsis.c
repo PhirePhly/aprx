@@ -108,7 +108,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 		FILE *fp = fopen(aprxlogfile, "a");
 		if (fp) {
 			char timebuf[60];
-			printtime(timebuf, sizeof(timebuf), now);
+			printtime(timebuf, sizeof(timebuf));
 
 			fprintf(fp, "%s CLOSE APRSIS %s:%s %s\n", timebuf,
 				A->H->server_name, A->H->server_port,
@@ -280,7 +280,7 @@ static void aprsis_reconnect(struct aprsis *A)
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				char timebuf[60];
-				printtime(timebuf, sizeof(timebuf), now);
+				printtime(timebuf, sizeof(timebuf));
 
 				fprintf(fp,
 					"%s FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n",
@@ -325,7 +325,7 @@ static void aprsis_reconnect(struct aprsis *A)
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				char timebuf[60];
-				printtime(timebuf, sizeof(timebuf), now);
+				printtime(timebuf, sizeof(timebuf));
 
 				fprintf(fp,
 					"%s FAIL - Connect to %s:%s failed: %s\n",
@@ -392,7 +392,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		FILE *fp = fopen(aprxlogfile, "a");
 		if (fp) {
 			char timebuf[60];
-			printtime(timebuf, sizeof(timebuf), now);
+			printtime(timebuf, sizeof(timebuf));
 
 			fprintf(fp, "%s CONNECT APRSIS %s:%s\n", timebuf,
 				A->H->server_name, A->H->server_port);

@@ -116,7 +116,7 @@ extern const char *aprxlogfile;
 extern const char *erlanglogfile;
 extern const char *pidfile;
 
-extern void printtime(char *buf, int buflen, time_t t);
+extern void printtime(char *buf, int buflen);
 
 /* ttyreader.c */
 typedef enum {

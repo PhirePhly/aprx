@@ -18,9 +18,9 @@ int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
 const char *aprsis_login;		/* linkage dummy */
 
-void printtime(char *buf, int buflen, time_t t_)
+void printtime(char *buf, int buflen)
 {
-	struct tm *t = gmtime(&t_);
+	struct tm *t = gmtime(&now);
 	// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
 		t->tm_year+1900,t->tm_mon+1,t->tm_mday,

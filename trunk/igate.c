@@ -151,7 +151,7 @@ void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int
     
 	if (fp) {
 		char timebuf[60];
-		printtime(timebuf, sizeof(timebuf), now);
+		printtime(timebuf, sizeof(timebuf));
 	  
 		fprintf(fp, "%s %-9s ", timebuf, portname);
 		fprintf(fp, "%s ", istx ? "T":"R");
