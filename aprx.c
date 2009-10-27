@@ -11,6 +11,7 @@
 
 /* Bits used only in the main program.. */
 #include <signal.h>
+#include <sys/time.h>
 
 time_t now;			/* this is globally used */
 int debug;
@@ -267,11 +268,14 @@ int main(int argc, char *const argv[])
 
 
 
-void printtime(char *buf, int buflen, time_t t_)
+void printtime(char *buf, int buflen)
 {
-	struct tm *t = gmtime(&t_);
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	struct tm *t = gmtime(&tv.tv_sec);
 	// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
-	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
 		t->tm_year+1900,t->tm_mon+1,t->tm_mday,
-		t->tm_hour,t->tm_min,t->tm_sec);
+		t->tm_hour,t->tm_min,t->tm_sec,
+		(int)(tv.tv_usec / 1000));
 }

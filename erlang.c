@@ -440,7 +440,7 @@ static void erlang_time_end(void)
 		fp = fopen(erlanglogfile, "a");
 	}
 
-	printtime(logtime, sizeof(logtime), now);
+	printtime(logtime, sizeof(logtime));
 
 	if (now >= erlang_time_end_1min) {
 		erlang_time_end_1min += 60;
