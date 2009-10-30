@@ -14,6 +14,9 @@
 	.
 	    Beacon timefixing on all message types that support it,
 	    and only upon special "timefix" option set on the beacon.
+	.
+	    Beacon construction from small parts supports 6 different
+	    fundamental packet types with coordinates.
 
 	* config.c:
 	    Make config parser debugging needs  -ddd  runtime options.

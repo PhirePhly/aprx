@@ -120,6 +120,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
 	const char *via      = NULL;
+	const char *name     = NULL;
 	int buflen = strlen(p1) + strlen(str ? str : "") + 10;
 	char *buf  = alloca(buflen);
 	const char *to   = NULL;
@@ -130,10 +131,6 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	char *type    = NULL;
 	const struct aprx_interface *aif = NULL;
 	int has_fault = 0;
-
-#ifdef _FOR_VALGRIND_
-	memset(buf, 0, buflen);
-#endif
 
 	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
@@ -208,6 +205,15 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			if (debug)
 				printf("via '%s' ", via);
 
+		} else if (strcmp(p1, "name") == 0) {
+
+			name  = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			if (debug)
+				printf("name '%s' ", via);
+
 		} else if (strcmp(p1, "lat") == 0) {
 			/*  ddmm.mmN   */
 
@@ -261,9 +267,16 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 			if (debug)
 				printf("type '%s' ", type);
-			if (type[0] != '!' ||  type[1] != 0)
-			  printf("%s:%d Sorry, Supported type is only '!'\n",
+			if (type[1] != 0 || (type[0] != '!' &&
+					     type[0] != '=' &&
+					     type[0] != '/' &&
+					     type[0] != '@' &&
+					     type[0] != ';' &&
+					     type[0] != ')')) {
+			  has_fault = 1;
+			  printf("%s:%d Sorry, packet constructor's supported APRS packet types are only: ! / ; )\n",
 				 cf->name, cf->linenum);
+			}
 
 		} else if (strcmp(p1, "comment") == 0) {
 			/* text up to .. 40 chars */
@@ -336,10 +349,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 	if (aif == NULL && beaconmode >= 0) {
 		if (debug)
-			printf("%s:%d Lacking 'to' keyword for this beacon definition.\n",
+			printf("%s:%d Lacking 'to' keyword for this beacon definition. Beaconing to all Tx capable interfaces + APRSIS (mode depening)\n",
 			       cf->name, cf->linenum);
 	}
 
+/*
 	if (srcaddr == NULL)
 		srcaddr = mycall;
 
@@ -349,7 +363,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		has_fault = 1;
 		goto discard_bm;
 	}
-
+*/
 
 	if (destaddr == NULL)
 		destaddr = tocall;
@@ -365,8 +379,22 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		if (!type) type = "!";
 		if (code && strlen(code) == 2 && lat && strlen(lat) == 8 &&
 		    lon && strlen(lon) == 9) {
-			sprintf(buf, "%s%s%c%s%c%s", type, lat, code[0], lon,
-				code[1], comment ? comment : "");
+			if ( strcmp(type,"!") == 0 ||
+			     strcmp(type,"=") == 0 ) {
+				sprintf(buf, "%s%s%c%s%c%s", type, lat, code[0], lon,
+					code[1], comment ? comment : "");
+			} else if ( strcmp(type,"/") == 0 ||
+				    strcmp(type,"@") == 0) {
+				sprintf(buf, "%s111111z%s%c%s%c%s", type, lat, code[0], lon,
+					code[1], comment ? comment : "");
+			} else if ( strcmp(type,";") == 0 && name) { // Object
+				sprintf(buf, ";%-9.9s*111111z%s%c%s%c%s", name, lat, code[0], lon,
+					code[1], comment ? comment : "");
+
+			} else if ( strcmp(type,")") == 0 && name) { // Item
+				sprintf(buf, ")%-3.9s!111111z%s%c%s%c%s", name, lat, code[0], lon,
+					code[1], comment ? comment : "");
+			}
 			bm->msg = strdup(buf);
 		} else {
 			if (!code || (code && strlen(code) != 2))
