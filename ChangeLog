@@ -1,3 +1,27 @@
+2009-10-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c:
+	    More logging of interface setups.
+
+	* beacon.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in
+	    New type of beacon:  file  /path/to/file,  the first line
+	    in given file is read every time this beacon entry is
+	    executed, and the text is sent out sans line end LF.
+	    There are no quote processing available.
+	.
+	    Validate latitude and longitude input, and complain if
+	    validate failed.
+	.
+	    Beacon timefixing on all message types that support it,
+	    and only upon special "timefix" option set on the beacon.
+
+	* config.c:
+	    Make config parser debugging needs  -ddd  runtime options.
+
+	* telemetry.c:
+	    Report higher of 10 minute integrated packet/byte counts in
+	    the 20 minute account interval.  This makes graphs smoother.
+
 2009-10-27  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, aprx.c, aprsis.c, beacon.c, netax25.c, ttyreader.c,
