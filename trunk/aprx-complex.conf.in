@@ -245,9 +245,10 @@ pidfile @VARRUN@/aprx.pid
 # after system start.
 #
 # There can be multiple netbeacon options.
-# 'for' parameter sets claimed origination address.
-# 'to'  parameter picks an interface (must be "tx-ok true" type)
-# 'via' sets radio distribution pattern, default: none.
+# 'for'  parameter sets claimed origination address.
+# 'dest' sets destination address, default "APRXnn"
+# 'to'   parameter picks an interface (must be "tx-ok true" type)
+# 'via'  sets radio distribution pattern, default: none.
 #
 # The parameter sets can vary:
 #  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
@@ -266,8 +267,10 @@ pidfile @VARRUN@/aprx.pid
 #
 # Symbol  R&   is for "Rx-only iGate"
 #
-#beacon for N0CALL-13 dest "APRS" symbol "R&" lat "6016.30N" lon "02506.36E" comment "aprx - an Rx-only iGate"
-#beacon for N0CALL-14 dest "APRS" raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon                          file /tmp/wxbeacon.txt
+#beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon to $mycall               symbol "R&" lat "6016.30N" lon "02506.36E" \
+#				 comment "aprx - an Rx-only iGate"
 #
 </beacon>
 

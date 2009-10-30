@@ -17,14 +17,15 @@ struct beaconmsg {
 	const char *dest;
 	const char *via;
 	const char *msg;
-	int	    beaconmode; // -1: net only, 0: both, +1: radio only
+	const char *filename;
+	int8_t	    beaconmode; // -1: net only, 0: both, +1: radio only
+	int8_t	    timefix;
 };
 
 static struct beaconmsg **beacon_msgs;
 
 static int beacon_msgs_count;
 static int beacon_msgs_cursor;
-
 
 static time_t beacon_nexttime;
 static time_t beacon_last_nexttime;
@@ -215,7 +216,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPSPACE(str);
 
 			if (validate_degmin_input(lat, 90)) {
-				;
+			  has_fault = 1;
+			  printf("Latitude input has bad format: '%s'\n",lat);
 			}
 
 			if (debug)
@@ -228,8 +230,9 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			if (validate_degmin_input(lat, 180)) {
-				;
+			if (validate_degmin_input(lon, 180)) {
+			  has_fault = 1;
+			  printf("Longitude input has bad format: '%s'\n",lon);
 			}
 
 			if (debug)
@@ -241,6 +244,10 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			code = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
+			if (strlen(code) != 2) {
+			  has_fault = 1;
+			  printf("Symbol code lenth is not exactly 2 chars\n");
+			}
 
 			if (debug)
 				printf("symbol '%s' ", code);
@@ -276,11 +283,30 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 			bm->msg = strdup(p1);
 
+			// FIXME: validate the data with APRS parser...
+
 			if (debug)
 				printf("raw '%s' ", bm->msg);
 
+		} else if (strcmp(p1, "file") == 0) {
+
+			p1 = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			bm->filename = strdup(p1);
+
+			if (debug)
+				printf("file '%s' ", bm->msg);
+
+		} else if (strcmp(p1, "timefix") == 0) {
+			bm->timefix = 1;
+			if (debug)
+				printf("timefix ");
+
 		} else {
 
+			has_fault = 1;
 #if 0
 			if (debug)
 				printf("Unknown keyword: '%s'", p1);
@@ -305,6 +331,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	}
 	if (debug)
 		printf("\n");
+	if (has_fault)
+		goto discard_bm;
 
 	if (aif == NULL && beaconmode >= 0) {
 		if (debug)
@@ -332,7 +360,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	bm->interface = aif;
 	bm->beaconmode = beaconmode;
 
-	if (!bm->msg) {
+	if (!bm->msg && !bm->filename) {
 		/* Not raw packet, perhaps composite ? */
 		if (!type) type = "!";
 		if (code && strlen(code) == 2 && lat && strlen(lat) == 8 &&
@@ -454,26 +482,43 @@ void beacon_config(struct configfile *cf)
 	}
 }
 
-static void fix_beacon_time(char *msg, int msglen)
+static void fix_beacon_time(char *txt, int txtlen)
 {
 	int hour, min, sec;
 	char hms[8];
-
-	msg += 2; msglen -= 2; // Skip Control+PID
-
-	if (*msg != ';' || msglen < 38) return; // wrong type, or too short
-
-	// ;434.775-B*111111z6044.06N/02612.79Er
 
 	sec = now % (3600*24);
 	hour = sec / 3600;
 	min  = (sec / 60) % 60;
 	sec  = sec % 60;
 	sprintf(hms, "%02d%02d%02dh", hour, min, sec);
-	memcpy( msg+11, hms, 7 ); // Overwrite with new time
+
+	txt += 2; txtlen -= 2; // Skip Control+PID
+
+	if (*txt == ';' && txtlen >= 36) { // Object
+
+		// ;434.775-B*111111z6044.06N/02612.79Er
+		memcpy( txt+11, hms, 7 ); // Overwrite with new time
+	} else if ((*txt == '/' || *txt == '@') && txtlen >= 27) { // Position with timestamp
+		memcpy( txt+1, hms, 7 ); // Overwrite with new time
+	}
 }
 
 
+static char *msg_read_file(const char *filename, char *buf, int buflen)
+{
+	FILE *fp = fopen(filename,"r");
+	if (!fp) return NULL;
+	if (fgets(buf, buflen, fp)) {
+		char *p = strchr(buf, '\n');
+		if (p) *p = 0;
+	} else {
+		*buf = 0;
+	}
+	fclose(fp);
+	if (*buf == 0) return NULL;
+	return buf;
+}
 
 static void beacon_now(void) 
 {
@@ -481,7 +526,8 @@ static void beacon_now(void)
 	int  txtlen, msglen;
 	int  i;
 	struct beaconmsg *bm;
-	const char *txt;
+	char const *txt;
+	char *msg;
 
 	if (beacon_msgs_cursor == 0) {
 		float beacon_cycle, beacon_increment;
@@ -514,7 +560,22 @@ static void beacon_now(void)
 	}
 	
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
-	txt     = bm->msg+2; // Skip Control+PID bytes
+
+	if (bm->filename != NULL) {
+		msg = alloca(2000);
+		txt = msg+2;
+		msg[0] = 0x03;
+		msg[1] = 0xF0;
+		if (!msg_read_file(bm->filename, msg+2, 2000-2)) {
+			// Failed loading
+			syslog(LOG_ERR, "Failed to load anything from beacon file %s", bm->filename);
+			return;
+		}
+	} else {
+		msg     = (char*)bm->msg;
+		txt     = bm->msg+2; // Skip Control+PID bytes
+	}
+
 	txtlen  = strlen(txt);
 	msglen  = txtlen+2; // this includes the control+pid bytes
 
@@ -532,7 +593,8 @@ static void beacon_now(void)
 		else
 		  sprintf(destbuf,"%s>%s", src, bm->dest);
 
-		fix_beacon_time((char*)bm->msg, msglen);
+		if (bm->timefix)
+		  fix_beacon_time(msg, msglen);
 
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
@@ -588,7 +650,8 @@ static void beacon_now(void)
 		    else
 		      sprintf(destbuf,"%s>%s", src, bm->dest);
 		    
-		    fix_beacon_time((char*)bm->msg, msglen);
+		    if (bm->timefix)
+		      fix_beacon_time((char*)msg, msglen);
 
 		    if (bm->beaconmode <= 0) {
 		      // Send them all also as netbeacons..

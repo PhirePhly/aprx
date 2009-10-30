@@ -72,8 +72,8 @@ static char *interface_default_aliases[] = { "RELAY","WIDE","TRACE" };
 
 static void interface_store(struct aprx_interface *aif)
 {
-  if (debug)
-    printf("interface_store() aif->callsign = '%s'\n", aif->callsign);
+	if (debug)
+	  printf("interface_store() aif->callsign = '%s'\n", aif->callsign);
 
 	all_interfaces_count += 1;
 	all_interfaces = realloc(all_interfaces,
@@ -319,9 +319,8 @@ void interface_config(struct configfile *cf)
 		  aif->callsign = strdup(param1);
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  aif->nax25p = netax25_addrxport(param1, aif);
-		  
 		  interface_store(aif);
-
+		  
 		} else if ((strcmp(name,"serial-device") == 0) && (aif->tty == NULL)) {
 		  if (aif->iftype == IFTYPE_UNSET) {
 		    aif->iftype              = IFTYPE_SERIAL;
@@ -333,6 +332,7 @@ void interface_config(struct configfile *cf)
 		    aif->tty->ttycallsign[0] = mycall;
 
 		    ttyreader_register(aif->tty);
+
 		    interface_store(aif);
 
 		  } else {
@@ -360,7 +360,7 @@ void interface_config(struct configfile *cf)
 		    aif->tty->ttycallsign[0]  = mycall;
 
 		    ttyreader_register(aif->tty);
-		    interface_store(aif);
+		    interface_store(aif); 
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
@@ -429,6 +429,9 @@ void interface_config(struct configfile *cf)
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  if (aif->tty != NULL)
 		    aif->tty->ttycallsign[0] = aif->callsign;
+
+		  if (debug)
+		    printf("  callsign= '%s'\n", aif->callsign);
 
 		} else if (strcmp(name, "initstring") == 0) {
 		  

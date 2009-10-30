@@ -382,6 +382,7 @@ server    rotate.aprs.net    14580
 #  if no "to" entry is defined, and only to defined transmitter, if
 #  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
 #
+#beacon               file /tmp/wxbeacon.txt
 #beacon for N0CALL\-3 raw "!6016.30NR02506.36E&aprx \- an Rx\-only iGate"
 #beacon for $mycall  symbol "R&" lat "6016.30N" lon "02506.36E"  \\
                      comment "aprx \- an Rx\-only iGate"

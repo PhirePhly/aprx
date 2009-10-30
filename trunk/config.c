@@ -514,7 +514,7 @@ void *readconfigline(struct configfile *cf)
 	  }
 	}
 
-	if (debug > 1)
+	if (debug > 2)
 	  printf("Config line: '%s'\n",cf->buf);
 
 	return cf->buf;
