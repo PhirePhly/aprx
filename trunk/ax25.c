@@ -275,10 +275,6 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 	char tnc2buf[2800];
 	int tnc2len = 0, tnc2addrlen = 0, is_aprs = 0, ui_pid = 0;
 
-#ifdef _FOR_VALGRIND_   // not used in generic case
-	memset(tnc2buf, 0, sizeof(tnc2buf));
-#endif
-
 	tnc2len = ax25_format_to_tnc( frame, framelen,
 				      tnc2buf, sizeof(tnc2buf),
 				      & frameaddrlen, &tnc2addrlen,
@@ -288,7 +284,7 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 
 	// APRS type packets are first rx-igated (and rflog()ed)
 	if (is_aprs) {
-	  igate_to_aprsis(portname, tncid, tnc2buf, tnc2addrlen, tnc2len, 0);
+		igate_to_aprsis(portname, tncid, tnc2buf, tnc2addrlen, tnc2len, 0);
 	}
 
 	// Send to interface system to receive it..  (digipeater!)
