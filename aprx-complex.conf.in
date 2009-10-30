@@ -249,6 +249,15 @@ pidfile @VARRUN@/aprx.pid
 # 'dest' sets destination address, default "APRXnn"
 # 'to'   parameter picks an interface (must be "tx-ok true" type)
 # 'via'  sets radio distribution pattern, default: none.
+# 'type' Single character setting type:  ! = / @ ; )
+# 'name' Object (';') and Item (')') type beacons use name.
+#
+# 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
+#            system fixes appropriate field with transmit time timestamp.
+# 'file' option tells a file at which a _raw_ APRS message content is
+#        expected to be found as first line of text. Line ending newline
+#        is removed, and no escapes are supported.  The timefix is
+#        available, though probably should not be used.
 #
 # The parameter sets can vary:
 #  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]

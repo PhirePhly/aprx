@@ -147,10 +147,45 @@ aprxlog @VARLOG@/aprx.log
 #
 #beaconmode { aprsis | both | radio }
 #
-#  They are sent to all transmitters that have "tx-ok true" setting
-#  if no "to" entry is defined, and only to defined transmitter, if
-#  the "to" entry is defined.  The "for" subfield defaults to "$mycall".
+# The beacon messages are sent out at varying intervals --  14 to 18 minutes
+# in between cycle repeats. This interval is intentionally randomized.
 #
+# Multiple netbeacons are evenly distributed for each time period,
+# or at least 3 seconds apart.  First netbeacon is sent out 30 seconds
+# after connection to APRS-IS, first rfbeacon is sent out 30 seconds
+# after system start.
+#
+# There can be multiple netbeacon options.
+# 'for'  parameter sets claimed origination address.
+# 'dest' sets destination address, default "APRXnn"
+# 'to'   parameter picks an interface (must be "tx-ok true" type)
+# 'via'  sets radio distribution pattern, default: none.
+# 'type' Single character setting type:  ! = / @ ; )
+# 'name' Object (';') and Item (')') type beacons use name.
+#
+# 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
+#            system fixes appropriate field with transmit time timestamp.
+# 'file' option tells a file at which a _raw_ APRS message content is
+#        expected to be found as first line of text. Line ending newline
+#        is removed, and no escapes are supported.  The timefix is
+#        available, though probably should not be used.
+#
+# The parameter sets can vary:
+#  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
+#  b) 'for nnn-n dest "string" raw "string"'
+#
+# The a) form flags on some of possible syntax errors in parameters.
+# It will also create only "!" type messages.  The dest parameter
+# defaults to "APRS", but can be used to give other destinations.
+# The via parameter can be used to add other keywords, like "NOGATE".
+#
+# Writing correct RAW format beacon message is very hard,
+# which is evidenced by the frequency of bad syntax texts
+# people so often put there...   If you can not be persuaded
+# not to do it, then at least VERIFY the beacon result on
+# web service like  findu.com,  or  aprs.fi
+#
+# Symbol  R&   is for "Rx-only iGate"
 #
 #beacon                          file /tmp/wxbeacon.txt
 #beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
