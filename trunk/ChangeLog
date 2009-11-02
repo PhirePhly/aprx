@@ -1,3 +1,13 @@
+2009-11-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION 1.95
+
+	* aprx.c:
+	    Software tocall identity: APRX1B
+
+	* telemetry.c:
+	    Erlang reporting confusion fixed.
+
 2009-10-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c:
