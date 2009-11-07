@@ -1,3 +1,11 @@
+/********************************************************************
+ *  APRX -- 2nd generation APRS-i-gate with                         *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
+ *                                                                  *
+ * (c) Matti Aarnio - OH2MQK,  2007-2009                            *
+ *                                                                  *
+ ********************************************************************/
 /*
  *	aprsc
  *
@@ -8,6 +16,8 @@
  *	
  */
 
+#include "aprx.h"
+
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
@@ -15,13 +25,8 @@
 #include <math.h>
 #include <alloca.h>
 
-#include "hmalloc.h"
-#include "hlog.h"
-#include "worker.h"
-#include "filter.h"
 #include "cellmalloc.h"
 #include "historydb.h"
-#include "cfgfile.h"
 #include "keyhash.h"
 
 /*
@@ -141,7 +146,7 @@ struct filter_head_t {
 		int16_t len2s, len2, len3s, len3; /* of s-filter */
 		/* for cases where there is only one.. */
 		struct filter_refcallsign_t  refcallsign;
-		/*  hmalloc()ed array, alignment important! */
+		/*  malloc()ed array, alignment important! */
 		struct filter_refcallsign_t *refcallsigns;
 	}; /* ANONYMOUS UNION */
 };
@@ -165,7 +170,8 @@ struct filter_t {
 
 #define QC_AnalyticsI	0x800
 
-/* For q-filter analytics: entrycall igate filter database */
+/*
+// For q-filter analytics: entrycall igate filter database
 struct filter_entrycall_t {
 	struct filter_entrycall_t *next;
 	time_t expirytime;
@@ -173,7 +179,8 @@ struct filter_entrycall_t {
 	int	len;
 	char	callsign[CALLSIGNLEN_MAX+1];
 };
-
+*/
+/*
 struct filter_wx_t {
 	struct filter_wx_t *next;
 	time_t expirytime;
@@ -181,6 +188,7 @@ struct filter_wx_t {
 	int	len;
 	char	callsign[CALLSIGNLEN_MAX+1];
 };
+*/
 
 typedef enum {
 	MatchExact,
@@ -188,30 +196,30 @@ typedef enum {
 	MatchWild
 } MatchEnum;
 
-#define FILTER_ENTRYCALL_HASHSIZE 2048 /* Around 500-600 in db,  this looks
-					  for collision free result.. */
-rwlock_t filter_entrycall_rwlock;
-int filter_entrycall_maxage = 60*60;  /* 1 hour, default.  Validity on
-					 lookups: 5 minutes less..  */
+/*
+#define FILTER_ENTRYCALL_HASHSIZE 2048	// Around 500-600 in db,  this looks
+					//  for collision free result..
+int filter_entrycall_maxage = 60*60;	// 1 hour, default.  Validity on
+					// lookups: 5 minutes less..
 int filter_entrycall_cellgauge;
 
 struct filter_entrycall_t *filter_entrycall_hash[FILTER_ENTRYCALL_HASHSIZE];
+*/
 
-
-#define FILTER_WX_HASHSIZE 1024        /* Around 300-400 in db,  this looks
-					  for collision free result.. */
-rwlock_t filter_wx_rwlock;
-int filter_wx_maxage = 60*60;         /* 1 hour, default.  Validity on
-					 lookups: 5 minutes less..  */
+/*
+#define FILTER_WX_HASHSIZE 1024		// Around 300-400 in db,  this looks
+					//  for collision free result..
+int filter_wx_maxage = 60*60;		// 1 hour, default.  Validity on
+					// lookups: 5 minutes less..
 int filter_wx_cellgauge;
 
 struct filter_wx_t *filter_wx_hash[FILTER_WX_HASHSIZE];
-
+*/
 
 #ifndef _FOR_VALGRIND_
 cellarena_t *filter_cells;
-cellarena_t *filter_entrycall_cells;
-cellarena_t *filter_wx_cells;
+//cellarena_t *filter_entrycall_cells;
+//cellarena_t *filter_wx_cells;
 #endif
 
 
@@ -219,7 +227,6 @@ int hist_lookup_interval = 20; /* FIXME: Configurable: Cache historydb
 				  position lookups this much seconds on
 				  each filter entry referring to some
 				  fixed callsign (f,m,t) */
-
 
 float filter_lat2rad(float lat)
 {
@@ -248,32 +255,36 @@ void filter_init(void)
 	/* printf("filter: sizeof=%d alignof=%d\n",
 	   sizeof(struct filter_t),__alignof__(struct filter_t)); */
 
-	/* Couple thousand */
-
+/*
+	// Couple thousand
 	filter_entrycall_cells = cellinit( "entrycall",
 					   sizeof(struct filter_entrycall_t),
 					   __alignof__(struct filter_entrycall_t),
 					   CELLMALLOC_POLICY_FIFO,
-					   32 /* 32 kB at the time */,
-					   0 /* minfree */ );
-
-	/* Under 1 thousand.. */
-
+					   32, // 32 kB at the time,
+					   0 // minfree
+					  );
+*/
+/*
+	// Under 1 thousand..
 	filter_wx_cells = cellinit( "wxcalls",
 				    sizeof(struct filter_wx_t),
 				    __alignof__(struct filter_wx_t),
 				    CELLMALLOC_POLICY_FIFO,
-				    32 /* 32 kB at the time */,
-				    0 /* minfree */ );
+				    32, // 32 kB at the time
+				    0 // minfree
+				   );
+*/
 #endif
 }
 
+#if 0
 static void filter_entrycall_free(struct filter_entrycall_t *f)
 {
 #ifndef _FOR_VALGRIND_
 	cellfree( filter_entrycall_cells, f );
 #else
-	hfree(f);
+	free(f);
 #endif
 	-- filter_entrycall_cellgauge;
 }
@@ -318,7 +329,6 @@ pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
 	hash = keyhash(key, keylen, 0);
 	idx = (hash ^ (hash >> 11) ^ (hash >> 22) ) % FILTER_ENTRYCALL_HASHSIZE; /* Fold the hashbits.. */
 
-	rwl_wrlock(&filter_entrycall_rwlock);
 
 	fp = &filter_entrycall_hash[idx];
 	f2 = NULL;
@@ -345,7 +355,7 @@ pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
 #ifndef _FOR_VALGRIND_
 		f = cellmalloc(filter_entrycall_cells);
 #else
-		f = hmalloc(sizeof(*f));
+		f = malloc(sizeof(*f));
 #endif
 		if (f) {
 			f->next  = *fp;
@@ -360,8 +370,6 @@ pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
 			++ filter_entrycall_cellgauge;
 		}
 	}
-
-	rwl_wrunlock(&filter_entrycall_rwlock);
 
 	return (f2 != NULL);
 }
@@ -389,8 +397,6 @@ static int filter_entrycall_lookup(const struct pbuf_t *pb)
 
 	f2 = NULL;
 
-	rwl_rdlock(&filter_entrycall_rwlock);
-
 	fp = &filter_entrycall_hash[idx];
 	while (( f = *fp )) {
 		if ( f->hash == hash ) {
@@ -409,8 +415,6 @@ static int filter_entrycall_lookup(const struct pbuf_t *pb)
 		fp = &(f -> next);
 	}
 
-	rwl_rdunlock(&filter_entrycall_rwlock);
-
 	return (f2 != NULL);
 }
 
@@ -422,8 +426,6 @@ void filter_entrycall_cleanup(void)
 {
 	int k, cleancount = 0;
 	struct filter_entrycall_t *f, **fp;
-
-	rwl_wrlock(&filter_entrycall_rwlock);
 
 	for (k = 0; k < FILTER_ENTRYCALL_HASHSIZE; ++k) {
 		fp = & filter_entrycall_hash[k];
@@ -441,8 +443,6 @@ void filter_entrycall_cleanup(void)
 		}
 	}
 
-	rwl_wrunlock(&filter_entrycall_rwlock);
-
 	// hlog( LOG_DEBUG, "filter_entrycall_cleanup() removed %d entries, count now: %ld",
 	//       cleancount, filter_entrycall_cellgauge );
 }
@@ -457,8 +457,6 @@ void filter_entrycall_atend(void)
 	int k;
 	struct filter_entrycall_t *f, **fp;
 
-	rwl_wrlock(&filter_entrycall_rwlock);
-
 	for (k = 0; k < FILTER_ENTRYCALL_HASHSIZE; ++k) {
 		fp = & filter_entrycall_hash[k];
 		while (( f = *fp )) {
@@ -467,8 +465,6 @@ void filter_entrycall_atend(void)
 			filter_entrycall_free(f);
 		}
 	}
-
-	rwl_wrunlock(&filter_entrycall_rwlock);
 }
 
 
@@ -476,8 +472,6 @@ void filter_entrycall_dump(FILE *fp)
 {
 	int k;
 	struct filter_entrycall_t *f;
-
-	rwl_rdlock(&filter_entrycall_rwlock);
 
 	for (k = 0; k < FILTER_ENTRYCALL_HASHSIZE; ++k) {
 		f = filter_entrycall_hash[k];
@@ -487,21 +481,19 @@ void filter_entrycall_dump(FILE *fp)
 				 (long)f->expirytime, f->callsign );
 		}
 	}
-
-	rwl_rdunlock(&filter_entrycall_rwlock);
 }
-
+#endif
 
 /* ================================================================ */
 
 
-
+#if 0
 static void filter_wx_free(struct filter_wx_t *f)
 {
 #ifndef _FOR_VALGRIND_
 	cellfree( filter_wx_cells, f );
 #else
-	hfree(f);
+	free(f);
 #endif
 	--filter_wx_cellgauge;
 }
@@ -528,8 +520,6 @@ int filter_wx_insert(struct pbuf_t *pb)
 	hash = keyhash(key, keylen, 0);
 	idx = ( hash ^ (hash >> 10) ^ (hash >> 20) ) % FILTER_WX_HASHSIZE; /* fold the hashbits.. */
 
-	rwl_wrlock(&filter_wx_rwlock);
-
 	fp = &filter_wx_hash[idx];
 	f2 = NULL;
 	while (( f = *fp )) {
@@ -555,7 +545,7 @@ int filter_wx_insert(struct pbuf_t *pb)
 #ifndef _FOR_VALGRIND_
 		f = cellmalloc(filter_wx_cells);
 #else
-		f = hmalloc(sizeof(*f));
+		f = malloc(sizeof(*f));
 #endif
 		++filter_wx_cellgauge;
 		if (f) {
@@ -570,8 +560,6 @@ int filter_wx_insert(struct pbuf_t *pb)
 		}
 	}
 
-	rwl_wrunlock(&filter_wx_rwlock);
-
 	return 0;
 }
 
@@ -585,8 +573,6 @@ static int filter_wx_lookup(const struct pbuf_t *pb)
 	int idx = ( hash ^ (hash >> 10) ^ (hash >> 20) ) % FILTER_WX_HASHSIZE; /* fold the hashbits.. */
 
 	f2 = NULL;
-
-	rwl_rdlock(&filter_wx_rwlock);
 
 	fp = &filter_wx_hash[idx];
 	while (( f = *fp )) {
@@ -606,8 +592,6 @@ static int filter_wx_lookup(const struct pbuf_t *pb)
 		fp = &(f -> next);
 	}
 
-	rwl_rdunlock(&filter_wx_rwlock);
-
 	return (f2 != NULL);
 }
 
@@ -620,8 +604,6 @@ void filter_wx_cleanup(void)
 {
 	int k, cleancount = 0;
 	struct filter_wx_t *f, **fp;
-
-	rwl_wrlock(&filter_wx_rwlock);
 
 	for (k = 0; k < FILTER_WX_HASHSIZE; ++k) {
 		fp = & filter_wx_hash[k];
@@ -639,8 +621,6 @@ void filter_wx_cleanup(void)
 		}
 	}
 
-	rwl_wrunlock(&filter_wx_rwlock);
-
 	// hlog( LOG_DEBUG, "filter_wx_cleanup() removed %d entries, count now: %ld",
 	//       cleancount, filter_wx_cellgauge );
 }
@@ -655,8 +635,6 @@ void filter_wx_atend(void)
 	int k;
 	struct filter_wx_t *f, **fp;
 
-	rwl_wrlock(&filter_wx_rwlock);
-
 	for (k = 0; k < FILTER_WX_HASHSIZE; ++k) {
 		fp = & filter_wx_hash[k];
 		while (( f = *fp )) {
@@ -665,8 +643,6 @@ void filter_wx_atend(void)
 			filter_wx_free(f);
 		}
 	}
-
-	rwl_wrunlock(&filter_wx_rwlock);
 }
 
 
@@ -674,8 +650,6 @@ void filter_wx_dump(FILE *fp)
 {
 	int k;
 	struct filter_wx_t *f;
-
-	rwl_rdlock(&filter_wx_rwlock);
 
 	for (k = 0; k < FILTER_WX_HASHSIZE; ++k) {
 		f = filter_wx_hash[k];
@@ -685,18 +659,18 @@ void filter_wx_dump(FILE *fp)
 				 (long)f->expirytime, f->callsign );
 		}
 	}
-
-	rwl_rdunlock(&filter_wx_rwlock);
 }
-
+#endif
 
 /* ================================================================ */
 
 
 void filter_preprocess_dupefilter(struct pbuf_t *pbuf)
 {
+#if 0
 	filter_entrycall_insert(pbuf);
 	filter_wx_insert(pbuf);
+#endif
 }
 
 void filter_postprocess_dupefilter(struct pbuf_t *pbuf)
@@ -794,7 +768,7 @@ static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int key
  *	If previous filter was of same type as this one, that one's refbuf is extended.
  */
 
-static int filter_parse_one_callsignset(struct client_t *c, const char *filt0, struct filter_t *f0, struct filter_t *ff, struct filter_t **ffp, MatchEnum wildok)
+static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *f0, const char *filt0, MatchEnum wildok)
 {
 	char prefixbuf[CALLSIGNLEN_MAX+1];
 	char *k;
@@ -802,6 +776,7 @@ static int filter_parse_one_callsignset(struct client_t *c, const char *filt0, s
 	int i, refcount, wildcard;
 	int refmax = 0, extend = 0;
 	struct filter_refcallsign_t *refbuf;
+	struct filter_t *ff = *ffp;
 	
 	p = filt0;
 	if (*p == '-') ++p;
@@ -815,16 +790,8 @@ static int filter_parse_one_callsignset(struct client_t *c, const char *filt0, s
 	}
 	if (refmax == 0) return -1; /* No prefixes ?? */
 
-	if (ff && ff->h.type == f0->h.type) { /* SAME TYPE, extend previous record! */
-		extend = 1;
-		refcount = ff->h.numnames + refmax;
-		refbuf   = hrealloc(ff->h.refcallsigns, sizeof(*refbuf) * refcount);
-		ff->h.refcallsigns = refbuf;
-		refcount = ff->h.numnames;
-	} else {
-		refbuf = hmalloc(sizeof(*refbuf)*refmax);
-		refcount = 0;
-	}
+	refbuf = malloc(sizeof(*refbuf)*refmax);
+	refcount = 0;
 
 	p = filt0;
 	if (*p == '-') ++p;
@@ -880,11 +847,11 @@ static int filter_parse_one_callsignset(struct client_t *c, const char *filt0, s
 			sprintf(s, " %s", filt0);
 		} else {
 			/* It does not fit anymore.. */
-			s = hmalloc(i); /* alloc a new one */
+			s = malloc(i); /* alloc a new one */
 			sprintf(s, "%s %s", p, filt0); /* .. and catenate. */
 			p = ff->h.text;
 			if (ff->h.text != ff->textbuf) /* possibly free old */
-				hfree((void*)p);
+				free((void*)p);
 			ff->h.text = s;     /* store new */
 		}
 	}
@@ -893,7 +860,7 @@ static int filter_parse_one_callsignset(struct client_t *c, const char *filt0, s
 	return extend;
 }
 
-int filter_parse_one_s(struct client_t *c, const char *filt0, struct filter_t *f0, struct filter_t *ff, struct filter_t **ffp)
+int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *filt0)
 {
 	/* s/pri/alt/over  	Symbol filter
 
@@ -910,6 +877,7 @@ int filter_parse_one_s(struct client_t *c, const char *filt0, struct filter_t *f
 	   Up to 520 invocations per second at peak.
 	*/
 	const char *s = filt0;
+	// struct filter_t *ff = *ffp;
 	int len1, len2, len3, len4, len5, len6;
 
 	if (*s == '-')
@@ -964,35 +932,21 @@ int filter_parse_one_s(struct client_t *c, const char *filt0, struct filter_t *f
 	  const char  *s1 = filt0+len1, *s2 = filt0+len3, *s3 = filt0+len5;
 	  int l1 = len2-len1, l2 = len4-len3, l3 = len6-len5;
 
-	  hlog( LOG_DEBUG, "parse s-filter:  '%.*s'  '%.*s'  '%.*s'", l1, s1, l2, s2, l3, s3 );
+	  // hlog( LOG_DEBUG, "parse s-filter:  '%.*s'  '%.*s'  '%.*s'", l1, s1, l2, s2, l3, s3 );
 	}
 #endif
 	return 0;
 }
 
 
-int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
+int filter_parse(struct filter_t **ffp, const char *filt)
 {
-	struct filter_t *f, f0;
+	struct filter_t f0;
 	int i;
 	const char *filt0 = filt;
 	const char *s;
 	char dummyc;
-	struct filter_t *ff, **ffp;
-
-	if (is_user_filter && c && (!(c->flags & CLFLAGS_USERFILTEROK))) {
-		hlog(LOG_DEBUG, "No user-specified filters permitted");
-		return -1;
-	}
-
-	if (!c) { /* built-in configuration scanning filter parsing */
-		ffp = &f;
-		f = NULL;
-	} else if (is_user_filter) {
-		ffp = &c->userfilters;
-	} else {
-		ffp = &c->defaultfilters;
-	}
+	struct filter_t *ff, *f;
 
 	ff = *ffp;
 	for ( ; ff && ff->h.next; ff = ff->h.next)
@@ -1008,9 +962,11 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 	f0.h.type = *filt;
 
 	if (!strchr("abdefmopqrstuABDEFMOPQRSTU",*filt)) {
-		/* Not valid filter code */
-		hlog(LOG_DEBUG, "Bad filter code: %s", filt0);
-		return -1;
+	  // Not valid filter code
+	  // hlog(LOG_DEBUG, "Bad filter code: %s", filt0);
+	  if (debug)
+	    printf("Bad filter code: %s\n", filt0);
+	  return -1;
 	}
 
 	switch (f0.h.type) {
@@ -1026,34 +982,48 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 			i = 4;
 
 		if (i != 4) {
-			hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
-			return -1;
+		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+		  if (debug)
+		    printf("Bad filter parse: %s", filt0);
+		  return -1;
 		}
 
 		if (!( -90.01 < f0.h.f_latN && f0.h.f_latN <  90.01)) {
-			hlog(LOG_DEBUG, "Bad filter latN value: %s", filt0);
-			return -2;
+		  // hlog(LOG_DEBUG, "Bad filter latN value: %s", filt0);
+		  if (debug)
+		    printf("Bad filter latN value: %s", filt0);
+		  return -2;
 		}
 		if (!(-180.01 < f0.h.f_lonW && f0.h.f_lonW < 180.01)) {
-			hlog(LOG_DEBUG, "Bad filter lonW value: %s", filt0);
-			return -2;
+		  // hlog(LOG_DEBUG, "Bad filter lonW value: %s", filt0);
+		  if (debug)
+		    printf("Bad filter lonW value: %s", filt0);
+		  return -2;
 		}
 		if (!( -90.01 < f0.h.f_latS && f0.h.f_latS <  90.01)) {
-			hlog(LOG_DEBUG, "Bad filter latS value: %s", filt0);
-			return -2;
+		  // hlog(LOG_DEBUG, "Bad filter latS value: %s", filt0);
+		  if (debug)
+		    printf("Bad filter latS value: %s", filt0);
+		  return -2;
 		}
 		if (!(-180.01 < f0.h.f_lonE && f0.h.f_lonE < 180.01)) {
-			hlog(LOG_DEBUG, "Bad filter lonE value: %s", filt0);
-			return -2;
+		  // hlog(LOG_DEBUG, "Bad filter lonE value: %s", filt0);
+		  if (debug)
+		    printf("Bad filter lonE value: %s", filt0);
+		  return -2;
 		}
 
 		if (f0.h.f_latN < f0.h.f_latS) {
-			hlog(LOG_DEBUG, "Bad filter: latN<latS: %s", filt0);
-			return -3; /* expect: latN >= latS */
+		  // hlog(LOG_DEBUG, "Bad filter: latN<latS: %s", filt0);
+		  if (debug)
+		    printf("Bad filter: latN<latS: %s", filt0);
+		  return -3; /* expect: latN >= latS */
 		}
 		if (f0.h.f_lonW > f0.h.f_lonE) {
-			hlog(LOG_DEBUG, "Bad filter: lonW>lonE: %s", filt0);
-			return -3; /* expect: lonW <= lonE */
+		  // hlog(LOG_DEBUG, "Bad filter: lonW>lonE: %s", filt0);
+		  if (debug)
+		    printf("Bad filter: lonW>lonE: %s", filt0);
+		  return -3; /* expect: lonW <= lonE */
 		}
 
 		// hlog(LOG_DEBUG, "Filter: %s -> A %.3f %.3f %.3f %.3f", filt0, f0.h.f_latN, f0.h.f_lonW, f0.h.f_latS, f0.h.f_lonE);
@@ -1070,7 +1040,7 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 	case 'B':
 		/*  b/call1/call2...   Budlist filter (*) */
 
-		i = filter_parse_one_callsignset(c, filt0, &f0, ff, ffp, MatchWild );
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
 		if (i < 0)
 			return i;
 		if (i > 0) /* extended previous */
@@ -1078,39 +1048,42 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 
 
 		break;
-
+#if 0
 	case 'd':
 	case 'D':
 		/* d/digi1/digi2...  	Digipeater filter (*)	*/
 
-		i = filter_parse_one_callsignset(c, filt0, &f0, ff, ffp, MatchWild );
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
 		if (i < 0)
 			return i;
 		if (i > 0) /* extended previous */
 			return 0;
 
 		break;
-
+#endif
+#if 0
 	case 'e':
 	case 'E':
 		/*   e/call1/call1/...  Entry station filter (*) */
 
-		i = filter_parse_one_callsignset(c, filt0, &f0, ff, ffp, MatchWild );
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
 		if (i < 0)
 			return i;
 		if (i > 0) /* extended previous */
 			return 0;
 
 		break;
-
+#endif
 	case 'f':
 	case 'F':
 		/*  f/call/dist         Friend's range filter  */
 
 		i = sscanf(filt+1, "/%9[^/]/%f", f0.h.refcallsign.callsign, &f0.h.f_dist);
 		if (i != 2 || f0.h.f_dist < 0.1) {
-			hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
-			return -1;
+		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+		  if (debug)
+		    printf("Bad filter parse: %s", filt0);
+		  return -1;
 		}
 
 		f0.h.refcallsign.callsign[CALLSIGNLEN_MAX] = 0;
@@ -1125,26 +1098,28 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		*/
 
 		break;
-
+#if 0
 	case 'm':
 	case 'M':
 		/*  m/dist            My range filter  */
 
 		i = sscanf(filt+1, "/%f", &f0.h.f_dist);
 		if (i != 1 || f0.h.f_dist < 0.1) {
-			hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
-			return -1;
+		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+		  if (debug)
+		    printf("Bad filter parse: %s", filt0);
+		  return -1;
 		}
 		f0.h.numnames = 0; /* reusing this as "position-cache valid" flag */
 
 		// hlog(LOG_DEBUG, "Filter: %s -> M %.3f", filt0, f0.h.f_dist);
 		break;
-
+#endif
 	case 'o':
 	case 'O':
 		/* o/obje1/obj2...  	Object filter (*)	*/
 
-		i = filter_parse_one_callsignset(c, filt0, &f0, ff, ffp, MatchWild );
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
 		if (i < 0)
 			return i;
 		if (i > 0) /* extended previous */
@@ -1157,14 +1132,14 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		/* p/aa/bb/cc...  	Prefix filter
 		   Pass traffic with fromCall that start with aa or bb or cc...
 		*/
-		i = filter_parse_one_callsignset(c, filt0, &f0, ff, ffp, MatchPrefix );
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
 		if (i < 0)
 			return i;
 		if (i > 0) /* extended previous */
 			return 0;
 
 		break;
-
+#if 0
 	case 'q':
 	case 'Q':
 		/* q/con/ana           q Contruct filter */
@@ -1173,8 +1148,10 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		f0.h.bitflags = 0; /* For QC_*  flags */
 
 		if (*s++ != '/') {
-			hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
-			return -1;
+		  // hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
+		  if (debug)
+		    printf("Bad q-filter parse: %s", filt0);
+		  return -1;
 		}
 		for ( ; *s && *s != '/'; ++s ) {
 			switch (*s) {
@@ -1209,7 +1186,9 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 				f0.h.bitflags |= QC_I;
 				break;
 			default:
-				hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
+				// hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
+				if (debug)
+				  printf("Bad q-filter parse: %s", filt0);
 				return -1;
 			}
 		}
@@ -1220,13 +1199,15 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 				++s;
 			}
 			if (*s) {
-				hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
+				// hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
+				if (debug)
+				  printf("Bad q-filter parse: %s", filt0);
 				return -1;
 			}
 		}
 		
 		break;
-
+#endif
 	case 'r':
 	case 'R':
 		/*  r/lat/lon/dist            Range filter  */
@@ -1234,17 +1215,23 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		i = sscanf(filt+1, "/%f/%f/%f",
 			 &f0.h.f_latN, &f0.h.f_lonE, &f0.h.f_dist);
 		if (i != 3 || f0.h.f_dist < 0.1) {
-			hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
-			return -1;
+		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+		  if (debug)
+		    printf("Bad filter parse: %s", filt0);
+		  return -1;
 		}
 
 		if (!( -90.01 < f0.h.f_latN && f0.h.f_latN <  90.01)) {
-			hlog(LOG_DEBUG, "Bad filter lat value: %s", filt0);
-			return -2;
+		  // hlog(LOG_DEBUG, "Bad filter lat value: %s", filt0);
+		  if (debug)
+		    printf("Bad filter lat value: %s", filt0);
+		  return -2;
 		}
 		if (!(-180.01 < f0.h.f_lonE && f0.h.f_lonE < 180.01)) {
-			hlog(LOG_DEBUG, "Bad filter lon value: %s", filt0);
-			return -2;
+		  // hlog(LOG_DEBUG, "Bad filter lon value: %s", filt0);
+		  if (debug)
+		    printf("Bad filter lon value: %s", filt0);
+		  return -2;
 		}
 
 		// hlog(LOG_DEBUG, "Filter: %s -> R %.3f %.3f %.3f", filt0, f0.h.f_latN, f0.h.f_lonE, f0.h.f_dist);
@@ -1259,10 +1246,12 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 	case 'S':
 		/* s/pri/alt/over  	Symbol filter  */
 
-		i = filter_parse_one_s( c, filt0, &f0, ff, ffp );
+		i = filter_parse_one_s( &f0, ffp, filt0 );
 		if (i < 0) {
-			hlog(LOG_DEBUG, "Bad s-filter syntax: %s", filt0);
-			return i;
+		  // hlog(LOG_DEBUG, "Bad s-filter syntax: %s", filt0);
+		  if (debug)
+		    printf("Bad s-filter syntax: %s", filt0);
+		  return i;
 		}
 		if (i > 0) /* extended previous */
 			return 0;
@@ -1279,8 +1268,10 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		f0.h.numnames = 0; /* reusing this as "position-cache valid" flag */
 
 		if (*s++ != '/') {
-			hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
-			return -1;
+		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+		  if (debug)
+		    printf("Bad t-filter syntax: %s", filt0);
+		  return -1;
 		}
 		for ( ; *s && *s != '/'; ++s ) {
 			switch (*s) {
@@ -1321,7 +1312,9 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 				f0.h.bitflags |= T_WX;
 				break;
 			default:
-				hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+				// hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+				if (debug)
+				  printf("Bad t-filter syntax: %s", filt0);
 				return -1;
 			}
 		}
@@ -1329,8 +1322,10 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 			i = sscanf(s, "/%9[^/]/%f%c", f0.h.refcallsign.callsign, &f0.h.f_dist, &dummyc);
 			if ( i != 2 || f0.h.f_dist < 0.1 || /* 0.1 km minimum radius */
 			     strlen(f0.h.refcallsign.callsign) < CALLSIGNLEN_MIN ) {
-				hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
-				return -1;
+			  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
+			  if (debug)
+			    printf("Bad t-filter parse: %s", filt0);
+			  return -1;
 			}
 			f0.h.refcallsign.callsign[CALLSIGNLEN_MAX] = 0;
 			f0.h.refcallsign.reflen = strlen(f0.h.refcallsign.callsign);
@@ -1343,7 +1338,7 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 	case 'U':
 		/* u/unproto1/unproto2...  	Unproto filter (*)	*/
 
-		i = filter_parse_one_callsignset(c, filt0, &f0, ff, ffp, MatchWild );
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
 		if (i < 0)
 			return i;
 		if (i > 0) /* extended previous */
@@ -1359,7 +1354,7 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		break;
 	}
 
-	if (!c) return 0; /* Just a verification scan, not actual fill in parse */
+	// if (!c) return 0; /* Just a verification scan, not actual fill in parse */
 	
 	/* OK, pre-parsing produced accepted result */
 #ifndef _FOR_VALGRIND_
@@ -1370,9 +1365,9 @@ int filter_parse(struct client_t *c, const char *filt, int is_user_filter)
 		strcpy(f->textbuf, filt0);
 		f->h.text = f->textbuf;
 	} else
-		f->h.text = hstrdup(filt0); /* and copy of filter text */
+		f->h.text = strdup(filt0); /* and copy of filter text */
 #else
-	f = hmalloc(sizeof(*f) + strlen(filt0));
+	f = malloc(sizeof(*f) + strlen(filt0));
 	*f = f0; /* store pre-parsed values */
 	f->h.text = f->textbuf;
 	strcpy(f->textbuf, filt); /* and copy of filter text */
@@ -1399,10 +1394,10 @@ void filter_free(struct filter_t *f)
 		/* If not pointer to internal string, free it.. */
 #ifndef _FOR_VALGRIND_
 		if (f->h.text != f->textbuf)
-			hfree((void*)(f->h.text));
+			free((void*)(f->h.text));
 		cellfree(filter_cells, f);
 #else
-		hfree(f);
+		free(f);
 #endif
 	}
 }
@@ -1467,7 +1462,7 @@ static float maidenhead_km_distance(float lat1, float coslat1, float lon1, float
  *
  */
 
-static int filter_process_one_a(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_a(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* a/latN/lonW/latS/lonE  	Area filter
 
@@ -1498,7 +1493,7 @@ static int filter_process_one_a(struct client_t *c, struct pbuf_t *pb, struct fi
 	return 0;
 }
 
-static int filter_process_one_b(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_b(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* b/call1/call2...  	Budlist filter
 
@@ -1521,7 +1516,8 @@ static int filter_process_one_b(struct client_t *c, struct pbuf_t *pb, struct fi
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
 
-static int filter_process_one_d(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+#if 0
+static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* d/digi1/digi2...  	Digipeater filter
 
@@ -1567,8 +1563,10 @@ static int filter_process_one_d(struct client_t *c, struct pbuf_t *pb, struct fi
 	}
 	return 0;
 }
+#endif
 
-static int filter_process_one_e(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+#if 0
+static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* e/call1/call1/...  	Entry station filter
 
@@ -1594,8 +1592,9 @@ static int filter_process_one_e(struct client_t *c, struct pbuf_t *pb, struct fi
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
+#endif
 
-static int filter_process_one_f(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* f/call/dist  	Friend Range filter
 	   This is the same as the range filter except that the center is
@@ -1657,7 +1656,8 @@ static int filter_process_one_f(struct client_t *c, struct pbuf_t *pb, struct fi
 	return 0;
 }
 
-static int filter_process_one_m(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+#if 0
+static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* m/dist  	My Range filter
 	   This is the same as the range filter except that the center is
@@ -1714,8 +1714,8 @@ static int filter_process_one_m(struct client_t *c, struct pbuf_t *pb, struct fi
 
 	return 0;
 }
-
-static int filter_process_one_o(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+#endif
+static int filter_process_one_o(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* o/obj1/obj2...  	Object filter
 	   Pass all objects with the exact name of obj1, obj2, ...
@@ -1747,7 +1747,7 @@ static int filter_process_one_o(struct client_t *c, struct pbuf_t *pb, struct fi
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
 
-static int filter_process_one_p(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_p(struct pbuf_t *pb, struct filter_t *f)
 {
 
 	/* p/aa/bb/cc...  	Prefix filter
@@ -1771,7 +1771,8 @@ static int filter_process_one_p(struct client_t *c, struct pbuf_t *pb, struct fi
 	return filter_match_on_callsignset(&ref, i, f, MatchPrefix);
 }
 
-static int filter_process_one_q(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+#if 0
+static int filter_process_one_q(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* q/con/ana  	q Contruct filter
 
@@ -1845,9 +1846,9 @@ static int filter_process_one_q(struct client_t *c, struct pbuf_t *pb, struct fi
 
 	return 0; /* No match */
 }
+#endif
 
-
-static int filter_process_one_r(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_r(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* r/lat/lon/dist  	Range filter
 
@@ -1886,7 +1887,7 @@ static int filter_process_one_r(struct client_t *c, struct pbuf_t *pb, struct fi
 	return 0;
 }
 
-static int filter_process_one_s(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_s(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* s/pri/alt/over  	Symbol filter
 
@@ -1934,7 +1935,7 @@ static int filter_process_one_s(struct client_t *c, struct pbuf_t *pb, struct fi
 	return 0;
 }
 
-static int filter_process_one_t(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* [-]t/poimntqsu
 	   [-]t/poimntqsu/call/km
@@ -1979,7 +1980,7 @@ static int filter_process_one_t(struct client_t *c, struct pbuf_t *pb, struct fi
 	int rc = 0;
 	if (pb->packettype & f->h.bitflags) /* bitflags as comparison bitmask */
 		rc = 1;
-
+#if 0
 	if (!rc && (f->h.bitflags & T_WX) && (pb->flags & F_HASPOS)) {
 		/* "Note: The weather type filter also passes positions packets
 		//        for positionless weather packets."
@@ -1993,6 +1994,7 @@ static int filter_process_one_t(struct client_t *c, struct pbuf_t *pb, struct fi
 
 		rc = filter_wx_lookup(pb);
 	}
+#endif
 	/* Either it stops here, or it continues... */
 
 	if (rc && f->h.type == 'T') { /* Within a range of callsign ?
@@ -2053,7 +2055,7 @@ static int filter_process_one_t(struct client_t *c, struct pbuf_t *pb, struct fi
 	return (f->h.negation ? (rc+rc) : rc);
 }
 
-static int filter_process_one_u(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_u(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* u/unproto1/unproto2/...  	Unproto filter
 
@@ -2083,7 +2085,7 @@ static int filter_process_one_u(struct client_t *c, struct pbuf_t *pb, struct fi
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
 
-static int filter_process_one(struct client_t *c, struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one(struct pbuf_t *pb, struct filter_t *f)
 {
 	int rc = 0;
 
@@ -2091,173 +2093,91 @@ static int filter_process_one(struct client_t *c, struct pbuf_t *pb, struct filt
 
 	case 'a':
 	case 'A':
-		rc = filter_process_one_a(c, pb, f);
+		rc = filter_process_one_a(pb, f);
 		break;
 
 	case 'b':
 	case 'B':
-		rc = filter_process_one_b(c, pb, f);
+		rc = filter_process_one_b(pb, f);
 		break;
-
+#if 0
 	case 'd':
 	case 'D':
-		rc = filter_process_one_d(c, pb, f);
+		rc = filter_process_one_d(pb, f);
 		break;
 
 	case 'e':
 	case 'E':
-		rc = filter_process_one_e(c, pb, f);
+		rc = filter_process_one_e(pb, f);
 		break;
+#endif
 
 	case 'f':
 	case 'F':
-		rc = filter_process_one_f(c, pb, f);
+		rc = filter_process_one_f(pb, f);
 		break;
-
+#if 0
 	case 'm':
 	case 'M':
-		rc = filter_process_one_m(c, pb, f);
+		rc = filter_process_one_m(pb, f);
 		break;
-
+#endif
 	case 'o':
 	case 'O':
-		rc = filter_process_one_o(c, pb, f);
+		rc = filter_process_one_o(pb, f);
 		break;
 
 	case 'p':
 	case 'P':
-		rc = filter_process_one_p(c, pb, f);
+		rc = filter_process_one_p(pb, f);
 		break;
-
+#if 0
 	case 'q':
 	case 'Q':
-		rc = filter_process_one_q(c, pb, f);
+		rc = filter_process_one_q(pb, f);
 		break;
-
+#endif
 	case 'r':
 	case 'R':
-		rc = filter_process_one_r(c, pb, f);
+		rc = filter_process_one_r(pb, f);
 		break;
 
 	case 's':
 	case 'S':
-		rc = filter_process_one_s(c, pb, f);
+		rc = filter_process_one_s(pb, f);
 		break;
 
 	case 't':
 	case 'T':
-		rc = filter_process_one_t(c, pb, f);
+		rc = filter_process_one_t(pb, f);
 		break;
 
 	case 'u':
 	case 'U':
-		rc = filter_process_one_u(c, pb, f);
+		rc = filter_process_one_u(pb, f);
 		break;
 
 	default:
 		rc = -1;
 		break;
 	}
-	/* hlog(LOG_DEBUG, "filter '%s'  rc=%d", f->h.text, rc); */
+	// hlog(LOG_DEBUG, "filter '%s'  rc=%d", f->h.text, rc);
 
 	return rc;
 }
 
-int filter_process(struct worker_t *self, struct client_t *c, struct pbuf_t *pb)
+int filter_process(struct pbuf_t *pb, struct filter_t *f)
 {
-	struct filter_t *f = c->defaultfilters;
+	int seen_accept = 0;
 
 	for ( ; f; f = f->h.next ) {
-		int rc = filter_process_one(c, pb, f);
+		int rc = filter_process_one(pb, f);
 		/* no reports to user about bad filters.. */
-		if (rc > 0)
-			return (rc == 1);
+		if (rc == 1)
+			seen_accept = 1;
+		else if (rc == 2)
+			return 0;
 			/* "2" reply means: "match, but don't pass.." */
 	}
-
-	f = c->userfilters;
-
-	for ( ; f; f = f->h.next ) {
-		int rc = filter_process_one(c, pb, f);
-		if (rc < 0) {
-			rc = client_bad_filter_notify(self, c, f->h.text);
-			if (rc < 0) /* possibly the client got destroyed here! */
-				return rc;
-		}
-		if (rc > 0)
-			return (rc == 1);
-			/* "2" reply means: "match, but don't pass.." */
-	}
-	return 0;
-}
-
-/*
- *	filter_commands() implements treatment for incoming client filter requests.
- *
- *	Return value propagates negative returns from things like  client_write()
- *	indicating the struct client_t * object being destroyed.
- */
-int filter_commands(struct worker_t *self, struct client_t *c, const char *s, int len)
-{
-	char *argv[256];	
-	struct filter_t *f;
-	char *b, *p;
-	int i, argc;
-
-	len -= 6;
-	s   += 6;
-
-	if ( *s == '?' && len == 1 ) {
-		/* Query current filters */
-		int lensum = 0;
-
-		
-		for (f = c->userfilters; f; f = f->h.next) {
-			lensum += 2 + strlen(f->h.text);
-		}
-
-		p = b = alloca(lensum+20);
-		p += sprintf(b, "# filters: ");
-		for (f = c->userfilters; f; f = f->h.next) {
-			p += sprintf(p, "%s ", f->h.text);
-		}
-		p += sprintf(p, "\r\n");
-		/* client can be destroyed here.. */
-		return client_write(self, c, b, (int)(p-b));
-	}
-	if (*s != ' ') {
-		return client_printf(self, c, "# Bad input\r\n");
-	}
-	++s;
-	--len;
-
-	if ( strncasecmp(s, "default", 7) == 0 && len == 7 ) {
-		/* discard any user defined filters that possibly were
-		   injected on this connection.  */
-		f = c->userfilters;
-		c->userfilters = NULL;
-		// FIXME: Sleep a bit ? ... no, that would be a way to create a denial of service attack
-		// FIXME: there is a danger of SEGV-blowing filter processing...
-		filter_free(f);
-		return client_printf(self, c, "# User filters reset to default\r\n");
-	}
-
-	/* new filter definitions to supersede previous ones */
-
-	/* Discard old ones. */
-	f = c->userfilters;
-	c->userfilters = NULL;
-	// FIXME: Sleep a bit ? ... no, that would be a way to create a denial of service attack
-	// FIXME: there is a danger of SEGV-blowing filter processing...
-	filter_free(f);
-
-	b = alloca(len+2);
-	memcpy(b, s, len);
-	b[len] = 0;
-
-	argc = parse_args( argv, b );
-	for (i = 0; i < argc; ++i) {
-		filter_parse(c, argv[i], 1); /* user filters */
-	}
-	return client_printf(self, c, "# Parsed %d filter specifications", i);
+	return seen_accept;
 }

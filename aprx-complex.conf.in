@@ -275,6 +275,8 @@ pidfile @VARRUN@/aprx.pid
 # web service like  findu.com,  or  aprs.fi
 #
 # Symbol  R&   is for "Rx-only iGate"
+# Symbol  I&   is for "Tx-iGate"
+# Symbol  /#   is for "Digipeater"
 #
 #beacon                          file /tmp/wxbeacon.txt
 #beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
@@ -364,9 +366,10 @@ pidfile @VARRUN@/aprx.pid
 #    #<source>                  # APRSIS source makes this tx-igate
 #    #    interface    APRSIS
 #    #    relay-type   third-party  # Must define this for APRSIS source!
-#    #    viscous-delay    5   # recommendation: 5 seconds delay to give
+#    #    viscous-delay 5      # recommendation: 5 seconds delay to give
 #    #                         # RF delivery time make itself known.
-#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
+#    #	  filter        t/m
+#    #    
 #    #</source>
 #
 #</digipeater>

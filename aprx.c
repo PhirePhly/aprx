@@ -121,7 +121,6 @@ int main(int argc, char *const argv[])
 		}
 	}
 
-
 	interface_init(); // before any interface system and aprsis init !
 	erlang_init(syslog_facility);
 	ttyreader_init();
@@ -129,8 +128,9 @@ int main(int argc, char *const argv[])
 	dupecheck_init(); // before aprsis_init() !
 	aprsis_init();
 
+	readconfig(cfgfile);
+
 	erlang_start(1);
-	readconfig(cfgfile);	/* TODO: real parametrized cfg file location.. */
 
 	if (debug || verbout) {
 	  if (!mycall && !aprsis_login) {

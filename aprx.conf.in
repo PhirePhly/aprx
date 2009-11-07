@@ -186,6 +186,8 @@ aprxlog @VARLOG@/aprx.log
 # web service like  findu.com,  or  aprs.fi
 #
 # Symbol  R&   is for "Rx-only iGate"
+# Symbol  I&   is for "Tx-iGate"
+# Symbol  /#   is for "Digipeater"
 #
 #beacon                          file /tmp/wxbeacon.txt
 #beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
@@ -231,6 +233,6 @@ aprxlog @VARLOG@/aprx.log
 #    #    relay-type    third-party  # Must define this for APRSIS source!
 #    #    viscous-delay  5    # Recommendation: 5 seconds delay to give
 #    #                        # RF delivery time make itself known.
+#    #    filter         t/m  # Tx-IGate only messages sent to me by APRSIS
 #    #</source>
-#
 #</digipeater>
