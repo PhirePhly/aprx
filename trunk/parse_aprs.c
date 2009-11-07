@@ -23,15 +23,6 @@
 
 #define DEBUG_LOG(fmt) if(debug)printf(fmt)
 
-float filter_lat2rad(float lat)
-{
-  return (lat * (M_PI / 180.0));
-}
-
-float filter_lon2rad(float lon)
-{
-  return (lon * (M_PI / 180.0));
-}
 
 /*
  *	Check if the given character is a valid symbol table identifier

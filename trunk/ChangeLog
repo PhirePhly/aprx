@@ -1,3 +1,19 @@
+2009-11-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* filter.c, aprx.h, parse_aprs.c, Makefile.in:
+	    Port Aprsc's filter code to Aprx.
+
+	* debian/aprx.init, rpm/aprx.init:
+	    Update Debian's version, sync the rpm's version
+
+	* telemetry.c:
+	    Report every 20 minutes, but scale values telling 10 minute
+	    traffic.  Start sending telemetry PARM blocks from system
+	    start.
+
+	* aprx.c:
+	    Init configurations before starting erlang accounting subsystem.
+
 2009-11-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION 1.95

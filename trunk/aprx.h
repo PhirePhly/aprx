@@ -423,7 +423,7 @@ typedef enum {
 	DIGIRELAY_THIRDPARTY
 } digi_relaytype;
 
-struct aprx_filter;    // Forward declarator
+struct filter_t;       // Forward declarator
 struct digipeater;     // Forward declarator
 
 struct tracewide {
@@ -440,7 +440,7 @@ struct digipeater_source {
 	struct digipeater     *parent;
 	digi_relaytype	       src_relaytype;
 	struct aprx_interface *src_if;
-	struct aprx_filter    *src_filters;
+	struct filter_t       *src_filters;
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
 
@@ -541,3 +541,21 @@ extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, cons
 
 /* parse_aprs.c */
 extern int parse_aprs(struct pbuf_t *pb, int look_into_3rd_party );
+
+
+
+/* filter.c */
+struct filter_t;  // Forward declarator
+struct client_t;  // Forward declarator
+struct worker_t;  // Forward declarator
+
+extern void filter_init(void);
+extern int  filter_parse(struct filter_t **ffp, const char *filt);
+extern void filter_free(struct filter_t *c);
+extern int  filter_process(struct pbuf_t *pb, struct filter_t *f);
+
+extern void filter_preprocess_dupefilter(struct pbuf_t *pb);
+extern void filter_postprocess_dupefilter(struct pbuf_t *pb);
+
+extern float filter_lat2rad(float lat);
+extern float filter_lon2rad(float lon);

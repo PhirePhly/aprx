@@ -10,9 +10,14 @@
 
 #include "aprx.h"
 
-int telemetry_interval = 10 * 60;	/* 10 minutes */
-time_t telemetry_time;
-int telemetry_seq;
+#define  telemetry_timescaler 2       // scale to 10 minute sums
+static int telemetry_interval = 20 * 60; // 20 minutes
+static int telemetry_1min_steps = 20;
+static int telemetry_10min_steps = 2;
+
+static time_t telemetry_time;
+static int telemetry_seq;
+static int telemetry_params;
 
 void telemetry_start()
 {
@@ -66,8 +71,8 @@ int telemetry_postpoll(struct aprxpolls *app)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
-			if (t > 10)
-				t = 10;	// Up to 10 of 1 minute samples
+			if (t > telemetry_1min_steps)
+				t = telemetry_1min_steps;	// Up to 10 of 1 minute samples
 			erlcapa = 1.0 / E->erlang_capa; // 1/capa of 1 minute
 			for (j = 0; j < t; ++j) {
 				--k;
@@ -82,7 +87,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 		} else {
 			erlmax = 0;
 			k = E->e10_cursor;
-			t = 1;	// Up to 1 of 10 minute samples
+			t = E->e10_max;
+			if (t > telemetry_10min_steps)
+				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
 			erlcapa = 0.1 / E->erlang_capa; // 1/capa of 10 minute 
 			for (j = 0; j < t; ++j) {
 				--k;
@@ -101,8 +108,8 @@ int telemetry_postpoll(struct aprxpolls *app)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
-			if (t > 10)
-				t = 10;	// Up to 10 of 1 minute samples
+			if (t > telemetry_1min_steps)
+				t = telemetry_1min_steps;	// Up to 10 of 1 minute samples
 			erlcapa = 1.0 / E->erlang_capa; // 1/capa of 1 minute
 			for (j = 0; j < t; ++j) {
 				--k;
@@ -117,7 +124,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 		} else {
 			erlmax = 0;
 			k = E->e10_cursor;
-			t = 1;	// Up to 1 of 10 minute samples
+			t = E->e10_max;
+			if (t > telemetry_10min_steps)
+				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
 			erlcapa = 0.1 / E->erlang_capa; // 1/capa of 10  minute
 			for (j = 0; j < t; ++j) {
 				--k;
@@ -135,25 +144,29 @@ int telemetry_postpoll(struct aprxpolls *app)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
-			if (t > 10)
-				t = 10;	/* Up to 10 of 1 minute samples */
+			if (t > telemetry_1min_steps)
+				t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
 			for (j = 0; j < t; ++j) {
 				--k;
 				if (k < 0)
 					k = E->e1_max - 1;
 				erlmax += E->e1[k].packets_rx;
 			}
+			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", (int) erlmax); // scale to same as 10 minute data
 		} else {
 			erlmax = 0;
 			k = E->e10_cursor;
-			t = 1;	// Up to 1 of 10 minute samples
+			t = E->e10_max;
+			if (t > telemetry_10min_steps)
+				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
 			for (j = 0; j < t; ++j) {
 				--k;
 				if (k < 0)
 					k = E->e10_max - 1;
 				erlmax += E->e10[k].packets_rx;
 			}
+			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", (int) erlmax);
 		}
 
@@ -161,25 +174,29 @@ int telemetry_postpoll(struct aprxpolls *app)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
-			if (t > 10)
-				t = 10;	/* Up to 10 of 1 minute samples */
+			if (t > telemetry_1min_steps)
+				t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
 			for (j = 0; j < t; ++j) {
 				--k;
 				if (k < 0)
 					k = E->e1_max - 1;
 				erlmax += E->e1[k].packets_rxdrop;
 			}
+			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", 10*(int) erlmax); // scale to same as 10 minute data
 		} else {
 			erlmax = 0;
 			k = E->e10_cursor;
-			t = 1;	// Up to 1 of 10 minute samples
+			t = E->e10_max;
+			if (t > telemetry_10min_steps)
+				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
 			for (j = 0; j < t; ++j) {
 				--k;
 				if (k < 0)
 					k = E->e10_max - 1;
 				erlmax += E->e10[k].packets_rxdrop;
 			}
+			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", (int) erlmax);
 		}
 
@@ -187,25 +204,29 @@ int telemetry_postpoll(struct aprxpolls *app)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
-			if (t > 10)
-				t = 10;	/* Up to 10 of 1 minute samples */
+			if (t > telemetry_1min_steps)
+				t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
 			for (j = 0; j < t; ++j) {
 				--k;
 				if (k < 0)
 					k = E->e1_max - 1;
 				erlmax += E->e1[k].packets_tx;
 			}
+			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", 10*(int) erlmax); // scale to same as 10 minute data
 		} else {
 			erlmax = 0;
 			k = E->e10_cursor;
-			t = 1;	// Up to 1 of 10 minute samples
+			t = E->e10_max;
+			if (t > telemetry_10min_steps)
+				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
 			for (j = 0; j < t; ++j) {
 				--k;
 				if (k < 0)
 					k = E->e10_max - 1;
 				erlmax += E->e10[k].packets_tx;
 			}
+			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%03d,", (int) erlmax);
 		}
 		
@@ -218,7 +239,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
 			     buf, (int) (s - buf));
 
-		if ((telemetry_seq % 64) == 0) { /* every 5h20m */
+		if ((telemetry_params % 32) == 0) { /* every 5h20m */
 
 			/* Send every 5h20m or thereabouts. */
 
@@ -241,6 +262,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 				     buf, (int) (s - buf));
 		}
 	}
+	++telemetry_params;
 
 	return 0;
 }

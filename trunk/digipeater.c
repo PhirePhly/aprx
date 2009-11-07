@@ -587,7 +587,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	struct aprx_interface *source_aif = NULL;
 	struct digipeater_source  *source = NULL;
 	digi_relaytype          relaytype = DIGIRELAY_UNSET;
-	struct aprx_filter       *filters = NULL;
+	struct filter_t          *filters = NULL;
 	struct tracewide    *source_trace = NULL;
 	struct tracewide     *source_wide = NULL;
 	struct digipeater_source regexsrc;
@@ -657,8 +657,12 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			source_wide  = digipeater_config_tracewide(cf, 0);
 
 		} else if (strcmp(name,"filter") == 0) {
-		  printf("The 'filter' parameter is not yet implemented.\n");
-			has_fault = 1;
+			if (filter_parse(&filters, param1)) {
+				// Error in filter parsing
+				has_fault = 1;
+			} else {
+			}
+
 		} else if (strcmp(name,"relay-type") == 0 ||
 			   strcmp(name,"relay-format") == 0) {
 			config_STRLOWER(param1);
@@ -890,6 +894,14 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	struct digipeater *digi = src->parent;
 	char viafield[14];
 
+	if (src->src_filters != NULL) {
+	  int rc = filter_process(pb, src->src_filters);
+	  if (rc != 1) {
+	    if (debug)
+	      printf("Source filtering rejected the packet.\n");
+	    return;
+	  }
+	}
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));

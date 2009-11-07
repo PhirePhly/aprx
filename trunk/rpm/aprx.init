@@ -5,12 +5,13 @@
 # processname: aprx
 # config: /etc/sysconfig/aprx
 
-### BEGIN INIT INFO
+### BEGIN INIT INFO  -- debian style:
 # Provides: aprx
-# Required-Start: $syslog $local_fs
-# Required-Stop: $syslog $local_fs
+# Required-Start: $syslog $local_fs ax25ifs
+# Required-Stop:  $syslog $local_fs
+# Should-Start:   ax25ifs
 # Default-Start:  2 3 4 5
-# Default-Stop: 0 1 6
+# Default-Stop:   0 1 6
 # Short-Description: start and stop aprx
 # Description: Monitor and gateway radio amateur APRS radio network datagrams
 ### END INIT INFO
