@@ -901,6 +901,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	      printf("Source filtering rejected the packet.\n");
 	    return;
 	  }
+	  if (debug)
+	    printf("Source filtering accepted the packet.\n");
 	}
 
 	memset(&state,    0, sizeof(state));

@@ -127,6 +127,7 @@ int main(int argc, char *const argv[])
 	netax25_init();
 	dupecheck_init(); // before aprsis_init() !
 	aprsis_init();
+	filter_init();
 
 	readconfig(cfgfile);
 

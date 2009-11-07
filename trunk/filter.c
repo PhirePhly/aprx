@@ -1013,17 +1013,17 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		  return -2;
 		}
 
-		if (f0.h.f_latN < f0.h.f_latS) {
-		  // hlog(LOG_DEBUG, "Bad filter: latN<latS: %s", filt0);
-		  if (debug)
-		    printf("Bad filter: latN<latS: %s", filt0);
-		  return -3; /* expect: latN >= latS */
-		}
 		if (f0.h.f_lonW > f0.h.f_lonE) {
-		  // hlog(LOG_DEBUG, "Bad filter: lonW>lonE: %s", filt0);
-		  if (debug)
-		    printf("Bad filter: lonW>lonE: %s", filt0);
-		  return -3; /* expect: lonW <= lonE */
+		  // wrong way, swap longitudes
+		  float t = f0.h.f_lonW;
+		  f0.h.f_lonW = f0.h.f_lonE;
+		  f0.h.f_lonE = t;
+		}
+		if (f0.h.f_latS > f0.h.f_latN) {
+		  // wrong way, swap latitudes
+		  float t = f0.h.f_latS;
+		  f0.h.f_latS = f0.h.f_latN;
+		  f0.h.f_latN = t;
 		}
 
 		// hlog(LOG_DEBUG, "Filter: %s -> A %.3f %.3f %.3f %.3f", filt0, f0.h.f_latN, f0.h.f_lonW, f0.h.f_latS, f0.h.f_lonE);

@@ -30,7 +30,6 @@ struct cellarena_t {
 	int	increment; /* alignment overhead applied.. */
 	int	lifo_policy;
   	int	minfree;
-	int	use_mutex;
 
 	const char *arenaname;
 
@@ -156,7 +155,6 @@ cellarena_t *cellinit( const char *arenaname, const int cellsize, const int alig
 		ca->increment +=  alignment - cellsize % alignment;
 	}
 	ca->lifo_policy =  policy & CELLMALLOC_POLICY_LIFO;
-	ca->use_mutex   = (policy & CELLMALLOC_POLICY_NOMUTEX) ? 0 : 1;
 
 	ca->createsize = createkb * 1024;
 
@@ -201,9 +199,6 @@ void *cellmalloc(cellarena_t *ca)
 	void *cp;
 	struct cellhead *ch;
 
-	if (ca->use_mutex)
-		pthread_mutex_lock(&ca->mutex);
-
 	while (!ca->free_head  || (ca->freecount < ca->minfree))
 		if (new_cellblock(ca)) {
 			pthread_mutex_unlock(&ca->mutex);
@@ -220,11 +215,7 @@ void *cellmalloc(cellarena_t *ca)
 
 	ca->freecount -= 1;
 
-	if (ca->use_mutex)
-		pthread_mutex_unlock(&ca->mutex);
-
 	// hlog(LOG_DEBUG, "cellmalloc(%p at %p) freecount %d", cellhead_to_clientptr(cp), ca, ca->freecount);
-
 	return cellhead_to_clientptr(cp);
 }
 
@@ -237,9 +228,6 @@ int   cellmallocmany(cellarena_t *ca, void **array, int numcells)
 {
 	int count;
 	struct cellhead *ch;
-
-	if (ca->use_mutex)
-		pthread_mutex_lock(&ca->mutex);
 
 	for (count = 0; count < numcells; ++count) {
 
@@ -274,9 +262,6 @@ int   cellmallocmany(cellarena_t *ca, void **array, int numcells)
 
 	}
 
-	if (ca->use_mutex)
-		pthread_mutex_unlock(&ca->mutex);
-
 	return count;
 }
 
@@ -294,9 +279,6 @@ void  cellfree(cellarena_t *ca, void *p)
 
 	// hlog(LOG_DEBUG, "cellfree() %p to %p", p, ca);
 
-	if (ca->use_mutex)
-		pthread_mutex_lock(&ca->mutex);
-
 	if (ca->lifo_policy) {
 	  /* Put the cell on free-head */
 	  ch->next = ca->free_head;
@@ -313,9 +295,6 @@ void  cellfree(cellarena_t *ca, void *p)
 	}
 
 	ca->freecount += 1;
-
-	if (ca->use_mutex)
-		pthread_mutex_unlock(&ca->mutex);
 }
 
 /*
@@ -326,9 +305,6 @@ void  cellfree(cellarena_t *ca, void *p)
 void  cellfreemany(cellarena_t *ca, void **array, int numcells)
 {
 	int count;
-
-	if (ca->use_mutex)
-		pthread_mutex_lock(&ca->mutex);
 
 	for (count = 0; count < numcells; ++count) {
 
@@ -358,9 +334,5 @@ void  cellfreemany(cellarena_t *ca, void **array, int numcells)
 	  }
 
 	  ca->freecount += 1;
-
 	}
-
-	if (ca->use_mutex)
-		pthread_mutex_unlock(&ca->mutex);
 }

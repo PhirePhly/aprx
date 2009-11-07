@@ -1,5 +1,8 @@
 2009-11-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* cellmalloc.c:
+	    Drop semaphores.  Not used in this codebase.
+
 	* filter.c, aprx.h, parse_aprs.c, Makefile.in:
 	    Port Aprsc's filter code to Aprx.
 
