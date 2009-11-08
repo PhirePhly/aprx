@@ -147,15 +147,17 @@ aprxlog @VARLOG@/aprx.log
 #
 #beaconmode { aprsis | both | radio }
 #
-# The beacon messages are sent out at varying intervals --  14 to 18 minutes
-# in between cycle repeats. This interval is intentionally randomized.
+#  Beacons are sent from a circullar transmission queue, total cycle time
+#  of that queue is 20 minutes by default, and beacons are "evenly"
+#  distributed along it.  Actual intervals are randomized to be anything
+#  in between 80% and 100% of the  cycle-size / number-of-beacons.
+#  First beacon is sent out 30 seconds after system start.
+#  Tune the cycle-size to be suitable to your number of defined beacons.
 #
-# Multiple netbeacons are evenly distributed for each time period,
-# or at least 3 seconds apart.  First netbeacon is sent out 30 seconds
-# after connection to APRS-IS, first rfbeacon is sent out 30 seconds
-# after system start.
+#cycle-size  20m
 #
-# There can be multiple netbeacon options.
+#
+# There can be multiple beacon options.
 # 'for'  parameter sets claimed origination address.
 # 'dest' sets destination address, default "APRXnn"
 # 'to'   parameter picks an interface (must be "tx-ok true" type)

@@ -12,6 +12,7 @@
 
 struct beaconmsg {
 	time_t nexttime;
+	int    interval;
 	const struct aprx_interface *interface;
 	const char *src;
 	const char *dest;
@@ -29,7 +30,7 @@ static int beacon_msgs_cursor;
 
 static time_t beacon_nexttime;
 static time_t beacon_last_nexttime;
-static int    beacon_cycle_size = 20*60; // 20 minutes
+static float  beacon_cycle_size = 20.0*60.0; // 20 minutes
 
 
 
@@ -51,7 +52,7 @@ static const char* scan_int(const char *p, int len, int *val, int *seen_space) {
 	return p;
 }
 
-int validate_degmin_input(const char *s, int maxdeg)
+static int validate_degmin_input(const char *s, int maxdeg)
 {
 	int deg;
 	int m1, m2;
@@ -464,6 +465,7 @@ void beacon_config(struct configfile *cf)
 	char *name, *param1;
 	char *str = cf->buf;
 	int   beaconmode = 0;
+	int   has_fault;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -484,6 +486,20 @@ void beacon_config(struct configfile *cf)
 		if (strcmp(name, "</beacon>") == 0)
 		  break;
 
+		if (strcmp(name, "cycle-size") == 0) {
+		  int v;
+		  if (config_parse_interval(param1, &v)) {
+		    // Error
+		    has_fault = 1;
+		    continue;
+		  }
+		  beacon_cycle_size = (float)v;
+		  if (debug)
+		    printf("Beacon cycle size: %.2f\n",
+			   beacon_cycle_size/60.0);
+		  continue;
+		}
+
 		if (strcmp(name, "beacon") == 0) {
 		  beacon_set(cf, param1, str, beaconmode);
 
@@ -500,11 +516,13 @@ void beacon_config(struct configfile *cf)
 		  } else {
 		    printf("%s:%d Unknown beaconmode parameter keyword: '%s'\n",
 			   cf->name, cf->linenum, param1);
+		    has_fault = 1;
 		  }
 
 		} else {
 		  printf("%s:%d Unknown config keyword: '%s'\n",
 			 cf->name, cf->linenum, name);
+		  has_fault = 1;
 		  continue;
 		}
 	}
@@ -558,23 +576,26 @@ static void beacon_now(void)
 	char *msg;
 
 	if (beacon_msgs_cursor == 0) {
-		float beacon_cycle, beacon_increment;
-		int   r;
+		float beacon_increment;
+		int   i;
+		time_t t = now;
+
 		srand(now);
-		r = rand() % 1024;
-		beacon_cycle = (beacon_cycle_size -
-				0.2*beacon_cycle_size * (r*0.001));
-		beacon_increment = beacon_cycle / beacon_msgs_count;
-		if (beacon_increment < 3.0)
-			beacon_increment = 3.0;	/* Minimum interval: 3 seconds ! */
+		beacon_increment = (beacon_cycle_size / beacon_msgs_count);
+
 		if (debug)
-			printf("beacons cycle: %.2f minutes, r: %d, increment: %.1f seconds\n",
-			       beacon_cycle/60.0, r, beacon_increment);
+			printf("beacons cycle: %.2f minutes, increment: %.1f seconds\n",
+			       beacon_cycle_size/60.0, beacon_increment);
+
 		for (i = 0; i < beacon_msgs_count; ++i) {
-			beacon_msgs[i]->nexttime =
-			  now + (long)(i * beacon_increment + 0.5);
+			int r = rand() % 1024;
+			int interval = (int)(beacon_increment - 0.2*beacon_increment * (r*0.001));
+			if (interval < 3) interval = 3; // Minimum interval: 3 seconds
+			t += interval;
+			if (debug)
+				printf("beacons offset: %.2f minutes\n", (t-now)/60.0);
+			beacon_msgs[i]->nexttime = t;
 		}
-		beacon_last_nexttime = now + (long)(beacon_msgs_count * beacon_increment + 0.5);
 	}
 
 	/* --- now the business of sending ... */
@@ -590,7 +611,7 @@ static void beacon_now(void)
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
 	if (bm->filename != NULL) {
-		msg = alloca(2000);
+		msg = alloca(2000);  // This is a load-and-discard allocation
 		txt = msg+2;
 		msg[0] = 0x03;
 		msg[1] = 0xF0;

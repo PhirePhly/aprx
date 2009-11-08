@@ -16,6 +16,11 @@
 #include <netinet/in.h>
 #include <signal.h>
 
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+#include <pthread.h>
+pthread_t aprsis_thread;
+pthread_attr_t pthr_attrs;
+#endif
 
 /*
  * $aprsserver = "rotate.aprs.net:14580";
@@ -57,17 +62,22 @@ static struct aprsis *AprsIS;
 static struct aprsis_host **AISh;
 static int AIShcount;
 static int AIShindex;
-static int aprsis_sp;		/* up & down talking socket(pair),
+static int aprsis_up = -1;	/* up & down talking socket(pair),
+				   child: write talks up.
+				   parent: read talks down, */
+static int aprsis_down = -1;	/* down talking socket(pair),
 				   parent: write talks down,
-				   child: write talks up. */
+				   child: read talk ups. */
 static dupecheck_t *aprsis_rx_dupecheck;
 
 
 extern int log_aprsis;
+static int aprsis_die_now = 0;
 
 void aprsis_init(void)
 {
-	aprsis_sp = -1;
+	aprsis_up   = -1;
+	aprsis_down = -1;
 }
 
 void enable_aprsis_rx_dupecheck(void) {
@@ -76,7 +86,7 @@ void enable_aprsis_rx_dupecheck(void) {
 
 static void sig_handler(int sig)
 {
-	die_now = 1;
+	aprsis_die_now = 1;
 	signal(sig, sig_handler);
 }
 
@@ -456,7 +466,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 		    }
 
 		    /* Send the A->rdline content to main program */
-		    c = send(aprsis_sp, A->rdline,
+		    c = send(aprsis_up, A->rdline,
 			     strlen(A->rdline), 0);
 		    /* This may fail with SIGPIPE.. */
 		    if (c < 0 && (errno == EPIPE ||
@@ -527,7 +537,7 @@ struct aprsis_tx_msg_head {
  * APRS-IS interface subprogram.  (At APRS-IS side.)
  * 
  */
-static void aprsis_readsp(void)
+static void aprsis_readup(void)
 {
 	int i;
 	char buf[10000];
@@ -537,7 +547,7 @@ static void aprsis_readsp(void)
 	int textlen;
 	struct aprsis_tx_msg_head head;
 
-	i = recv(aprsis_sp, buf, sizeof(buf), 0);
+	i = recv(aprsis_up, buf, sizeof(buf), 0);
 	if (i == 0) {		/* EOF ! */
 		exit(0);
 	}
@@ -623,7 +633,7 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 #ifndef MSG_NOSIGNAL
 # define MSG_NOSIGNAL 0 /* This exists only on Linux  */
 #endif
-	i = send(aprsis_sp, buf, len, MSG_NOSIGNAL);	/* No SIGPIPE if the
+	i = send(aprsis_down, buf, len, MSG_NOSIGNAL);	/* No SIGPIPE if the
 							   receiver is out,
 							   or pipe is full
 							   because it is doing
@@ -759,7 +769,7 @@ static void aprsis_main(void)
 	signal(SIGPIPE, SIG_IGN);
 
 	/* The main loop */
-	while (!die_now) {
+	while (!aprsis_die_now) {
 		struct pollfd *pfd;
 		now = time(NULL);
 
@@ -778,7 +788,7 @@ static void aprsis_main(void)
 
 		pfd = aprxpolls_new(&app);
 
-		pfd->fd = aprsis_sp;
+		pfd->fd = aprsis_down;
 		pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
 		pfd->revents = 0;
 
@@ -795,7 +805,7 @@ static void aprsis_main(void)
 		    revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)) {
 			/* messaging channel has something for us, if
 			   the channel reports EOF, we exit there and then. */
-			aprsis_readsp();
+			aprsis_readup();
 		}
 		i = aprsis_postpoll_(&app);
 	}
@@ -873,6 +883,77 @@ void aprsis_set_login(const char *login)
 	H->login = strdup(login);
 }
 
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+static void aprsis_runthread(int pipes[2])
+{
+	sigset_t sigs_to_block;
+	int e, n;
+	struct pollfd *acceptpfd = NULL;
+	int listen_n = 0;
+	struct listen_t *l;
+
+	sigemptyset(&sigs_to_block);
+	sigaddset(&sigs_to_block, SIGALRM);
+	sigaddset(&sigs_to_block, SIGINT);
+	sigaddset(&sigs_to_block, SIGTERM);
+	sigaddset(&sigs_to_block, SIGQUIT);
+	sigaddset(&sigs_to_block, SIGHUP);
+	sigaddset(&sigs_to_block, SIGURG);
+	sigaddset(&sigs_to_block, SIGPIPE);
+	sigaddset(&sigs_to_block, SIGUSR1);
+	sigaddset(&sigs_to_block, SIGUSR2);
+	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+
+	aprsis_up = pipes[1];
+	fd_nonblockingmode(pipes[1]);
+	aprsis_main();
+
+}
+
+
+void aprsis_start(void)
+{
+	int i;
+	int pipes[2];
+
+	if (AISh == NULL || AprsIS == NULL) {
+	  fprintf(stderr,"***** NO APRSIS SERVER CONNECTION DEFINED *****");
+	  return;
+	}
+
+
+	i = socketpair(AF_UNIX, SOCK_DGRAM, PF_UNSPEC, pipes);
+	if (i != 0) {
+		return;		/* FAIL ! */
+	}
+
+
+	pthread_attr_init(&pthr_attrs);
+	/* 128 kB stack is enough for each thread,
+	   default of 10 MB is way too much...*/
+	pthread_attr_setstacksize(&pthr_attrs, 128*1024);
+
+	i = pthread_create(&aprsis_thread, &pthr_attrs, (void*)aprsis_runthread, pipes);
+	if (i != 0) {
+		close(pipes[0]);
+		close(pipes[1]);
+		return;		/* FAIL ! */
+	}
+
+	/* Parent */
+	fd_nonblockingmode(pipes[0]);
+	aprsis_down = pipes[0];
+}
+
+// Shutdown the aprsis thread
+void aprsis_stop(void)
+{
+	aprsis_die_now = 1;
+	pthread_join(aprsis_thread, NULL);
+}
+
+
+#else  // No pthreads(3p)
 void aprsis_start(void)
 {
 	int i;
@@ -898,18 +979,25 @@ void aprsis_start(void)
 
 	if (i == 0) {
 		/* Child -- the APRSIS talker */
-		aprsis_sp = pipes[1];
+		aprsis_up = pipes[1];
 		fd_nonblockingmode(pipes[1]);
 		close(pipes[0]);
 		aprsis_main();
+		exit(0);
 	}
+
 
 	/* Parent */
 	close(pipes[1]);
 	fd_nonblockingmode(pipes[0]);
-	aprsis_sp = pipes[0];
+	aprsis_down = pipes[0];
 }
 
+
+void aprsis_stop(void)
+{
+}
+#endif
 
 
 /*
@@ -924,7 +1012,7 @@ int aprsis_prepoll(struct aprxpolls *app)
 
 	pfd = aprxpolls_new(app);
 
-	pfd->fd = aprsis_sp;	/* APRS-IS communicator server Sub-process */
+	pfd->fd = aprsis_down;	/* APRS-IS communicator server Sub-process */
 	pfd->events = POLLIN | POLLPRI;
 	pfd->revents = 0;
 
@@ -938,7 +1026,7 @@ int aprsis_prepoll(struct aprxpolls *app)
 }
 
 /*
- * main-program side reading of aprsis_sp
+ * main-program side reading of aprsis_down
  *
  */
 static int aprsis_comssockread(int fd)
@@ -971,7 +1059,7 @@ int aprsis_postpoll(struct aprxpolls *app)
 	struct pollfd *pfd = app->polls;
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
-		if (pfd->fd == aprsis_sp) {
+		if (pfd->fd == aprsis_down) {
 			/* This is APRS-IS communicator subprocess socket,
 			   and we may have some results.. */
 
