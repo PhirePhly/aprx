@@ -1,5 +1,7 @@
 2009-11-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION 1.96
+
 	* beacon.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in:
 	    Rewrote beacon transmission interval codes, and documents
 	    of the beacon system.

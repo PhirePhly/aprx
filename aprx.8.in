@@ -451,7 +451,7 @@ server    rotate.aprs.net    14580
 #    #    relay\-type    third\-party  # Must define this for APRSIS source!
 #    #    viscous\-delay  5 # Recommendation: 5 seconds delay to give
 #    #                     # RF delivery time make itself known.
-#    #    filter         t/m  # Tx-IGate only messages sent to me by APRSIS
+#    #    filter         t/m  # Tx-iGate only messages sent to me by APRSIS
 #    #</source>
 #
 #</digipeater>
