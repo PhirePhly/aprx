@@ -1,4 +1,4 @@
-				 APRX   1.95
+				 APRX   1.96
 
 				TODO / Wishlist
 
@@ -21,9 +21,6 @@
   - BPQ32 interface ?
 
 - Tx-IGate filter rules (igate.c)
-- Proper area filters for digipeat (digipeater.c, filter.c)
-
-- bidirectional relaying capability with areal filters ??
 
 - Colorize debug printout (or make another tool to colorize aprx-rf.log)
     - rx-packets green (or blue), tx-packets red
@@ -54,11 +51,10 @@ BoB:
 		"176RX, 109TX, 243 busy"
 
 	ON a ten minute basis (total 600 1 sec slots) this tells us that
-	176 packets were decoded at th is site, 109 were elegible for
+	176 packets were decoded at this site, 109 were elegible for
 	further digipeating, and another 243 seconds the channel was
 	busy with other collisions and non decodable traffic.  Leaving
 	72 secnds the channel was clear.
-
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2009
