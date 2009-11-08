@@ -244,7 +244,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			/* Send every 5h20m or thereabouts. */
 
 			s = buf + sprintf(buf,
-					  ":%-9s:PARM.Max 10m,Max 10m,RxPkts,IGateDropRx,TxPkts",
+					  ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
 					  E->name);
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
 				     buf, (int) (s - buf));

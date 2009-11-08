@@ -575,6 +575,9 @@ static void beacon_now(void)
 	char const *txt;
 	char *msg;
 
+	if (beacon_msgs_cursor >= beacon_msgs_count) // Last done..
+		beacon_msgs_cursor = 0;
+
 	if (beacon_msgs_cursor == 0) {
 		float beacon_increment;
 		int   i;
@@ -603,10 +606,6 @@ static void beacon_now(void)
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
 	beacon_nexttime = bm->nexttime;
-	if (beacon_msgs_cursor >= beacon_msgs_count) {	/* Last done.. */
-		beacon_msgs_cursor = 0;
-	        beacon_nexttime    = beacon_last_nexttime;
-	}
 	
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
