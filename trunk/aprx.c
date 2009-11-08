@@ -174,6 +174,7 @@ int main(int argc, char *const argv[])
 			exit(0);
 		}
 		/* child and error cases continue on main program.. */
+		poll((void*)&pid, 0, 500);
 	}
 
 	if (1) {
@@ -195,35 +196,33 @@ int main(int argc, char *const argv[])
 	}
 
 
-	erlang_start(2);	/* reset PID, etc.. */
+	erlang_start(2);	// reset PID, etc..
 
-	/* Do following as late as possible.. */
+	// Do following as late as possible..
 
-	/* In all cases we close STDIN/FD=0.. */
-	close(0);
-	/* .. and replace it with reading from /dev/null.. */
-	open("/dev/null", O_RDONLY, 0);
-	/* Leave STDOUT and STDERR open */
+	// In all cases we close STDIN/FD=0..
+	// .. and replace it with reading from /dev/null..
+	i = open("/dev/null", O_RDONLY, 0);
+	if (i != 0) { dup2(i, 0); close(i); }
+	
+	// Leave STDOUT and STDERR open
 
 	if (!foreground) {
-		/* when daemoning, we close also stdout and stderr.. */
-		close(1);
-		close(2);
-		/* .. and replace them with writing to /dev/null.. */
-		open("/dev/null", O_WRONLY, 0);
-		open("/dev/null", O_WRONLY, 0);
+	  // when daemoning, we close also stdout and stderr..
+	  dup2(0, 1);
+	  dup2(0, 2);
 	}
 
-	/* .. but not latter than this. */
+	// .. but not latter than this.
 
 
-	/* Must be after config reading ... */
+	// Must be after config reading ...
 	aprsis_start();
 	netax25_start();
 	telemetry_start();
 	igate_start();
 
-	/* The main loop */
+	// The main loop
 
 	while (!die_now) {
 
@@ -242,7 +241,7 @@ int main(int argc, char *const argv[])
 		i = digipeater_prepoll(&app);
 
 		if (app.next_timeout <= now)
-			app.next_timeout = now + 1;	/* Just to be on safe side.. */
+		  app.next_timeout = now + 1;	// Just to be on safe side..
 
 		i = poll(app.polls, app.pollcount,
 			 (app.next_timeout - now) * 1000);
