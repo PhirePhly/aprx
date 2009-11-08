@@ -584,8 +584,8 @@ static void beacon_now(void)
 		beacon_increment = (beacon_cycle_size / beacon_msgs_count);
 
 		if (debug)
-			printf("beacons cycle: %.2f minutes, increment: %.1f seconds\n",
-			       beacon_cycle_size/60.0, beacon_increment);
+			printf("beacons cycle: %.2f minutes, increment: %.2f minutes\n",
+			       beacon_cycle_size/60.0, beacon_increment/60.0);
 
 		for (i = 0; i < beacon_msgs_count; ++i) {
 			int r = rand() % 1024;
@@ -670,8 +670,8 @@ static void beacon_now(void)
 		}
 
 		if (debug) {
-		  printf("Now beaconing to interface %s '%s>%s",
-			 callsign, src, bm->dest);
+		  printf("%ld\tNow beaconing to interface %s '%s>%s",
+			 now, callsign, src, bm->dest);
 		  if (destbuf) printf(",%s", destbuf);
 		  printf("' -> '%s',  next beacon in %.2f minutes\n",
 			 txt, ((beacon_nexttime - now)/60.0));
@@ -726,8 +726,8 @@ static void beacon_now(void)
 		    }
 
 		    if (debug) {
-		      printf("Now beaconing to interface %s '%s>%s",
-			     callsign, src, bm->dest);
+		      printf("%ld\tNow beaconing to interface %s '%s>%s",
+			     now, callsign, src, bm->dest);
 		      if (destbuf) printf(",%s", destbuf);
 		      printf("' -> '%s',  next beacon in %.2f minutes\n",
 			     txt, ((beacon_nexttime - now)/60.0));

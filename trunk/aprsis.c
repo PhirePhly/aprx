@@ -63,11 +63,10 @@ static struct aprsis_host **AISh;
 static int AIShcount;
 static int AIShindex;
 static int aprsis_up = -1;	/* up & down talking socket(pair),
-				   child: write talks up.
-				   parent: read talks down, */
+				   The aprsis talker (thread/child)
+				   uses this socket. */
 static int aprsis_down = -1;	/* down talking socket(pair),
-				   parent: write talks down,
-				   child: read talk ups. */
+				   The aprx main loop uses this socket */
 static dupecheck_t *aprsis_rx_dupecheck;
 
 
@@ -466,8 +465,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 		    }
 
 		    /* Send the A->rdline content to main program */
-		    c = send(aprsis_up, A->rdline,
-			     strlen(A->rdline), 0);
+		    c = send(aprsis_up, A->rdline, strlen(A->rdline), 0);
 		    /* This may fail with SIGPIPE.. */
 		    if (c < 0 && (errno == EPIPE ||
 				  errno == ECONNRESET ||
@@ -786,11 +784,13 @@ static void aprsis_main(void)
 		aprxpolls_reset(&app);
 		app.next_timeout = now + 5;
 
-		pfd = aprxpolls_new(&app);
+		if (aprsis_up >= 0) {
+			pfd = aprxpolls_new(&app);
 
-		pfd->fd = aprsis_down;
-		pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
-		pfd->revents = 0;
+			pfd->fd = aprsis_up;
+			pfd->events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+			pfd->revents = 0;
+		}
 
 		i = aprsis_prepoll_(&app);
 
@@ -927,22 +927,23 @@ void aprsis_start(void)
 		return;		/* FAIL ! */
 	}
 
+	fd_nonblockingmode(pipes[0]);
+	fd_nonblockingmode(pipes[1]);
+	aprsis_down = pipes[0];
+	aprsis_up   = pipes[1];
 
 	pthread_attr_init(&pthr_attrs);
-	/* 128 kB stack is enough for each thread,
+	/* 128 kB stack is enough for this thread,
 	   default of 10 MB is way too much...*/
 	pthread_attr_setstacksize(&pthr_attrs, 128*1024);
 
 	i = pthread_create(&aprsis_thread, &pthr_attrs, (void*)aprsis_runthread, pipes);
-	if (i != 0) {
+	if (i != 0) { // FAIL!
 		close(pipes[0]);
 		close(pipes[1]);
-		return;		/* FAIL ! */
+		aprsis_down = -1;
+		aprsis_up   = -1;
 	}
-
-	/* Parent */
-	fd_nonblockingmode(pipes[0]);
-	aprsis_down = pipes[0];
 }
 
 // Shutdown the aprsis thread
