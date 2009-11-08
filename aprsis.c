@@ -471,8 +471,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 				  errno == ECONNRESET ||
 				  errno == ECONNREFUSED ||
 				  errno == ENOTCONN)) {
-		      /* death-sentence to us.. */
-		      exit(1);
+		      aprsis_die_now = 1; // upstream socket send failed
 		    }
 		}
 		A->rdlin_len = 0;
@@ -547,7 +546,9 @@ static void aprsis_readup(void)
 
 	i = recv(aprsis_up, buf, sizeof(buf), 0);
 	if (i == 0) {		/* EOF ! */
-		exit(0);
+	  if (debug) printf("Upstream fd read resulted eof status.\n");
+	  aprsis_die_now = 1;
+	  return;
 	}
 	if (i < 0) {
 		return;		/* Whatever was the reason.. */
@@ -810,7 +811,7 @@ static void aprsis_main(void)
 		i = aprsis_postpoll_(&app);
 	}
 	/* Got "DIE NOW" signal... */
-	exit(0);
+	// exit(0);
 }
 
 

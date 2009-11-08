@@ -544,8 +544,9 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	if (is_aprs) {
 		int rc = parse_aprs(pb, 0); // don't look inside 3rd party
 		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
-		printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
-		       rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
+		if (debug)
+		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
+			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
 	}
 
 
@@ -741,9 +742,10 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  // This is APRS packet, parse for APRS meaning ...
 	  int rc = parse_aprs(pb, 1); // look inside 3rd party
-	  printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
-		 rc ? "OK":"FAIL", srcif, pb->data,
-		 pb->info_start);
+	  if (debug)
+	    printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
+		   rc ? "OK":"FAIL", srcif, pb->data,
+		   pb->info_start);
 
 	  digipeater_receive( digisrc, pb, 1);
 
