@@ -666,22 +666,22 @@ static void beacon_now(void)
 		  } else {
 		    destbuf = NULL;
 		  }
-		}
 
-		if (debug) {
-		  printf("%ld\tNow beaconing to interface %s '%s>%s",
-			 now, callsign, src, bm->dest);
-		  if (destbuf) printf(",%s", destbuf);
-		  printf("' -> '%s',  next beacon in %.2f minutes\n",
-			 txt, ((beacon_nexttime - now)/60.0));
-		}
+		  if (debug) {
+		    printf("%ld\tNow beaconing to interface %s '%s>%s",
+			   now, callsign, src, bm->dest);
+		    if (destbuf) printf(",%s", destbuf);
+		    printf("' -> '%s',  next beacon in %.2f minutes\n",
+			   txt, ((beacon_nexttime - now)/60.0));
+		  }
 
-		// And to interfaces
-		interface_transmit_beacon(bm->interface,
-					  src,
-					  bm->dest,
-					  destbuf,  // re-written via
-					  bm->msg, msglen);
+		  // And to interfaces
+		  interface_transmit_beacon(bm->interface,
+					    src,
+					    bm->dest,
+					    destbuf,  // re-written via
+					    bm->msg, msglen);
+		}
 	} 
 	else {
 	    for ( i = 0; i < all_interfaces_count; ++i ) {
@@ -722,22 +722,22 @@ static void beacon_now(void)
 		      } else {
 			destbuf = NULL;
 		      }
-		    }
+		      
+		      if (debug) {
+			printf("%ld\tNow beaconing to interface %s '%s>%s",
+			       now, callsign, src, bm->dest);
+			if (destbuf) printf(",%s", destbuf);
+			printf("' -> '%s',  next beacon in %.2f minutes\n",
+			       txt, ((beacon_nexttime - now)/60.0));
+		      }
 
-		    if (debug) {
-		      printf("%ld\tNow beaconing to interface %s '%s>%s",
-			     now, callsign, src, bm->dest);
-		      if (destbuf) printf(",%s", destbuf);
-		      printf("' -> '%s',  next beacon in %.2f minutes\n",
-			     txt, ((beacon_nexttime - now)/60.0));
+		      // .. and send to all interfaces..
+		      interface_transmit_beacon(aif,
+						src,
+						bm->dest,
+						destbuf, // re-written via
+						bm->msg, msglen);
 		    }
-
-		    // .. and send to all interfaces..
-		    interface_transmit_beacon(aif,
-					      src,
-					      bm->dest,
-					      destbuf, // re-written via
-					      bm->msg, msglen);
 		}
 	    }
 	}
