@@ -1,4 +1,22 @@
+2009-11-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in:
+	    Rewrote beacon transmission interval codes, and documents
+	    of the beacon system.
+
+	* configure.in, Makefile.in:
+	    Added  --with-pthread   option,  rewrote the  --with-embedded
+	    option processing.
+
+	* aprsis.c, configure.in:
+	    Optionally support pthreads(3) where available, this can be
+	    important for uCLinux and perhaps Windows, where fork(2) is
+	    not available.
+
 2009-11-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c:
+	    Software tocall identity: APRX1C
 
 	* cellmalloc.c:
 	    Drop semaphores.  Not used in this codebase.

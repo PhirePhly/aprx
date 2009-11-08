@@ -269,7 +269,7 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 #else
 static const void* netax25_openpty(const char *mycall)
 {
-	return null;
+	return NULL;
 }
 
 void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)

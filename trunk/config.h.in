@@ -1,5 +1,17 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+/* Define for an embedded target */
+#undef EMBEDDED
+
+/* Define for pthread(3p) enabling */
+#undef ENABLE_PTHREAD
+
+/* Define to 1 if you have the `atan2f' function. */
+#undef HAVE_ATAN2F
+
+/* Define to 1 if you have the `getaddrinfo' function. */
+#undef HAVE_GETADDRINFO
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -8,6 +20,12 @@
 
 /* Define to 1 if you have the `openpty' function. */
 #undef HAVE_OPENPTY
+
+/* Define to 1 if you have the `pthread_create' function. */
+#undef HAVE_PTHREAD_CREATE
+
+/* Define to 1 if you have the <pthread.h> header file. */
+#undef HAVE_PTHREAD_H
 
 /* Define to 1 if you have the <pty.h> header file. */
 #undef HAVE_PTY_H

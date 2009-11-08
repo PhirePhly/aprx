@@ -25,19 +25,40 @@ AC_SUBST(LD,"$LD")
 
 dnl Check for headers.
 AC_CHECK_HEADERS(pty.h)
+AC_CHECK_HEADERS(pthread.h)
 
 dnl Checks for libraries.
+AC_SUBST(LIBM)
+AC_CHECK_FUNCS(atan2f,,
+	       AC_CHECK_LIB(m, atan2f,
+			    [LIBM="-lm"]))
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(openpty,,
 	       AC_CHECK_LIB(util, openpty,
-			    [AC_DEFINE(HAVE_OPENPTY)] [LIBS="$LIBS -lutil"]))
+			    [AC_DEFINE(HAVE_OPENPTY,1,[])] [LIBS="$LIBS -lutil"]))
 
 dnl Check for user options
 AC_ARG_WITH(embedded, [  --with-embedded  When desiring to target as embedded],
-		      [AC_SUBST(EMBEDDED,"-DEMBEDDED")])
+		      [AC_DEFINE(EMBEDDED,1,[Define for an embedded target]) EMBEDDED=1])
 
+AC_ARG_WITH(pthread,  [  --with-pthread   When desiring use pthread subsystem],
+		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
 
+AC_SUBST(LIBPTHREAD)
+if test "${ENABLE_PTHREAD}" = "1" ; then
+AC_CHECK_FUNCS(pthread_create,
+		AC_DEFINE(HAVE_PTHREAD_CREATE,1,[]),
+	       AC_CHECK_LIB(pthread, pthread_create,
+			    [LIBPTHREAD="-lpthread"]
+			    [AC_DEFINE(HAVE_PTHREAD_CREATE,1,[])]))
+fi
+
+dnl Solaris resolver solution:
+AC_SUBST(LIBGETADDRINFO)
+AC_CHECK_FUNCS(getaddrinfo,,
+	       AC_CHECK_LIB(nsl, getaddrinfo,
+			    [LIBGETADDRINFO="-lnsl"]))
 
 AC_SUBST(LIBSOCKET)dnl
 AC_SUBST(LIBRESOLV)dnl

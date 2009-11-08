@@ -230,6 +230,7 @@ extern int  aprsis_prepoll(struct aprxpolls *app);
 extern int  aprsis_postpoll(struct aprxpolls *app);
 extern void aprsis_init(void);
 extern void aprsis_start(void);
+extern void aprsis_stop(void);
 extern void aprsis_config(struct configfile *cf);
 
 /* beacon.c */
