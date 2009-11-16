@@ -501,22 +501,27 @@ and in particular for initstrings even a nul byte ( \\x00 ) is supported.
 A configuration token without surrounding quotes does not understand the backslash escapes.
 
 
-.SH RADIO PORTS
+.SH INTERFACE SECTIONS FOR RADIO PORTS
 Radio ports can be connected several ways to this program:
 .IP \(bu 2
 AX.25 network interfaced ports (Linux, kissattach et al.)
 .IP \(bu 2
 Local serial ports in the machine
-.RI ( " radio serial /dev/ttyS0 " )
+.RI ( " device\-serial /dev/ttyS0 ..." )
 .IP \(bu 2
 Local USB serial ports in the machine
-.RI ( " radio serial /dev/ttyUSB0 " )
+.RI ( " device\-serial /dev/ttyUSB0 ..." )
 .IP \(bu 2
 Remote served serial ports over a TCP stream.
-.RI ( " radio tcp 12.34.56.78 4001 " )
-.br
 Implemented to talk with Cisco AUX ports on "range 4000"
 (TCP STREAM, no TELNET escapes)
+.RI ( " tcp\-device 12.34.56.78 4001 ..." )
+.IP \(bu 2
+Linux internal AX.25 network attached devices
+.RI ( " ax25\-device CALLSIGN\-1" )
+are only available when running on a Linux system.
+On a non-Linux system it connects to a null interface, never
+getting anything and can always sink everything.
 .PP
 The serial port name tells what kind of port is in question,
 and while port baud-rate (9600) and character settings (8n1)
@@ -536,8 +541,51 @@ The
 .I callsign
 option sets port specific callsign when relaying to APRS-IS.
 
-.SH BEACON definitions
-Because classical beacon definitions are highly error-prone, this program
+.nf
+<interface>
+   serial\-device /dev/ttyUSB1 19200 8n1 KISS
+   tx\-ok         false          # receive only (default)
+   callsign      OH2XYZ\-R2      # KISS subif 0
+   initstring    "...."         # initstring option
+   timeout       900            # 900 seconds of no Rx
+</interface>
+
+<interface>
+   serial\-device /dev/ttyUSB2 19200 8n1 KISS
+   initstring    "...."
+   timeout       900            # 900 seconds of no Rx
+   <kiss\-subif 0>
+      callsign OH2XYZ\-2
+      tx\-ok    true             # This is our transmitter
+   </kiss\-subif>
+   <kiss\-subif 1>
+      callsign OH2XYZ\-R3        # This is receiver
+      tx\-ok    false            # receive only (default)
+   </kiss\-subif>
+</interface>
+
+<interface>
+   tcp\-device   172.168.1.1 4001 KISS
+   tx\-ok         false          # receive only (default)
+   callsign      OH2XYZ\-R4      # KISS subif 0
+   initstring    "...."         # initstring option
+   timeout       900            # 900 seconds of no Rx
+</interface>
+
+<interface>
+   ax25\-device OH2XYZ\-6         # Works only on Linux systems
+   tx\-ok       true             # This is also transmitter
+</interface>
+.fi
+
+
+
+.SH BEACON DEFINITIONS
+The beacons are defined using
+.B <beacon>
+configuration sections.
+.PP
+Because classical beacon definitions are highly error\-prone, this program
 has a new way to define them:
 .IP \(bu 2
 The new way to define beacons, however do note that these will be only
@@ -545,14 +593,14 @@ messages of type "!":
 
 .nf
 \fCbeacon symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
-\fC       comment "aprx - an Rx-only iGate" \fR
+\fC       comment "aprx \- an Rx\-only iGate" \fR
 .fi
 
 .IP \(bu 2
 Semi-clasical definition of raw APRS packet:
 
 .nf
-\fCbeacon raw "!6016.35NR02506.36E&aprx - an Rx-only iGate"\fR
+\fCbeacon raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"\fR
 .fi
 .PP
 The fields and parameters:
@@ -560,7 +608,7 @@ The fields and parameters:
 An
 .I optional
 "to" parameter tells that this beacon shall be sent only to interface whose
-callsign is named.  Default is to send to all interfaces that have "tx-ok true"
+callsign is named.  Default is to send to all interfaces that have "tx\-ok true"
 setting.
 
 .IP for 8
@@ -629,13 +677,186 @@ This
 format defines whole APRS packet content in raw text format.
 .I Currently this type of packets are not validated for syntax at all!
 
+.IP file 8
+This
+.I alternative
+way defines path to a file with single text line defining
+content of
+.I raw
+message data.
+
 .PP
 The symbol/lat/lon/comment-format supports only "!"-type APRS packets
 for beacons.
 It splits input into small slices that are possible to validate in detail.
 (see "DEBUGGING SYSTEM" above)
 
+.SH DIGIPEATER
+The
+.I aprx
+is possible to configure as a AX.25 digipeater with APRS twists.
+.PP
+Minimalistic setup for a digipeater will be as follows:
+.nf
+\fC
+<digipeater>
+    transmitter     $mycall
+    <source>
+        source      $mycall
+    </source>
+</digipeater>\fR
+.fi
+.PP
+In minimalistic approach the system does digipeating of packets heard
+on the
+.I $mycall
+interface back to same interface.
+Single requirement is that the
+.I <interface>
+block has
+.I "tx\-ok true"
+setting on it.
+.PP
+In more complicated approaches it is possible to define multiple sources
+for packets:
+.IP \(bu 3
+Multiple device ports.
+.IP \(bu 3
+APRSIS pseudoport, which creates the Tx-iGate functionality.
+.PP
+.SS <digipeater> options
+Main-level <digipeater> options are:
+.PP
+.IP \(bu 3
+.I transmitter
+defines which interface the digipeater will output to.
+.IP \(bu 3
+.IR <trace> " and " <wide>
+sub-options are explained below.
+.IP \(bu 3
+.I <source>
+sub-option is explained below.
+.PP
+.SS <trace> and <wide> sub-options
+The
+.I <trace>
+sub-option has priority over the
+.I <wide>
+suboption, otherwise they are configured the same way.
+.PP
+The
+.I <trace>
+sub-option defines which AX.25 address contained keywords
+are treated with APRS "New-N paradigm" rules in a way
+where each processing node always marks its transmitter
+callsign on the transmitted AX.25 packet address header.
+.PP
+The
+.I <wide>
+sub-option defines which AX.25 address contained keywords
+are treated with APRS "New-N paradigm" rules in a way where
+processing node does not mark its transmitter callsign
+on the transmitted AX.25 packet address header.
+.PP
+Available parameters are:
+.TP 8em
+.B keys
+A string of comma-separated set of string tokens:
 
+\fCkeys "TRACE,WIDE"\fR
+.TP 9em
+.B maxdone
+Defines maximum number of redistribution hops that these keywords
+can have completed when reaching here.
+If accounting finds more done, the system will just drop the packet
+instead of digipeating it onwards.
+.TP 9em
+.B maxreq
+Defines maximum number of redistribution hops that these keywords
+can define.
+If accounting finds more requested, the system will just drop
+the packet instead of digipeating it onwards.
+.PP
+.SS <source> sub-options
+Primary definer option is
+.B source
+which gives callsign of an
+.I <interface>
+from which the AX.25 packets are received for this
+.I <source>
+block.
+.PP
+Available
+.B relay\-type
+modes on <source> definitions are:
+.TP 14em
+.B digipeater
+Normal AX.25 digipeater behaviour with APRS New-N paradigm support.
+This is default mode.
+.TP 14em
+.B directonly
+Digipeat only directly heard packets.
+Useful for systems that are designated as "fill\-in".
+See also "viscous\-delay".
+.TP 14em
+.B third\-party
+Special mode for Tx-iGate.
+.PP
+The
+.B viscous\-delay
+defines a number of seconds from 0 (default) maximum of 9 that
+the source will put the message on duplicate detector delay processing.
+All occurrances of same packet per duplicate detector during that time
+will be accounted on duplicate detection, and if at the end of the delay
+period there are more than one hit, the packet is discarded.
+Use delay of 0 seconds for normal digipeater, 5 seconds for a fill-in,
+or a Tx-iGate.
+.PP
+A javAPRSSrvr filter-adjunct style rules are possible with the
+.B filter
+options.
+When you want multiple filters, use multiple options with associated parameters:
+.nf
+\fC
+    filter t/m            # APRS messaging type packets
+    filter a/la/lo/la/lo  # APRS positional packets within this area
+\fR
+.fi
+.LP
+Also negative filters are possible (prefixed with minus character),
+which upon match cause rejection of the packet.
+Filters are evaluated in definition order, and first matching one will
+terminate the evaluation.
+When no filters are defined, everything is passed thru.
+When any filter is defined, only those matching non-negative filters
+are passed thru, and no default "pass everything else" behaviour exists.
+.PP
+The
+.B <trace>
+and
+.B <wide>
+sub-options exist also within each <source>.
+Where such occur, the <source> specific <trace> sub-option
+trumps the definition on <digipeater> level, and same with
+<wide> sub-options.
+This allows things like overriding flooding control keywords
+on source basis, should such be necessary.
+.PP
+A set of
+.B regex\-filter
+rules can be used to reject packets that are not of approved kind.
+Available syntax is:
+.IP "regex\-filter source RE"
+source address field
+.IP "regex\-filter destination RE"
+destination address field
+.IP "regex\-filter via RE"
+any via path field
+.IP "regex\-filter data RE"
+payload content
+.PP
+The regex\-filter exists as ad-hoc method when all else fails.
+.PP
 .SH NOTES: ERLANG
 The
 .I Erlang
