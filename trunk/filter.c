@@ -758,7 +758,6 @@ static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int key
 		}
 	}
 	return 0; /* no match */
-
 }
 
 /*

@@ -728,13 +728,11 @@ The new way to define beacons:
 \fCbeacon symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
 \fC       comment "aprx \- an Rx\-only iGate" \fR
 .fi
-
 .IP \(bu 2
 Semi-clasical definition of raw APRS packet:
 .nf
 \fCbeacon raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"\fR
 .fi
-
 .IP \(bu 2
 Load beacon text from a file, path data is configurable:
 .nf
@@ -764,7 +762,6 @@ An
 "for" parameter tells callsign which is claimed as this particular beacon source.
 It must be valid AX.25 callsign in text format.
 When this "for" parameter is not given, value of "mycall" configuration entry is used.
-
 .TP 12em
 .B name
 An
@@ -774,26 +771,22 @@ An
 and
 .IR symbols ,
 and it sets the name of the item/object to be defined.
-
 .TP 12em
 .B dest
 An
 .I optional
 "dest" parameter defaults to "APRS", but can be used to define another value.
-
 .TP 12em
 .B via
 An
 .I optional
 "via" parameter defaults to nothing, but can be used to define additional
 "VIA" path tokens, for example: "WIDE1\-1".
-
 .TP 12em
 .B symbol
 A
 .I mandatory
 "symbol" parameter is two character code, which for Rx-only iGate is pair: "R&"
-
 .TP 12em
 .B lat
 This
@@ -809,7 +802,6 @@ of latitude, and "mm.mm" defines two digits + decimal dot + two digits of
 .I minutes
 of latitude.
 Then comes literal "N" or "S" indicating hemisphere.
-
 .TP 12em
 .B lon
 This 
@@ -825,7 +817,6 @@ of longitude, and "mm.mm" defines two digits + decimal dot + two digits of
 .I minutes
 of longitude.
 Then comes literal "E" or "W" indicating hemisphere.
-
 .TP 12em
 .B comment
 This
@@ -840,7 +831,6 @@ This
 .I alternate
 format defines whole APRS packet content in raw text format.
 .I Currently this type of packets are not validated for syntax at all!
-
 .TP 12em
 .B file
 This
@@ -849,14 +839,13 @@ way defines path to a file with single text line defining
 content of
 .I raw
 message data.
-
 .PP
 The type/symbol/lat/lon/comment-format supports only
 a few types of APRS packets.
 It splits input into small slices that are possible
 to validate in detail.
 (See "DEBUGGING SYSTEM" above.)
-
+.PP
 .SH DIGIPEATER
 The
 .I aprx
@@ -1010,6 +999,82 @@ terminate the evaluation.
 When no filters are defined, everything is passed thru.
 When any filter is defined, only those matching non-negative filters
 are passed thru, and no default "pass everything else" behaviour exists.
+.LP
+Supported "adjunct filters" are following:
+.TP 8em
+.B A/latN/lonW/latS/lonE
+Area filter, defined as area enclosing within latS/latN and lonW/lonE.
+Latitude and longitude are entered as degrees and decimals.
+.TP 8em
+.B B/call1/call2...
+Budlist filter.  Supports *-wildcards.
+.TP 8em
+.B F/call/dist_km
+Great-circle distance in kilometers from friend's coordinates.
+No wildcarding.
+.br
+.I (TODO: check that it really works!)
+.TP 8em
+.B O/object1/obj2...
+Object name filter.  Supports *-wildcards.
+.TP 8em
+.B P/aa/bb/cc...
+Prefix filter.
+.TP 8em
+.B R/lat/lon/dist
+Range filter.  Latitude and longitude are in degrees and decimals.
+Distance is in kilometers.  No wildcards.
+.TP 8em
+.B S/pri/alt/over
+Symbol filter
+.TP 8em
+.B T/..../call/km
+.RS
+Type filter.
+Couple possible usages:
+.IP "\fC  -t/c\fR" 22em
+Everything except CWOP
+.IP "\fC   t/*/OH2RDY/50\fR" 22em
+Everything within 50 km of OH2RDY's last known position
+.PP
+Type code characters are:
+.TP 3em
+.B *
+An "all" wild-card.
+.TP 3em
+.B C
+A CWOP.
+.TP 3em
+.B I
+An ITEM.
+.TP 3em
+.B M
+A MESSAGE.
+.TP 3em
+.B N
+A NWS message.
+.TP 3em
+.B O
+An OBJECT.
+.TP 3em
+.B Q
+A QUERY.
+.TP 3em
+.B S
+A STATUS response.
+.TP 3em
+.B T
+A TELEMETRY packet or parameter message.
+.TP 3em
+.B U
+A USERDEF message.
+.TP 3em
+.B W
+A WX data packet
+.RE
+.TP 8em
+.B U/unproto1/unproto2...
+Filters by value in destination address field, supports wildcard.
 .PP
 The
 .B <trace>
