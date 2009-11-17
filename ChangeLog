@@ -1,3 +1,12 @@
+2009-11-17  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.8.in:
+	    Big rewrite.
+
+	* aprx.h, interface.c, digipeater.c, netax25.c:
+	    Digipeater "relay-type directonly"  mode.
+	    Interface parsing error detection improvement.
+
 2009-11-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION 1.96

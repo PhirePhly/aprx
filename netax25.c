@@ -774,10 +774,12 @@ void netax25_start(void)
 
 const void* netax25_open(const char *ifcallsign)
 {
+	return NULL;
 }
 
-void netax25_addrxport(const char *portname, char *str)
+void *netax25_addrxport(const char *portname, char *str)
 {
+	return NULL;
 }
 
 void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)

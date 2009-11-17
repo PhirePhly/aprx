@@ -670,6 +670,10 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  relaytype = DIGIRELAY_DIGIPEAT;
 			} else if (strcmp(param1,"digipeated") == 0) {
 			  relaytype = DIGIRELAY_DIGIPEAT;
+			} else if (strcmp(param1,"digipeater") == 0) {
+			  relaytype = DIGIRELAY_DIGIPEAT;
+			} else if (strcmp(param1,"directonly") == 0) {
+			  relaytype = DIGIRELAY_DIGIPEAT_DIRECTONLY;
 			} else if (strcmp(param1,"third-party") == 0) {
 			  relaytype = DIGIRELAY_THIRDPARTY;
 			} else if (strcmp(param1,"3rd-party") == 0) {
@@ -927,6 +931,13 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 		  //  .. note: this does not get packets that have no VIA fields.
 		  // Score of direct DX:es?
 		  //  .. note: this does not get packets that have no VIA fields.
+		} else {
+		  if (src->src_relaytype == DIGIRELAY_DIGIPEAT_DIRECTONLY) {
+		    // Source relaytype is DIRECTONLY, and this was not
+		    // likely directly heard...
+		    if (debug) printf("DIRECTONLY -mode, and packet is not probably direct heard.");
+		    return;
+		  }
 		}
 		// Keep score of all DX packets?
 

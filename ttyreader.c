@@ -1038,6 +1038,11 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 		case 1200:
 			baud = B1200;
 			break;
+#ifdef B1800
+		case 1800:
+			baud = B1800;
+			break;
+#endif
 		case 2400:
 			baud = B2400;
 			break;
@@ -1047,12 +1052,41 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 		case 9600:
 			baud = B9600;
 			break;
+#ifdef B19200
 		case 19200:
 			baud = B19200;
 			break;
+#endif
+#ifdef B38400
 		case 38400:
 			baud = B38400;
 			break;
+#endif
+#ifdef B115200
+		case 115200:
+			baud = B115200;
+			break;
+#endif
+#ifdef B230400
+		case B230400:
+			baud = B230400;
+			break;
+#endif
+#ifdef B460800
+		case 460800:
+			baud = B460800;
+			break;
+#endif
+#ifdef B500000
+		case 500000:
+			baud = B500000;
+			break;
+#endif
+#ifdef B576000
+		case 576000:
+			baud = B576000;
+			break;
+#endif
 		default:
 			i = -1;
 			break;

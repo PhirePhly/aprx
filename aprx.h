@@ -421,6 +421,7 @@ extern int kissencoder(void *, int, const void *, int, int);
 typedef enum {
 	DIGIRELAY_UNSET,
 	DIGIRELAY_DIGIPEAT,
+	DIGIRELAY_DIGIPEAT_DIRECTONLY,
 	DIGIRELAY_THIRDPARTY
 } digi_relaytype;
 
