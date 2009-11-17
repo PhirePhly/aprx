@@ -201,6 +201,48 @@ A digipeater with receive-only iGate server.
 This package does contain incomplete bi-directional iGate support,
 however as of present version, we do not recommend its use quite yet!
 .PP
+In the configuration file a line ending backslash (\\) character concatenates
+next input line into itself. Combined result can be up to 8000 bytes long.
+This combination can be a bit surprising:
+.nf
+\fC#beacon .... long text  \\
+       continuation\fR
+.fi
+results in single long input line that begins with '#' (it is comment) and all
+continuations following it have been folded in.
+Presented line number of combined continuation is the line number of the
+.I last
+line segment in this type of multi-line input.
+.PP
+In the configuration file there is special treatment for quoted strings.
+They are stripped of the outer quotes, and "\fC\\\fR" character is processed within
+the source string to produce an output string.
+The escapes are:
+.TP
+.B "\fC\\\\n"
+Produces newline character (Control-J) on the output string.
+.TP
+.B "\fC\\\\r"
+Produces carriage return character (Control-M) on the output string.
+.TP
+.B "\fC\\\\\\\\"
+Places a back-slash on the output string.
+.TP
+.B "\fC\\\\""
+.\" foo "
+Places a double-quote on the output string.
+.TP
+.B "\fC\\\\'"
+Places a single-quote on the output string.
+.TP
+.B "\fC\\\\xHH"
+Lower-case "x" precedes two hex digits which ensemble is then converted to a single byte in the output string.
+.PP
+The complex encodings are for possible initstrings of the external devices,
+and in particular for initstrings even a nul byte ( \\x00 ) is supported.
+.PP
+A configuration token without surrounding quotes does not understand the backslash escapes.
+.PP
 .nf
 \fC
 #
@@ -458,67 +500,114 @@ server    rotate.aprs.net    14580
 \fR
 .fi
 .PP
-In the configuration file a line ending backslash (\\) character concatenates
-next input line into itself. Combined result can be up to 8000 bytes long.
-This combination can be a bit surprising:
-.nf
-\fC#beacon .... long text  \\
-       continuation\fR
-.fi
-results in single long input line that begins with '#' (it is comment) and all
-continuations following it have been folded in.
-Presented line number of combined continuation is the line number of the
-.I last
-line segment in this type of multi-line input.
+.SH GLOBAL MYCALL PARAMETER
+In majority of usage models, system needs single configured callsign.
+This is set by using the
+.B mycall
+configuration option, and latter referred to in configurations as
+.B $mycall
+parameter in place of callsigns.
 .PP
-In the configuration file there is special treatment for quoted strings.
-They are stripped of the outer quotes, and "\fC\\\fR" character is processed within
-the source string to produce an output string.
-The escapes are:
-.TP
-.B "\fC\\\\n"
-Produces newline character (Control-J) on the output string.
-.TP
-.B "\fC\\\\r"
-Produces carriage return character (Control-M) on the output string.
-.TP
-.B "\fC\\\\\\\\"
-Places a back-slash on the output string.
-.TP
-.B "\fC\\\\""
-.\" foo "
-Places a double-quote on the output string.
-.TP
-.B "\fC\\\\'"
-Places a single-quote on the output string.
-.TP
-.B "\fC\\\\xHH"
-Lower-case "x" precedes two hex digits which ensemble is then converted to a single byte in the output string.
+.SH APRSIS SECTION FOR APRSIS CONNECTIVITY
+Settings in the
+.B <aprsis>
+section define connectivity with the APRS-IS network service.
 .PP
-The complex encodings are for possible initstrings of the external devices,
-and in particular for initstrings even a nul byte ( \\x00 ) is supported.
+Necessary option is
+.IR server ,
+and others are optional.
 .PP
-A configuration token without surrounding quotes does not understand the backslash escapes.
-
-
+Available options are:
+.IP "\fClogin $mycall\fR" 8em
+The APRSIS network login.
+Defaults to the
+.B mycall
+configuration entry.
+.IP "\fCserver \fIserver-name 14850\fR" 8em
+Define which APRS-IS is being connected to.
+Multiple definitions are used in round-robin style,
+if the connection with the previous one fails for some reason.
+.PP
+.IP "\fCfilter \fI'filter specs in quotes'\fC # \fIcomments" 8em
+Set filter adjunct definitions on APRS-IS server.
+Multiple entries are catenated together in entry order,
+when connecting to the server.
+.PP
+.SH LOGGING SECTION
+The
+.B <logging>
+section defines miscellaneous file names and options for state tracking and logging use.
+.PP
+.IP "\fCpidfile \fI@VARRUN@/aprx.pid\fR" 8em
+The pidfile is UNIX way to tell that others that this program is
+running with given process-id number.
+This has compiled-in default value of: \fCpidfile @VARRUN@/aprx.pid
+.IP "\fCrflog \fI@VARLOG@/aprx\-rf.log\fR" 8em
+The
+.I rflog
+defines a rotatable file into which all RF-received packets are logged.
+There is no default.
+.IP "\fCaprxlog \fI@VARLOG@/aprx.log\fR" 8em
+The
+.I aprxlog
+defines a rotatable file into which most important events on APRS-IS
+connection are logged, namely connects and disconnects.
+There is no default.
+.IP "\fCerlangfile \fI@VARRUN@/aprx.state\fR" 8em
+The
+.I erlangfile
+defines a mmap():able binary file, which stores running sums of interfaces
+upon which the channel erlang estimator runs, and collects data.
+Depending on the system, it may be running on a filesystem that actually
+retains data over reboots, or it may not.
+With this backing store, the system does not loose cumulating erlang data
+over the current period, if the restart is quick, and does not stradle
+any exact minute.
+This file is around 0.7 MB per each interface talking APRS.
+If this file is not defined and can not be created,
+internal non-persistent in-memory storage will be used.
+Built-in default value is: @VARRUN@/aprx.state
+.IP "\fCerlang\-loglevel \fINONE\fR" 8em
+The
+.I erlang\-loglevel
+is config file edition of the "\-l" option pushing erlang data to
+.IR syslog (3).
+Valid values are (possibly) following: NONE, LOG_DAEMON,
+LOG_FTP, LOG_LPR, LOG_MAIL, LOG_NEWS, LOG_USER, LOG_UUCP,
+LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4,
+LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7.
+If the parameter value is not acceptable, list of accepted
+values are printed at startup.
+.IP "\fCerlanglog \fI@VARLOG@/erlang.log\fR" 8em
+The erlanglog defines a rotatable file into which erlang data
+is written in text form.
+There is no default.
+.IP "\fCerlang\-log1min\fR" 8em
+The
+.I erlang\-log1min
+option logs to syslog/file also 1 minute interval data from the program.
+(In addition to 10m and 60m.)
+Default is off.
+.PP
 .SH INTERFACE SECTIONS FOR RADIO PORTS
-Radio ports can be connected several ways to this program:
-.IP \(bu 2
-AX.25 network interfaced ports (Linux, kissattach et al.)
+The
+.B <interface>
+sections define connections to radio modems.
+Several different styles are available:
 .IP \(bu 2
 Local serial ports in the machine
-.RI ( " device\-serial /dev/ttyS0 ..." )
+.RB ( "device\-serial /dev/ttyS0 " "\fIspeed encapsulation\fR)"
 .IP \(bu 2
 Local USB serial ports in the machine
-.RI ( " device\-serial /dev/ttyUSB0 ..." )
+.RB ( "device\-serial /dev/ttyUSB0 " "\fIspeed encapsulation\fR)"
 .IP \(bu 2
 Remote served serial ports over a TCP stream.
 Implemented to talk with Cisco AUX ports on "range 4000"
 (TCP STREAM, no TELNET escapes)
-.RI ( " tcp\-device 12.34.56.78 4001 ..." )
+.RB ( "tcp\-device 12.34.56.78 4001 " "\fIencapsulation\fR)"
 .IP \(bu 2
 Linux internal AX.25 network attached devices
-.RI ( " ax25\-device CALLSIGN\-1" )
+.RB ( "ax25\-device CALLSIGN\-1" )
 are only available when running on a Linux system.
 On a non-Linux system it connects to a null interface, never
 getting anything and can always sink everything.
@@ -527,23 +616,64 @@ The serial port name tells what kind of port is in question,
 and while port baud-rate (9600) and character settings (8n1)
 must always be set, they are ignored for the remote connection.
 .PP
-The KISS encapsulation details must also be specified, and they
-are used in all cases.
+Following
+.I speed
+modes are available:
+.br
+.B "    " 1200,
+.I 1800,
+.B 2400, 4800, 9600, 19200,
+.I 38400, 115200, 230400, 460800, 500000, 576000
+.br
+Likely available speeds are in bold, other supported values
+are listed in italics.
 .PP
-The
-.I tncid
-option sets up KISS multiplexer parameter so that subsequent
-.I callsign
-option applies only on designated sub-port.
-Default value is zero (0).
+Following
+.I encapsulation
+modes are available:
+.TP 10em
+.B TNC2
+is capable only to monitor the packets reported by TNC2 type
+debug output, and Rx-iGate, but they are not acceptable as
+source for a <digipeater>.
+.TP 10em
+.B KISS
+Basic KISS encapsulation.
+No checksums.
+.TP 10em
+.B SMACK
+.IR "Stuttgart Modified Amateurradio-CRC-KISS" ,
+which runs CCITT-CRC16 checksum on KISS datastream much in the same
+way as HDLC has CRC16 checksum on it.
+.TP 10em
+.B BPQCRC
+XOR "checksum" on dataframes.
+Also known as "XKISS", and "XORSUM".
+This detects single bit failure, but weakly any multibit failures.
+Extra 0x00 bytes have no effect on checksum, etc.
+.PP
+On
+.BI "<kiss\-subif " "tncid" ">"
+sub-options the parameter is
+.IR tncid ,
+which sets up KISS multiplexer parameter so that subsequent
+options applies only on designated KISS sub-port.
 .PP
 The
 .I callsign
 option sets port specific callsign when relaying to APRS-IS.
 
 .nf
-<interface>
+\fC<interface>
    serial\-device /dev/ttyUSB1 19200 8n1 KISS
+   tx\-ok         false          # receive only (default)
+   callsign      OH2XYZ\-R2      # KISS subif 0
+   initstring    "...."         # initstring option
+   timeout       900            # 900 seconds of no Rx
+</interface>
+
+<interface>
+   serial\-device /dev/ttyUSB1 19200 8n1 SMACK
    tx\-ok         false          # receive only (default)
    callsign      OH2XYZ\-R2      # KISS subif 0
    initstring    "...."         # initstring option
@@ -576,9 +706,14 @@ option sets port specific callsign when relaying to APRS-IS.
    ax25\-device OH2XYZ\-6         # Works only on Linux systems
    tx\-ok       true             # This is also transmitter
 </interface>
+
+<interface> # \fBRX-IGATE ONLY, NOT USABLE AS DIGIPEATER SOURCE\fC
+   serial\-device /dev/ttyUSB1 19200 8n1 TNC2
+   callsign      OH2XYZ\-R6      # TNC2 has no sub-ports
+   initstring    "...."         # initstring option
+   timeout       900            # 900 seconds of no Rx
+</interface>
 .fi
-
-
 
 .SH BEACON DEFINITIONS
 The beacons are defined using
@@ -588,9 +723,7 @@ configuration sections.
 Because classical beacon definitions are highly error\-prone, this program
 has a new way to define them:
 .IP \(bu 2
-The new way to define beacons, however do note that these will be only
-messages of type "!":
-
+The new way to define beacons:
 .nf
 \fCbeacon symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
 \fC       comment "aprx \- an Rx\-only iGate" \fR
@@ -598,43 +731,66 @@ messages of type "!":
 
 .IP \(bu 2
 Semi-clasical definition of raw APRS packet:
-
 .nf
 \fCbeacon raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"\fR
+
 .fi
 .PP
 The fields and parameters:
-.IP to 8
+.TP 12em
+.B to
 An
 .I optional
 "to" parameter tells that this beacon shall be sent only to interface whose
 callsign is named.  Default is to send to all interfaces that have "tx\-ok true"
 setting.
 
-.IP for 8
+.TP 12em
+.B type
+An
+.I optional
+one character string parameter, with one of following
+contents:  "!", "=", "/", "@", ";" and ")".
+
+.TP 12em
+.B for
 An
 .I optional
 "for" parameter tells callsign which is claimed as this particular beacon source.
 It must be valid AX.25 callsign in text format.
 When this "for" parameter is not given, value of "mycall" configuration entry is used.
 
-.IP dest 8
+.TP 12em
+.B name
+An
+.I optional
+"name" parameter is for defining
+.I items
+and
+.IR symbols ,
+and it sets the name of the item/object to be defined.
+
+.TP 12em
+.B dest
 An
 .I optional
 "dest" parameter defaults to "APRS", but can be used to define another value.
 
-.IP via 8
+.TP 12em
+.B via
 An
 .I optional
 "via" parameter defaults to nothing, but can be used to define additional
 "VIA" path tokens, for example: "WIDE1\-1".
 
-.IP symbol 8
+.TP 12em
+.B symbol
 A
 .I mandatory
 "symbol" parameter is two character code, which for Rx-only iGate is pair: "R&"
 
-.IP lat 8
+.TP 12em
+.B lat
 This
 .I mandatory
 parameter defines
@@ -649,7 +805,8 @@ of latitude, and "mm.mm" defines two digits + decimal dot + two digits of
 of latitude.
 Then comes literal "N" or "S" indicating hemisphere.
 
-.IP lon 8
+.TP 12em
+.B lon
 This 
 .I mandatory
 parameter defines
@@ -664,20 +821,23 @@ of longitude, and "mm.mm" defines two digits + decimal dot + two digits of
 of longitude.
 Then comes literal "E" or "W" indicating hemisphere.
 
-.IP comment 8
+.TP 12em
+.B comment
 This
 .I optional
 parameter defines commentary text tail on the beacon packet.
 If you need characters outside US-ASCII character set, use of UTF-8 encoded
 UNICODE character set is recommended.
 
-.IP raw 8
+.TP 12em
+.B raw
 This
 .I alternate
 format defines whole APRS packet content in raw text format.
 .I Currently this type of packets are not validated for syntax at all!
 
-.IP file 8
+.TP 12em
+.B file
 This
 .I alternative
 way defines path to a file with single text line defining
@@ -686,15 +846,24 @@ content of
 message data.
 
 .PP
-The symbol/lat/lon/comment-format supports only "!"-type APRS packets
-for beacons.
-It splits input into small slices that are possible to validate in detail.
-(see "DEBUGGING SYSTEM" above)
+The type/symbol/lat/lon/comment-format supports only
+a few types of APRS packets.
+It splits input into small slices that are possible
+to validate in detail.
+(See "DEBUGGING SYSTEM" above.)
 
 .SH DIGIPEATER
 The
 .I aprx
 is possible to configure as a AX.25 digipeater with APRS twists.
+This is done with
+.B <digipeater>
+configuration section and its subsections.
+.PP
+.I There can be at most one <digipeater> definition per each
+.I transmit capable interface in the system.
+.I On a system with multiple transmitters, this means there can
+.I be multiple digipeaters, each with different behaviour rules.
 .PP
 Minimalistic setup for a digipeater will be as follows:
 .nf
@@ -742,7 +911,7 @@ The
 .I <trace>
 sub-option has priority over the
 .I <wide>
-suboption, otherwise they are configured the same way.
+sub-option, otherwise they are configured the same way.
 .PP
 The
 .I <trace>
@@ -762,8 +931,14 @@ Available parameters are:
 .TP 8em
 .B keys
 A string of comma-separated set of string tokens:
-
+.br
 \fCkeys "TRACE,WIDE"\fR
+.br
+Alternative form for this entry is:
+.br
+\fCkeys "TRACE"\fR
+.br
+\fCkeys "WIDE"\fR
 .TP 9em
 .B maxdone
 Defines maximum number of redistribution hops that these keywords

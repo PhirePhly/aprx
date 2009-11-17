@@ -9,6 +9,7 @@
  * **************************************************************** */
 
 #include "aprx.h"
+#include <sys/socket.h>
 
 /*
  *  The interface subsystem describes all interfaces in one
@@ -41,7 +42,7 @@
 </interface>
 
 <interface>
-   tcp   172.168.1.1 4001 KISS
+   tcp-device   172.168.1.1 4001 KISS
    tx-ok         false		# receive only (default)
    callsign      OH2XYZ-R4	# KISS subif 0
    initstring    "...."		# initstring option
@@ -226,8 +227,6 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	  aif->aliases    = aliases;
 	}
 
-	interface_store(*aifp);
-
 	if (initstring != NULL) {
 	  aif->tty->initlen[subif]    = initlength;
 	  aif->tty->initstring[subif] = initstring;
@@ -249,8 +248,8 @@ void interface_config(struct configfile *cf)
 	char  *name, *param1;
 	char  *str = cf->buf;
 	int    parlen     = 0;
-
-	int  maxsubif = 16;  // 16 for most KISS modes, 8 for SMACK
+	int    have_fault = 0;
+	int    maxsubif   = 16;  // 16 for most KISS modes, 8 for SMACK
 
 	aif->iftype = IFTYPE_UNSET;
 	aif->aliascount = 3;
@@ -282,24 +281,24 @@ void interface_config(struct configfile *cf)
 		if (strcmp(name, "<kiss-subif") == 0) {
 		  aif2 = NULL;
 		  if (config_kiss_subif(cf, aif, &aif2, param1, str, maxsubif)) {
-		    // FIXME: bad inputs.. complained already
-		  } else {
-		    if (aif2 != NULL) {
-		    }
+		    // Bad inputs.. complained already
+		    have_fault = 1;
 		  }
 
 		  continue;
 		}
 
-		// FIXME: interface parameters
+		// Interface parameters
 
 		if (strcmp(name,"ax25-device") == 0) {
+#ifdef PF_AX25		// PF_AX25 exists -- highly likely a Linux system !
 		  if (aif->iftype == IFTYPE_UNSET) {
 		    aif->iftype = IFTYPE_AX25;
 		    // aif->nax25p = NULL;
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
 			   cf->name, cf->linenum);
+		    have_fault = 1;
 		    continue;
 		  }
 
@@ -309,6 +308,7 @@ void interface_config(struct configfile *cf)
 		  if (!validate_callsign_input(param1,1)) {
 		    printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
 			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
 		    continue;
 		  }
 
@@ -319,9 +319,19 @@ void interface_config(struct configfile *cf)
 		  aif->callsign = strdup(param1);
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  aif->nax25p = netax25_addrxport(param1, aif);
-		  interface_store(aif);
-		  
+		  if (aif->nax25p == NULL) {
+		    printf("%s:%d Failed to open this AX25-DEVICE: '%s'\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    continue;
+		  }
+#else
+		  printf("%s:%d AX25-DEVICE interfaces not supported at this system!\n",
+			 cf->name, cf->linenum, param1);
+#endif
+
 		} else if ((strcmp(name,"serial-device") == 0) && (aif->tty == NULL)) {
+
 		  if (aif->iftype == IFTYPE_UNSET) {
 		    aif->iftype              = IFTYPE_SERIAL;
 		    aif->callsign            = strdup(mycall);
@@ -331,13 +341,12 @@ void interface_config(struct configfile *cf)
 		    aif->tty->interface[0]   = aif;
 		    aif->tty->ttycallsign[0] = mycall;
 
-		    ttyreader_register(aif->tty);
-
-		    interface_store(aif);
+		    // end processing registers it
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
 			   cf->name, cf->linenum);
+		    have_fault = 1;
 		    continue;
 		  }
 
@@ -347,8 +356,6 @@ void interface_config(struct configfile *cf)
 
 		  ttyreader_parse_ttyparams(cf, aif->tty, str);
 
-
-		  
 		} else if ((strcmp(name,"tcp-device") == 0) && (aif->tty == NULL)) {
 		  int len;
 		  char *host, *port;
@@ -359,12 +366,12 @@ void interface_config(struct configfile *cf)
 		    aif->tty->interface[0] = aif;
 		    aif->tty->ttycallsign[0]  = mycall;
 
-		    ttyreader_register(aif->tty);
-		    interface_store(aif); 
+		    // end-step processing registers it
 
 		  } else {
 		    printf("%s:%d Only single device specification per interface block!\n",
 			   cf->name, cf->linenum);
+		    have_fault = 1;
 		    continue;
 		  }
 
@@ -390,6 +397,7 @@ void interface_config(struct configfile *cf)
 		  if (!config_parse_boolean(param1, &(aif->txok))) {
 		    printf("%s:%d Bad TX-OK parameter value -- not a recognized boolean: %s\n",
 			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
 		    continue;
 		  }
 		  if (aif->txok && aif->callsign) {
@@ -406,6 +414,7 @@ void interface_config(struct configfile *cf)
 		    aif->timeout = 0;
 		    printf("%s:%d Bad TIMEOUT parameter value: %s\n",
 			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
 		    continue;
 		  }
 		  if (aif->tty != NULL) {
@@ -417,13 +426,12 @@ void interface_config(struct configfile *cf)
 		    param1 = strdup(mycall);
 
 		  if (!validate_callsign_input(param1,aif->txok)) {
-		    if (aif->txok)
-		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+		    if (aif->txok) {
+		      printf("%s:%d The CALLSIGN parameter on transmit capable interface must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, param1);
-		    else
-		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid APRSIS format! '%s'\n",
-			     cf->name, cf->linenum, param1);
-		    break;
+		      have_fault = 1;
+		      continue;
+		    }
 		  }
 		  aif->callsign = strdup(param1);
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
@@ -459,18 +467,37 @@ void interface_config(struct configfile *cf)
 		} else {
 		  printf("%s:%d Unknown config entry name: '%s'\n",
 			 cf->name, cf->linenum, name);
-
+		  have_fault = 1;
 		}
 	}
-
 
 	// With enough defaults being used, the callsign is defined
 	// by global "macro"  mycall,  and never ends up activating
 	// the tty -> linux kernel kiss/smack pty  interface.
-	if (aif->tty != NULL &&
+	// This part does that final step for minimalistic config.
+	if (!have_fault &&
+	    aif->tty != NULL &&
 	    aif->tty->netax25[0] == NULL &&
 	    aif->tty->ttycallsign[0] != NULL) {
 		aif->tty->netax25[0] = netax25_open(aif->tty->ttycallsign[0]);
+	}
+
+	if (!have_fault) {
+		int i;
+		interface_store(aif);
+		if (aif->tty != NULL) {
+		  for (i = 0; i < maxsubif; ++i) {
+		    if (aif->tty->interface[i] != NULL) {
+		      interface_store(aif->tty->interface[i]);
+		    }
+		  }
+		}
+
+		if (aif->iftype == IFTYPE_SERIAL)
+			ttyreader_register(aif->tty);
+
+		if (aif->iftype == IFTYPE_TCPIP)
+			ttyreader_register(aif->tty);
 	}
 }
 
