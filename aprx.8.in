@@ -707,7 +707,7 @@ option sets port specific callsign when relaying to APRS-IS.
    tx\-ok       true             # This is also transmitter
 </interface>
 
-<interface> # \fBRX-IGATE ONLY, NOT USABLE AS DIGIPEATER SOURCE\fC
+<interface> # \fBRX-IGATE ONLY, NOT USABLE AS DIGIPEATER SOURCE\fR\fC
    serial\-device /dev/ttyUSB1 19200 8n1 TNC2
    callsign      OH2XYZ\-R6      # TNC2 has no sub-ports
    initstring    "...."         # initstring option
@@ -733,7 +733,12 @@ The new way to define beacons:
 Semi-clasical definition of raw APRS packet:
 .nf
 \fCbeacon raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"\fR
+.fi
 
+.IP \(bu 2
+Load beacon text from a file, path data is configurable:
+.nf
+\fCbeacon file \fR\fI/path/to/file\fR
 .fi
 .PP
 The fields and parameters:
@@ -928,17 +933,17 @@ processing node does not mark its transmitter callsign
 on the transmitted AX.25 packet address header.
 .PP
 Available parameters are:
-.TP 8em
+.TP 9em
 .B keys
 A string of comma-separated set of string tokens:
 .br
-\fCkeys "TRACE,WIDE"\fR
+\fC   keys "TRACE,WIDE"\fR
 .br
 Alternative form for this entry is:
 .br
-\fCkeys "TRACE"\fR
+\fC   keys "TRACE"\fR
 .br
-\fCkeys "WIDE"\fR
+\fC   keys "WIDE"\fR
 .TP 9em
 .B maxdone
 Defines maximum number of redistribution hops that these keywords
