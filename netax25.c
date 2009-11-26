@@ -126,6 +126,7 @@ static const void* netax25_openpty(const char *mycall)
 	if (!mycall)
 		return NULL;		/* No mycall, no ptys! */
 
+	memset(ax25call, 0, sizeof(ax25call)); // valgrind
 	if (parse_ax25addr(ax25call, mycall, 0x60)) {
 		// Not valid per AX.25 rules
 	  if (debug)
@@ -133,6 +134,7 @@ static const void* netax25_openpty(const char *mycall)
 		return NULL;
 	}
 
+	memset(devname, 0, sizeof(devname)); // valgrind
 	rc = openpty(&pty_master, &pty_slave, devname, NULL, NULL);
 
 	if (debug)

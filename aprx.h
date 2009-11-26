@@ -34,7 +34,7 @@
 #define strchr  aprx_strchr
 
 // Single char at the time naive implementations for valgrind runs
-extern int     memcmp(const char *p1, const char *p2, size_t n);
+extern int     memcmp(const void *p1, const void *p2, size_t n);
 extern void   *memcpy(void *dest, const void *src, size_t n);
 extern size_t  strlen(const char *p);
 extern char   *strdup(const char *s);
@@ -91,9 +91,11 @@ struct aprxpolls {
 	int pollsize;
 	time_t next_timeout;
 };
+#define APRXPOLLS_INIT { NULL, 0, 0, 0 }
 
 extern void aprxpolls_reset(struct aprxpolls *app);
 extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
+extern void aprxpolls_free(struct aprxpolls *app);
 
 /* aprx.c */
 extern const char *aprsis_login;

@@ -625,9 +625,10 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 	*p++ = 0;		/* string terminating 0 byte */
 	memcpy(p, text, textlen);
 	p += textlen;
-	memcpy(p, "\r\n", 2);
-	p += 2;
+	*p++ = '\r';
+	*p++ = '\n';
 	len = p - buf;
+	*p++ = 0;
 
 #ifndef MSG_NOSIGNAL
 # define MSG_NOSIGNAL 0 /* This exists only on Linux  */
@@ -762,7 +763,7 @@ static void aprsis_main(void)
 {
 	int i;
 	int ppid = getppid();
-	struct aprxpolls app = { NULL, 0, 0, 0 };
+	struct aprxpolls app = APRXPOLLS_INIT;
 
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
@@ -810,6 +811,7 @@ static void aprsis_main(void)
 		}
 		i = aprsis_postpoll_(&app);
 	}
+	aprxpolls_free(&app); // valgrind..
 	/* Got "DIE NOW" signal... */
 	// exit(0);
 }
@@ -824,10 +826,10 @@ void aprsis_add_server(const char *server, const char *port)
 	struct aprsis_host *H;
 
 	if (AprsIS == NULL) {
-		AprsIS = malloc(sizeof(*AprsIS));
+		AprsIS = calloc(1,sizeof(*AprsIS));
 	}
 
-	H = malloc(sizeof(*H));
+	H = calloc(1,sizeof(*H));
 	AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
 	AISh[AIShcount] = H;
 

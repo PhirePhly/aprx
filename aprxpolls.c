@@ -28,9 +28,17 @@ struct pollfd *aprxpolls_new(struct aprxpolls *app)
 		app->pollsize += 8;
 		app->polls = realloc(app->polls,
 				     sizeof(struct pollfd) * app->pollsize);
+		// valgrind polishing..
+		p = &(app->polls[app->pollcount - 1]);
+		memset(p, 0, sizeof(struct pollfd) * 8);
 	}
 	
 	p = &(app->polls[app->pollcount - 1]);
 	memset(p, 0, sizeof(struct pollfd));
 	return p;
+}
+
+void aprxpolls_free(struct aprxpolls *app) {
+	free(app->polls);
+	app->polls = NULL;
 }

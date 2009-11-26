@@ -75,7 +75,7 @@ int main(int argc, char *const argv[])
 	const char *cfgfile = "/etc/aprx.conf";
 	const char *syslog_facility = "NONE";
 	int foreground = 0;
-	struct aprxpolls app = { NULL, 0, 0, 0 };
+	struct aprxpolls app = APRXPOLLS_INIT;
 
 	now = time(NULL);
 
@@ -258,6 +258,7 @@ int main(int argc, char *const argv[])
 		i = digipeater_postpoll(&app);
 
 	}
+	aprxpolls_free(&app); // valgrind..
 
 	aprsis_stop();
 
