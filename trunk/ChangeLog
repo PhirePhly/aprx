@@ -1,3 +1,11 @@
+2009-11-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* parse_aprs.c:
+	    Sometimes ran memchr() with bad length. Caused rare crash.
+
+	* digipeater.c, aprxpolls.c, netax25.c, aprsis.c, aprx.c, aprx.h:
+	    Valgrind tested minor changes.
+
 2009-11-17  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.8.in:

@@ -860,6 +860,8 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 		/* length of the info field: */
 		paclen = body_end - info_start;
 
+		if (paclen < 1) return 0; // consumed all, or empty packet
+
 		// Check the first character of the packet and
 		// determine the packet type
 		packettype = *info_start;
@@ -889,7 +891,7 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 		++info_start;
 		continue;  // and loop..
 
-	} while(1);
+	} while (1);
 
 	switch (packettype) {
 	/* the following are obsolete mic-e types: 0x1c 0x1d 
