@@ -271,6 +271,8 @@ static void aprsis_reconnect(struct aprsis *A)
 	char aprsislogincmd[3000];
 	const char *errstr;
 
+	memset(aprsislogincmd, 0, sizeof(aprsislogincmd)); // please valgrind
+
 	aprsis_close(A, "reconnect");
 
 	if (!A->H) {
@@ -347,6 +349,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	}
 
 	/* Count the addresses */
+	memset(ap, 0, sizeof(ap));
 	for (n = 0, a = ai; a; a = a->ai_next, ++n) {
 		if (n < 20)
 			ap[n] = a;
@@ -609,6 +612,7 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 		memset(buf, 0, buflen); // (re)init it to silence valgrind
 	}
 
+	memset(&head, 0, sizeof(head));
 	head.then    = now;
 	head.addrlen = addrlen;
 	head.gwlen   = gwlen;
@@ -1223,7 +1227,7 @@ void aprsis_config(struct configfile *cf)
 			AprsIS = malloc(sizeof(*AprsIS));
 			memset(AprsIS, 0, sizeof(*AprsIS));
 			AprsIS->server_socket = -1;
-			AprsIS->next_reconnect = now;	/* perhaps somewhen latter.. */
+			AprsIS->next_reconnect = now;
 		}
 
 		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));

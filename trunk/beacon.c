@@ -429,7 +429,10 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	    printf("%s>,%s",srcaddr,destaddr);
 	  if (via != NULL)
 	    printf(",%s", via);
-	  printf("'  '%s'\n", bm->msg);
+	  if (bm->filename)
+	    printf("'  file %s\n", bm->filename);
+	  else
+	    printf("'  '%s'\n", bm->msg);
 	}
 
 	/* realloc() works also when old ptr is NULL */
@@ -606,7 +609,11 @@ static void beacon_now(void)
 	bm = beacon_msgs[beacon_msgs_cursor++];
 
 	beacon_nexttime = bm->nexttime;
-	
+
+	if (debug)
+	  printf("BEACON: idx=%d, nexttime= +%d sec\n",
+		 beacon_msgs_cursor-1, (int)(beacon_nexttime - now));
+
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
 	if (bm->filename != NULL) {
@@ -680,7 +687,7 @@ static void beacon_now(void)
 					    src,
 					    bm->dest,
 					    destbuf,  // re-written via
-					    bm->msg, msglen);
+					    msg, msglen);
 		}
 	} 
 	else {
@@ -736,7 +743,7 @@ static void beacon_now(void)
 						src,
 						bm->dest,
 						destbuf, // re-written via
-						bm->msg, msglen);
+						msg, msglen);
 		    }
 		}
 	    }

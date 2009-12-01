@@ -484,13 +484,17 @@ void interface_config(struct configfile *cf)
 
 	if (!have_fault) {
 		int i;
-		interface_store(aif);
 		if (aif->tty != NULL) {
+		  // Register all tty subinterfaces
 		  for (i = 0; i < maxsubif; ++i) {
 		    if (aif->tty->interface[i] != NULL) {
 		      interface_store(aif->tty->interface[i]);
 		    }
 		  }
+		} else {
+		  // Not TTY multiplexed ( = KISS ) interface,
+		  // register just the primary.
+		  interface_store(aif);
 		}
 
 		if (aif->iftype == IFTYPE_SERIAL)
