@@ -117,7 +117,7 @@ static const void* netax25_openpty(const char *mycall)
 	int disc;
 	struct termios tio;
 	char devname[64];
-	uint8_t ax25call[7];
+	uint8_t ax25call[16]; // overlarge for AX.25...
 	struct ifreq ifr;
 	int fd = -1;
 	struct netax25_pty *nax25;
@@ -163,10 +163,10 @@ static const void* netax25_openpty(const char *mycall)
 
 	nax25->ax25addr.sax25_family = PF_AX25;
 	nax25->ax25addr.sax25_ndigis = 0;
-	memcpy(&nax25->ax25addr.sax25_call, ax25call, sizeof(ax25call));
+	memcpy(&nax25->ax25addr.sax25_call, ax25call, 7);
 
 	/* setup termios parameters for this line.. */
-	memset(&tio, 0, sizeof(tio));
+	memset(&tio, 0, sizeof(tio)); // please valgrind
 	aprx_cfmakeraw(&tio, 0);
 	tio.c_cc[VMIN] = 1;	/* pick at least one char .. */
 	tio.c_cc[VTIME] = 3;	/* 0.3 seconds timeout - 36 chars @ 1200 baud */
@@ -203,6 +203,7 @@ static const void* netax25_openpty(const char *mycall)
 	if (rc < 0)
 		goto error_exit;
 
+	memset(&ifr, 0, sizeof(ifr)); // please valgrind
 	strcpy(ifr.ifr_name, devname);
 
 	ifr.ifr_mtu = 512;
@@ -326,7 +327,7 @@ static int scan_linux_devices() {
 	  if (s) *s = 0;
 	  s = buffer;
 	  while (*s == ' '||*s == '\t') ++s;
-	  memset(&ifr, 0, sizeof(ifr));
+	  memset(&ifr, 0, sizeof(ifr)); // please valgrind
 	  strncpy(ifr.ifr_name, s, IFNAMSIZ-1);
 	  ifr.ifr_name[IFNAMSIZ-1] = 0;
 

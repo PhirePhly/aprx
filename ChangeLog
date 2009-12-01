@@ -1,3 +1,15 @@
+2009-12-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c:
+	    Register tty KISS subinterface 0 only once.
+
+	* beacon.c:
+	    When a file-beacon is defined, the message content is
+	    no longer at  bm->msg, instead at local variable msg.
+
+	* netax25.c, aprsis.c:
+	    Pleasing valgrind.
+
 2009-11-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* parse_aprs.c:
