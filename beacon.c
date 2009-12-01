@@ -29,7 +29,6 @@ static int beacon_msgs_count;
 static int beacon_msgs_cursor;
 
 static time_t beacon_nexttime;
-static time_t beacon_last_nexttime;
 static float  beacon_cycle_size = 20.0*60.0; // 20 minutes
 
 
