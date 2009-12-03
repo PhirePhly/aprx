@@ -117,7 +117,7 @@ static const void* netax25_openpty(const char *mycall)
 	int disc;
 	struct termios tio;
 	char devname[64];
-	uint8_t ax25call[16]; // overlarge for AX.25...
+	uint8_t ax25call[64]; // overlarge for AX.25 - which needs only 7 bytes, but valgrind whines..
 	struct ifreq ifr;
 	int fd = -1;
 	struct netax25_pty *nax25;

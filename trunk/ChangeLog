@@ -1,3 +1,14 @@
+2009-12-03  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c:
+	    Reworked things a bit, on how and with what content to send beacons.
+
+	* netax25.c:
+	    Valgrind pleasing
+
+	* telemetry.c, ttyreader.c, beacon.c:
+	    Debug printouts.
+
 2009-12-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c:

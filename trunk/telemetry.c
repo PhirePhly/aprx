@@ -55,6 +55,10 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 	telemetry_time += telemetry_interval;
 
+	if (debug)
+	  printf("Telemetry Tx run; next one in %.2f minutes\n", (telemetry_interval/60.0));
+
+
 	++telemetry_seq;
 	telemetry_seq %= 256;
 	for (i = 0; i < ErlangLinesCount; ++i) {
