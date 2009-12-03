@@ -310,7 +310,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			bm->filename = strdup(p1);
 
 			if (debug)
-				printf("file '%s' ", bm->msg);
+				printf("file '%s' ", bm->filename);
 
 		} else if (strcmp(p1, "timefix") == 0) {
 			bm->timefix = 1;
@@ -622,6 +622,8 @@ static void beacon_now(void)
 		msg[1] = 0xF0;
 		if (!msg_read_file(bm->filename, msg+2, 2000-2)) {
 			// Failed loading
+			if (debug)
+			  printf("BEACON ERROR: Failed to load anything from file %s\n",bm->filename);
 			syslog(LOG_ERR, "Failed to load anything from beacon file %s", bm->filename);
 			return;
 		}
@@ -638,17 +640,34 @@ static void beacon_now(void)
 	/* Send those (rf)beacons.. (a noop if interface == NULL) */
 	if (bm->interface != NULL) {
 		const char *callsign = bm->interface->callsign;
-		int   len  = destlen + 2 + strlen(callsign);
-		char *destbuf = alloca(len);
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
-
-		if (bm->via != NULL)
-		  sprintf(destbuf,"%s>%s,%s",src,bm->dest,bm->via);
-		else
-		  sprintf(destbuf,"%s>%s", src, bm->dest);
+		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
+		char *destbuf;
+		if (strcmp(src, callsign) != 0)
+		  len += strlen(callsign)+1;
+		destbuf = alloca(len);
 
 		if (bm->timefix)
 		  fix_beacon_time(msg, msglen);
+
+		if (strcmp(src, callsign) != 0) {
+		  if (bm->via != NULL)
+		    sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
+		  else
+		    sprintf( destbuf, "%s>%s*,%s", src, callsign, bm->dest );
+		} else {
+		  if (bm->via != NULL)
+		    sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
+		  else
+		    sprintf(destbuf,"%s>%s", src, bm->dest);
+		}
+
+		if (debug) {
+		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
+			 now, callsign, destbuf, txt);
+		  printf(" next beacon in %.2f minutes\n",
+			 ((beacon_nexttime - now)/60.0));
+		}
 
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
@@ -657,35 +676,22 @@ static void beacon_now(void)
 		}
 
 		if (bm->beaconmode >= 0) {
-		  if (bm->via || strcmp(src, callsign) != 0) {
-		    len     = ((bm->via ? strlen(bm->via) : 0) +
-			       strlen(callsign));
-		    destbuf = alloca(len + 5); // recycled for: viabuf!
-		    if (strcmp(src, callsign) != 0) {
-		      if (bm->via != NULL)
-			sprintf( destbuf, "%s*,%s", callsign, bm->via );
-		      else
-			sprintf( destbuf, "%s*", callsign );
-		    } else {
-		      strcpy( destbuf, bm->via );
-		    }
-		  } else {
-		    destbuf = NULL;
-		  }
-
-		  if (debug) {
-		    printf("%ld\tNow beaconing to interface %s '%s>%s",
-			   now, callsign, src, bm->dest);
-		    if (destbuf) printf(",%s", destbuf);
-		    printf("' -> '%s',  next beacon in %.2f minutes\n",
-			   txt, ((beacon_nexttime - now)/60.0));
-		  }
-
 		  // And to interfaces
+
+		  // The 'destbuf' has a plenty of room
+		  if (strcmp(src, callsign) != 0) {
+		    if (bm->via != NULL)
+		      sprintf( destbuf, "%s*,%s", callsign, bm->via );
+		    else
+		      sprintf( destbuf, "%s*", callsign );
+		  } else {
+		    strcpy( destbuf, bm->via );
+		  }
+
 		  interface_transmit_beacon(bm->interface,
 					    src,
 					    bm->dest,
-					    destbuf,  // re-written via
+					    destbuf, // via data
 					    msg, msglen);
 		}
 	} 
@@ -694,18 +700,37 @@ static void beacon_now(void)
 		const struct aprx_interface *aif = all_interfaces[i];
 		if (aif->txok) {
 		    const char *callsign = aif->callsign;
-		    int   len  = destlen + 2 + strlen(callsign);
-		    char *destbuf = alloca(len);
-		    const char *src =
-		      (bm->src != NULL) ? bm->src : callsign;
-
-		    if (bm->via != NULL)
-		      sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
-		    else
-		      sprintf(destbuf,"%s>%s", src, bm->dest);
+		    const char *src = (bm->src != NULL) ? bm->src : callsign;
+		    int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
+		    char *destbuf;
+		    if (strcmp(src, callsign) != 0)
+		      len += strlen(callsign)+1;
+		    destbuf = alloca(len);
 		    
 		    if (bm->timefix)
+		      fix_beacon_time(msg, msglen);
+
+		    if (strcmp(src, callsign) != 0) {
+		      if (bm->via != NULL)
+			sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
+		      else
+			sprintf( destbuf, "%s>%s*,%s", src, callsign, bm->dest );
+		    } else {
+		      if (bm->via != NULL)
+			sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
+		      else
+			sprintf(destbuf,"%s>%s", src, bm->dest);
+		    }
+
+		    if (bm->timefix)
 		      fix_beacon_time((char*)msg, msglen);
+
+		    if (debug) {
+		      printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
+			     now, callsign, destbuf, txt);
+		      printf(" next beacon in %.2f minutes\n",
+			     ((beacon_nexttime - now)/60.0));
+		    }
 
 		    if (bm->beaconmode <= 0) {
 		      // Send them all also as netbeacons..
@@ -713,35 +738,22 @@ static void beacon_now(void)
 				   aprsis_login, txt, txtlen);
 		    }
 		    if (bm->beaconmode >= 0) {
-		      if (bm->via || strcmp(src, callsign) != 0) {
-			len     = ((bm->via ? strlen(bm->via) : 0) +
-				   strlen(callsign));
-			destbuf = alloca(len + 5); // recycled for: viabuf!
-			if (strcmp(src, callsign) != 0) {
-			  if (bm->via != NULL)
-			    sprintf( destbuf, "%s*,%s", callsign, bm->via );
-			  else
-			    sprintf( destbuf, "%s*", callsign );
-			} else {
-			  strcpy( destbuf, bm->via );
-			}
+		      // And to interfaces
+
+		      // The 'destbuf' has a plenty of room
+		      if (strcmp(src, callsign) != 0) {
+			if (bm->via != NULL)
+			  sprintf( destbuf, "%s*,%s", callsign, bm->via );
+			else
+			  sprintf( destbuf, "%s*", callsign );
 		      } else {
-			destbuf = NULL;
-		      }
-		      
-		      if (debug) {
-			printf("%ld\tNow beaconing to interface %s '%s>%s",
-			       now, callsign, src, bm->dest);
-			if (destbuf) printf(",%s", destbuf);
-			printf("' -> '%s',  next beacon in %.2f minutes\n",
-			       txt, ((beacon_nexttime - now)/60.0));
+			strcpy( destbuf, bm->via );
 		      }
 
-		      // .. and send to all interfaces..
 		      interface_transmit_beacon(aif,
 						src,
 						bm->dest,
-						destbuf, // re-written via
+						destbuf, // via data
 						msg, msglen);
 		    }
 		}
