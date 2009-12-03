@@ -666,7 +666,27 @@ Leads with 00 byte, then AX.25 address..
 	// Send it to Rx-IGate, validates also AX.25 header bits,
 	// and returns non-zero only when things are OK for processing.
 	// Will internally also send to interface layer, if OK.
-	ax25_to_tnc2(netdev->interface, netdev->callsign, 0, rxbuf[0], rxbuf + 1, rcvlen - 1);
+	if (ax25_to_tnc2(netdev->interface, netdev->callsign, 0, rxbuf[0], rxbuf + 1, rcvlen - 1)) {
+	  // The packet is valid per AX.25 header bit rules.
+	  // ax25_to_tnc2() did send the packet to rx-igate
+	  ;
+	} else {
+	  // The packet is not valid per AX.25 header bit rules
+	  erlang_add(netdev->callsign, ERLANG_DROP, rcvlen+10, 1);	/* Account one packet */
+
+	  if (aprxlogfile) {
+	    FILE *fp = fopen(aprxlogfile, "a");
+	    if (fp) {
+	      char timebuf[60];
+	      printtime(timebuf, sizeof(timebuf));
+
+	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message: ", timebuf, netdev->callsign, rcvlen);
+	      hexdumpfp(fp, rxbuf, rcvlen);
+	      fprintf(fp, "\n");
+	      fclose(fp);
+	    }
+	  }
+	}
 
 	return 1;
 }
