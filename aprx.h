@@ -202,6 +202,7 @@ extern void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *
 extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
 
 
+extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len);
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
