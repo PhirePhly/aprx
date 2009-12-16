@@ -1,7 +1,14 @@
+2009-12-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c:
+	    Reworked more..  beacons were sent only for "tx-ok true"
+	    interfaces, while netbeacons are to be sent for all interfaces.
+
 2009-12-03  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* beacon.c:
-	    Reworked things a bit, on how and with what content to send beacons.
+	    Reworked things a bit, on how and with what content to
+	    send beacons.
 
 	* netax25.c:
 	    Valgrind pleasing
