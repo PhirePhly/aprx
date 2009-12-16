@@ -274,7 +274,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 					     type[0] != ';' &&
 					     type[0] != ')')) {
 			  has_fault = 1;
-			  printf("%s:%d Sorry, packet constructor's supported APRS packet types are only: ! / ; )\n",
+			  printf("%s:%d Sorry, packet constructor's supported APRS packet types are only: ! = / @ ; )\n",
 				 cf->name, cf->linenum);
 			}
 
@@ -685,7 +685,10 @@ static void beacon_now(void)
 		    else
 		      sprintf( destbuf, "%s*", callsign );
 		  } else {
-		    strcpy( destbuf, bm->via );
+		    if (bm->via != NULL)
+		      strcpy( destbuf, bm->via );
+		    else
+		      destbuf = NULL;
 		  }
 
 		  interface_transmit_beacon(bm->interface,
@@ -698,64 +701,67 @@ static void beacon_now(void)
 	else {
 	    for ( i = 0; i < all_interfaces_count; ++i ) {
 		const struct aprx_interface *aif = all_interfaces[i];
-		if (aif->txok) {
-		    const char *callsign = aif->callsign;
-		    const char *src = (bm->src != NULL) ? bm->src : callsign;
-		    int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
-		    char *destbuf;
-		    if (strcmp(src, callsign) != 0)
-		      len += strlen(callsign)+1;
-		    destbuf = alloca(len);
-		    
-		    if (bm->timefix)
-		      fix_beacon_time(msg, msglen);
+	
+		const char *callsign = aif->callsign;
+		const char *src = (bm->src != NULL) ? bm->src : callsign;
+		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
+		char *destbuf;
+		if (strcmp(src, callsign) != 0)
+		  len += strlen(callsign)+1;
+		destbuf = alloca(len);
+		
+		if (bm->timefix)
+		  fix_beacon_time(msg, msglen);
+		
+		if (strcmp(src, callsign) != 0) {
+		  if (bm->via != NULL)
+		    sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
+		  else
+		    sprintf( destbuf, "%s>%s*,%s", src, callsign, bm->dest );
+		} else {
+		  if (bm->via != NULL)
+		    sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
+		  else
+		    sprintf(destbuf,"%s>%s", src, bm->dest);
+		}
 
-		    if (strcmp(src, callsign) != 0) {
-		      if (bm->via != NULL)
-			sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
-		      else
-			sprintf( destbuf, "%s>%s*,%s", src, callsign, bm->dest );
-		    } else {
-		      if (bm->via != NULL)
-			sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
-		      else
-			sprintf(destbuf,"%s>%s", src, bm->dest);
-		    }
+		if (bm->timefix)
+		  fix_beacon_time((char*)msg, msglen);
+		
+		if (debug) {
+		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
+			 now, callsign, destbuf, txt);
+		  printf(" next beacon in %.2f minutes\n",
+			 ((beacon_nexttime - now)/60.0));
+		}
 
-		    if (bm->timefix)
-		      fix_beacon_time((char*)msg, msglen);
+		if (bm->beaconmode <= 0) {
+		  // Send them all also as netbeacons..
+		  aprsis_queue(destbuf, strlen(destbuf),
+			       aprsis_login, txt, txtlen);
+		}
 
-		    if (debug) {
-		      printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
-			     now, callsign, destbuf, txt);
-		      printf(" next beacon in %.2f minutes\n",
-			     ((beacon_nexttime - now)/60.0));
-		    }
-
-		    if (bm->beaconmode <= 0) {
-		      // Send them all also as netbeacons..
-		      aprsis_queue(destbuf, strlen(destbuf),
-				   aprsis_login, txt, txtlen);
-		    }
-		    if (bm->beaconmode >= 0) {
-		      // And to interfaces
-
-		      // The 'destbuf' has a plenty of room
-		      if (strcmp(src, callsign) != 0) {
-			if (bm->via != NULL)
-			  sprintf( destbuf, "%s*,%s", callsign, bm->via );
-			else
-			  sprintf( destbuf, "%s*", callsign );
-		      } else {
-			strcpy( destbuf, bm->via );
-		      }
-
-		      interface_transmit_beacon(aif,
-						src,
-						bm->dest,
-						destbuf, // via data
-						msg, msglen);
-		    }
+		if (bm->beaconmode >= 0 && aif->txok) {
+		  // And to transmit-capable interfaces
+		  
+		  // The 'destbuf' has a plenty of room
+		  if (strcmp(src, callsign) != 0) {
+		    if (bm->via != NULL)
+		      sprintf( destbuf, "%s*,%s", callsign, bm->via );
+		    else
+		      sprintf( destbuf, "%s*", callsign );
+		  } else {
+		    if (bm->via != NULL)
+		      strcpy( destbuf, bm->via );
+		    else
+		      destbuf = NULL;
+		  }
+		  
+		  interface_transmit_beacon(aif,
+					    src,
+					    bm->dest,
+					    destbuf, // via data
+					    msg, msglen);
 		}
 	    }
 	}

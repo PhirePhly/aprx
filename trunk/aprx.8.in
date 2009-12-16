@@ -965,7 +965,7 @@ This is default mode.
 .TP 14em
 .B directonly
 Digipeat only directly heard packets.
-Useful for systems that are designated as "fill\-in".
+Useful for systems that are designated as "fill-in".
 See also "viscous\-delay".
 .TP 14em
 .B third\-party

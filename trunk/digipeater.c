@@ -727,7 +727,7 @@ void digipeater_config(struct configfile *cf)
 	const int line0 = cf->linenum;
 
 	struct aprx_interface *aif = NULL;
-	int ratelimit = 300;
+	int ratelimit = 60;
 	int sourcecount = 0;
 	struct digipeater_source **sources = NULL;
 	struct digipeater *digi = NULL;
@@ -778,7 +778,7 @@ void digipeater_config(struct configfile *cf)
 		} else if (strcmp(name, "ratelimit") == 0) {
 			ratelimit = atoi(param1);
 			if (ratelimit < 10 || ratelimit > 300)
-				ratelimit = 300;
+				ratelimit = 60;
 
 		} else if (strcmp(name, "<trace>") == 0) {
 			traceparam = digipeater_config_tracewide(cf, 1);

@@ -7,6 +7,15 @@
   - Fedora Linux
   - ...
 
+- Document update:
+  - <interface> aliases !
+  - fill-in digi explanation elaborating
+  - a real manual..
+
+- digipeater behaviour on "requested wideness exceeds allowed
+  max limit" and this is a directly heard packet:
+   - now mark all H-bits set
+   - ADDITION: inject transmitter callsign into first VIA slot.
 
 - Digipeating details of non-APRS UI protocols?  Some way to
   handle "WIDEn-N" on selected PIDs?
@@ -26,16 +35,8 @@
     - rx-packets green (or blue), tx-packets red
     - port names/callsigns bolded, same with packet source callsigns
 
-- Beacon definitions inside <interface> definitions?
-  They would be sent only to that interface (and to APRSIS)
-
 - Use internal APRS packet parser to validate beacon configurations.
   This should be able to flag bad input on RAW beacon data.
-
-- Special treatment of viscous fill-in digi?
-   - tx when:  seen==0, delayed_seen == 1, (seen_transmitter == 1)
-   - optionally tx only when seeing first transmit of the request,
-     not on any latter ones.
 
 - Calculate and note APRS DXes (like digi_ned does) ?
 - Calculate ALOHA range, and publish it?
