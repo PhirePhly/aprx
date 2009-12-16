@@ -1140,12 +1140,12 @@ void aprsis_config(struct configfile *cf)
 		  if (debug)
 		    printf("%s:%d: LOGIN = '%s' '%s'\n",
 			   cf->name, cf->linenum, param1, str);
+		  if (AIH->login) free(AIH->login);
 		  AIH->login = strdup(param1);
 
 		} else if (strcmp(name, "server") == 0) {
 
-		  if (AIH->server_name != NULL) {
-		  }
+		  if (AIH->server_name) free(AIH->server_name);
 		  AIH->server_name = strdup(param1);
 
 		  param1 = str;

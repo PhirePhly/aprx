@@ -156,7 +156,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		if (strcmp(name, "callsign") == 0) {
 
 		  if (strcmp(param1,"$mycall") == 0)
-		    param1 = strdup(mycall);
+		    param1 = strdup(mycall); // leaks!
 
 		  if (!validate_callsign_input(param1,txok)) {
 		    if (txok)
