@@ -1,5 +1,5 @@
 
-		APRX    v1.96
+		APRX    v1.97
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -27,8 +27,7 @@ A receive-only APRS-IS "i-gate" with following properties:
 
    - Understands on serial ports:
        - several KISS protocol variants, plain basic KISS preferred
-       - TNC2 debug style text  (incomplete)
-       - and even AEA "monitor 1" format (incomplete)
+       - TNC2 debug style text (Rx-iGate receive only.)
 
    - Connects with one  callsign-ssid  pair to APRS-IS core for all
      received radio ports
