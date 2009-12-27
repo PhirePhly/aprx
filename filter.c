@@ -1350,6 +1350,9 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 	default:;
 		/* No pre-parsers for other types */
 		// hlog(LOG_DEBUG, "Filter: %s", filt0);
+		if (debug)
+		  printf("Bad filter code: %s\n", filt0);
+		return -1;
 		break;
 	}
 

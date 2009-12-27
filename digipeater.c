@@ -586,7 +586,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 	struct aprx_interface *source_aif = NULL;
 	struct digipeater_source  *source = NULL;
-	digi_relaytype          relaytype = DIGIRELAY_UNSET;
+	digi_relaytype          relaytype = DIGIRELAY_DIGIPEAT;
 	struct filter_t          *filters = NULL;
 	struct tracewide    *source_trace = NULL;
 	struct tracewide     *source_wide = NULL;
