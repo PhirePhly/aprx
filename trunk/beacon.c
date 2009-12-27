@@ -154,7 +154,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			if (strcmp(to,"$mycall") == 0) {
 				to = mycall;
 			} else {
-			  config_STRUPPER((void*)to);
+				config_STRUPPER((void*)to);
 			}
 
 
@@ -177,6 +177,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
+			config_STRUPPER((void*)srcaddr);
+
 			// What about ITEM and OBJECT ?
 
 			// if (!validate_callsign_input((char *) srcaddr),1) {
@@ -193,6 +195,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
+			config_STRUPPER((void*)destaddr);
+
 			if (debug)
 				printf("dest '%s' ", destaddr);
 
@@ -201,6 +205,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			via  = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
+
+			config_STRUPPER((void*)via);
 
 			if (debug)
 				printf("via '%s' ", via);
@@ -212,7 +218,47 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPSPACE(str);
 
 			if (debug)
-				printf("name '%s' ", via);
+				printf("name '%s' ", name);
+
+		} else if (strcmp(p1, "item") == 0) {
+			type = ")";
+
+			name  = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			if (debug)
+				printf("item '%s' ", name);
+
+		} else if (strcmp(p1, "object") == 0) {
+			type = ";";
+
+			name  = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			if (debug)
+				printf("object '%s' ", name);
+
+		} else if (strcmp(p1, "type") == 0) {
+			/* text up to .. 40 chars */
+
+			type = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			if (debug)
+				printf("type '%s' ", type);
+			if (type[1] != 0 || (type[0] != '!' &&
+					     type[0] != '=' &&
+					     type[0] != '/' &&
+					     type[0] != '@' &&
+					     type[0] != ';' &&
+					     type[0] != ')')) {
+			  has_fault = 1;
+			  printf("%s:%d Sorry, packet constructor's supported APRS packet types are only: ! = / @ ; )\n",
+				 cf->name, cf->linenum);
+			}
 
 		} else if (strcmp(p1, "lat") == 0) {
 			/*  ddmm.mmN   */
@@ -257,26 +303,6 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 			if (debug)
 				printf("symbol '%s' ", code);
-
-		} else if (strcmp(p1, "type") == 0) {
-			/* text up to .. 40 chars */
-
-			type = str;
-			str = config_SKIPTEXT(str, NULL);
-			str = config_SKIPSPACE(str);
-
-			if (debug)
-				printf("type '%s' ", type);
-			if (type[1] != 0 || (type[0] != '!' &&
-					     type[0] != '=' &&
-					     type[0] != '/' &&
-					     type[0] != '@' &&
-					     type[0] != ';' &&
-					     type[0] != ')')) {
-			  has_fault = 1;
-			  printf("%s:%d Sorry, packet constructor's supported APRS packet types are only: ! = / @ ; )\n",
-				 cf->name, cf->linenum);
-			}
 
 		} else if (strcmp(p1, "comment") == 0) {
 			/* text up to .. 40 chars */
@@ -392,7 +418,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 					code[1], comment ? comment : "");
 
 			} else if ( strcmp(type,")") == 0 && name) { // Item
-				sprintf(buf, ")%-3.9s!111111z%s%c%s%c%s", name, lat, code[0], lon,
+				sprintf(buf, ")%-3.9s!%s%c%s%c%s", name, lat, code[0], lon,
 					code[1], comment ? comment : "");
 			}
 			bm->msg = strdup(buf);
@@ -650,17 +676,24 @@ static void beacon_now(void)
 		if (bm->timefix)
 		  fix_beacon_time(msg, msglen);
 
+#if 0
 		if (strcmp(src, callsign) != 0) {
 		  if (bm->via != NULL)
-		    sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
+		    sprintf( destbuf, "%s>%s,%s*,%s", src, bm->dest, callsign, bm->via );
 		  else
-		    sprintf( destbuf, "%s>%s*,%s", src, callsign, bm->dest );
+		    sprintf( destbuf, "%s>%s,%s*", src, bm->dest, callsign );
 		} else {
 		  if (bm->via != NULL)
 		    sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
 		  else
 		    sprintf(destbuf,"%s>%s", src, bm->dest);
 		}
+#else
+		if (bm->via != NULL)
+		  sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
+		else
+		  sprintf(destbuf,"%s>%s", src, bm->dest);
+#endif
 
 		if (debug) {
 		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
@@ -706,6 +739,10 @@ static void beacon_now(void)
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
 		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
 		char *destbuf;
+
+		if (strcmp(callsign,"APRSIS")==0)
+		  continue;  // Always ignore the builtin APRSIS interface
+
 		if (strcmp(src, callsign) != 0)
 		  len += strlen(callsign)+1;
 		destbuf = alloca(len);
@@ -713,6 +750,7 @@ static void beacon_now(void)
 		if (bm->timefix)
 		  fix_beacon_time(msg, msglen);
 		
+#if 0
 		if (strcmp(src, callsign) != 0) {
 		  if (bm->via != NULL)
 		    sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
@@ -724,6 +762,12 @@ static void beacon_now(void)
 		  else
 		    sprintf(destbuf,"%s>%s", src, bm->dest);
 		}
+#else
+		if (bm->via != NULL)
+		  sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
+		else
+		  sprintf(destbuf,"%s>%s", src, bm->dest);
+#endif
 
 		if (bm->timefix)
 		  fix_beacon_time((char*)msg, msglen);

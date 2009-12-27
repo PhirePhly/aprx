@@ -1,3 +1,16 @@
+2009-12-27  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 1.97
+
+	* beacon.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in:
+	    Never send to APRSIS interface.
+	    Define 'object' and 'item' type named entities.
+	    Uppercasify several of input fields.
+
+	* interface.c, digipeater.c, aprx.h:
+	    On tx-igate behaviour, add configured via-path on outgoing
+	    3rd-party frames
+
 2009-12-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* beacon.c:

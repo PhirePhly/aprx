@@ -591,6 +591,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	struct tracewide    *source_trace = NULL;
 	struct tracewide     *source_wide = NULL;
 	struct digipeater_source regexsrc;
+	char                    *via_path = NULL;
 
 	memset(&regexsrc, 0, sizeof(regexsrc));
 
@@ -650,6 +651,18 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  has_fault = 1;
 			}
 
+		} else if (strcmp(name, "via-path") == 0) {
+
+			// FIXME: validate that source callsign is "APRSIS"
+
+			via_path  = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+			config_STRUPPER(via_path);
+
+			if (debug)
+				printf("via-path '%s' ", via_path);
+
 		} else if (strcmp(name,"<trace>") == 0) {
 			source_trace = digipeater_config_tracewide(cf, 1);
 
@@ -696,6 +709,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->src_filters   = filters;
 		source->src_trace     = source_trace;
 		source->src_wide      = source_wide;
+		source->via_path      = via_path;
 
 		source->viscous_delay = viscous_delay;
 

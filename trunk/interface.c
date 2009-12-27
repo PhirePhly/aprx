@@ -726,7 +726,10 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  // AX.25 packet is built, now build TNC2 version of it
 	  t = tnc2buf;
-	  t += sprintf(t, "%s>APRS,WIDE1-1", tx_aif->callsign);
+	  t += sprintf(t, "%s>%s", tx_aif->callsign, tocall);
+	  if (digisrc->via_path != NULL) {
+	    t += sprintf(t, ",%s", digisrc->via_path);
+	  }
 	  tnc2addrlen = t - tnc2buf;
 	  *t++ = ':';
 	  t += sprintf(t, "}%s>%s,TCPIP,%s*:",

@@ -448,6 +448,7 @@ struct digipeater_source {
 	struct filter_t       *src_filters;
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
+	char		      *via_path; // for APRSIS only
 
 	// Viscous queue is at <source>, but used dupechecker
 	// is <digipeater> -wide, common to all sources in that

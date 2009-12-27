@@ -429,13 +429,16 @@ server    rotate.aprs.net    14580
 #
 #cycle-size  20m
 #
-# There can be multiple netbeacon options.
+# There can be multiple beacon entries. Parameters for each entry include:
 # 'for'  parameter sets claimed origination address.
 # 'dest' sets destination address, default "APRXnn"
 # 'to'   parameter picks an interface (must be "tx-ok true" type)
 # 'via'  sets radio distribution pattern, default: none.
-# 'type' Single character setting type:  ! = / @ ; )
-# 'name' Object (';') and Item (')') type beacons use name.
+# Message type is by default '!', which is positional no timestamp format.
+# Other possible formats are definable with options:
+# 'type' Single character setting type:  ! = / @
+# 'item'   Defines a name of Item (')') type beacons.
+# 'object' Defines a name of Object (';') type beacons.
 #
 # 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
 #            system fixes appropriate field with transmit time timestamp.

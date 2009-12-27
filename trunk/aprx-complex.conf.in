@@ -251,8 +251,9 @@ pidfile @VARRUN@/aprx.pid
 # 'dest' sets destination address, default "APRXnn"
 # 'to'   parameter picks an interface (must be "tx-ok true" type)
 # 'via'  sets radio distribution pattern, default: none.
-# 'type' Single character setting type:  ! = / @ ; )
-# 'name' Object (';') and Item (')') type beacons use name.
+# 'type' Single character setting type:  ! = / @
+# 'item'   Defines a name of Item (')') type beacons.
+# 'object' Defines a name of Object (';') type beacons.
 #
 # 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
 #            system fixes appropriate field with transmit time timestamp.
