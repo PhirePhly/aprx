@@ -1,4 +1,4 @@
-@VARLOG@/rf.log @VARLOG@/aprx.log  @VARLOG@/erlang.log {
+@VARLOG@/aprx-rf.log @VARLOG@/aprx.log  @VARLOG@/erlang.log {
 	weekly
 	rotate 4
 	compress
