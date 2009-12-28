@@ -205,9 +205,10 @@ nor reveal content of "wrong magic kind" of file.
 .SH AUTHOR
 This little piece was written by
 .I "Matti Aarnio, OH2MQK"
-during a dark and rainy fall and winter of 2007\-2008 after a number
+during a dark and rainy fall and winter of 2007-2008 after a number
 of discussions grumbling about current breed of available software
 for APRS iGate use in Linux (or of any UNIX) platforms.
+Fall and winter 2009-2010 saw appearance of digipeater functionality.
 .PP
 Principal contributors and test users include:
 .IR "Pentti Gronlund, OH3BK" ,

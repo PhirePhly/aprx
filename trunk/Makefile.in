@@ -156,7 +156,7 @@ logrotate.aprx $(MAN) aprx.conf: % : %.in VERSION Makefile
 #
 
 DISTVERSION:=aprx-$(VERSION).svn$(SVNVERSION)
-DISTTARGET:=../../$(DISTVERSION)
+DISTTARGET:=../$(DISTVERSION)
 RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
 .PHONY: dist
 dist:
@@ -186,7 +186,7 @@ dist:
 		  > $(DISTTARGET)/rpm/aprx.spec
 	rm -f $(DISTTARGET)/rpm/aprx.spec.in
 	make -C $(DISTTARGET) distclean
-	cd ../.. && 	\
+	cd .. && 	\
 	tar czvf $(DISTVERSION).tar.gz $(DISTVERSION)
 
 # -------------------------------------------------------------------- #
@@ -197,7 +197,7 @@ make-deb:
 	dpkg-buildpackage -b -us -uc -rfakeroot
 
 make-rpm: # actually just a reminder of how to do it..
-	rpmbuild --target i386 -ta ../../$(DISTVERSION).tar.gz 
+	rpmbuild --target i386 -ta ../$(DISTVERSION).tar.gz 
 
 # -------------------------------------------------------------------- #
 
