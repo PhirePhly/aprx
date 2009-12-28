@@ -1144,7 +1144,14 @@ which was too close to another (a less low-tech C++ approach) program had.
 The
 .IR Erlang -monitor
 mechanisms are of rudimentary quality, and can seriously underestimate
-the channel occupancy by ignoring pre- and postample transmissions.
+the channel occupancy by ignoring pre- and postample transmissions,
+which can be as high as 50 centiseconds for preample, and 20 centiseconds
+for postample!
+When entire packet takes 50 centiseconds, such preample alone doubles channel
+occupancy.
+A 6pack protocol on serial link (instead of KISS) could inform receiver
+better on carrier presense times, however even that underestimates RF power
+presense (RSSI) signal.  (6pack is not supported.)
 .PP
 On serial lines supports really only 8n1 mode, not at all like: 7e1.
 On the other hand, there really is no sensible usage for anything but 8n1...
@@ -1153,7 +1160,8 @@ On the other hand, there really is no sensible usage for anything but 8n1...
 Couple web sites:
 .IR "http://www.aprs-is.net/" ,
 .IR "http://www.aprs2.net/" ,
-.I "http://wiki.ham.fi/Aprx.en"
+.IR "http://wiki.ham.fi/Aprx.en" ,
+.I "http://ham.zmailer.org/oh2mqk/aprx/aprx-manual.pdf"
 .PP
 .BR aprx-stat (8)
 

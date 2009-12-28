@@ -1156,6 +1156,8 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 
 		} else if (strcmp(param1, "xorsum") == 0) {
 			tty->linetype = LINETYPE_KISSBPQCRC;	/* KISS with BPQ "CRC" */
+		} else if (strcmp(param1, "xkiss") == 0) {
+			tty->linetype = LINETYPE_KISSBPQCRC;	/* KISS with BPQ "CRC" */
 		} else if (strcmp(param1, "bpqcrc") == 0) {
 			tty->linetype = LINETYPE_KISSBPQCRC;	/* KISS with BPQ "CRC" */
 
