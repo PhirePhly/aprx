@@ -77,7 +77,7 @@ MAN=		$(MANAPRX) $(MANSTAT)
 # -------------------------------------------------------------------- #
 
 .PHONY: 	all
-all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf
+all:		$(PROGAPRX) $(PROGSTAT) man aprx.conf aprx-complex.conf
 
 valgrind:
 		@echo "Did you do 'make clean' before 'make valgrind' ?"
@@ -141,7 +141,7 @@ $(MAN:=.ps): %.ps : %
 $(MAN:=.pdf): %.pdf : %.ps
 	ps2pdf $<
 
-logrotate.aprx $(MAN) aprx.conf: % : %.in VERSION Makefile
+logrotate.aprx $(MAN) aprx-complex.conf aprx.conf: % : %.in VERSION Makefile
 	perl -ne "s{\@DATEVERSION\@}{$(VERSION) - $(DATE)}g;	\
 	          s{\@VARRUN\@}{$(VARRUN)}g;			\
 	          s{\@VARLOG\@}{$(VARLOG)}g;			\
