@@ -145,7 +145,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		/* if (debug)
 		   printf("p1='%s' ",p1); */
 
-		if (strcmp(p1, "to") == 0) {
+		if (strcmp(p1, "interface") == 0 ||
+		    strcmp(p1, "to") == 0) {
 
 			to = str;
 			str = config_SKIPTEXT(str, NULL);
@@ -162,16 +163,21 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			if ((aif != NULL) && !aif->txok) {
 				aif = NULL;  // Not an TX interface :-(
 				if (debug)printf("\n");
-				printf("%s:%d Sorry, <beacon> to '%s' that is not a TX capable interface.\n",
+				printf("%s:%d ERROR: beacon interface '%s' that is not a TX capable interface.\n",
 				       cf->name, cf->linenum, to);
 				has_fault = 1;
 				goto discard_bm; // sigh..
+			} else if (aif == NULL) {
+				if (debug)printf("\n");
+				printf("%s:%d ERROR: beacon interface '%s' that is not a known interface.\n",
+				       cf->name, cf->linenum, to);
 			}
 
 			if (debug)
-				printf("to '%s' ", to);
+				printf("interface '%s' ", to);
 
-		} else if (strcmp(p1, "for") == 0) {
+		} else if (strcmp(p1, "srccall") == 0 ||
+			   strcmp(p1, "for") == 0) {
 
 			srcaddr = str;
 			str = config_SKIPTEXT(str, NULL);
@@ -187,9 +193,10 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			// }
 
 			if (debug)
-				printf("for '%s' ", srcaddr);
+				printf("srccall '%s' ", srcaddr);
 
-		} else if (strcmp(p1, "dest") == 0) {
+		} else if (strcmp(p1, "dstcall") == 0 ||
+			   strcmp(p1, "dest") == 0) {
 
 			destaddr = str;
 			str = config_SKIPTEXT(str, NULL);
@@ -198,7 +205,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			config_STRUPPER((void*)destaddr);
 
 			if (debug)
-				printf("dest '%s' ", destaddr);
+				printf("dstcall '%s' ", destaddr);
 
 		} else if (strcmp(p1, "via") == 0) {
 
@@ -375,7 +382,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 	if (aif == NULL && beaconmode >= 0) {
 		if (debug)
-			printf("%s:%d Lacking 'to' keyword for this beacon definition. Beaconing to all Tx capable interfaces + APRSIS (mode depening)\n",
+			printf("%s:%d Lacking 'interface' keyword for this beacon definition. Beaconing to all Tx capable interfaces + APRSIS (mode depending)\n",
 			       cf->name, cf->linenum);
 	}
 
@@ -746,9 +753,6 @@ static void beacon_now(void)
 		if (strcmp(src, callsign) != 0)
 		  len += strlen(callsign)+1;
 		destbuf = alloca(len);
-		
-		if (bm->timefix)
-		  fix_beacon_time(msg, msglen);
 		
 #if 0
 		if (strcmp(src, callsign) != 0) {
