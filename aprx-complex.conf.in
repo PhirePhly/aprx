@@ -247,24 +247,24 @@ pidfile @VARRUN@/aprx.pid
 #
 #
 # There can be multiple beacon options.
-# 'for'  parameter sets claimed origination address.
-# 'dest' sets destination address, default "APRXnn"
-# 'to'   parameter picks an interface (must be "tx-ok true" type)
-# 'via'  sets radio distribution pattern, default: none.
-# 'type' Single character setting type:  ! = / @
-# 'item'   Defines a name of Item (')') type beacons.
-# 'object' Defines a name of Object (';') type beacons.
+# 'srccall'   parameter sets claimed origination address.
+# 'dstcall'   sets destination address, default "APRXnn"
+# 'interface' parameter picks an interface (must be "tx-ok true" type)
+# 'via'       sets radio distribution pattern, default: none.
+# 'type'      Single character setting type:  ! = / @, default: !
+# 'item'      Defines a name of Item (')') type beacons.
+# 'object'    Defines a name of Object (';') type beacons.
 #
-# 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
-#            system fixes appropriate field with transmit time timestamp.
+# 'timefix'   On APRS messages with HMS timestamp (hour:min:sec), the
+#             system fixes appropriate field with transmit time timestamp.
 # 'file' option tells a file at which a _raw_ APRS message content is
 #        expected to be found as first line of text. Line ending newline
 #        is removed, and no escapes are supported.  The timefix is
 #        available, though probably should not be used.
 #
 # The parameter sets can vary:
-#  a) 'for nnn-n dest "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
-#  b) 'for nnn-n dest "string" raw "string"'
+#  a) 'srccall nnn-n dstcall "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
+#  b) 'srccall nnn-n dstcall "string" raw "string"'
 #
 # The a) form flags on some of possible syntax errors in parameters.
 # It will also create only "!" type messages.  The dest parameter
@@ -281,10 +281,11 @@ pidfile @VARRUN@/aprx.pid
 # Symbol  I&   is for "Tx-iGate"
 # Symbol  /#   is for "Digipeater"
 #
-#beacon                          file /tmp/wxbeacon.txt
-#beacon to N0CALL-3 for N0CALL-3 raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
-#beacon to $mycall               symbol "R&" lat "6016.30N" lon "02506.36E" \
-#				 comment "aprx - an Rx-only iGate"
+#beacon                     file /tmp/wxbeacon.txt
+#beacon interface N0CALL-3 srccall N0CALL-3 \
+#                           raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#beacon interface $mycall   symbol "R&" lat "6016.30N" lon "02506.36E" \
+#                           comment "aprx - an Rx-only iGate"
 #
 </beacon>
 

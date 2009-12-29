@@ -1,4 +1,4 @@
-Summary: Hamradio APRS Receive-Only iGate: APRx
+Summary: Hamradio APRS iGate / Digipeater
 Name: aprx
 Version: @VERSION@
 Release: 1
@@ -51,6 +51,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc LICENSE README INSTALL TODO
 %doc ChangeLog
+%doc aprx.conf aprx-complex.conf
+%doc doc/aprx-manual.pdf
 %dir /var/log/aprx
 %config(noreplace) /etc/aprx.conf
 %config(noreplace) /etc/init.d/aprx
