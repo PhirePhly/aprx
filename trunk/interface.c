@@ -551,16 +551,18 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	p = pb->data;
 	for ( p = pb->data; p < (pb->info_start); ++p ) {
-		if (*p == '>') {
-			pb->srccall_end = p;
-			pb->destcall    = p+1;
-			continue;
-		}
-		if (*p == ',' || *p == ':') {
-			pb->dstcall_end = p;
-			break;
-		}
+	  if (*p == '>') {
+	    pb->srccall_end = p;
+	    pb->destcall    = p+1;
+	    continue;
+	  }
+	  if (*p == ',' || *p == ':') {
+	    pb->dstcall_end = p;
+	    break;
+	  }
 	}
+	if (pb->dstcall_end == NULL)
+	  pb->dstcall_end = p;
 
 	int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
 	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
@@ -763,11 +765,13 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	      pb->destcall    = p+1;
 	      continue;
 	    }
-	    if (*p == ',') {
+	    if (*p == ',' || *p == ':') {
 	      pb->dstcall_end = p;
 	      break;
 	    }
 	  }
+	  if (pb->dstcall_end == NULL)
+	    pb->dstcall_end = p;
 
 	  memcpy(pb->ax25addr, ax25buf, ax25len);
 	  pb->ax25addrlen = ax25addrlen;
