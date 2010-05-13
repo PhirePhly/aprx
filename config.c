@@ -504,6 +504,9 @@ void *readconfigline(struct configfile *cf)
 	      *p-- = 0;
 	    llen = p - bufp;
 	  }
+	  if (p == NULL) {
+	    p = bufp + strlen(bufp);
+	  }
 	  if (*p == '\\') {
 	    bufp = p;
 	    buflen = sizeof(cf->buf) - (p - cf->buf) -1;
