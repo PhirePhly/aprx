@@ -2,15 +2,14 @@
 
 				TODO / Wishlist
 
-- system integration bits, like init-scripts..
-  - Debian Linux
-  - Fedora Linux
-  - ...
+- Shrink memory consumption @ Erlang datasets.
+  When there is no backing storage, always use small datasets,
+  and when there is active backing storage, use larger one.
+  Make the aprx.state file name to be non-defaulted.
+  When configuration does not define it, not do not use backing storage.
 
-- Document update:
-  - <interface> aliases !
-  - fill-in digi explanation elaborating
-  - a real manual..
+- Tx-IGate filter rules (igate.c)
+
 
 - digipeater behaviour on "requested wideness exceeds allowed
   max limit" and this is a directly heard packet:
@@ -28,8 +27,6 @@
 - Windows port?
   - AGWPE interface for Windows ?
   - BPQ32 interface ?
-
-- Tx-IGate filter rules (igate.c)
 
 - Colorize debug printout (or make another tool to colorize aprx-rf.log)
     - rx-packets green (or blue), tx-packets red
