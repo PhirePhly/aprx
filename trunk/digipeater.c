@@ -696,6 +696,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  has_fault = 1;
 			}
 		} else {
+			printf("%s:%d Digipeater <source>'s %s did not recognize: '%s' \n", cf->name, cf->linenum, name, param1);
 			has_fault = 1;
 		}
 	}
@@ -723,6 +724,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->dataregscount        = regexsrc.dataregscount;
 		source->dataregs             = regexsrc.dataregs;
 	} else {
+		// Errors detected
 		free_tracewide(source_trace);
 		free_tracewide(source_wide);
 		// filters_free(filters);
@@ -814,6 +816,8 @@ void digipeater_config(struct configfile *cf)
 				++sourcecount;
 			} else {
 				has_fault = 1;
+				printf("%s:%d <source> definition failed\n",
+				       cf->name, cf->linenum);
 			}
 
 		} else {
