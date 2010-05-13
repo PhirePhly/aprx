@@ -1,5 +1,11 @@
 2010-05-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    Under all situations, fill in pbuf_t->dstcall_end.
+
+	* debian/rules:
+	    Do not strip resulting objects. We want debug symbols!
+
 	* digipeater.c:
 	    Improve config error reporting.
 
