@@ -382,7 +382,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  state->hopsdone = 0;
 	  state->tracedone = 0;
 	  state->probably_heard_direct = 1;
-	  return;
+	  return 0;
 	}
 
 	len = pb->srccall_end - pb->data;
