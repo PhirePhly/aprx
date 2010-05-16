@@ -1133,15 +1133,18 @@ void aprsis_config(struct configfile *cf)
 		// heartbeat-timeout
 
 		if (strcmp(name, "login") == 0) {
-		  config_STRUPPER(param1);
-		  if (!validate_callsign_input(param1,0)) {
-		    // bad input...
+		  if (strcmp("$mycall",param1) != 0) {
+		    // If not "$mycall" ..
+		    config_STRUPPER(param1);
+		    if (!validate_callsign_input(param1,0)) {
+		      // bad input...
+		    }
+		    if (debug)
+		      printf("%s:%d: LOGIN = '%s' '%s'\n",
+			     cf->name, cf->linenum, param1, str);
+		    if (AIH->login) free(AIH->login);
+		    AIH->login = strdup(param1);
 		  }
-		  if (debug)
-		    printf("%s:%d: LOGIN = '%s' '%s'\n",
-			   cf->name, cf->linenum, param1, str);
-		  if (AIH->login) free(AIH->login);
-		  AIH->login = strdup(param1);
 
 		} else if (strcmp(name, "server") == 0) {
 

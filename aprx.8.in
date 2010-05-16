@@ -284,8 +284,9 @@ mycall  N0CALL-1
 <aprsis>
 # The  login  parameter: 
 # Station call\-id used for relaying APRS frames into APRS\-IS.
+# Use this only to define other callsign for APRS\-IS login.
 #
-#login      $mycall  # login defaults to $mycall
+#login      OTHERCALL-7  # login defaults to $mycall
 
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
