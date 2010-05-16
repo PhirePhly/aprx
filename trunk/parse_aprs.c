@@ -383,7 +383,7 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	 * A-K characters are not used in the last 3 characters
 	 * and MNO are never used
 	 */
-	if(debug)printf(" destcall='%6.6s'",d_start);
+ 	if(debug)printf(" destcall='%6.6s'",d_start);
 	for (i = 0; i < 3; i++)
 		if (!((d_start[i] >= '0' && d_start[i] <= '9')
 			|| (d_start[i] >= 'A' && d_start[i] <= 'L')
@@ -822,6 +822,7 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 {
 	char packettype, poschar;
 	int paclen;
+	int rc;
 	const char *body;
 	const char *body_end;
 	const char *pos_start;
@@ -903,7 +904,9 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 		/* could be mic-e, minimum body length 9 chars */
 		if (paclen >= 9) {
 			pb->packettype |= T_POSITION;
-			return parse_aprs_mice(pb, body, body_end);
+			rc = parse_aprs_mice(pb, body, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 		}
 		return 0;
 
@@ -931,20 +934,28 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 		poschar = *body;
 		if (valid_sym_table_compressed(poschar)) { /* [\/\\A-Za-j] */
 		    	/* compressed position packet */
+			rc = 0;
 			if (body_end - body >= 13)
-				return parse_aprs_compressed(pb, body, body_end);
+			  rc = parse_aprs_compressed(pb, body, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 			
 		} else if (poschar >= 0x30 && poschar <= 0x39) { /* [0-9] */
 			/* normal uncompressed position */
+			rc = 0;
 			if (body_end - body >= 19)
-				return parse_aprs_uncompressed(pb, body, body_end);
+			  rc = parse_aprs_uncompressed(pb, body, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 		}
 		return 0;
 
 	case '$':
 		if (body_end - body > 10) {
 			// Is it OK to declare it as position packet ?
-			return parse_aprs_nmea(pb, body, body_end);
+			rc = parse_aprs_nmea(pb, body, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 		}
 		return 0;
 
@@ -1010,8 +1021,11 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 		return 1;
 
 	case ';':
-		if (body_end - body > 29)
-			return parse_aprs_object(pb, body, body_end);
+		if (body_end - body > 29) {
+		  rc = parse_aprs_object(pb, body, body_end);
+		  DEBUG_LOG("\n");
+		  return rc;
+		}
 		return 0;
 
 	case '>':
@@ -1028,14 +1042,18 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 
 	case ')':
 		if (body_end - body > 18) {
-			return parse_aprs_item(pb, body, body_end);
+		  rc = parse_aprs_item(pb, body, body_end);
+		  DEBUG_LOG("\n");
+		  return rc;
 		}
-		return 0;
+
 
 	case 'T':
 		if (body_end - body > 18) {
 			pb->packettype |= T_TELEMETRY;
-			return parse_aprs_telem(pb, body, body_end);
+			rc = parse_aprs_telem(pb, body, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 		}
 		return 0;
 
@@ -1066,14 +1084,18 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 		poschar = *pos_start;
 		if (valid_sym_table_compressed(poschar)) { /* [\/\\A-Za-j] */
 		    	/* compressed position packet */
+			int rc = 0;
 		    	if (body_end - pos_start >= 13)
-		    		return parse_aprs_compressed(pb, pos_start, body_end);
-			return 0;
+			  rc = parse_aprs_compressed(pb, pos_start, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 		} else if (poschar >= 0x30 && poschar <= 0x39) { /* [0-9] */
 			/* normal uncompressed position */
+			int rc = 0;
 			if (body_end - pos_start >= 19)
-				return parse_aprs_uncompressed(pb, pos_start, body_end);
-			return 0;
+			  rc = parse_aprs_uncompressed(pb, pos_start, body_end);
+			DEBUG_LOG("\n");
+			return rc;
 		}
 	}
 	

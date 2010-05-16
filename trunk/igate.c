@@ -24,7 +24,7 @@ void igate_start()
 
 }
 
-static const char *tnc2_verify_callsign_format(const char *t, int starok, const char *e)
+static const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e)
 {
 	const char *s = t;
 
@@ -40,10 +40,22 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok, const 
 	if (*s == '-') {
 		/* Minus and digits.. */
 		++s;
-		if ('1' <= *s && *s <= '9')
-			++s;
-		if ('0' <= *s && *s <= '9')
-			++s;
+		if (strictax25) {
+		  if ('1' <= *s && *s <= '9')
+		    ++s;
+		  if ('0' <= *s && *s <= '9')
+		    ++s;
+		} else {
+		  // Up to 2 of any alphanumeric
+		  if (('0' <= *s && *s <= '0') ||
+		      ('a' <= *s && *s <= 'z') ||
+		      ('A' <= *s && *s <= 'Z'))
+		    ++s;
+		  if (('0' <= *s && *s <= '0') ||
+		      ('a' <= *s && *s <= 'z') ||
+		      ('A' <= *s && *s <= 'Z'))
+		    ++s;
+		}
 	}
 
 	if (*s == '*' /* && starok */ )	/* Star is present at way too many
@@ -72,11 +84,11 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok, const 
 	return s;
 }
 
-static const char *tnc2_forbidden_source_stationid(const char *t, const char *e)
+static const char *tnc2_forbidden_source_stationid(const char *t, const int strictax25,const char *e)
 {
 	const char *s;
 
-	s = tnc2_verify_callsign_format(t, 0, e);
+	s = tnc2_verify_callsign_format(t, 0, strictax25, e);
 	if (!s)
 		return NULL;
 
@@ -92,11 +104,11 @@ static const char *tnc2_forbidden_source_stationid(const char *t, const char *e)
 	return s;
 }
 
-static const char *tnc2_forbidden_destination_stationid(const char *t, const char *e)
+static const char *tnc2_forbidden_destination_stationid(const char *t, const int strictax25, const char *e)
 {
 	const char *s;
 
-	s = tnc2_verify_callsign_format(t, 0, e);
+	s = tnc2_verify_callsign_format(t, 0, strictax25, e);
 	if (!s)
 		return NULL;
 
@@ -111,11 +123,11 @@ static const char *tnc2_forbidden_destination_stationid(const char *t, const cha
 	return s;
 }
 
-static const char *tnc2_forbidden_via_stationid(const char *t, const char *e)
+static const char *tnc2_forbidden_via_stationid(const char *t, const int strictax25, const char *e)
 {
 	const char *s;
 
-	s = tnc2_verify_callsign_format(t, 1, e);
+	s = tnc2_verify_callsign_format(t, 1, strictax25, e);
 	if (!s)
 		return NULL;
 
@@ -191,6 +203,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	const char *ae;
 	const char *e;
 	int discard = discard0;
+	int strictax25 = 1;	// Callsigns per strict AX25 (not 3rd-party)
 
 	tp = tnc2buf;           // 3rd-party recursion moves tp
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
@@ -211,7 +224,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	 * next if ($axpath =~ m/^RELAY/io);
 	 * next if ($axpath =~ m/^TRACE/io);
 	 */
-	s = tnc2_forbidden_source_stationid(t, e);
+	s = tnc2_forbidden_source_stationid(t, strictax25, e);
 	if (s)
 		t = (char *) s;
 	else {
@@ -231,7 +244,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		goto discard;
 	}
 
-	s = tnc2_forbidden_destination_stationid(t, e);
+	s = tnc2_forbidden_destination_stationid(t, strictax25, e);
 	if (s)
 		t = (char *) s;
 	else {
@@ -256,7 +269,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		 *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
 		 */
 
-		s = tnc2_forbidden_via_stationid(t, e);
+		s = tnc2_forbidden_via_stationid(t, strictax25, e);
 		if (!s) {
 			/* Forbidden in via fields.. */
 			if (debug)
@@ -307,6 +320,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		/* DEBUG OUTPUT TO STDOUT ! */
 		verblog(portname, tncid, tp, tnc2len);
 
+		strictax25 = 0;
 		/* Copy the 3rd-party message content into begining of the buffer... */
 		++t;				/* Skip the '}'		*/
 		tp = t;
