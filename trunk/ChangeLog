@@ -1,5 +1,10 @@
 2010-05-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprsis.c, aprx.conf.in, aprx.8.in, doc/aprx-manual.odt:
+	    Emphasize that <aprsis>'s login parameter is to be
+	    set ONLY when it needs to be different than mycall
+	    value.  (But tolerate also '$mycall' alias.)
+
 	* aprx.c:
 	    Update internal tocall default to 'APRX1F'.
 

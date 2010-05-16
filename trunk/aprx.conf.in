@@ -33,8 +33,9 @@ mycall  N0CALL-1
 <aprsis>
 # The  aprsis login  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
+# Use this only to define other callsign for APRS\-IS login.
 #
-#login     $mycall	# login defaults to $mycall
+#login     OTHERCALL-7	# login defaults to $mycall
 
 # APRS-IS server name and portnumber.
 server    rotate.aprs.net    14580
