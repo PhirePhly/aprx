@@ -376,6 +376,15 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 
 	if (debug>1) printf(" hops count: %s ",p);
 
+	if (src->src_relaytype == DIGIRELAY_THIRDPARTY) {
+	  state->hopsreq = 1; // Bonus for tx-igated 3rd-party frames
+	  state->tracereq = 1; // Bonus for tx-igated 3rd-party frames
+	  state->hopsdone = 0;
+	  state->tracedone = 0;
+	  state->probably_heard_direct = 1;
+	  return;
+	}
+
 	len = pb->srccall_end - pb->data;
 	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
 	memcpy(viafield, pb->data, len);
@@ -919,11 +928,11 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	if (src->src_filters != NULL) {
 	  int rc = filter_process(pb, src->src_filters);
 	  if (rc != 1) {
-	    if (debug)
+	    if (debug>1)
 	      printf("Source filtering rejected the packet.\n");
 	    return;
 	  }
-	  if (debug)
+	  if (debug>1)
 	    printf("Source filtering accepted the packet.\n");
 	}
 
@@ -938,6 +947,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	// Parse executed and requested WIDEn-N/TRACEn-N info
 	if (parse_tnc2_hops(&state, src, pb)) {
 		// A fault was observed! -- tests include "not this transmitter"
+		if (debug>1)
+		  printf("Parse_tnc2_hops rejected this.");
 		return;
 	}
 
@@ -953,7 +964,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 		  if (src->src_relaytype == DIGIRELAY_DIGIPEAT_DIRECTONLY) {
 		    // Source relaytype is DIRECTONLY, and this was not
 		    // likely directly heard...
-		    if (debug) printf("DIRECTONLY -mode, and packet is not probably direct heard.");
+		    if (debug>1) printf("DIRECTONLY -mode, and packet is not probably direct heard.");
 		    return;
 		  }
 		}
@@ -974,7 +985,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	// APRSIS sourced packets have different rules than DIGIPEAT
 	// packets...
 	if (state.hopsreq <= state.hopsdone) {
-	  // if (debug) printf(" No remaining hops to execute.\n");
+	  if (debug>1) printf(" No remaining hops to execute.\n");
 	  return;
 	}
 	if (state.hopsreq   > digi->trace->maxreq  ||
@@ -1146,8 +1157,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 
 void digipeater_receive( struct digipeater_source *src,
-			 struct pbuf_t *pb,
-			 const int do_3rdparty )
+			 struct pbuf_t *pb )
 {
 	// Below numbers like "4)" refer to Requirement Specification
 	// paper chapter 2.6: Digipeater Rules

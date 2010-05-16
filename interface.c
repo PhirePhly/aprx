@@ -585,7 +585,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	// Feed it to digipeaters ...
 	for (i = 0; i < aif->digisourcecount; ++i) {
-		digipeater_receive( aif->digisources[i], pb, 0);
+		digipeater_receive( aif->digisources[i], pb);
 	}
 
 	// .. and finally free up the pbuf (if refcount goes to zero)
@@ -781,11 +781,11 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  // This is APRS packet, parse for APRS meaning ...
 	  int rc = parse_aprs(pb, 1); // look inside 3rd party
 	  if (debug)
-	    printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
+	    printf("\n.. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
 		   rc ? "OK":"FAIL", srcif, pb->data,
 		   pb->info_start);
 
-	  digipeater_receive( digisrc, pb, 1);
+	  digipeater_receive( digisrc, pb);
 
 	  // .. and finally free up the pbuf (if refcount goes to 0)
 	  pbuf_put(pb);

@@ -487,7 +487,7 @@ struct digipeater {
 extern int  digipeater_prepoll(struct aprxpolls *app);
 extern int  digipeater_postpoll(struct aprxpolls *app);
 extern void digipeater_config(struct configfile *cf);
-extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb, const int do_3rdparty);
+extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb);
 extern dupecheck_t *digipeater_find_dupecheck(const struct aprx_interface *aif);
 
 /* interface.c */

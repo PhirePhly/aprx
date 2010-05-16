@@ -1,3 +1,21 @@
+2010-05-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c:
+	    Update internal tocall default to 'APRX1F'.
+
+	* interface.c, digipeater.c:
+	    Tx-iGate fixes for case where outgoing packet has no
+	    VIA field(s).  System saw that "requested hops = 0,
+	    done hops = 0 -> no need to send out".
+
+	* parse_aprs.c:
+	    Make sure that all things creating debug output are
+	    followed by a "\n".
+
+	* igate.c:
+	    Relax station callsign format rules inside a received
+	    3rd-party frame.
+
 2010-05-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c:
