@@ -929,11 +929,11 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  int rc = filter_process(pb, src->src_filters);
 	  if (rc != 1) {
 	    if (debug>1)
-	      printf("Source filtering rejected the packet.\n");
+	      printf("Source filtering rejected the packet from %s.\n", src->src_if->callsign);
 	    return;
 	  }
 	  if (debug>1)
-	    printf("Source filtering accepted the packet.\n");
+	    printf("Source filtering accepted the packet from %s.\n", src->src_if->callsign);
 	}
 
 	memset(&state,    0, sizeof(state));
@@ -995,10 +995,12 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    state.hopsdone  > digi->wide->maxdone  ||
 	    state.tracedone > digi->trace->maxdone) {
 	  if (debug) printf(" Packet exceeds digipeat limits\n");
-	  if (!state.probably_heard_direct)
+	  if (!state.probably_heard_direct) {
+	    if (debug) printf(".. discard.\n");
 	    return;
-	  else
+	  } else {
 	    state.fixall = 1;
+	  }
 	}
 
 	// if (debug) printf(" Packet accepted to digipeat!\n");
@@ -1092,7 +1094,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    // transmitter callsign in
 	    int taillen = e-axaddr;
 	    if (state.ax25addrlen >= 70) {
-	      if (debug) printf(" TRACE overgrows the VIA fields!\n");
+	      if (debug) printf(" TRACE overgrows the VIA fields! Discard.\n");
 	      return;
 	    }
 	    memmove(axaddr+7, axaddr, taillen);
@@ -1153,6 +1155,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	interface_transmit_ax25( digi->transmitter,
 				 state.ax25addr, state.ax25addrlen,
 				 (const char*)pb->ax25data, pb->ax25datalen );
+	if (debug>1) printf("Done.\n");
 }
 
 
@@ -1180,7 +1183,11 @@ void digipeater_receive( struct digipeater_source *src,
 
 		dupe_record_t *dupe = dupecheck_pbuf( src->parent->dupechecker,
 						      pb, src->viscous_delay);
-		if (dupe == NULL) return; // Oops.. allocation error!
+		if (dupe == NULL) {  // Oops.. allocation error!
+		  if (debug)
+		    printf("digipeater_receive() - dupecheck_pbuf() allocation error, packet discarded\n");
+		  return;
+		}
 
 		// 1.1) optional viscous delay!
 
@@ -1191,12 +1198,15 @@ void digipeater_receive( struct digipeater_source *src,
 
 			// 1.x) Analyze dupe checking
 
+			if (debug>1)
+			  printf("Seen this packet %d times (delayed=%d)\n",
+				 dupe->delayed_seen + dupe->seen,
+				 dupe->delayed_seen);
+
 			if (dupe->seen > 1) {
 			  // N:th direct packet, duplicate.
 			  // Drop this direct packet.
-			  if (debug>1)
-			    printf("Seen this packet %d times\n",
-				   dupe->delayed_seen + dupe->seen);
+			  if (debug>1) printf(".. discarded\n");
 			  return;
 			}
 
@@ -1206,6 +1216,7 @@ void digipeater_receive( struct digipeater_source *src,
 			  // pbuf anymore indicating that a delayed 
 			  // handling did process it sometime in past.
 			  // Drop this direct packet.
+			  if (debug>1) printf(".. discarded\n");
 			  return;
 			}
 
@@ -1232,7 +1243,7 @@ void digipeater_receive( struct digipeater_source *src,
 			  // Already processed thru direct processing,
 			  // no point in adding this to viscous delay queue
 			  if (debug>1)
-			    printf("Seen this packet %d times\n",
+			    printf("Seen this packet %d times. Discarding it.\n",
 				   dupe->delayed_seen + dupe->seen);
 			  return;
 			}
@@ -1246,7 +1257,7 @@ void digipeater_receive( struct digipeater_source *src,
 			if (dupe->delayed_seen > 1) {
 			  // 2nd or more of same packet from delayed source
 			  if (debug>1)
-			    printf("Seen this packet %d times\n",
+			    printf("Seen this packet %d times.\n",
 				   dupe->delayed_seen + dupe->seen);
 
 			  // If any of them is transmitter interface, then
@@ -1261,6 +1272,7 @@ void digipeater_receive( struct digipeater_source *src,
 			    }
 
 			  }
+			  if (debug>1) printf(".. discarded\n");
 			  return;
 			}
 
@@ -1285,6 +1297,7 @@ void digipeater_receive( struct digipeater_source *src,
 		} 
 	}
 	// Send directly to backend
+	if (debug>1) printf(".. direct to processing\n");
 	digipeater_receive_backend(src, pb);
 }
 

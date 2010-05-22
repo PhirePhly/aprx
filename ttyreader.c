@@ -570,7 +570,10 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *a
 	int i, len, ssid;
 	char kissbuf[2300];
 
-	if (debug) printf("ttyreader_kisswrite(->%s, axlen=%d)", S->ttycallsign[tncid], ax25rawlen);
+	if (debug) {
+	  printf("ttyreader_kisswrite(->%s, axlen=%d)", S->ttycallsign[tncid], ax25rawlen);
+	}
+
 
 	if ((S->linetype != LINETYPE_KISS) && (S->linetype != LINETYPE_KISSSMACK) &&
 	    (S->linetype != LINETYPE_KISSBPQCRC)) {
@@ -605,6 +608,11 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *a
 
 	ssid = (tncid << 4) | ((S->linetype == LINETYPE_KISSSMACK) ? 0x80 : 0x00);
 	len = kissencoder( kissbuf, sizeof(kissbuf), ax25raw, ax25rawlen, ssid );
+
+	if (debug>2) {
+	  hexdumpfp(stdout, kissbuf, len);
+	  printf("\n");
+	}
 
 	// Will the KISS encoded frame fit in the link buffer?
 	if ((S->wrlen + len) < sizeof(S->wrbuf)) {

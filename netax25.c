@@ -238,6 +238,13 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 		return;
 	ax25len = rc;
 
+	if (debug>2) {
+	  printf("netax25_sendax25() ");
+	  hexdumpfp(stdout, ax25buf, rc);
+	  printf("\n");
+	}
+
+
 	/* Try to write it to the PTY */
 	p = 0;
 	rc = write(nax25->fd, ax25buf + p, ax25len - p);
