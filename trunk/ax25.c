@@ -150,6 +150,12 @@ int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 	char *t = tnc2buf;
 	int viacount = 0;
 
+	if (debug>1) {
+	  printf("ax25_format_to_tnc() len=%d ",framelen);
+	  hexdumpfp(stdout, frame, framelen, 1);
+	  printf("\n");
+	}
+
 	if (framelen > sizeof(tnc2buf) - 80) {
 		/* Too much ! Too much! */
 		return 0;

@@ -47,11 +47,11 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok, int st
 		    ++s;
 		} else {
 		  // Up to 2 of any alphanumeric
-		  if (('0' <= *s && *s <= '0') ||
+		  if (('0' <= *s && *s <= '9') ||
 		      ('a' <= *s && *s <= 'z') ||
 		      ('A' <= *s && *s <= 'Z'))
 		    ++s;
-		  if (('0' <= *s && *s <= '0') ||
+		  if (('0' <= *s && *s <= '9') ||
 		      ('a' <= *s && *s <= 'z') ||
 		      ('A' <= *s && *s <= 'Z'))
 		    ++s;
@@ -70,14 +70,14 @@ static const char *tnc2_verify_callsign_format(const char *t, int starok, int st
 	}
 	if (s == t) {
 		if (debug)
-			printf("callsign format verify got bad character: '%c' in string: '%.20s'\n", *s, t);
+		  printf("%s callsign format verify got bad character: '%c' in string: '%.20s'\n", strictax25 ? "Strict":"Lenient", *s, t);
 		return NULL;	/* Too short ? */
 	}
 
 	if (*s != '>' && *s != ',' && *s != ':') {
 		/* Terminates badly.. */
 		if (debug)
-			printf("callsign format verify got bad character: '%c' in string: '%.20s'\n", *s, t);
+			printf("%s callsign format verify got bad character: '%c' in string: '%.20s'\n", strictax25 ? "Strict":"Lenient", *s, t);
 		return NULL;
 	}
 
@@ -159,7 +159,13 @@ static int tnc2_forbidden_data(const char *t)
 void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len)
 {
     if (rflogfile) {
-	FILE *fp = fopen(rflogfile, "a");
+      FILE *fp = NULL;
+      if (strcmp("-",rflogfile)==0) {
+	if (debug < 2) return;
+	fp = stdout;
+      } else {
+	fp = fopen(rflogfile, "a");
+      }
     
 	if (fp) {
 		char timebuf[60];
@@ -176,7 +182,9 @@ void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int
 		}
 		fwrite( tnc2buf, tnc2len, 1, fp);
 		fprintf( fp, "\n" );
-		fclose(fp);
+
+		if (fp != stdout)
+		  fclose(fp);
 	}
     }
 }
@@ -318,7 +326,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	/* Messages begining with '}' char are 3rd-party frames.. */
 	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
-		verblog(portname, tncid, tp, tnc2len);
+		verblog(portname, 0, tp, tnc2len);
 
 		strictax25 = 0;
 		/* Copy the 3rd-party message content into begining of the buffer... */
@@ -364,7 +372,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	*/
 	discard = aprsis_queue(tp, tnc2addrlen, portname, t0, e - t0); /* Send it.. */
 	/* DEBUG OUTPUT TO STDOUT ! */
-	verblog(portname, tncid, tp, tnc2len);
+	verblog(portname, 0, tp, tnc2len);
 
 	// Log the innermost form of packet to be sent out..
 	if (tp != tnc2buf || discard != discard0)
@@ -635,6 +643,8 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	
 
 	// FIXME: f) - ??
+
+	if (debug) printf(".. igate from aprsis\n");
 
 	interface_receive_3rdparty( &aprsis_interface,
 				    fromcall, origtocall, igatecall,

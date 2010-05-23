@@ -374,7 +374,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	int viaindex = 1; // First via index will be 2..
 	int len;
 
-	if (debug>1) printf(" hops count: %s ",p);
+	if (debug>1) printf(" hops count of buffer: %s\n",p);
 
 	if (src->src_relaytype == DIGIRELAY_THIRDPARTY) {
 	  state->hopsreq = 1; // Bonus for tx-igated 3rd-party frames
@@ -601,8 +601,10 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	struct tracewide     *source_wide = NULL;
 	struct digipeater_source regexsrc;
 	char                    *via_path = NULL;
+	uint8_t               ax25viapath[7];
 
 	memset(&regexsrc, 0, sizeof(regexsrc));
+	memset(ax25viapath, 0, sizeof(ax25viapath));
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -635,21 +637,23 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			source_aif = find_interface_by_callsign(param1);
 			if (source_aif == NULL) {
 				has_fault = 1;
-				printf("%s:%d digipeater source '%s' not found\n",
+				printf("%s:%d ERROR: Digipeater source '%s' not found\n",
 				       cf->name, cf->linenum, param1);
 			}
+			if (debug>1)
+			  printf(" .. source_aif = %p\n", source_aif);
 
 		} else if (strcmp(name, "viscous-delay") == 0) {
 			viscous_delay = atoi(param1);
 			if (debug) printf(" viscous-delay = %d\n",viscous_delay);
 			if (viscous_delay < 0) {
-			  printf("%s:%d Bad value for viscous-delay: '%s'\n",
+			  printf("%s:%d ERROR: Bad value for viscous-delay: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  viscous_delay = 0;
 			  has_fault = 1;
 			}
 			if (viscous_delay > 9) {
-			  printf("%s:%d Bad value for viscous-delay: '%s'\n",
+			  printf("%s:%d ERROR: Bad value for viscous-delay: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  viscous_delay = 9;
 			  has_fault = 1;
@@ -663,14 +667,28 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		} else if (strcmp(name, "via-path") == 0) {
 
 			// FIXME: validate that source callsign is "APRSIS"
+			if (source_aif == NULL ||
+			    strcmp(source_aif->callsign,"APRSIS") != 0) {
+			  printf("%s:%d ERROR: via-path parameter is available only on 'source APRSIS' case\n",
+				 cf->name, cf->linenum);
+			  has_fault = 1;
+			  continue;
+			}
 
-			via_path  = str;
-			str = config_SKIPTEXT(str, NULL);
-			str = config_SKIPSPACE(str);
+			via_path  = strdup(param1);
 			config_STRUPPER(via_path);
 
+			if (parse_ax25addr(ax25viapath, via_path, 0x00)) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: via-path parameter is not valid AX.25 callsign: '%s'\n",
+				 cf->name, cf->linenum, via_path);
+			  free(via_path);
+			  via_path = NULL;
+			  continue;
+			}
+
 			if (debug)
-				printf("via-path '%s' ", via_path);
+				printf("via-path '%s'\n", via_path);
 
 		} else if (strcmp(name,"<trace>") == 0) {
 			source_trace = digipeater_config_tracewide(cf, 1);
@@ -701,11 +719,11 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			} else if (strcmp(param1,"3rd-party") == 0) {
 			  relaytype = DIGIRELAY_THIRDPARTY;
 			} else {
-			  printf("%s:%d Digipeater <source>'s %s did not recognize: '%s' \n", cf->name, cf->linenum, name, param1);
+			  printf("%s:%d ERROR: Digipeater <source>'s %s did not recognize: '%s' \n", cf->name, cf->linenum, name, param1);
 			  has_fault = 1;
 			}
 		} else {
-			printf("%s:%d Digipeater <source>'s %s did not recognize: '%s' \n", cf->name, cf->linenum, name, param1);
+			printf("%s:%d ERROR: Digipeater <source>'s %s did not recognize: '%s' \n", cf->name, cf->linenum, name, param1);
 			has_fault = 1;
 		}
 	}
@@ -720,6 +738,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->src_trace     = source_trace;
 		source->src_wide      = source_wide;
 		source->via_path      = via_path;
+		memcpy(source->ax25viapath, ax25viapath, sizeof(ax25viapath));
 
 		source->viscous_delay = viscous_delay;
 
@@ -740,6 +759,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		// free regexsrc's allocations
 	}
 
+	if (debug>1)printf(" .. <source> definition returning %p\n",source);
 	return source;
 }
 
@@ -786,16 +806,16 @@ void digipeater_config(struct configfile *cf)
 			aif = find_interface_by_callsign(param1);
 			if (aif != NULL && (!aif->txok)) {
 			  aif = NULL; // Not 
-			  printf("%s:%d This transmit interface has no TX-OK TRUE setting: '%s'\n",
+			  printf("%s:%d ERROR: This transmit interface has no TX-OK TRUE setting: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  has_fault = 1;
 			} else if (aif != NULL && aif->txrefcount > 0) {
 			  aif = NULL;
-			  printf("%s:%d This transmit interface is being used on multiple <digipeater>s as transmitter: '%s'\n",
+			  printf("%s:%d ERROR: This transmit interface is being used on multiple <digipeater>s as transmitter: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  has_fault = 1;
 			} else if (aif == NULL) {
-			  printf("%s:%d Unknown interface: '%s'\n",
+			  printf("%s:%d ERROR: Unknown interface: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  has_fault = 1;
 			}
@@ -807,13 +827,17 @@ void digipeater_config(struct configfile *cf)
 
 		} else if (strcmp(name, "<trace>") == 0) {
 			traceparam = digipeater_config_tracewide(cf, 1);
-			if (traceparam == NULL)
+			if (traceparam == NULL) {
+			  printf("ERROR: <trace> definition failed!\n");
 				has_fault = 1;
+			}
 
 		} else if (strcmp(name, "<wide>") == 0) {
 			wideparam = digipeater_config_tracewide(cf, 0);
-			if (wideparam == NULL)
+			if (wideparam == NULL) {
+			  printf("ERROR: <wide> definition failed!\n");
 				has_fault = 1;
+			}
 
 		} else if (strcmp(name, "<source>") == 0) {
 			struct digipeater_source *src =
@@ -825,12 +849,12 @@ void digipeater_config(struct configfile *cf)
 				++sourcecount;
 			} else {
 				has_fault = 1;
-				printf("%s:%d <source> definition failed\n",
+				printf("%s:%d ERROR: <source> definition failed\n",
 				       cf->name, cf->linenum);
 			}
 
 		} else {
-		  printf("%s:%d Unknown config keyword: '%s'\n",
+		  printf("%s:%d ERROR: Unknown config keyword: '%s'\n",
 			 cf->name, cf->linenum, name);
 		  has_fault = 1;
 		  continue;
@@ -838,12 +862,12 @@ void digipeater_config(struct configfile *cf)
 	}
 
 	if (aif == NULL && !has_fault) {
-		printf("%s:%d Digipeater defined without transmit interface.\n",
+		printf("%s:%d ERROR: Digipeater defined without transmit interface.\n",
 		       cf->name, cf->linenum);
 		has_fault = 1;
 	}
 	if (sourcecount == 0 && !has_fault) {
-		printf("%s:%d Digipeater defined without <source>:s.\n",
+		printf("%s:%d ERROR: Digipeater defined without <source>:s.\n",
 		       cf->name, cf->linenum);
 		has_fault = 1;
 	}
@@ -870,10 +894,13 @@ void digipeater_config(struct configfile *cf)
 		free_tracewide(traceparam);
 		free_tracewide(wideparam);
 
+		printf("Config fault observed on <digipeater> definitions! \n");
 	} else {
 		// Construct the digipeater
 
 		digi = malloc(sizeof(*digi));
+
+		if (debug>1)printf("<digipeater> sourcecount=%d\n",sourcecount);
 
 		// up-link all interfaces used as sources
 		for ( i = 0; i < sourcecount; ++i ) {
