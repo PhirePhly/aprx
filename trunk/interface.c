@@ -554,56 +554,59 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	if (ui_pid >= 0)  digi_like_aprs = 1; // FIXME: more precise matching?
 
 
-	// Allocate pbuf, it is born "gotten" (refcount == 1)
-	struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
+	for (i = 0; i < aif->digisourcecount; ++i) {
+	    struct digipeater_source *digisource = aif->digisources[i];
+	    historydb_t *historydb = digisource->parent->historydb;
 
-	memcpy((void*)(pb->data), tnc2buf, tnc2len);
-	pb->data[tnc2len] = 0;
+	    // Allocate pbuf, it is born "gotten" (refcount == 1)
+	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
 
-	pb->info_start = pb->data + tnc2addrlen + 1;
-	char *p = (char*)&pb->info_start[-1]; *p = 0;
+	    memcpy((void*)(pb->data), tnc2buf, tnc2len);
+	    pb->data[tnc2len] = 0;
 
-	p = pb->data;
-	for ( p = pb->data; p < (pb->info_start); ++p ) {
-	  if (*p == '>') {
-	    pb->srccall_end = p;
-	    pb->destcall    = p+1;
-	    continue;
-	  }
-	  if (*p == ',' || *p == ':') {
-	    pb->dstcall_end = p;
-	    break;
-	  }
-	}
-	if (pb->dstcall_end == NULL)
-	  pb->dstcall_end = p;
+	    pb->info_start = pb->data + tnc2addrlen + 1;
+	    char *p = (char*)&pb->info_start[-1]; *p = 0;
 
-	int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
-	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
+	    p = pb->data;
+	    for ( p = pb->data; p < (pb->info_start); ++p ) {
+	      if (*p == '>') {
+		pb->srccall_end = p;
+		pb->destcall    = p+1;
+		continue;
+	      }
+	      if (*p == ',' || *p == ':') {
+		pb->dstcall_end = p;
+		break;
+	      }
+	    }
+	    if (pb->dstcall_end == NULL)
+	      pb->dstcall_end = p;
 
-	// Copy incoming AX.25 frame into its place too.
-	memcpy(pb->ax25addr, axbuf, axlen);
-	pb->ax25addrlen = axaddrlen;
-	pb->ax25data    = pb->ax25addr + axaddrlen;
-	pb->ax25datalen = axlen - axaddrlen;
+	    int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
+	    p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
 
-	// If APRS packet, then parse for APRS meaning ...
-	if (is_aprs) {
-		int rc = parse_aprs(pb, 0); // don't look inside 3rd party
+	    // Copy incoming AX.25 frame into its place too.
+	    memcpy(pb->ax25addr, axbuf, axlen);
+	    pb->ax25addrlen = axaddrlen;
+	    pb->ax25data    = pb->ax25addr + axaddrlen;
+	    pb->ax25datalen = axlen - axaddrlen;
+
+	    // If APRS packet, then parse for APRS meaning ...
+	    if (is_aprs) {
+		int rc = parse_aprs(pb, 0, historydb); // don't look inside 3rd party
 		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
 		if (debug)
 		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
 			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
+	    }
+
+
+	    // Feed it to digipeaters ...
+	    digipeater_receive( digisource, pb);
+
+	    // .. and finally free up the pbuf (if refcount goes to zero)
+	    pbuf_put(pb);
 	}
-
-
-	// Feed it to digipeaters ...
-	for (i = 0; i < aif->digisourcecount; ++i) {
-		digipeater_receive( aif->digisources[i], pb);
-	}
-
-	// .. and finally free up the pbuf (if refcount goes to zero)
-	pbuf_put(pb);
 }
 
 /*
@@ -671,11 +674,47 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
  * Except for within gated packets, TCPIP and TCPXX should not be
  * used on RF.
  *
+ * Part of the Tx-IGate logic is here because we use pbuf_t data blocks:
+ *
+ * // FIXME: 1) - verify receiving station has been heard
+ * //             recently on radio
+ * // FIXME: 2) - sending station has not been heard recently
+ * //             on radio
+ * // FIXME: 4) - the sending station has not been heard via
+ * //             the Internet within a predefined time period.
+ * //             (Note that _this_ packet is heard from internet,
+ * //              so one must not confuse this to history..
+ * //              Nor this siblings that are being created
+ * //              one for each tx-interface...)
+ *
+ *
+ *  1) The receiving station has been heard recently
+ *     within defined range limits, and more recently
+ *     than since given interval T1. (Range as digi-hops [N1]
+ *     or coordinates, or both.)
+ *
+ *  2) The sending station has not been heard via RF
+ *     within timer interval T2. (Third-party relayed
+ *     frames are not analyzed for this.)
+ *
+ *  4) the sending station has not been heard via the Internet
+ *     within a predefined time period.
+ *     A station is said to be heard via the Internet if packets
+ *     from the station contain TCPIP* or TCPXX* in the header or
+ *     if gated (3rd-party) packets are seen on RF gated by the
+ *     station and containing TCPIP or TCPXX in the 3rd-party
+ *     header (in other words, the station is seen on RF as being
+ *     an IGate). 
+ *
+ * 5)  Gate all packets to RF based on criteria set by the sysop
+ *     (such as callsign, object name, etc.).
+ *
+ * c)  Drop everything else.
  */
 
 static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,' '<<1,' '<<1,0x60 };
 
-void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen)
+void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *tnc2data, const int tnc2datalen)
 {
 	int d;
 	struct pbuf_t *pb;
@@ -691,6 +730,9 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	
 	char     tnc2buf[2800];
 	uint8_t  ax25buf[2800];
+
+	time_t recent_time = now - 3600; // "recent" = 1 hour
+
 
 
 	if (debug)
@@ -711,6 +753,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  struct digipeater        *digi    = digisrc->parent;
 	  struct aprx_interface    *tx_aif  = digi->transmitter;
 
+	  historydb_t *historydb = digisrc->parent->historydb;
 
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
 
@@ -741,7 +784,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  *a++ = 0xF0; // PID = 0xF0
 
 	  a += sprintf((char*)a, "}%s>%s,TCPIP,%s*:",
-		       fromcall, origtocall, igatecall );
+		       fromcall, origtocall, tx_aif->callsign );
 	  ax25len = a - ax25buf;
 	  if (tnc2datalen + ax25len > sizeof(ax25buf)) {
 	    // Urgh...  Can not fit it in :-(
@@ -763,7 +806,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  tnc2addrlen = t - tnc2buf;
 	  *t++ = ':';
 	  t += sprintf(t, "}%s>%s,TCPIP,%s*:",
-		       fromcall, origtocall, igatecall );
+		       fromcall, origtocall, tx_aif->callsign );
 	  if (tnc2datalen + (t-tnc2buf) +4 > sizeof(tnc2buf)) {
 	    // Urgh...  Can not fit it in :-(
 	    if(debug)printf("data does not fit into tnc2buf: %d > %d\n",
@@ -777,6 +820,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  // Allocate pbuf, it is born "gotten" (refcount == 1)
 	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+
+	  pb->from_aprsis = 1; // 3rd-party frames are always from APRSIS
 
 	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	  pb->info_start = pb->data + tnc2addrlen + 1;
@@ -807,13 +852,74 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  pb->ax25datalen = ax25len - ax25addrlen;
 
 	  // This is APRS packet, parse for APRS meaning ...
-	  int rc = parse_aprs(pb, 1); // look inside 3rd party
+	  int rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
 	  if (debug)
 	    printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
 		   rc ? "OK":"FAIL", srcif, pb->data,
 		   pb->info_start);
 
-	  digipeater_receive( digisrc, pb);
+          // 1) - verify receiving station has been heard
+          //      recently on radio
+          // 2) - sending station has not been heard recently
+          //      on radio
+          // 4) - the sending station has not been heard via
+          //      the Internet within a predefined time period.
+          //      (Note that _this_ packet is heard from internet,
+          //      so one must not confuse this to history..
+          //      Nor this siblings that are being created
+          //      one for each tx-interface...)
+	  // 
+	  //  A station is said to be heard via the Internet if packets
+	  //  from the station contain TCPIP* or TCPXX* in the header or
+	  //  if gated (3rd-party) packets are seen on RF gated by the
+	  //  station and containing TCPIP or TCPXX in the 3rd-party
+	  //  header (in other words, the station is seen on RF as being
+	  //  an IGate). 
+
+
+          // 1) - verify receiving station has been heard
+          //      recently on radio
+	  history_cell_t *hist_rx = historydb_lookup(historydb, origtocall, strlen(origtocall));
+	  int discard_this = 0;
+	  if (hist_rx == NULL) {
+	    if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", origtocall);
+	    discard_this = 1;
+	  }
+	  // See that it has 'heard on radio' flag..
+	  if (hist_rx != NULL && (hist_rx->from_radio < recent_time &&
+				  hist_rx->from_radio != 0)) {
+	    // Not heard recently enough
+	    discard_this = 1;
+	    if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", origtocall);
+	  }
+
+	  history_cell_t *hist_tx = historydb_lookup(historydb, fromcall, strlen(fromcall));
+	  // If no history entry for this tx callsign,
+	  // then rules 2 and 4 permit tx-igate
+	  if (hist_tx != NULL) {
+	    // There is a history entry for this tx callsign, check rules 2+4
+
+	    // 2) Sending station has not been heard recently on radio
+	    if (hist_tx->from_radio > recent_time) {
+	      // "is heard recently"
+	      discard_this = 1;
+	      if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
+	    }
+/* FIXME:
+	    // 4) the sending station has not been heard via the internet
+	    if (hist_tx->from_aprsis > recent_time) {
+	      // "is heard recently via internet"
+	      discard_this = 1;
+	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
+	    }
+*/
+	  }
+
+	  if (!discard_this) {
+	    // FIXME: For position-less packets send at first a position-full packet?
+
+	    digipeater_receive( digisrc, pb);
+	  }
 
 	  // .. and finally free up the pbuf (if refcount goes to 0)
 	  pbuf_put(pb);

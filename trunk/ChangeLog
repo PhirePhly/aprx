@@ -1,5 +1,11 @@
 2010-05-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c, aprx.h, digipeater.c, filter.c, historydb.c, historydb.h,
+	  igate.c, interface.c, parse_aprs.c:
+	    Rearranged bits so that Tx-IGate's processing has transmitter
+	    specific history database.   Better (but yet a bit incomplete)
+	    Tx-IGate filtering is in interface.c.
+
 	* kiss.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in,
 	  netax25.c, aprx.h, ttyreader.c:
 	    Add FLEXNET support.  (Finnish HamDR speaks it by default!)

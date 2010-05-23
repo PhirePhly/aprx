@@ -64,6 +64,8 @@ extern int   strcasecmp(const char *s1, const char *s2);
 
 #define CALLSIGNLEN_MAX 9
 
+struct aprxpolls; // forward declarator
+
 #include "cellmalloc.h"
 #include "historydb.h"
 #include "keyhash.h"
@@ -480,6 +482,7 @@ struct digipeater {
 	int		       ratelimit;
 
 	dupecheck_t           *dupechecker;
+	historydb_t	      *historydb;
 
 	const struct tracewide *trace;
 	const struct tracewide *wide;
@@ -539,7 +542,7 @@ extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int ui_pid, const uint8_t *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
 extern void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
-extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen);
+extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *tnc2data, const int tnc2datalen);
 extern int  interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *tncbuf, const int tnclen);
 
 
@@ -550,7 +553,7 @@ extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, cons
 
 
 /* parse_aprs.c */
-extern int parse_aprs(struct pbuf_t *pb, int look_into_3rd_party );
+extern int parse_aprs(struct pbuf_t *pb, int look_into_3rd_party, historydb_t *historydb);
 
 
 
@@ -562,10 +565,10 @@ struct worker_t;  // Forward declarator
 extern void filter_init(void);
 extern int  filter_parse(struct filter_t **ffp, const char *filt);
 extern void filter_free(struct filter_t *c);
-extern int  filter_process(struct pbuf_t *pb, struct filter_t *f);
+extern int  filter_process(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb);
 
 extern void filter_preprocess_dupefilter(struct pbuf_t *pb);
-extern void filter_postprocess_dupefilter(struct pbuf_t *pb);
+extern void filter_postprocess_dupefilter(struct pbuf_t *pb, historydb_t *historydb);
 
 extern float filter_lat2rad(float lat);
 extern float filter_lon2rad(float lon);

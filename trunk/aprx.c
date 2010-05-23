@@ -13,6 +13,9 @@
 #include <signal.h>
 #include <sys/time.h>
 
+#include "historydb.h"
+
+
 time_t now;			/* this is globally used */
 int debug;
 int verbout;
@@ -132,6 +135,7 @@ int main(int argc, char *const argv[])
 	readconfig(cfgfile);
 
 	erlang_start(1);
+	historydb_init();
 
 	if (debug || verbout) {
 	  if (!mycall && !aprsis_login) {
@@ -239,6 +243,7 @@ int main(int argc, char *const argv[])
 		i = telemetry_prepoll(&app);
 		i = dupecheck_prepoll(&app);
 		i = digipeater_prepoll(&app);
+		i = historydb_prepoll(&app);
 
 		if (app.next_timeout <= now)
 		  app.next_timeout = now + 1;	// Just to be on safe side..
@@ -256,6 +261,7 @@ int main(int argc, char *const argv[])
 		i = telemetry_postpoll(&app);
 		i = dupecheck_postpoll(&app);
 		i = digipeater_postpoll(&app);
+		i = historydb_postpoll(&app);
 
 	}
 	aprxpolls_free(&app); // valgrind..

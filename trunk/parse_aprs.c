@@ -818,7 +818,7 @@ static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body
  *	Return 0 for parse failures, 1 for OK.
  */
 
-int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
+int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *historydb)
 {
 	char packettype, poschar;
 	int paclen;
@@ -997,7 +997,7 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 			char keybuf[CALLSIGNLEN_MAX+1];
 			const char *p;
 			int i;
-			struct history_cell_t *history;
+			history_cell_t *history;
 
 			p = body+1;
 			for (i = 0; i < CALLSIGNLEN_MAX; ++i) {
@@ -1009,8 +1009,8 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party)
 			}
 			keybuf[i] = 0;
 
-			i = historydb_lookup( keybuf, i, &history );
-			if (i > 0) {
+			history = historydb_lookup( historydb, keybuf, i );
+			if (history != NULL) {
 				pb->lat     = history->lat;
 				pb->lng     = history->lon;
 				pb->cos_lat = history->coslat;

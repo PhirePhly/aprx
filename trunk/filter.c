@@ -673,7 +673,7 @@ void filter_preprocess_dupefilter(struct pbuf_t *pbuf)
 #endif
 }
 
-void filter_postprocess_dupefilter(struct pbuf_t *pbuf)
+void filter_postprocess_dupefilter(struct pbuf_t *pbuf, historydb_t *historydb)
 {
 	/*
 	 *    If there is no position at this packet from earlier
@@ -682,11 +682,11 @@ void filter_postprocess_dupefilter(struct pbuf_t *pbuf)
 	 *    
 	 */
 	if (!(pbuf->flags & F_HASPOS)) {
-		struct history_cell_t *hist;
-		int rc = historydb_lookup(pbuf->srcname, pbuf->srcname_len, &hist);
+		history_cell_t *hist;
+		hist = historydb_lookup(historydb, pbuf->srcname, pbuf->srcname_len);
 		// hlog( LOG_DEBUG, "postprocess_dupefilter: no pos, looking up '%.*s', rc=%d",
 		//       pbuf->srcname_len, pbuf->srcname, rc );
-		if (rc > 0) {
+		if (hist != NULL) {
 			pbuf->lat     = hist->lat;
 			pbuf->lng     = hist->lon;
 			pbuf->cos_lat = hist->coslat;
@@ -1596,7 +1596,7 @@ static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 }
 #endif
 
-static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	/* f/call/dist  	Friend Range filter
 	   This is the same as the range filter except that the center is
@@ -1618,7 +1618,7 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f)
 	   spent on the historydb.
 	*/
 
-	struct history_cell_t *history;
+	history_cell_t *history;
 
 	float r;
 	float lat1, lon1, coslat1;
@@ -1632,10 +1632,10 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f)
 
 	/* find friend's last location packet */
 	if (f->h.hist_age < now) {
-		i = historydb_lookup( callsign, i, &history );
+		history = historydb_lookup( historydb, callsign, i );
 		f->h.numnames = i;
 		f->h.hist_age = now + hist_lookup_interval;
-		if (!i) return 0; /* no lookup result.. */
+		if (!history) return 0; /* no lookup result.. */
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
 		f->h.f_coslat = history->coslat;
@@ -1682,7 +1682,7 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 	float lat2, lon2, coslat2;
 	float r;
 	int i;
-	struct history_cell_t *history;
+	history_cell_t *history;
 
 
 	if (!(pb->flags & F_HASPOS)) /* packet with a position.. (msgs with RECEIVER's position) */
@@ -1692,10 +1692,10 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 		return 0;
 
 	if (f->h.hist_age < now) {
-		i = historydb_lookup( c->username, strlen(c->username), &history );
+		history = historydb_lookup( c->username, strlen(c->username) );
 		f->h.hist_age = now + hist_lookup_interval;
 		f->h.numnames = i;
-		if (!i) return 0; /* no result */
+		if (!history) return 0; /* no result */
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
 		f->h.f_coslat = history->coslat;
@@ -1937,7 +1937,7 @@ static int filter_process_one_s(struct pbuf_t *pb, struct filter_t *f)
 	return 0;
 }
 
-static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	/* [-]t/poimntqsu
 	   [-]t/poimntqsu/call/km
@@ -2007,7 +2007,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f)
 		float range, r;
 		float lat1, lon1, coslat1;
 		float lat2, lon2, coslat2;
-		struct history_cell_t *history;
+		history_cell_t *history;
 		int i;
 
 		/* hlog(LOG_DEBUG, "Type filter with callsign range used! '%s'", f->h.text); */
@@ -2022,7 +2022,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f)
 		   .. 60-100 lookups per second. */
 
 		if (f->h.hist_age < now) {
-			i = historydb_lookup( callsign, callsignlen, &history );
+			history = historydb_lookup( historydb, callsign, callsignlen );
 			f->h.numnames = i;
 
 			/* hlog( LOG_DEBUG, "Type filter with callsign range used! call='%s', range=%.1f position %sfound",
@@ -2030,7 +2030,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f)
 			*/
 
 
-			if (!i) return 0; /* no lookup result.. */
+			if (!history) return 0; /* no lookup result.. */
 			f->h.hist_age = now + hist_lookup_interval;
 			f->h.f_latN   = history->lat;
 			f->h.f_lonE   = history->lon;
@@ -2087,7 +2087,7 @@ static int filter_process_one_u(struct pbuf_t *pb, struct filter_t *f)
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
 
-static int filter_process_one(struct pbuf_t *pb, struct filter_t *f)
+static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	int rc = 0;
 
@@ -2116,7 +2116,7 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f)
 
 	case 'f':
 	case 'F':
-		rc = filter_process_one_f(pb, f);
+		rc = filter_process_one_f(pb, f, historydb);
 		break;
 #if 0
 	case 'm':
@@ -2151,7 +2151,7 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f)
 
 	case 't':
 	case 'T':
-		rc = filter_process_one_t(pb, f);
+		rc = filter_process_one_t(pb, f, historydb);
 		break;
 
 	case 'u':
@@ -2168,12 +2168,12 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f)
 	return rc;
 }
 
-int filter_process(struct pbuf_t *pb, struct filter_t *f)
+int filter_process(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	int seen_accept = 0;
 
 	for ( ; f; f = f->h.next ) {
-		int rc = filter_process_one(pb, f);
+		int rc = filter_process_one(pb, f, historydb);
 		/* no reports to user about bad filters.. */
 		if (rc == 1)
 			seen_accept = 1;

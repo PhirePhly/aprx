@@ -703,8 +703,9 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			} else {
 			}
 
-		} else if (strcmp(name,"relay-type") == 0 ||
-			   strcmp(name,"relay-format") == 0) {
+		} else if (strcmp(name,"relay-type") == 0 ||   // documented name
+			   strcmp(name,"relay-format") == 0 || // an alias
+			   strcmp(name,"digi-mode") == 0) {    // very old alias
 			config_STRLOWER(param1);
 			if (strcmp(param1,"digipeat") == 0) {
 			  relaytype = DIGIRELAY_DIGIPEAT;
@@ -751,6 +752,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->viaregs              = regexsrc.viaregs;
 		source->dataregscount        = regexsrc.dataregscount;
 		source->dataregs             = regexsrc.dataregs;
+
 	} else {
 		// Errors detected
 		free_tracewide(source_trace);
@@ -919,7 +921,8 @@ void digipeater_config(struct configfile *cf)
 				      // permit multiple uses.)
 		digi->transmitter   = aif;
 		digi->ratelimit     = ratelimit;
-		digi->dupechecker   = dupecheck_new();
+		digi->dupechecker   = dupecheck_new();  // Dupecheck is per transmitter
+		digi->historydb     = historydb_new();  // HistoryDB is per transmitter
 
 		digi->trace         = (traceparam != NULL) ? traceparam : & default_trace_param;
 		digi->wide          = (wideparam  != NULL) ? wideparam  : & default_wide_param;
@@ -953,7 +956,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	char viafield[14];
 
 	if (src->src_filters != NULL) {
-	  int rc = filter_process(pb, src->src_filters);
+	  int rc = filter_process(pb, src->src_filters, digi->historydb);
 	  if (rc != 1) {
 	    if (debug>1)
 	      printf("Source filtering rejected the packet from %s.\n", src->src_if->callsign);
@@ -1177,6 +1180,9 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    rflog( digi->transmitter->callsign, 1, 0, tbuf, t2l );
 	  }
 	}
+
+	// Insert into history database
+	historydb_insert( digi->historydb, pb );
 
 	// Feed to interface_transmit_ax25() with new header and body
 	interface_transmit_ax25( digi->transmitter,
