@@ -204,6 +204,8 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 	if (callsign == NULL) {
 	  // FIXME: Must define at least a callsign!
+	  printf("%s:%d <kiss-subif ..> MUST define CALLSIGN parameter!\n",
+		 cf->name, cf->linenum);
 	  return 1;
 	}
 
@@ -220,11 +222,11 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	aif->tty->netax25    [subif] = netax25_open(callsign);
 
 	if (aliascount == 0) {
-	  aif->aliascount = 3;
-	  aif->aliases    = interface_default_aliases;
+	  (*aifp)->aliascount = 3;
+	  (*aifp)->aliases    = interface_default_aliases;
 	} else {
-	  aif->aliascount = aliascount;
-	  aif->aliases    = aliases;
+	  (*aifp)->aliascount = aliascount;
+	  (*aifp)->aliases    = aliases;
 	}
 
 	if (initstring != NULL) {
@@ -334,8 +336,6 @@ void interface_config(struct configfile *cf)
 
 		  if (aif->iftype == IFTYPE_UNSET) {
 		    aif->iftype              = IFTYPE_SERIAL;
-		    aif->callsign            = strdup(mycall);
-		    parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		    aif->tty                 = ttyreader_new();
 		    aif->tty->ttyname        = strdup(param1);
 		    aif->tty->interface[0]   = aif;
@@ -351,10 +351,14 @@ void interface_config(struct configfile *cf)
 		  }
 
 		  if (debug)
-		    printf(".. new style serial:  '%s' '%s'.. tncid=0 callsign=%s\n",
-			   aif->tty->ttyname, str, aif->callsign);
+		    printf(".. new style serial:  '%s' '%s'.. tncid=0\n",
+			   aif->tty->ttyname, str);
 
 		  ttyreader_parse_ttyparams(cf, aif->tty, str);
+
+		  if (aif->tty->linetype == LINETYPE_KISSSMACK) {
+		    maxsubif = 8;  // 16 for most KISS modes, 8 for SMACK
+		  }
 
 		} else if ((strcmp(name,"tcp-device") == 0) && (aif->tty == NULL)) {
 		  int len;
@@ -471,6 +475,13 @@ void interface_config(struct configfile *cf)
 		}
 	}
 
+	// Supply a default value
+	// if (aif->callsign == NULL)
+	// aif->callsign = strdup(mycall);
+	if (aif->callsign != NULL)
+	  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
+
+
 	// With enough defaults being used, the callsign is defined
 	// by global "macro"  mycall,  and never ends up activating
 	// the tty -> linux kernel kiss/smack pty  interface.
@@ -524,9 +535,12 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	int digi_like_aprs = is_aprs;
 
 	if (aif == NULL) return;         // Not a real interface for digi use
-	if (aif->digisourcecount == 0) return; // No receivers for this source
+	if (aif->digisourcecount == 0) {
+	  if (debug>1) printf("interface_receive_ax25() no receivers for source %s\n",aif->callsign);
+	  return; // No receivers for this source
+	}
 
-	if (debug) printf("interface_receive_ax25()\n");
+	if (debug) printf("interface_receive_ax25() from %s axlen=%d tnc2len=%d\n",aif->callsign,axlen,tnc2len);
 
 
 	if (axaddrlen <= 14) return;     // SOURCE>DEST without any VIAs..
@@ -659,9 +673,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
  *
  */
 
-static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,0,     0,0x60 };
-static uint8_t viacall25[7] = { 'W'<<1,'I'<<1,'D'<<1,'E'<<1,'1'<<1,0,0x62 };
-
+static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,' '<<1,' '<<1,0x60 };
 
 void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *igatecall, const char *tnc2data, const int tnc2datalen)
 {
@@ -683,11 +695,15 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	if (debug)
 	  printf("interface_receive_3rdparty() aif=%p, aif->digicount=%d\n",
-		 aif, aif ? aif->digisourcecount : 0);
+		 aif, aif ? aif->digisourcecount : -1);
 
 
-	if (aif == NULL) return;         // Not a real interface for digi use
-	if (aif->digisourcecount == 0) return; // No receivers for this source
+	if (aif == NULL) {
+	  return;         // Not a real interface for digi use
+	}
+	if (aif->digisourcecount == 0) {
+	  return; // No receivers for this source
+	}
 
 	// Feed it to digipeaters ...
 	for (d = 0; d < aif->digisourcecount; ++d) {
@@ -705,11 +721,21 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  // FIXME: should this be IGATECALL, not tx_aif->ax25call ??
 	  memcpy(ax25buf+7,  tx_aif->ax25call, 7); // AX.25 SRC call
 
-	  memcpy(ax25buf+14, viacall25, 7);        // AX.25 VIA call
+	  a = ax25buf + 2*7;
 
-	  ax25buf[3*7-1] |= 0x01;                  // DEST,SRC,VIA1
-	  ax25addrlen = 3*7;
-	  a = ax25buf + 3*7;
+	  if (digisrc->via_path != NULL) {
+	    memcpy(a, digisrc->ax25viapath, 7);    // AX.25 VIA call
+	    a += 7;
+	  }
+
+	  *(a-1) |= 0x01;                  // DEST,SRC(,VIA1) - end-of-address bit
+	  ax25addrlen = a - ax25buf;
+
+	  if (debug>2) {
+	    printf("ax25hdr ");
+	    hexdumpfp(stdout, ax25buf, ax25addrlen, 1);
+	    printf("\n");
+	  }
 
 	  *a++ = 0x03; // UI
 	  *a++ = 0xF0; // PID = 0xF0
@@ -732,6 +758,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  if (digisrc->via_path != NULL) {
 	    t += sprintf(t, ",%s", digisrc->via_path);
 	  }
+	  if (debug>1)printf(" tnc2addr = %s\n", tnc2buf);
+
 	  tnc2addrlen = t - tnc2buf;
 	  *t++ = ':';
 	  t += sprintf(t, "}%s>%s,TCPIP,%s*:",
@@ -781,7 +809,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  // This is APRS packet, parse for APRS meaning ...
 	  int rc = parse_aprs(pb, 1); // look inside 3rd party
 	  if (debug)
-	    printf("\n.. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
+	    printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
 		   rc ? "OK":"FAIL", srcif, pb->data,
 		   pb->info_start);
 

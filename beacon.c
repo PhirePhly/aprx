@@ -743,9 +743,15 @@ static void beacon_now(void)
 		const struct aprx_interface *aif = all_interfaces[i];
 	
 		const char *callsign = aif->callsign;
+		if (callsign == NULL) {
+		  // Probably KISS master interface, and subIF 0 has no definition.
+		  continue;
+		}
+
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
 		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
 		char *destbuf;
+
 
 		if (strcmp(callsign,"APRSIS")==0)
 		  continue;  // Always ignore the builtin APRSIS interface

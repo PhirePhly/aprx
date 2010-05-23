@@ -1,7 +1,35 @@
 2010-05-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	* digipeater.c, netax25.c, ttyreader.c:
-	    Debug printing.
+	* interface.c:
+	    Corrections on <kiss-subif> definitions, in particular
+	    the aliases.
+	    Fixed Tx-IGate workhorse interface_receive_3rdparty()'s
+	    packet address header construction.
+
+	* digipeater.c, aprx.h:
+	    APRSIS specific via-path parameter parsing fixes, additional
+	    debugging outputs, config error detection outputs.
+
+	* netax25.c, ax25.c:
+	    Debugging outputs.
+
+	* ttyreader.c, aprx.h:
+	    Debugging outputs.
+	    Special KISS subtype "RFCRC" - received KISS frames have
+	    two RANDOM bytes at their end. Looks like CRC16, but is
+	    random junk.
+
+	* erlang.c:
+	    Debug printout.
+
+	* beacon.c:
+	    When an interface has no callsign, do not send beacon to it.
+	    (It could be tty master interface which has multiple KISS
+	     sub-interfaces.)
+
+	* igate.c:
+	    Parse packet to be tx-igated for acceptable address syntaxes.
+	    Debug printouts.
 
 2010-05-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 

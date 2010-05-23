@@ -124,6 +124,7 @@ extern void printtime(char *buf, int buflen);
 typedef enum {
 	LINETYPE_KISS,		/* all KISS variants without CRC on line */
 	LINETYPE_KISSSMACK,	/* KISS/SMACK variants with CRC on line */
+	LINETYPE_KISS_RFCRC,	/* KISS where RECEIVED frames have RF CRC.. */
 	LINETYPE_KISSBPQCRC,	/* BPQCRC - really XOR sum of data bytes,
 				   also "AEACRC"                        */
 	LINETYPE_TNC2,		/* text line from TNC2 in monitor mode  */
@@ -202,7 +203,7 @@ extern void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *
 extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
 
 
-extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len);
+extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr);
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 /* ax25.c */
@@ -449,6 +450,7 @@ struct digipeater_source {
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
 	char		      *via_path; // for APRSIS only
+	uint8_t		       ax25viapath[7]; // APRSIS
 
 	// Viscous queue is at <source>, but used dupechecker
 	// is <digipeater> -wide, common to all sources in that

@@ -239,8 +239,8 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	ax25len = rc;
 
 	if (debug>2) {
-	  printf("netax25_sendax25() ");
-	  hexdumpfp(stdout, ax25buf, rc);
+	  printf("netax25_sendax25() len=%d ",ax25len);
+	  hexdumpfp(stdout, ax25, ax25len, 1);
 	  printf("\n");
 	}
 
@@ -688,7 +688,7 @@ Leads with 00 byte, then AX.25 address..
 	      printtime(timebuf, sizeof(timebuf));
 
 	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message: ", timebuf, netdev->callsign, rcvlen);
-	      hexdumpfp(fp, rxbuf, rcvlen);
+	      hexdumpfp(fp, rxbuf, rcvlen, 1);
 	      fprintf(fp, "\n");
 	      fclose(fp);
 	    }
@@ -751,6 +751,14 @@ void netax25_sendto(const void *nax25p, const uint8_t *axaddr, const int axaddrl
 	if (nax25->ifindex < 0) {
 	  if (debug>1) printf("netax25_sendto() ifindex < 0, can not do..\n");
 	  return; // D'uh..
+	}
+
+	if (debug>2) {
+	  printf("netax25_sendto() len=%d,%d",axaddrlen,axdatalen);
+	  hexdumpfp(stdout, axaddr, axaddrlen, 1);
+	  printf(" // ");
+	  hexdumpfp(stdout, (uint8_t*)axdata, axdatalen, 0);
+	  printf("\n");
 	}
 
 	memset(&sll, 0, sizeof(sll));
