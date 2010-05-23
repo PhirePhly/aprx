@@ -1633,9 +1633,9 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 	/* find friend's last location packet */
 	if (f->h.hist_age < now) {
 		history = historydb_lookup( historydb, callsign, i );
-		f->h.numnames = i;
 		f->h.hist_age = now + hist_lookup_interval;
 		if (!history) return 0; /* no lookup result.. */
+		f->h.numnames = 1;
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
 		f->h.f_coslat = history->coslat;
@@ -1681,7 +1681,6 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 	float lat1, lon1, coslat1;
 	float lat2, lon2, coslat2;
 	float r;
-	int i;
 	history_cell_t *history;
 
 
@@ -1694,8 +1693,8 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 	if (f->h.hist_age < now) {
 		history = historydb_lookup( c->username, strlen(c->username) );
 		f->h.hist_age = now + hist_lookup_interval;
-		f->h.numnames = i;
 		if (!history) return 0; /* no result */
+		f->h.numnames = 1;
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
 		f->h.f_coslat = history->coslat;
@@ -2008,7 +2007,6 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 		float lat1, lon1, coslat1;
 		float lat2, lon2, coslat2;
 		history_cell_t *history;
-		int i;
 
 		/* hlog(LOG_DEBUG, "Type filter with callsign range used! '%s'", f->h.text); */
 
@@ -2023,7 +2021,6 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 
 		if (f->h.hist_age < now) {
 			history = historydb_lookup( historydb, callsign, callsignlen );
-			f->h.numnames = i;
 
 			/* hlog( LOG_DEBUG, "Type filter with callsign range used! call='%s', range=%.1f position %sfound",
 			//       callsign, range, i ? "" : "not ");
@@ -2031,6 +2028,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 
 
 			if (!history) return 0; /* no lookup result.. */
+			f->h.numnames = 1;
 			f->h.hist_age = now + hist_lookup_interval;
 			f->h.f_latN   = history->lat;
 			f->h.f_lonE   = history->lon;
