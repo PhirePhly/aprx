@@ -124,6 +124,7 @@ aprxlog @VARLOG@/aprx.log
 #   - "KISS"                  - plain basic KISS mode
 #   - "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
 #   - "SMACK"  alias "CRC16"  - KISS with real CRC
+#   - "FLEXNET"               - KISS with real CRC
 #   - "TNC2"                  - TNC2 monitor format
 #
 #<interface>

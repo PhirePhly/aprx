@@ -102,24 +102,27 @@ static int ttyreader_kissprocess(struct serialport *S)
 		return -1;
 	}
 
-
-	/* Are we expecting Basic KISS ? */
-	if (S->linetype == LINETYPE_KISS) {
-	    if (S->ttycallsign[tncid] == NULL) {
-	      /* D'OH!  received packet on multiplexer tncid without
-		 callsign definition!  We discard this packet! */
-	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", now, S->ttyname, cmdbyte);
-		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		printf("\n");
-	      }
-	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
-	      return -1;
-	    }
+	if (S->linetype == LINETYPE_KISS && (cmdbyte & 0x20)) {
+	  // Huh?  Perhaps a FLEXNET packet?
+	  int crcflex_ok = check_crc_flex(S->rdline, S->rdlinelen);
+	  if (crcflex_ok == 0) {
+	    if (debug) printf("ALERT: Looks like received KISS frame is a FLEXNET with CRC!\n");
+	    S->linetype = LINETYPE_KISSFLEXNET;
+	  }
+	}
+	if (S->linetype == LINETYPE_KISS && (cmdbyte & 0x80)) {
+	  // Huh?  Perhaps a SMACK packet?
+	  int smack_ok = crc16_calc(S->rdline, S->rdlinelen);
+	  if (smack_ok == 0) {
+	    if (debug) printf("ALERT: Looks like received KISS frame is a SMACK with CRC!\n");
+	    S->linetype = LINETYPE_KISSSMACK;
+	  }
 	}
 
-	/* Are we expecting Basic KISS ? */
-	if (S->linetype == LINETYPE_KISS_RFCRC) {
+	/* Are we expecting FLEXNET KISS ? */
+	if (S->linetype == LINETYPE_KISSFLEXNET && (cmdbyte & 0x20)) {
+	    tncid &= ~0x02; // FlexNet puts 0x20 as indication of CRC presense..
+
 	    if (S->ttycallsign[tncid] == NULL) {
 	      /* D'OH!  received packet on multiplexer tncid without
 		 callsign definition!  We discard this packet! */
@@ -131,11 +134,10 @@ static int ttyreader_kissprocess(struct serialport *S)
 	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 	      return -1;
 	    }
-	    /*
-	    int crc = crc16_calc(S->rdline+1, S->rdlinelen-1);
-	    if (crc != 0) {
+	    uint16_t crc = calc_crc_flex(S->rdline, S->rdlinelen);
+	    if (crc != 0x7070) {
 	      if (debug) {
-		printf("%ld\tTTY %s tncid %d: Received RFCRC frame with invalid CRC %04x: ",
+		printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",
 		       now, S->ttyname, tncid, crc);
 		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		printf("\n");
@@ -143,7 +145,6 @@ static int ttyreader_kissprocess(struct serialport *S)
 	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);  // Account one packet
 	      return -1;	// The CRC was invalid..
 	    }
-	    */
 	    S->rdlinelen -= 2; // remove 2 bytes!
 	}
 
@@ -249,7 +250,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 		    probe[1] = 0;
 
 		    /* Convert the probe packet to KISS frame */
-		    kisslen = kissencoder( kissbuf, sizeof(kissbuf),
+		    kisslen = kissencoder( kissbuf, sizeof(kissbuf), S->linetype,
 					   &(probe[1]), 1, probe[0] );
 
 		    /* Send probe message..  */
@@ -283,6 +284,20 @@ static int ttyreader_kissprocess(struct serialport *S)
 	    }
 	}
 
+	/* Are we expecting Basic KISS ? */
+	if (S->linetype == LINETYPE_KISS) {
+	    if (S->ttycallsign[tncid] == NULL) {
+	      /* D'OH!  received packet on multiplexer tncid without
+		 callsign definition!  We discard this packet! */
+	      if (debug > 0) {
+		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", now, S->ttyname, cmdbyte);
+		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+		printf("\n");
+	      }
+	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+	      return -1;
+	    }
+	}
 
 
 	if (S->rdlinelen < 17) {
@@ -618,8 +633,8 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *a
 	}
 
 
-	if ((S->linetype != LINETYPE_KISS)       && (S->linetype != LINETYPE_KISSSMACK) &&
-	    (S->linetype != LINETYPE_KISS_RFCRC) && (S->linetype != LINETYPE_KISSBPQCRC)) {
+	if ((S->linetype != LINETYPE_KISS)        && (S->linetype != LINETYPE_KISSSMACK) &&
+	    (S->linetype != LINETYPE_KISSFLEXNET) && (S->linetype != LINETYPE_KISSBPQCRC)) {
 		if (debug)
 		  printf("WARNING: WRITING KISS FRAMES ON SERIAL/TCP LINE OF NO KISS TYPE IS UNSUPPORTED!\n");
 		return;
@@ -650,7 +665,9 @@ void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *a
 	}
 
 	ssid = (tncid << 4) | ((S->linetype == LINETYPE_KISSSMACK) ? 0x80 : 0x00);
-	len = kissencoder( kissbuf, sizeof(kissbuf), ax25raw, ax25rawlen, ssid );
+	if (S->linetype == LINETYPE_KISSFLEXNET)  ssid |= 0x20; // CRC presense
+
+	len = kissencoder( kissbuf, sizeof(kissbuf), S->linetype, ax25raw, ax25rawlen, ssid );
 
 	if (debug>2) {
 	  printf("kiss-encoded: ");
@@ -782,7 +799,7 @@ static void ttyreader_lineread(struct serialport *S)
 	 */
 
 	if (S->linetype == LINETYPE_KISS ||
-	    S->linetype == LINETYPE_KISS_RFCRC ||
+	    S->linetype == LINETYPE_KISSFLEXNET ||
 	    S->linetype == LINETYPE_KISSBPQCRC ||
 	    S->linetype == LINETYPE_KISSSMACK) {
 
@@ -1215,8 +1232,8 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 		} else if (strcmp(param1, "bpqcrc") == 0) {
 			tty->linetype = LINETYPE_KISSBPQCRC;	/* KISS with BPQ "CRC" */
 
-		} else if (strcmp(param1, "rfcrc") == 0) {
-			tty->linetype = LINETYPE_KISS_RFCRC;	/* KISS with unconditional CRC16 on RX frame */
+		} else if (strcmp(param1, "flexnet") == 0) {
+			tty->linetype = LINETYPE_KISSFLEXNET;	/* KISS with FLEXNET's CRC16 */
 		} else if (strcmp(param1, "smack") == 0) {
 			tty->linetype = LINETYPE_KISSSMACK;	/* KISS with SMACK / CRC16 */
 		} else if (strcmp(param1, "crc16") == 0) {

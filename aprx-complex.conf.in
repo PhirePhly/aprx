@@ -162,6 +162,7 @@ pidfile @VARRUN@/aprx.pid
 #  "KISS"                  - plain basic KISS mode
 #  "XORSUM" alias "BPQCRC" - KISS with BPQ "CRC" byte
 #  "SMACK"  alias "CRC16"  - KISS with better CRC
+#  "FLEXNET"               - KISS with better CRC
 #  "TNC2"                  - TNC2 monitor format
 #
 # Additional/alternate options for the serial-device

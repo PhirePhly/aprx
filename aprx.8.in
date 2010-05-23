@@ -397,6 +397,7 @@ server    rotate.aprs.net    14580
 #   \- "KISS"                  \- plain basic KISS mode
 #   \- "XORSUM" alias "BPQCRC" \- KISS with BPQ "CRC" byte
 #   \- "SMACK"  alias "CRC16"  \- KISS with real CRC
+#   \- "FLEXNET"               \- KISS with real CRC
 #   \- "TNC2"                  \- TNC2 monitor format
 #
 #<interface>
@@ -644,11 +645,17 @@ source for a <digipeater>.
 .B KISS
 Basic KISS encapsulation.
 No checksums.
+Will autodetect (sometimes) packets with SMACK or FLEXNET characteristics.
 .TP 10em
 .B SMACK
 .IR "Stuttgart Modified Amateurradio-CRC-KISS" ,
 which runs CCITT-CRC16 checksum on KISS datastream much in the same
 way as HDLC has CRC16 checksum on it.
+.TP 10em
+.B FLEXNET
+.IR "FLEXNET"
+which runs a CRC16 checksum of its own polynomial on KISS datastream
+much in the same way as HDLC has CRC16 checksum on it.
 .TP 10em
 .B BPQCRC
 XOR "checksum" on dataframes.
