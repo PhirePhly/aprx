@@ -1,3 +1,8 @@
+2010-05-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, pbuf.h, parse_aprs.c, interface.c, digipeater.c:
+	    Tx-IGate processing details..
+
 2010-05-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c, aprx.h, digipeater.c, filter.c, historydb.c, historydb.h,

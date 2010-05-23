@@ -805,6 +805,26 @@ static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body
 }
 
 
+
+int parse_aprs_txgate(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *historydb)
+{
+	int rc = parse_aprs(pb, look_inside_3rd_party, historydb);
+
+	if (pb->packettype & T_THIRDPARTY) {
+	  // Tx-IGate needs to know from RF received frames, if there is
+	  // source address that arrived from an Tx-IGate...
+
+	  const char *body;
+	  const char *body_end;
+	  const char *pos_start;
+	  const char *info_start = pb->info_start;
+	
+	  
+
+	}
+	return rc;
+}
+
 /*
  *	Try to parse an APRS packet.
  *	Returns 1 if position was parsed successfully,
@@ -1000,6 +1020,7 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 			history_cell_t *history;
 
 			p = body+1;
+			pb->recipient = p;
 			for (i = 0; i < CALLSIGNLEN_MAX; ++i) {
 				keybuf[i] = *p;
 				// the recipient address is space padded

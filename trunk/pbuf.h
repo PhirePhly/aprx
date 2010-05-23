@@ -99,6 +99,7 @@ struct pbuf_t {
 //	const char *qconst_start;  /* "qAX,incomingSSID:"	-- for q and e filters  */
 	const char *info_start;    /* pointer to start of info field */
 	const char *srcname;       /* source's name (either srccall or object/item name) */
+	const char *recipient;	   /* message recipient field */
 	
 	float lat;	/* if the packet is PT_POSITION, latitude and longitude go here */
 	float lng;	/* .. in RADIAN */
