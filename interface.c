@@ -524,6 +524,31 @@ void interface_config(struct configfile *cf)
  *   - Parse the received frame for possible latter filters
  *   - Feed the resulting parsed packet to each digipeater
  *
+ *
+ * Tx-IGate rules:
+ *
+ // 1) - verify receiving station has been heard
+ //      recently on radio
+ // 2) - sending station has not been heard recently
+ //      on radio
+ // 4) - the sending station has not been heard via
+ //      the Internet within a predefined time period.
+ //      (Note that _this_ packet is heard from internet,
+ //      so one must not confuse this to history..
+ //      Nor this siblings that are being created
+ //      one for each tx-interface...)
+ // 
+ //  A station is said to be heard via the Internet if packets
+ //  from the station contain TCPIP* or TCPXX* in the header or
+ //  if gated (3rd-party) packets are seen on RF gated by the
+ //  station and containing TCPIP or TCPXX in the 3rd-party
+ //  header (in other words, the station is seen on RF as being
+ //  an IGate). 
+ *
+ * This means that interface_receive_ax25() must mark the packet
+ * to be "received from_aprsis" if it is a 3rd-party frame with
+ * TCPIP or TCPXX in 3rd-party header.
+ *
  */
 
 void interface_receive_ax25(const struct aprx_interface *aif,
@@ -877,48 +902,90 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  //  an IGate). 
 
 
-          // 1) - verify receiving station has been heard
-          //      recently on radio
-	  history_cell_t *hist_rx = historydb_lookup(historydb, origtocall, strlen(origtocall));
+	  // Reject the packet by digipeater rx filter?
+	  int filter_discard = digipeater_receive_filter( digisrc, pb );
+
+	  // Message Tx-IGate rules..
 	  int discard_this = 0;
-	  if (hist_rx == NULL) {
-	    if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", origtocall);
+
+	  if (pb->recipient == NULL) {
+	    // Sanity -- not a message..
 	    discard_this = 1;
 	  }
-	  // See that it has 'heard on radio' flag..
-	  if (hist_rx != NULL && (hist_rx->from_radio < recent_time &&
-				  hist_rx->from_radio != 0)) {
-	    // Not heard recently enough
+	  if ((pb->packettype & T_MESSAGE) == 0) {
+	    // Not a message packet
 	    discard_this = 1;
-	    if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", origtocall);
 	  }
-
-	  history_cell_t *hist_tx = historydb_lookup(historydb, fromcall, strlen(fromcall));
-	  // If no history entry for this tx callsign,
-	  // then rules 2 and 4 permit tx-igate
-	  if (hist_tx != NULL) {
-	    // There is a history entry for this tx callsign, check rules 2+4
-
-	    // 2) Sending station has not been heard recently on radio
-	    if (hist_tx->from_radio > recent_time) {
-	      // "is heard recently"
-	      discard_this = 1;
-	      if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
-	    }
-/* FIXME:
-	    // 4) the sending station has not been heard via the internet
-	    if (hist_tx->from_aprsis > recent_time) {
-	      // "is heard recently via internet"
-	      discard_this = 1;
-	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
-	    }
-*/
+	  if ((pb->packettype & (T_NWS)) != 0) {
+	    // Not a message packet
+	    discard_this = 1;
 	  }
 
 	  if (!discard_this) {
-	    // FIXME: For position-less packets send at first a position-full packet?
+	    // 1) - verify receiving station has been heard
+	    //      recently on radio
+	    int i;
+	    char recipient[10];
+	    strncpy(recipient, pb->recipient, sizeof(recipient)-1);
+	    recipient[9] = 0; // Zero-terminate at 10 chars
+	    for (i = 0; i < 10; ++i) {
+	      if (recipient[i] == ' ')
+		recipient[i] = 0; // Zero-terminate
+	    }
+
+	    history_cell_t *hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
+	    if (hist_rx == NULL) {
+	      if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", pb->recipient);
+	      discard_this = 1;
+	    }
+	    // See that it has 'heard on radio' flag..
+	    if (hist_rx != NULL && (hist_rx->from_radio < recent_time &&
+				    hist_rx->from_radio != 0)) {
+	      // Not heard recently enough
+	      discard_this = 1;
+	      if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", pb->recipient);
+	    }
+	  }
+
+	  if (!discard_this) {
+	    history_cell_t *hist_tx = historydb_lookup(historydb, fromcall, strlen(fromcall));
+	    // If no history entry for this tx callsign,
+	    // then rules 2 and 4 permit tx-igate
+	    if (hist_tx != NULL) {
+	      // There is a history entry for this tx callsign, check rules 2+4
+	      
+	      // 2) Sending station has not been heard recently on radio
+	      if (hist_tx->from_radio > recent_time) {
+		// "is heard recently"
+		discard_this = 1;
+		if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
+	      }
+	      /* FIXME:
+	      // 4) the sending station has not been heard via the internet
+	      if (hist_tx->from_aprsis > recent_time) {
+	      // "is heard recently via internet"
+	      discard_this = 1;
+	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
+	      }
+	      */
+	    }
+	  }
+	    
+	  if ((!discard_this) || (!filter_discard)) {
+	    // Approved by either basic Tx-IGate rules, or by explicite APRSIS source filter
+
+	    if ((pb->packettype & T_POSITION) == 0) {
+	      // TODO: For position-less packets send at first a position packet
+	      //       for same source call sign -- if available.
+	      
+	    }
 
 	    digipeater_receive( digisrc, pb);
+	  }
+
+	  if ((pb->packettype & T_POSITION) != 0) {
+	    // Inject POSITION packets to historydb
+	    historydb_insert( digi->historydb, pb );
 	  }
 
 	  // .. and finally free up the pbuf (if refcount goes to 0)
