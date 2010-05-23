@@ -14,19 +14,10 @@
 #include <math.h>
 
 
-cellarena_t *historydb_cells;
-int lastposition_storetime;
+int lastposition_storetime = 3600; // 1 hour
 
-#define HISTORYDB_HASH_MODULO 512 /* fold bits: 9 & 18 */
-struct history_cell_t *historydb_hash[HISTORYDB_HASH_MODULO];
-
-/* monitor counters and gauges */
-long historydb_inserts;
-long historydb_lookups;
-long historydb_hashmatches;
-long historydb_keymatches;
-long historydb_cellgauge;
-long historydb_noposcount;
+static historydb_t **_dbs;
+static int           _dbs_count;
 
 void historydb_nopos(void) {}         /* profiler call counter items */
 void historydb_nointerest(void) {}
@@ -40,13 +31,32 @@ void historydb_init(void)
 	// printf("historydb_init() sizeof(mutex)=%d sizeof(rwlock)=%d\n",
 	//       sizeof(pthread_mutex_t), sizeof(rwlock_t));
 
-	historydb_cells = cellinit( "historydb",
-				    sizeof(struct history_cell_t),
-				    __alignof__(struct history_cell_t), 
-				    CELLMALLOC_POLICY_FIFO,
-				    128 /* 128 kB */,
-				    0 /* minfree */ );
+	_dbs = malloc(sizeof(void*));
+	_dbs_count = 0;
 }
+
+/* new instance - for new digipeater tx */
+historydb_t *historydb_new(void)
+{
+	historydb_t *db = malloc(sizeof(*db));
+	memset(db, 0, sizeof(*db));
+
+	db->cells = cellinit( "historydb",
+			      sizeof(struct history_cell_t),
+			      __alignof__(struct history_cell_t), 
+			      CELLMALLOC_POLICY_FIFO,
+			      32 /* 32 kB */,
+			      0 /* minfree */ );
+
+
+	++_dbs_count;
+	_dbs = realloc(_dbs, sizeof(void*)*_dbs_count);
+	_dbs[_dbs_count-1] = db;
+
+	return db;
+}
+
+
 
 /* Called only under WR-LOCK */
 void historydb_free(struct history_cell_t *p)
@@ -54,15 +64,17 @@ void historydb_free(struct history_cell_t *p)
 	if (p->packet != p->packetbuf)
 		free(p->packet);
 
-	cellfree( historydb_cells, p );
-	--historydb_cellgauge;
+	--p->db->historydb_cellgauge;
+	cellfree( p->db->cells, p );
 }
 
 /* Called only under WR-LOCK */
-struct history_cell_t *historydb_alloc(int packet_len)
+struct history_cell_t *historydb_alloc(historydb_t *db, int packet_len)
 {
-	++historydb_cellgauge;
-	return cellmalloc( historydb_cells );
+	++db->historydb_cellgauge;
+	struct history_cell_t *ret = cellmalloc( db->cells );
+	ret->db = db;
+	return ret;
 }
 
 /*
@@ -71,19 +83,22 @@ struct history_cell_t *historydb_alloc(int packet_len)
  */
 void historydb_atend(void)
 {
-	int i;
-	struct history_cell_t *hp, *hp2;
-	for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
-		hp = historydb_hash[i];
-		while (hp) {
-			hp2 = hp->next;
-			historydb_free(hp);
-			hp = hp2;
-		}
+	int j, i;
+	for (j = 0; j < _dbs_count; ++j) {
+	  historydb_t *db = _dbs[j];
+	  struct history_cell_t *hp, *hp2;
+	  for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
+	    hp = db->hash[i];
+	    while (hp) {
+	      hp2 = hp->next;
+	      historydb_free(hp);
+	      hp = hp2;
+	    }
+	  }
 	}
 }
 
-void historydb_dump_entry(FILE *fp, struct history_cell_t *hp)
+void historydb_dump_entry(FILE *fp, const struct history_cell_t *hp)
 {
 	fprintf(fp, "%ld\t", hp->arrivaltime);
 	fwrite(hp->key, hp->keylen, 1, fp);
@@ -95,7 +110,7 @@ void historydb_dump_entry(FILE *fp, struct history_cell_t *hp)
 	fprintf(fp, "\n"); /* newline */
 }
 
-void historydb_dump(FILE *fp)
+void historydb_dump(const historydb_t *db, FILE *fp)
 {
 	/* Dump the historydb out on text format */
 	int i;
@@ -103,17 +118,16 @@ void historydb_dump(FILE *fp)
 	time_t expirytime   = now - lastposition_storetime;
 
 	for ( i = 0; i < HISTORYDB_HASH_MODULO; ++i ) {
-		hp = historydb_hash[i];
+		hp = db->hash[i];
 		for ( ; hp ; hp = hp->next )
 			if (hp->arrivaltime > expirytime)
 				historydb_dump_entry(fp, hp);
 	}
-
 }
 
 /* insert... */
 
-int historydb_insert(struct pbuf_t *pb)
+int historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 {
 	int i;
 	unsigned int h1, h2;
@@ -126,7 +140,7 @@ int historydb_insert(struct pbuf_t *pb)
 	char *s;
 
 	if (!(pb->flags & F_HASPOS)) {
-		++historydb_noposcount;
+		++db->historydb_noposcount;
 		historydb_nopos(); /* debug thing -- profiling counter */
 		return -1; /* No positional data... */
 	}
@@ -186,14 +200,14 @@ int historydb_insert(struct pbuf_t *pb)
 	}
 	keylen = strlen(keybuf);
 
-	++historydb_inserts;
+	++db->historydb_inserts;
 
 	h1 = keyhash(keybuf, keylen, 0);
-	h2 = h1 ^ (h1 >> 9) ^ (h1 >> 18); /* fold hash bits.. */
+	h2 = h1 ^ (h1 >> 7) ^ (h1 >> 14); /* fold hash bits.. */
 	i = h2 % HISTORYDB_HASH_MODULO;
 
 	cp = cp1 = NULL;
-	hp = &historydb_hash[i];
+	hp = &db->hash[i];
 
 	// scan the hash-bucket chain, and do incidential obsolete data discard
 	while (( cp = *hp )) {
@@ -207,12 +221,12 @@ int historydb_insert(struct pbuf_t *pb)
 		if ( (cp->hash1 == h1)) {
 		       // Hash match, compare the key
 		    historydb_hashmatch(); // debug thing -- a profiling counter
-		    ++historydb_hashmatches;
+		    ++db->historydb_hashmatches;
 		    if ( cp->keylen == keylen &&
 			 (memcmp(cp->key, keybuf, keylen) == 0) ) {
 		  	// Key match!
 		    	historydb_keymatch(); // debug thing -- a profiling counter
-			++historydb_keymatches;
+			++db->historydb_keymatches;
 			if (isdead) {
 				// Remove this key..
 				*hp = cp->next;
@@ -230,6 +244,10 @@ int historydb_insert(struct pbuf_t *pb)
 				cp->packettype  = pb->packettype;
 				cp->flags       = pb->flags;
 				cp->packetlen   = pb->packet_len;
+				if (pb->from_aprsis) // Last arrival time from APRSIS or RADIO
+				  cp->from_aprsis = pb->t;
+				else
+				  cp->from_radio  = pb->t;
 
 				if ( cp->packet != cp->packetbuf )
 					free( cp->packet );
@@ -247,7 +265,7 @@ int historydb_insert(struct pbuf_t *pb)
 
 	if (!cp1 && !isdead) {
 		// Not found on this chain, append it!
-		cp = historydb_alloc(pb->packet_len);
+		cp = historydb_alloc(db, pb->packet_len);
 		cp->next = NULL;
 		memcpy(cp->key, keybuf, keylen);
 		cp->key[keylen] = 0; /* zero terminate */
@@ -260,6 +278,11 @@ int historydb_insert(struct pbuf_t *pb)
 		cp->arrivaltime = pb->t;
 		cp->packettype  = pb->packettype;
 		cp->flags       = pb->flags;
+		if (pb->from_aprsis) // Last arrival time from APRSIS or RADIO
+		  cp->from_aprsis = pb->t;
+		else
+		  cp->from_radio  = pb->t;
+
 		cp->packetlen   = pb->packet_len;
 		cp->packet      = cp->packetbuf; /* default case */
 		if (cp->packetlen > sizeof(cp->packetbuf)) {
@@ -275,7 +298,7 @@ int historydb_insert(struct pbuf_t *pb)
 
 /* lookup... */
 
-int historydb_lookup(const char *keybuf, const int keylen, struct history_cell_t **result)
+history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int keylen)
 {
 	int i;
 	unsigned int h1, h2;
@@ -284,13 +307,13 @@ int historydb_lookup(const char *keybuf, const int keylen, struct history_cell_t
 	// validity is 5 minutes shorter than expiration time..
 	time_t validitytime   = now - lastposition_storetime + 5*60;
 
-	++historydb_lookups;
+	++db->historydb_lookups;
 
 	h1 = keyhash(keybuf, keylen, 0);
-	h2 = h1 ^ (h1 >> 9) ^ (h1 >> 18); /* fold hash bits.. */
+	h2 = h1 ^ (h1 >> 7) ^ (h1 >> 14); /* fold hash bits.. */
 	i = h2 % HISTORYDB_HASH_MODULO;
 
-	cp = historydb_hash[i];
+	cp = db->hash[i];
 
 	while ( cp ) {
 		if ( (cp->hash1 == h1) &&
@@ -308,11 +331,7 @@ int historydb_lookup(const char *keybuf, const int keylen, struct history_cell_t
 	}
 
 	// cp variable has the result
-	*result = cp;
-
-	if (!cp) return 0;  // Not found anything
-
-	return 1;
+	return cp;
 }
 
 
@@ -322,7 +341,7 @@ int historydb_lookup(const char *keybuf, const int keylen, struct history_cell_t
  *	the database at regular intervals.  Call this about once a minute.
  */
 
-void historydb_cleanup(void)
+static void historydb_cleanup(historydb_t *db)
 {
 	struct history_cell_t **hp, *cp;
 	int i, cleancount = 0;
@@ -332,7 +351,7 @@ void historydb_cleanup(void)
 
 
 	for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
-		hp = &historydb_hash[i];
+		hp = &db->hash[i];
 
 		// multiple locks ? one for each bucket, or for a subset of buckets ?
 
@@ -349,4 +368,25 @@ void historydb_cleanup(void)
 			hp = &(cp -> next);
 		}
 	}
+}
+
+
+static time_t next_cleanup_time;
+
+int  historydb_prepoll(struct aprxpolls *app)
+{
+	return 0;
+}
+
+int  historydb_postpoll(struct aprxpolls *app)
+{
+	int i;
+	if (next_cleanup_time >= now) return 0;
+	next_cleanup_time = now + 60; // A minute from now..
+
+	for (i = 0; i < _dbs_count; ++i) {
+	  historydb_cleanup(_dbs[i]);
+	}
+
+	return 0;
 }

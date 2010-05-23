@@ -3,6 +3,11 @@
 
 A rough-cut version of the installation instructions
 
+  0) Prerequisites:
+      Does not need anything beside standard libc!
+      (In particular the Linux version does not need
+       libax25 / libax25-dev !)
+
   1) Start with  ./configure  --parameters
      For a small memory system without writable /tmp
      you have to use  --with-embedded   option.
@@ -32,3 +37,19 @@ A rough-cut version of the installation instructions
   6) Program startup scripts ("init-scripts") exist for
      couple system environments, others may need manual
      adapting.
+
+
+Things are even simpler for Debian users wanting to compile themselves
+instead of using precompiled binaries:
+
+     $ make make-deb
+
+     # dpkg -i aprx_1.98-....deb
+
+
+For RedHat/Fedora users:
+
+
+    $ make make-rpm
+
+    # rpm -Uvh aprx-1.98.svn###-1.i386.rpm

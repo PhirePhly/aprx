@@ -413,7 +413,6 @@ static int forbidden_to_gate_addr(const char *s)
 }
 
 
-
 /*
  * For APRSIS -> APRX -> RF gatewaying.
  * Have to convert incoming TNC2 format messge to AX.25..
@@ -451,6 +450,8 @@ static int forbidden_to_gate_addr(const char *s)
  *
  *  3) The message path does not have TCPXX, NOGATE, RFONLY
  *     in it.
+ *
+ * Following steps are done in  interface_receive_3rdparty()
  *
  *  1) The receiving station has been heard recently
  *     within defined range limits, and more recently
@@ -530,7 +531,6 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	char  *headsbuf;
 	int    headscount = 0;
 //	char  *s;
-	char  *igatecall = NULL;
 	char  *fromcall  = NULL;
 	char  *origtocall = NULL;
 
@@ -596,11 +596,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 	    // Depending on qA? value, following may
 	    // actually be fromcall, or some other..
-	    igatecall = heads[i+1];
 	    switch (qcode) {
-	    case 'C':
-	      igatecall = fromcall;
-	      break;
 	    case 'X':
 	      ok_to_relay = 0;
 	      break;
@@ -627,27 +623,18 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	    printf("Not relayable packet! [5]\n");
 	  return; /* drop it */
 	}
-	if (igatecall == NULL) { // No igatecall found??
-	  if (debug)
-	    printf("Not relayable packet! [6]\n");
-	  return; /* drop it */
-	}
+
+	// Following logic steps are done in  interface_receive_3rdparty!
 
 	// FIXME: 1) - verify receiving station has been heard recently on radio
-	
-
 	// FIXME: 2) - sending station has not been heard recently on radio
-	
-
 	// FIXME: 4) - the sending station has not been heard via the Internet within a predefined time period.
-	
-
 	// FIXME: f) - ??
 
 	if (debug) printf(".. igate from aprsis\n");
 
 	interface_receive_3rdparty( &aprsis_interface,
-				    fromcall, origtocall, igatecall,
+				    fromcall, origtocall,
 				    b, ax25len - (b-ax25) );
 }
 
