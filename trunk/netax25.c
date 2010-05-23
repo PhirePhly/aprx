@@ -233,7 +233,8 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	const struct netax25_pty *nax25 = nax25p;
 
 	/* kissencoder() takes AX.25 frame, and adds framing + cmd-byte */
-	rc = kissencoder(ax25buf, sizeof(ax25buf), ax25, ax25len, 0x80);
+	rc = kissencoder(ax25buf, sizeof(ax25buf), LINETYPE_KISSSMACK,
+			 ax25, ax25len, 0x80);
 	if (rc < 0)
 		return;
 	ax25len = rc;

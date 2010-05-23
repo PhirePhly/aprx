@@ -124,7 +124,7 @@ extern void printtime(char *buf, int buflen);
 typedef enum {
 	LINETYPE_KISS,		/* all KISS variants without CRC on line */
 	LINETYPE_KISSSMACK,	/* KISS/SMACK variants with CRC on line */
-	LINETYPE_KISS_RFCRC,	/* KISS where RECEIVED frames have RF CRC.. */
+	LINETYPE_KISSFLEXNET,	/* KISS/FLEXNET with CRC on line */
 	LINETYPE_KISSBPQCRC,	/* BPQCRC - really XOR sum of data bytes,
 				   also "AEACRC"                        */
 	LINETYPE_TNC2,		/* text line from TNC2 in monitor mode  */
@@ -416,8 +416,10 @@ extern int            dupecheck_postpoll(struct aprxpolls *app);
 #define KISS_TFEND (0xDC)
 #define KISS_TFESC (0xDD)
 
-extern int crc16_calc(uint8_t *buf, int n); /* SMACK's CRC16 */
-extern int kissencoder(void *, int, const void *, int, int);
+extern uint16_t crc16_calc(uint8_t *buf, int n); /* SMACK's CRC16 */
+extern uint16_t calc_crc_flex(uint8_t *buf, int n); /* FLEXNET's CRC16 */
+extern int     check_crc_flex(uint8_t *buf, int n); /* FLEXNET's CRC16 */
+extern int kissencoder(void *, int, LineType, const void *, int, int);
 
 
 

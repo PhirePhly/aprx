@@ -1,5 +1,9 @@
 2010-05-23  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* kiss.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in,
+	  netax25.c, aprx.h, ttyreader.c:
+	    Add FLEXNET support.  (Finnish HamDR speaks it by default!)
+
 	* interface.c:
 	    Corrections on <kiss-subif> definitions, in particular
 	    the aliases.
