@@ -1,5 +1,8 @@
 2010-05-24  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c, TODO:
+	    Notes about missing bits for full Tx-IGate.
+
 	* historydb.c, historydb.h:
 	    Keep knowledge of last coordinate on historydb.
 	    Mark also last coordinate update time.
