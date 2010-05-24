@@ -47,6 +47,7 @@ typedef struct history_cell_t {
 	time_t       arrivaltime;
 	time_t	     from_aprsis;
 	time_t	     from_radio;
+	time_t       positiontime; // When last position was received
 	uint16_t     packettype;
 	uint16_t     flags;
 	uint16_t     packetlen;
