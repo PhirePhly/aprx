@@ -902,7 +902,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  //  an IGate). 
 
 
-	  // Reject the packet by digipeater rx filter?
+	  // Accept/Reject the packet by digipeater rx filter?
 	  int filter_discard = digipeater_receive_filter( digisrc, pb );
 
 	  // Message Tx-IGate rules..
@@ -945,6 +945,12 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	      discard_this = 1;
 	      if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", pb->recipient);
 	    }
+
+	    // FIXME: Check that recipient is in our service area
+	    //        a) coordinate is "near by"
+	    //        b) last known hop-count is low enough
+	    //           (FIXME: RF hop-count recording infra needed!)
+
 	  }
 
 	  if (!discard_this) {
@@ -960,19 +966,21 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 		discard_this = 1;
 		if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
 	      }
-	      /* FIXME:
+/*
+FIXME: 'arrived via internet' analysis is incomplete in our infra
+
 	      // 4) the sending station has not been heard via the internet
 	      if (hist_tx->from_aprsis > recent_time) {
-	      // "is heard recently via internet"
-	      discard_this = 1;
-	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
+		// "is heard recently via internet"
+		discard_this = 1;
+		if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
 	      }
-	      */
+*/
 	    }
 	  }
 	    
-	  if ((!discard_this) || (!filter_discard)) {
-	    // Approved by either basic Tx-IGate rules, or by explicite APRSIS source filter
+	  if ((!discard_this) && (!filter_discard)) {
+	    // Approved by basic Tx-IGate rules, and by explicite APRSIS source filter
 
 	    if ((pb->packettype & T_POSITION) == 0) {
 	      // TODO: For position-less packets send at first a position packet
