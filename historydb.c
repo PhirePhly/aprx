@@ -237,11 +237,21 @@ int historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 				historydb_dataupdate(); // debug thing -- a profiling counter
 				// Update the data content
 				cp1 = cp;
-				cp->lat         = pb->lat;
-				cp->coslat      = pb->cos_lat;
-				cp->lon         = pb->lng;
-				cp->arrivaltime = pb->t;
+				if (cp->flags & F_HASPOS) {
+				  // Update coordinate, if available
+				  cp->lat         = pb->lat;
+				  cp->coslat      = pb->cos_lat;
+				  cp->lon         = pb->lng;
+				  cp->positiontime = pb->t;
+				}
 				cp->packettype  = pb->packettype;
+				if (cp->flags & F_HASPOS)
+				  // Coordinate was kept (or updated), keep flag for it..
+				  cp->flags  = pb->flags | F_HASPOS;
+				else
+				  cp->flags  = pb->flags;
+
+				cp->arrivaltime = pb->t;
 				cp->flags       = pb->flags;
 				cp->packetlen   = pb->packet_len;
 				if (pb->from_aprsis) // Last arrival time from APRSIS or RADIO
@@ -282,6 +292,8 @@ int historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 		  cp->from_aprsis = pb->t;
 		else
 		  cp->from_radio  = pb->t;
+		if (cp->flags & F_HASPOS)
+		  cp->positiontime = pb->t;
 
 		cp->packetlen   = pb->packet_len;
 		cp->packet      = cp->packetbuf; /* default case */
