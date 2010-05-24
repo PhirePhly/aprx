@@ -8,7 +8,17 @@
   Make the aprx.state file name to be non-defaulted.
   When configuration does not define it, not do not use backing storage.
 
-- Tx-IGate filter rules (igate.c)
+- Tx-IGate filter rules (interface.c)
+   - detect igates heard from RF, and log them on X (historydb?)
+   - figure out (at parse_aprs() ?) the number of hops a packet has
+     traversed so far, and log that on historydb (for recipient "locality"
+     analysis)
+   - test that message recipients known coordinates are within
+     "my service area" 
+      -->  separate filter from adjunct-style areas or distances?
+   - Arrived-via-internet tests (IGates on RF and unclear rules via APRSIS))
+   - for position-less packets, send at first a position packet for same
+      source callsign, if available
 
 
 - digipeater behaviour on "requested wideness exceeds allowed

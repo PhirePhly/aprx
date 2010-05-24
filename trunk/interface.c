@@ -545,10 +545,7 @@ void interface_config(struct configfile *cf)
  //  header (in other words, the station is seen on RF as being
  //  an IGate). 
  *
- * This means that interface_receive_ax25() must mark the packet
- * to be "received from_aprsis" if it is a 3rd-party frame with
- * TCPIP or TCPXX in 3rd-party header.
- *
+ * That is, this part of code collects knowledge of RF-wise near-by TX-IGATEs.
  */
 
 void interface_receive_ax25(const struct aprx_interface *aif,
@@ -624,6 +621,9 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
 			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
 	    }
+
+	    // FIXME: find out IGATE callsign (if any), and record it
+	    //        on historydb.
 
 
 	    // Feed it to digipeaters ...
@@ -782,8 +782,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
 
-	  // FIXME: Parse the TNC2 format to AX.25 format
-	  //        using ax25buf[] storage area.
+	  // Parse the TNC2 format to AX.25 format
+	  // using ax25buf[] storage area.
 	  memcpy(ax25buf,    toaprs, 7);           // AX.25 DEST call
 
 	  // FIXME: should this be IGATECALL, not tx_aif->ax25call ??
@@ -960,12 +960,6 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    if (hist_tx != NULL) {
 	      // There is a history entry for this tx callsign, check rules 2+4
 	      
-	      // 2) Sending station has not been heard recently on radio
-	      if (hist_tx->from_radio > recent_time) {
-		// "is heard recently"
-		discard_this = 1;
-		if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
-	      }
 /*
 FIXME: 'arrived via internet' analysis is incomplete in our infra
 
@@ -976,9 +970,15 @@ FIXME: 'arrived via internet' analysis is incomplete in our infra
 		if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
 	      }
 */
+	      // 2) Sending station has not been heard recently on radio
+	      if (hist_tx->from_radio > recent_time) {
+		// "is heard recently"
+		discard_this = 1;
+		if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
+	      }
 	    }
 	  }
-	    
+
 	  if ((!discard_this) && (!filter_discard)) {
 	    // Approved by basic Tx-IGate rules, and by explicite APRSIS source filter
 
@@ -990,8 +990,9 @@ FIXME: 'arrived via internet' analysis is incomplete in our infra
 
 	    digipeater_receive( digisrc, pb);
 	  }
-
-	  if ((pb->packettype & T_POSITION) != 0) {
+	  // Not accepted as-is for transmission.
+	  // Perhaps a position data packet?
+	  else if ((pb->packettype & T_POSITION) != 0) {
 	    // Inject POSITION packets to historydb
 	    historydb_insert( digi->historydb, pb );
 	  }
