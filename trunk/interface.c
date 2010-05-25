@@ -902,9 +902,6 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  //  an IGate). 
 
 
-	  // Accept/Reject the packet by digipeater rx filter?
-	  int filter_discard = digipeater_receive_filter( digisrc, pb );
-
 	  // Message Tx-IGate rules..
 	  int discard_this = 0;
 
@@ -979,8 +976,23 @@ FIXME: 'arrived via internet' analysis is incomplete in our infra
 	    }
 	  }
 
-	  if ((!discard_this) && (!filter_discard)) {
-	    // Approved by basic Tx-IGate rules, and by explicite APRSIS source filter
+	  // Accept/Reject the packet by digipeater rx filter?
+	  int filter_discard = 0;
+	  if (digisrc->src_filters != NULL)
+	    filter_discard = filter_process(pb, digisrc->src_filters, digisrc->parent->historydb);
+	  // filter_discard > 0: accept
+	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
+	  // filter_discard < 0: reject
+
+	  // Manual filter says: Accept!
+	  if (discard_this && filter_discard > 0)
+	    discard_this = 0;
+	  // Manual filter says: Discard!
+	  if (filter_discard < 0)
+	    discard_this = 1;
+
+	  if (!discard_this) {
+	    // Not discarding - approved for transmission
 
 	    if ((pb->packettype & T_POSITION) == 0) {
 	      // TODO: For position-less packets send at first a position packet
