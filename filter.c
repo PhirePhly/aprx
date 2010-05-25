@@ -2176,7 +2176,7 @@ int filter_process(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb
 		if (rc == 1)
 			seen_accept = 1;
 		else if (rc == 2)
-			return 0;
+			return -1;
 			/* "2" reply means: "match, but don't pass.." */
 	}
 	return seen_accept;
