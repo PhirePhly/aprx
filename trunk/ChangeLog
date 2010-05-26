@@ -5,7 +5,8 @@
 	    Add basic configuration and infra of DPRS-to-APRS gw.
 
 	* interface.c, igate.c:
-	    Comment editing, adding Tx-IGate Rule 4, second laft.
+	    Comment editing, adding Tx-IGate Rule 4, second half.
+	    First half probably exists in igate..
 
 2010-05-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 

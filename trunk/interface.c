@@ -106,9 +106,8 @@ static void rx_analyze_3rdparty( historydb_t *historydb, struct pbuf_t *pb )
 	history_cell_t *hist_rx = historydb_lookup(historydb, pb->data, pb->dstcall_len);
 	if (hist_rx == NULL) {
 		// Insert it afresh
+		pb->from_aprsis = 1; // Claim its origin is APRSIS (sort of it is)
 		historydb_insert(historydb, pb);
-		// Timestamp it as received from "APRSIS"
-		hist_rx->from_aprsis = pb->t;
 	} else {
 		// Timestamp it as received from "APRSIS"
 		hist_rx->from_aprsis = pb->t;
