@@ -1,4 +1,4 @@
-				 APRX   1.98
+				 APRX   1.99
 
 				TODO / Wishlist
 
@@ -9,6 +9,8 @@
   When configuration does not define it, not do not use backing storage.
 
 - Tx-IGate filter rules (interface.c)
+  Tx-IGate is lacking following things, but it is already doing
+  most important ones ('recipient heard recently in my service area')
    - detect igates heard from RF, and log them on X (historydb?)
    - figure out (at parse_aprs() ?) the number of hops a packet has
      traversed so far, and log that on historydb (for recipient "locality"

@@ -1,5 +1,10 @@
 2010-05-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c, README, TODO, VERSION:
+	    Mark version 1.99, APRX1G 
+
+2010-05-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* interface.c, filter.c:
 	    Filtering logic change on 3rd-party digipeating.
 
