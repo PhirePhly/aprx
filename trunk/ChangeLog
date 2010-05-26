@@ -1,5 +1,9 @@
 2010-05-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* dprsgw.c, aprx.h, ttyreader.c, Makefile.in, interface.c,
+	  aprx.8.in, aprx.conf.in, aprx-complex.conf.in:
+	    Add basic configuration and infra of DPRS-to-APRS gw.
+
 	* interface.c, igate.c:
 	    Comment editing, adding Tx-IGate Rule 4, second laft.
 

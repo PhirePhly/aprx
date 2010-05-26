@@ -126,6 +126,7 @@ aprxlog @VARLOG@/aprx.log
 #   - "SMACK"  alias "CRC16"  - KISS with real CRC
 #   - "FLEXNET"               - KISS with real CRC
 #   - "TNC2"                  - TNC2 monitor format
+#   - "DPRS"                  - DPRS (RX) GW
 #
 #<interface>
 #   serial-device /dev/ttyUSB0  19200 8n1    KISS
@@ -137,6 +138,12 @@ aprxlog @VARLOG@/aprx.log
 #   serial-device /dev/ttyUSB1  19200 8n1    TNC2
 #   #callsign     $mycall  # callsign defaults to $mycall
 #   #tx-ok        false    # TNC2 monitor can not have transmitter
+#</interface>
+#
+#<interface>
+#   serial-device /dev/ttyUSB1  19200 8n1    DPRS
+#   callsign     dprsgwcallsign  # must define actual callsign
+#   #tx-ok       false           # DPRS monitor can not do transmit
 #</interface>
 #
 

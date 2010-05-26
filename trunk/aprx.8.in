@@ -399,6 +399,7 @@ server    rotate.aprs.net    14580
 #   \- "SMACK"  alias "CRC16"  \- KISS with real CRC
 #   \- "FLEXNET"               \- KISS with real CRC
 #   \- "TNC2"                  \- TNC2 monitor format
+#   \- "DPRS"                  \- DPRS (rx) Gateway
 #
 #<interface>
 #   serial\-device /dev/ttyUSB0  19200 8n1    KISS
@@ -410,6 +411,12 @@ server    rotate.aprs.net    14580
 #   serial\-device /dev/ttyUSB1  19200 8n1    TNC2
 #   #callsign     $mycall  # Either $mycall macro, or actual callsign
 #   #tx\-ok        false    # TNC2 monitor can not have transmitter
+#</interface>
+#
+#<interface>
+#   serial\-device /dev/ttyUSB1  19200 8n1    DPRS
+#   callsign     dprsgwcallsign  # must define actual callsign
+#   #tx\-ok        false    # DPRS monitor can not do transmit
 #</interface>
 #
 
@@ -641,6 +648,10 @@ modes are available:
 is capable only to monitor the packets reported by TNC2 type
 debug output, and Rx-iGate, but they are not acceptable as
 source for a <digipeater>.
+.TP 10em
+.B DPRS
+is special mode for gateway from D-STAR DPRS to APRS.
+This must always have a callsign definition for the gateway.
 .TP 10em
 .B KISS
 Basic KISS encapsulation.
