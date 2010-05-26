@@ -12,7 +12,7 @@ Version 2
     - Radio beacons					- Working
     - Bidirection (Rx/Tx) APRS iGate			- Beta
     - DPRS->APRS GW	       				- Planned
-    - Port to ucLinux	       				- Planned
+    - Port to ucLinux	       				- Planned (pthreads OK)
 
 Version 2.5
     - Port to Windows

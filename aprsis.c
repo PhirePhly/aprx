@@ -94,7 +94,7 @@ static void sig_handler(int sig)
 /*
  *Close APRS-IS server_socket, clean state..
  */
-
+// APRS-IS communicator
 static void aprsis_close(struct aprsis *A, const char *why)
 {
 	if (A->server_socket >= 0)
@@ -131,6 +131,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 /*
  *  aprsis_queue_() - internal routine - queue data to specific APRS-IS instance
  */
+// APRS-IS communicator
 static int aprsis_queue_(struct aprsis *A, const char *addr,
 			 const char *gwcall, const char *text, int textlen)
 {
@@ -258,11 +259,13 @@ static int aprspass(const char *login)
 
 /*
  *  THIS CONNECT ROUTINE WILL BLOCK THE WHOLE PROGRAM
+ *  (or pthread ...)
  *
  *  On the other hand, it is no big deal in case of this
  *  programs principal reason for existence...
  */
 
+// APRS-IS communicator
 static void aprsis_reconnect(struct aprsis *A)
 {
 	struct addrinfo req, *ai, *a, *ap[21];
@@ -432,6 +435,7 @@ static void aprsis_reconnect(struct aprsis *A)
 }
 
 
+// APRS-IS communicator
 static int aprsis_sockreadline(struct aprsis *A)
 {
 	int i, c;
@@ -489,6 +493,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 	return 0;		/* .. this is placeholder.. */
 }
 
+// APRS-IS communicator
 static int aprsis_sockread(struct aprsis *A)
 {
 	int i;
@@ -537,6 +542,7 @@ struct aprsis_tx_msg_head {
  * APRS-IS interface subprogram.  (At APRS-IS side.)
  * 
  */
+// APRS-IS communicator
 static void aprsis_readup(void)
 {
 	int i;
@@ -549,7 +555,7 @@ static void aprsis_readup(void)
 
 	i = recv(aprsis_up, buf, sizeof(buf), 0);
 	if (i == 0) {		/* EOF ! */
-	  if (debug) printf("Upstream fd read resulted eof status.\n");
+	  if (debug>1) printf("Upstream fd read resulted eof status.\n");
 	  aprsis_die_now = 1;
 	  return;
 	}
@@ -584,8 +590,9 @@ static void aprsis_readup(void)
 		aprsis_queue_(AprsIS, addr, gwcall, text, textlen);
 }
 
-int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *text,
-		 int textlen)
+
+// main program side
+int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *text,  int textlen)
 {
 	static char *buf;	/* Dynamically allocated buffer... */
 	static int buflen;
@@ -594,6 +601,8 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 	struct aprsis_tx_msg_head head;
 	int newlen;
 	dupe_record_t *dp;
+
+	if (aprsis_down < 0) return -1; // No socket!
 
 	if (addrlen == 0)      /* should never be... */
 		addrlen = strlen(addr);
@@ -649,6 +658,7 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 }
 
 
+// APRS-IS communicator
 static int aprsis_prepoll_(struct aprxpolls *app)
 {
 	struct pollfd *pfd;
@@ -659,6 +669,9 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 
 	if (A->server_socket < 0)
 		return -1;	/* Not open, do nothing */
+
+	if (debug>3) printf("aprsis_prepoll_()\n");
+
 
 	/* Not all aprs-is systems send "heartbeat", but when they do.. */
 	if ((A->H->heartbeat_monitor_timeout > 0) &&
@@ -689,11 +702,14 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 	return 0;
 }
 
+// APRS-IS communicator
 static int aprsis_postpoll_(struct aprxpolls *app)
 {
 	int i;
 	struct pollfd *pfd = app->polls;
 	struct aprsis *A = AprsIS;
+
+	if (debug>3) printf("aprsis_postpoll_() cnt=%d\n", app->pollcount);
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
 		if (pfd->fd == A->server_socket && pfd->fd >= 0) {
@@ -748,6 +764,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 }
 
 
+// APRS-IS communicator
 static void aprsis_cond_reconnect(void)
 {
 	if (AprsIS &&	/* First time around it may trip.. */
@@ -763,14 +780,20 @@ static void aprsis_cond_reconnect(void)
  *
  * This starts only when we have at least one <aprsis> defined without errors.
  */
+// APRS-IS communicator
 static void aprsis_main(void)
 {
 	int i;
+#if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 	int ppid = getppid();
+#endif
 	struct aprxpolls app = APRXPOLLS_INIT;
 
+
+#if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
+#endif
 
 	/* The main loop */
 	while (!aprsis_die_now) {
@@ -781,11 +804,14 @@ static void aprsis_main(void)
 
 		now = time(NULL);	/* may take unpredictable time.. */
 
+#if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
+		// Parent-pid makes no sense in threaded setup
 		i = getppid();
 		if (i != ppid)
 			break;	/* die now, my parent is gone.. */
 		if (i == 1)
 			break;	/* a safety fallback case.. */
+#endif
 
 		aprxpolls_reset(&app);
 		app.next_timeout = now + 5;
@@ -891,13 +917,9 @@ void aprsis_set_login(const char *login)
 }
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-static void aprsis_runthread(int pipes[2])
+static void aprsis_runthread(int *dummy)
 {
 	sigset_t sigs_to_block;
-	int e, n;
-	struct pollfd *acceptpfd = NULL;
-	int listen_n = 0;
-	struct listen_t *l;
 
 	sigemptyset(&sigs_to_block);
 	sigaddset(&sigs_to_block, SIGALRM);
@@ -911,10 +933,9 @@ static void aprsis_runthread(int pipes[2])
 	sigaddset(&sigs_to_block, SIGUSR2);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
-	aprsis_up = pipes[1];
-	fd_nonblockingmode(pipes[1]);
-	aprsis_main();
+	if (debug) printf("aprsis_runthread()\n");
 
+	aprsis_main();
 }
 
 
@@ -939,13 +960,17 @@ void aprsis_start(void)
 	aprsis_down = pipes[0];
 	aprsis_up   = pipes[1];
 
+	if (debug)printf("aprsis_start() PTHREAD  socketpair(up=%d,down=%d)\n", aprsis_up, aprsis_down);
+
 	pthread_attr_init(&pthr_attrs);
-	/* 128 kB stack is enough for this thread,
-	   default of 10 MB is way too much...*/
-	pthread_attr_setstacksize(&pthr_attrs, 128*1024);
+	/* 64 kB stack is enough for this thread (I hope!)
+	   default of 2 MB is way too much...*/
+	pthread_attr_setstacksize(&pthr_attrs, 64*1024);
 
 	i = pthread_create(&aprsis_thread, &pthr_attrs, (void*)aprsis_runthread, pipes);
-	if (i != 0) { // FAIL!
+	if (i == 0) {
+	  if (debug) printf("APRSIS pthread_create() OK!\n");
+	} else {  // FAIL!
 		close(pipes[0]);
 		close(pipes[1]);
 		aprsis_down = -1;
@@ -1010,13 +1035,14 @@ void aprsis_stop(void)
 
 /*
  * main-program side pre-poll
- *
  */
 int aprsis_prepoll(struct aprxpolls *app)
 {
 	int idx = 0;		/* returns number of *fds filled.. */
 
 	struct pollfd *pfd;
+
+	if (debug>3) printf("aprsis_prepoll()\n");
 
 	pfd = aprxpolls_new(app);
 
@@ -1035,7 +1061,6 @@ int aprsis_prepoll(struct aprxpolls *app)
 
 /*
  * main-program side reading of aprsis_down
- *
  */
 static int aprsis_comssockread(int fd)
 {
@@ -1043,6 +1068,7 @@ static int aprsis_comssockread(int fd)
 	char buf[10000];
 
 	i = recv(fd, buf, sizeof(buf), 0);
+	if (debug>3) printf("aprsis_comsockread(fd=%d) -> i = %d\n", fd, i);
 	if (i == 0)
 		return 0;
 
@@ -1059,12 +1085,14 @@ static int aprsis_comssockread(int fd)
 
 /*
  * main-program side post-poll
- *
  */
 int aprsis_postpoll(struct aprxpolls *app)
 {
 	int i;
 	struct pollfd *pfd = app->polls;
+
+
+	if (debug>3) printf("aprsis_postpoll()\n");
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
 		if (pfd->fd == aprsis_down) {
@@ -1092,6 +1120,7 @@ int aprsis_postpoll(struct aprxpolls *app)
 }
 
 
+// main program side
 void aprsis_config(struct configfile *cf)
 {
 	char *name, *param1;

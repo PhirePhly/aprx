@@ -15,7 +15,7 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
-	./configure --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=/usr/share/man  CC="gcc" CFLAGS="${CFLAGS}" AFLAGS="${CFLAGS} --noexecstack" LDFLAGS="${CFLAGS} -z noexecstack"
+	./configure --with-pthread --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=/usr/share/man  CC="gcc" CFLAGS="${CFLAGS}" AFLAGS="${CFLAGS} --noexecstack" LDFLAGS="${CFLAGS} -z noexecstack"
 	touch configure-stamp
 
 

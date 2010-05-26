@@ -20,7 +20,7 @@ echo end prep
 #autoheader
 #autoconf
 HARDWARE=`uname -m`
-./configure --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=%{_mandir}  CC="gcc" CFLAGS="-g $RPM_OPT_FLAGS" AFLAGS="-g $RPM_OPT_FLAGS" LDFLAGS="-g $RPM_OPT_FLAGS"
+./configure --with-pthread --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=%{_mandir}  CC="gcc" CFLAGS="-g $RPM_OPT_FLAGS" AFLAGS="-g $RPM_OPT_FLAGS" LDFLAGS="-g $RPM_OPT_FLAGS"
 
 make
 

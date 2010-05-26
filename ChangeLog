@@ -1,5 +1,12 @@
 2010-05-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* debian/rules, rpm/aprx.spec.in, aprsis.c:
+	    Fixes on pthread:ed aprsis implementation.
+	    Default packaging for Debian and RPM to use --with-pthread.
+	    Now it shows only one "process", and two threads.
+	    This makes the program portable to uCLinux, and possibly
+	    to Windows.
+
 	* dprsgw.c, aprx.h, ttyreader.c, Makefile.in, interface.c,
 	  aprx.8.in, aprx.conf.in, aprx-complex.conf.in:
 	    Add basic configuration and infra of DPRS-to-APRS gw.
