@@ -23,8 +23,7 @@ The Aprx does not require machine to have any other software in it, than things
 in UNIX standard libc. In particular no special AX.25 libraries at all, nor
 widgets or even C++ runtime.
 .IP \(bu 3
-Any UNIX platform should work for the Aprx, or be trivially ported.
-(uCLinux needing a bit more work.)
+Any UNIX (and UNIX like) platform should work for the Aprx, or be trivially ported.
 .IP \(bu 3
 The Aprx can listen "TNC2 monitor" and "KISS" speaking TNCs on any serial ports.
 .IP \(bu 3
