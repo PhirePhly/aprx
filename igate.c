@@ -462,7 +462,7 @@ static int forbidden_to_gate_addr(const char *s)
  *     within timer interval T2. (Third-party relayed
  *     frames are not analyzed for this.)
  *
- *  4) the sending station has not been heard via the Internet
+ *  4) the receiving station has not been heard via the Internet
  *     within a predefined time period.
  *     A station is said to be heard via the Internet if packets
  *     from the station contain TCPIP* or TCPXX* in the header or
@@ -628,7 +628,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 	// FIXME: 1) - verify receiving station has been heard recently on radio
 	// FIXME: 2) - sending station has not been heard recently on radio
-	// FIXME: 4) - the sending station has not been heard via the Internet within a predefined time period.
+	// FIXME: 4) - the receiving station has not been heard via the Internet within a predefined time period.
 	// FIXME: f) - ??
 
 	if (debug) printf(".. igate from aprsis\n");
