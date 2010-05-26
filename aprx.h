@@ -130,7 +130,9 @@ typedef enum {
 	LINETYPE_KISSBPQCRC,	/* BPQCRC - really XOR sum of data bytes,
 				   also "AEACRC"                        */
 	LINETYPE_TNC2,		/* text line from TNC2 in monitor mode  */
-	LINETYPE_AEA		/* not implemented...                   */
+	LINETYPE_AEA,		/* not implemented...                   */
+
+	LINETYPE_DPRSGW		/* Special DPRS RX GW mode              */
 } LineType;
 
 typedef enum {
@@ -138,6 +140,11 @@ typedef enum {
 	KISSSTATE_COLLECTING,
 	KISSSTATE_KISSFESC
 } KissState;
+
+typedef enum {
+	DPRSSTATE_SYNCHUNT = 0,
+	DPRSSTATE_SYNC
+} DprsState;
 
 
 struct serialport {
@@ -152,6 +159,7 @@ struct serialport {
 
 	KissState kissstate;	/* state for KISS frame reader,
 				   also for line collector              */
+	DprsState dprsstate;
 
 	/* NOTE: The smack_probe is separate on all
 	**       sub-tnc:s on SMACK loop
@@ -201,7 +209,7 @@ extern struct serialport *ttyreader_new(void);
 extern void ttyreader_register(struct serialport *tty);
 // extern void               ttyreader_setlineparam(struct serialport *tty, const char *ttyname, const int baud, int const kisstype);
 // extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
-extern void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
+extern int  ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
 extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
 
 
@@ -255,6 +263,10 @@ extern void  config_STRUPPER(char *Y);
 extern int   validate_callsign_input(char *callsign, int strict);
 extern int   config_parse_interval(const char *par, int *resultp);
 extern int   config_parse_boolean(const char *par, int *resultp);
+
+/* dprsgw.c */
+extern void dprsgw_receive(struct serialport *S);
+
 
 /* erlang.c */
 extern void erlang_init(const char *syslog_facility_name);

@@ -141,6 +141,7 @@ pidfile @VARRUN@/aprx.pid
 #                        no other supported modes
 #   - KISS/XORSUM/SMACK -- KISS mode variants
 #     TNC2            -- non-KISS text format variant
+#     DPRS            -- DPRS (RX) Gateway
 #
 #
 #<interface>
@@ -157,6 +158,12 @@ pidfile @VARRUN@/aprx.pid
 #   callsign N0CALL-13
 #</interface>
 #
+#<interface>
+#   serial-device /dev/ttyUSB1  19200 8n1    DPRS
+#   callsign     dprsgwcallsign  # must define actual callsign
+#   #tx-ok       false           # DPRS monitor can not do transmit
+#</interface>
+#
 
 #
 #  "KISS"                  - plain basic KISS mode
@@ -164,6 +171,7 @@ pidfile @VARRUN@/aprx.pid
 #  "SMACK"  alias "CRC16"  - KISS with better CRC
 #  "FLEXNET"               - KISS with better CRC
 #  "TNC2"                  - TNC2 monitor format
+#  "DPRS"                  - DPRS (RX) GW
 #
 # Additional/alternate options for the serial-device
 #

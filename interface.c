@@ -402,7 +402,7 @@ void interface_config(struct configfile *cf)
 		    printf(".. new style serial:  '%s' '%s'.. tncid=0\n",
 			   aif->tty->ttyname, str);
 
-		  ttyreader_parse_ttyparams(cf, aif->tty, str);
+		  have_fault |= ttyreader_parse_ttyparams(cf, aif->tty, str);
 
 		  if (aif->tty->linetype == LINETYPE_KISSSMACK) {
 		    maxsubif = 8;  // 16 for most KISS modes, 8 for SMACK
@@ -442,7 +442,7 @@ void interface_config(struct configfile *cf)
 		  aif->tty->ttyname = malloc(len);
 		  sprintf((char *) (aif->tty->ttyname), "tcp!%s!%s!", host, port);
 
-		  ttyreader_parse_ttyparams( cf, aif->tty, str );
+		  have_fault |= ttyreader_parse_ttyparams( cf, aif->tty, str );
 
 		} else if (strcmp(name,"tx-ok") == 0) {
 

@@ -591,7 +591,10 @@ static int ttyreader_pulltext(struct serialport *S)
 
 				/* .. and process it depending ..  */
 
-				if (S->linetype == LINETYPE_TNC2) {
+				if (S->linetype == LINETYPE_DPRSGW) {
+					dprsgw_receive(S);
+
+				} else if (S->linetype == LINETYPE_TNC2) {
 					ttyreader_pulltnc2(S);
 #if 0
 				} else {	/* .. it is LINETYPE_AEA ? */
@@ -810,7 +813,7 @@ static void ttyreader_lineread(struct serialport *S)
 #if 0
 		   || S->linetype == LINETYPE_AEA
 #endif
-		) {
+		   || S->linetype == LINETYPE_DPRSGW) {
 
 		ttyreader_pulltext(S);
 
@@ -1129,7 +1132,10 @@ struct serialport *ttyreader_new(void)
 	return tty;
 }
 
-void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str)
+/*
+ * Parse tty related parameters, return 0 for OK, 1 for error
+ */
+int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str)
 {
 	int i;
 	speed_t baud;
@@ -1274,6 +1280,9 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 		} else if (strcmp(param1, "tnc2") == 0) {
 			tty->linetype = LINETYPE_TNC2;	/* TNC2 monitor */
 
+		} else if (strcmp(param1, "dprs") == 0) {
+			tty->linetype = LINETYPE_DPRSGW;
+
 		} else if (strcmp(param1, "initstring") == 0) {
 			int parlen;
 			param1 = str;
@@ -1288,9 +1297,11 @@ void ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, ch
 		} else {
 		  printf("%s:%d Unknown sub-keyword on 'radio' configuration: '%s'\n",
 			 cf->name, cf->linenum, param1);
+		  return 1;
 		}
 	}
 	if (debug) printf("\n");
+	return 0;
 }
 
 void ttyreader_register(struct serialport *tty)
@@ -1360,7 +1371,9 @@ const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char *str)
 
 	}
 
-	ttyreader_parse_ttyparams( cf, tty, str);
-	return NULL;
+	if (ttyreader_parse_ttyparams( cf, tty, str))
+	  return "Bad ttyparameters";
+
+	return NULL; // All OK
 }
 

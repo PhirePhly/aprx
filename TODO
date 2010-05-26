@@ -11,14 +11,12 @@
 - Tx-IGate filter rules (interface.c)
   Tx-IGate is lacking following things, but it is already doing
   most important ones ('recipient heard recently in my service area')
-   - detect igates heard from RF, and log them on X (historydb?)
    - figure out (at parse_aprs() ?) the number of hops a packet has
      traversed so far, and log that on historydb (for recipient "locality"
      analysis)
    - test that message recipients known coordinates are within
      "my service area" 
       -->  separate filter from adjunct-style areas or distances?
-   - Arrived-via-internet tests (IGates on RF and unclear rules via APRSIS))
    - for position-less packets, send at first a position packet for same
       source callsign, if available
 
@@ -46,6 +44,8 @@
 
 - Use internal APRS packet parser to validate beacon configurations.
   This should be able to flag bad input on RAW beacon data.
+
+- DPRS-to-APRS gateway
 
 - Calculate and note APRS DXes (like digi_ned does) ?
 - Calculate ALOHA range, and publish it?
