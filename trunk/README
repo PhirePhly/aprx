@@ -1,5 +1,5 @@
 
-		APRX    v1.98
+		APRX    v1.99
 
 A receive-only APRS-IS "i-gate" with following properties:
 
@@ -7,7 +7,7 @@ A receive-only APRS-IS "i-gate" with following properties:
    Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
 
    - Rx-IGate functionality works correctly
-   - Tx-IGate is incomplete
+   - Tx-IGate is incomplete (see TODO), but functional
 
    - Can do APRS New-N and generic AX.25 node digipeater functionality
      with transmitters
