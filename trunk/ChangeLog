@@ -1,7 +1,12 @@
+2010-05-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, igate.c:
+	    Comment editing, adding Tx-IGate Rule 4, second laft.
+
 2010-05-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c, README, TODO, VERSION:
-	    Mark version 1.99, APRX1G 
+	    Mark version 1.99, APRX1G
 
 2010-05-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 

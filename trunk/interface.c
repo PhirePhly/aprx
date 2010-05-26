@@ -69,6 +69,53 @@ struct aprx_interface aprsis_interface = {
 	0, NULL
 };
 
+
+/*
+ * A helper for interface_receive_ax25() - analyze 3rd-party packets received
+ * via radio.  If data content inside has path saying "TCPIP" or "TCPXX", consider
+ * the packet to be indication that fromcall is an IGate.
+ */
+static void rx_analyze_3rdparty( historydb_t *historydb, struct pbuf_t *pb )
+{
+	const char *e = pb->data + pb->packet_len - 6;
+	const char *p = pb->info_start;
+
+	if (!p) return; // Bad packet..
+	++p;
+
+	int from_igate = 0;
+	for ( ; p < e; ++p ) {
+	  if (*p == ':') break;
+	  if (*p == ',') {
+	    // The "TCPIP*" or "TCPXX*" will always have preceding ","
+	    if (memcmp(",TCPIP*", p, 7) == 0) {
+	      from_igate = 1;
+	      break;
+	    }
+	    if (memcmp(",TCPXX*", p, 7) == 0) {
+	      from_igate = 1;
+	      break;
+	    }
+	  } // Start with 'T'.
+	}
+
+	if (!from_igate) return;  // Not recognized as being sent from another TX-IGATE
+
+	// OK, this packet originated from an TX-IGATE
+
+	history_cell_t *hist_rx = historydb_lookup(historydb, pb->data, pb->dstcall_len);
+	if (hist_rx == NULL) {
+		// Insert it afresh
+		historydb_insert(historydb, pb);
+		// Timestamp it as received from "APRSIS"
+		hist_rx->from_aprsis = pb->t;
+	} else {
+		// Timestamp it as received from "APRSIS"
+		hist_rx->from_aprsis = pb->t;
+	}
+}
+
+
 static char *interface_default_aliases[] = { "RELAY","WIDE","TRACE" };
 
 static void interface_store(struct aprx_interface *aif)
@@ -156,19 +203,20 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		if (strcmp(name, "callsign") == 0) {
 
 		  if (strcmp(param1,"$mycall") == 0)
-		    param1 = strdup(mycall); // leaks!
+		    callsign = strdup(mycall);
+		  else
+		    callsign = strdup(param1);
 
-		  if (!validate_callsign_input(param1,txok)) {
+		  if (!validate_callsign_input(callsign,txok)) {
 		    if (txok)
 		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
-			     cf->name, cf->linenum, param1);
+			     cf->name, cf->linenum, callsign);
 		    else
 		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid APRSIS format! '%s'\n",
-			     cf->name, cf->linenum, param1);
+			     cf->name, cf->linenum, callsign);
 		    fail = 1;
 		    break;
 		  }
-		  callsign = strdup(param1);
 
 		} else if (strcmp(name, "initstring") == 0) {
 		  
@@ -527,11 +575,11 @@ void interface_config(struct configfile *cf)
  *
  * Tx-IGate rules:
  *
- // 1) - verify receiving station has been heard
- //      recently on radio
  // 2) - sending station has not been heard recently
  //      on radio
- // 4) - the sending station has not been heard via
+ // 1) - verify receiving station has been heard
+ //      recently on radio
+ // 4) - the receiving station has not been heard via
  //      the Internet within a predefined time period.
  //      (Note that _this_ packet is heard from internet,
  //      so one must not confuse this to history..
@@ -622,8 +670,10 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
 	    }
 
-	    // FIXME: find out IGATE callsign (if any), and record it
-	    //        on historydb.
+	    // Find out IGATE callsign (if any), and record it on historydb.
+	    if (pb->packettype & T_THIRDPARTY) {
+	      rx_analyze_3rdparty( digisource->parent->historydb, pb );
+	    }
 
 
 	    // Feed it to digipeaters ...
@@ -633,6 +683,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	    pbuf_put(pb);
 	}
 }
+
 
 /*
  * Process AX.25 packet transmit; beacons, digi output, igate output...
@@ -685,6 +736,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
  *   - Parse the received frame for possible latter filters
  *   - Feed the resulting parsed packet to each digipeater
  *
+ * See:  http://www.aprs-is.net/IGateDetails.aspx
  *
  *  Paths
  *
@@ -701,18 +753,6 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
  *
  * Part of the Tx-IGate logic is here because we use pbuf_t data blocks:
  *
- * // FIXME: 1) - verify receiving station has been heard
- * //             recently on radio
- * // FIXME: 2) - sending station has not been heard recently
- * //             on radio
- * // FIXME: 4) - the sending station has not been heard via
- * //             the Internet within a predefined time period.
- * //             (Note that _this_ packet is heard from internet,
- * //              so one must not confuse this to history..
- * //              Nor this siblings that are being created
- * //              one for each tx-interface...)
- *
- *
  *  1) The receiving station has been heard recently
  *     within defined range limits, and more recently
  *     than since given interval T1. (Range as digi-hops [N1]
@@ -722,7 +762,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
  *     within timer interval T2. (Third-party relayed
  *     frames are not analyzed for this.)
  *
- *  4) the sending station has not been heard via the Internet
+ *  4) the receiving station has not been heard via the Internet
  *     within a predefined time period.
  *     A station is said to be heard via the Internet if packets
  *     from the station contain TCPIP* or TCPXX* in the header or
@@ -887,7 +927,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
           //      recently on radio
           // 2) - sending station has not been heard recently
           //      on radio
-          // 4) - the sending station has not been heard via
+          // 4) - the receiving station has not been heard via
           //      the Internet within a predefined time period.
           //      (Note that _this_ packet is heard from internet,
           //      so one must not confuse this to history..
@@ -948,6 +988,13 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    //        b) last known hop-count is low enough
 	    //           (FIXME: RF hop-count recording infra needed!)
 
+
+	    // 4) the receiving station has not been heard via the internet
+	    if (hist_rx != NULL && hist_rx->from_aprsis > recent_time) {
+	      // "is heard recently via internet"
+	      discard_this = 1;
+	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
+	    }
 	  }
 
 	  if (!discard_this) {
@@ -957,16 +1004,6 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    if (hist_tx != NULL) {
 	      // There is a history entry for this tx callsign, check rules 2+4
 	      
-/*
-FIXME: 'arrived via internet' analysis is incomplete in our infra
-
-	      // 4) the sending station has not been heard via the internet
-	      if (hist_tx->from_aprsis > recent_time) {
-		// "is heard recently via internet"
-		discard_this = 1;
-		if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
-	      }
-*/
 	      // 2) Sending station has not been heard recently on radio
 	      if (hist_tx->from_radio > recent_time) {
 		// "is heard recently"
