@@ -1,3 +1,9 @@
+2010-05-27  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* parse_aprs.c:
+	    Correct parse of message recipients.
+	    Fix from Patrick Domack K3PDK.
+
 2010-05-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* debian/rules, rpm/aprx.spec.in, aprsis.c:

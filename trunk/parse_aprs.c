@@ -1019,7 +1019,7 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 			int i;
 			history_cell_t *history;
 
-			p = body+1;
+			p = body;
 			pb->recipient = p;
 			for (i = 0; i < CALLSIGNLEN_MAX; ++i) {
 				keybuf[i] = *p;
