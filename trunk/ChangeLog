@@ -1,3 +1,14 @@
+2010-05-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* digipeater.c, interface.c:
+	    Return adjunk filters to RF->RF digipeating.
+	    They got lost a bit back with Tx-IGate needing
+	    them placed a bit differently.
+
+	* man-to-html.sh:
+	    groff has changed its -Tascii output a bit, and
+	    its own HTML output is horrible...
+
 2010-05-27  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* parse_aprs.c:

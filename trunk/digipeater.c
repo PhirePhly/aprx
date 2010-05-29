@@ -666,7 +666,9 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 		} else if (strcmp(name, "via-path") == 0) {
 
-			// FIXME: validate that source callsign is "APRSIS"
+			// Validate that source callsign is "APRSIS"
+			// for this parameter
+
 			if (source_aif == NULL ||
 			    strcmp(source_aif->callsign,"APRSIS") != 0) {
 			  printf("%s:%d ERROR: via-path parameter is available only on 'source APRSIS' case\n",
@@ -1078,7 +1080,19 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	  // 7) WIDEn-N treatment (as well as transmitter matching digi)
 	  if (pb->digi_like_aprs) {
-	    if ((len = match_tracewide(viafield, src->src_trace))) {
+	    if (strcmp(viafield,digi->transmitter->callsign) == 0 ||
+		// Match on the transmitter callsign without the star...
+		match_aliases(viafield, digi->transmitter)) {
+	        // .. or match transmitter interface alias.
+
+	      // Treat it as a TRACE request.
+
+	      int acont = axaddr[6] & 0x01; // save old address continuation bit
+	      // Put the transmitter callsign in, and set the H-bit.
+	      memcpy(axaddr, digi->transmitter->ax25call, 7);
+	      axaddr[6] |= (0x80 | acont); // Set H-bit
+	      
+	    } else if ((len = match_tracewide(viafield, src->src_trace))) {
 	      count_single_tnc2_tracewide(&viastate, viafield, 1, len, viaindex);
 	    } else if ((len = match_tracewide(viafield, digi->trace))) {
 	      count_single_tnc2_tracewide(&viastate, viafield, 1, len, viaindex);
@@ -1086,21 +1100,6 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	      count_single_tnc2_tracewide(&viastate, viafield, 0, len, viaindex);
 	    } else if ((len = match_tracewide(viafield, digi->wide))) {
 	      count_single_tnc2_tracewide(&viastate, viafield, 0, len, viaindex);
-	    } else if (strcmp(viafield,digi->transmitter->callsign) == 0) {
-	      // Match on the transmitter callsign without the star.
-	      // Treat it as a TRACE request.
-	      int acont = axaddr[6] & 0x01; // save old address continuation bit
-	      // Put the transmitter callsign in, and set the H-bit.
-	      memcpy(axaddr, digi->transmitter->ax25call, 7);
-	      axaddr[6] |= (0x80 | acont); // Set H-bit
-	      
-	    } else if (match_aliases(viafield, digi->transmitter)) {
-	      // Match on the aliases.
-	      // Treat it as a TRACE request.
-	      int acont = axaddr[6] & 0x01; // save old address continuation bit
-	      // Put the transmitter callsign in, and set the H-bit.
-	      memcpy(axaddr, digi->transmitter->ax25call, 7);
-	      axaddr[6] |= (0x80 | acont); // Set H-bit
 	    }
 
 	  } else { // Not "digi_as_aprs" rules
