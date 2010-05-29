@@ -468,6 +468,10 @@ struct digipeater_source {
 	char		      *via_path; // for APRSIS only
 	uint8_t		       ax25viapath[7]; // APRSIS
 
+	int		       tokenbucket;
+	int		       tbf_increment;
+	int		       tbf_limit;
+
 	// Viscous queue is at <source>, but used dupechecker
 	// is <digipeater> -wide, common to all sources in that
 	// digipeater.
@@ -491,7 +495,9 @@ struct digipeater_source {
 
 struct digipeater {
 	struct aprx_interface *transmitter;
-	int		       ratelimit;
+	int		       tokenbucket;
+	int		       tbf_increment;
+	int		       tbf_limit;
 
 	dupecheck_t           *dupechecker;
 	historydb_t	      *historydb;

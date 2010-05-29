@@ -13,6 +13,12 @@
 static int digi_count;
 static struct digipeater **digis;
 
+#define TOKENBUCKET_INTERVAL 5  // 5 seconds per refill.
+                                // 60/5 part of "ratelimit" to be max
+				// that token bucket can be filled to.
+
+static time_t tokenbucket_timer;
+
 struct digistate {
 	int hopsreq;
 	int hopsdone;
@@ -592,6 +598,8 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	char *str = cf->buf;
 	int has_fault = 0;
 	int viscous_delay = 0;
+	int ratelimit = 120;
+	int rateincrement = 60;
 
 	struct aprx_interface *source_aif = NULL;
 	struct digipeater_source  *source = NULL;
@@ -659,6 +667,23 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  has_fault = 1;
 			}
 
+		} else if (strcmp(name, "ratelimit") == 0) {
+			char *param2 = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			rateincrement = atoi(param1);
+			ratelimit     = atoi(param2);
+			if (rateincrement < 10 || rateincrement > 300)
+				rateincrement = 60;
+			if (ratelimit < 10 || ratelimit > 300)
+				ratelimit = 120;
+			if (ratelimit < rateincrement)
+			  rateincrement = ratelimit;
+			if (debug)
+			  printf("  .. ratelimit %d %d\n",
+				 rateincrement, ratelimit);
+
 		} else if (strcmp(name,"regex-filter") == 0) {
 			if (regex_filter_add(cf, &regexsrc, param1, str)) {
 			  has_fault = 1;
@@ -703,6 +728,8 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 				// Error in filter parsing
 				has_fault = 1;
 			} else {
+			  if (debug)
+			    printf(" .. OK filter %s\n", param1);
 			}
 
 		} else if (strcmp(name,"relay-type") == 0 ||   // documented name
@@ -745,6 +772,9 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 		source->viscous_delay = viscous_delay;
 
+		source->tbf_limit     = (ratelimit * TOKENBUCKET_INTERVAL)/60;
+		source->tbf_increment = (rateincrement * TOKENBUCKET_INTERVAL)/60;
+		
 		// RE pattern reject filters
 		source->sourceregscount      = regexsrc.sourceregscount;
 		source->sourceregs           = regexsrc.sourceregs;
@@ -777,6 +807,7 @@ void digipeater_config(struct configfile *cf)
 
 	struct aprx_interface *aif = NULL;
 	int ratelimit = 60;
+	int rateincrement = 60;
 	int sourcecount = 0;
 	struct digipeater_source **sources = NULL;
 	struct digipeater *digi = NULL;
@@ -825,9 +856,21 @@ void digipeater_config(struct configfile *cf)
 			}
 
 		} else if (strcmp(name, "ratelimit") == 0) {
-			ratelimit = atoi(param1);
+			char *param2 = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			rateincrement = atoi(param1);
+			ratelimit     = atoi(param2);
+			if (rateincrement < 10 || rateincrement > 300)
+				rateincrement = 60;
 			if (ratelimit < 10 || ratelimit > 300)
 				ratelimit = 60;
+			if (ratelimit < rateincrement)
+			  rateincrement = ratelimit;
+			if (debug)
+			  printf("  .. ratelimit %d %d\n",
+				 rateincrement, ratelimit);
 
 		} else if (strcmp(name, "<trace>") == 0) {
 			traceparam = digipeater_config_tracewide(cf, 1);
@@ -922,7 +965,9 @@ void digipeater_config(struct configfile *cf)
 				      // use any given Tx-interface. (Rx:es
 				      // permit multiple uses.)
 		digi->transmitter   = aif;
-		digi->ratelimit     = ratelimit;
+		digi->tbf_limit     = (ratelimit * TOKENBUCKET_INTERVAL)/60;
+		digi->tbf_increment = (rateincrement * TOKENBUCKET_INTERVAL)/60;
+
 		digi->dupechecker   = dupecheck_new();  // Dupecheck is per transmitter
 		digi->historydb     = historydb_new();  // HistoryDB is per transmitter
 
@@ -1188,6 +1233,13 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	// Insert into history database
 	historydb_insert( digi->historydb, pb );
 
+	// Now we do token bucket filtering -- rate limiting
+	if (digi->tokenbucket == 0) {
+	  if (debug>1) printf("TRANSMITTER RATELIMIT DISCARD.\n");
+	  return;
+	}
+	digi->tokenbucket -= 1;
+
 	// Feed to interface_transmit_ax25() with new header and body
 	interface_transmit_ax25( digi->transmitter,
 				 state.ax25addr, state.ax25addrlen,
@@ -1208,6 +1260,13 @@ void digipeater_receive( struct digipeater_source *src,
 	if (debug)
 	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
 		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
+
+	if (src->tokenbucket == 0) {
+	  if (debug) printf("SOURCE RATELIMIT DISCARD\n");
+	  return;
+	}
+	src->tokenbucket -= 1;
+
 
 	if (pb->is_aprs) {
 
@@ -1355,6 +1414,10 @@ int  digipeater_prepoll(struct aprxpolls *app)
 {
 	int d, s;
 	time_t t;
+
+	if (tokenbucket_timer < app->next_timeout)
+	  app->next_timeout = tokenbucket_timer;
+
 	// Over all digipeaters..
 	for (d = 0; d < digi_count; ++d) {
 	  struct digipeater *digi = digis[d];
@@ -1380,12 +1443,33 @@ int  digipeater_prepoll(struct aprxpolls *app)
 int  digipeater_postpoll(struct aprxpolls *app)
 {
 	int d, s, i, donecount;
+	int do_tokenbuckets = 0;
+
+	if (tokenbucket_timer < now) {
+	  tokenbucket_timer = now + TOKENBUCKET_INTERVAL;
+	  do_tokenbuckets = 1;
+	}
+
 	// Over all digipeaters..
 	for (d = 0; d < digi_count; ++d) {
 	  struct digipeater *digi = digis[d];
+
+	  if (do_tokenbuckets) {
+	    digi->tokenbucket += digi->tbf_increment;
+	    if (digi->tokenbucket > digi->tbf_limit)
+	      digi->tokenbucket = digi->tbf_limit;
+	  }
+
 	  // Over all sources in those digipeaters
 	  for (s = 0; s < digi->sourcecount; ++s) {
 	    struct digipeater_source * src = digi->sources[s];
+
+	    if (do_tokenbuckets) {
+	      src->tokenbucket += src->tbf_increment;
+	      if (src->tokenbucket > src->tbf_limit)
+		src->tokenbucket = src->tbf_limit;
+	    }
+
 	    // If viscous delay is zero, there is no work...
 	    // if (src->viscous_delay == 0)
 	    //   continue;

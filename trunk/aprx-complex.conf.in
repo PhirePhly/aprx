@@ -342,7 +342,8 @@ pidfile @VARRUN@/aprx.pid
 #
 #<digipeater>
 #    transmitter  TXCALL-1
-#    #ratelimit      300   # default: 300 packets/minute
+#    #ratelimit      60 120      # default: average 60 packets/minute,
+#    #                           #          burst max 120 packets/minute
 #
 #    #<trace>
 #    #    maxreq     4
@@ -357,7 +358,8 @@ pidfile @VARRUN@/aprx.pid
 #
 #    <source>
 #        interface   TXCALL-1
-#    #   ratelimit   60          # default: 60 packets/minute
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
 #    #   #relay-type    digipeat # default mode is "digipeat"
 #    #   viscous-delay    0      # default: no viscous delay
 #    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
@@ -366,8 +368,11 @@ pidfile @VARRUN@/aprx.pid
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
 #    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
 #    </source>
+#
 #    #<source>                   # Extra receiver(s)
 #    #   interface   RXCALL-1
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
 #    #   #relay-type    digipeat # default mode is "digipeat"
 #    #   #regex-filter  source       "RE-pattern" # can define multiple patterns
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
@@ -375,14 +380,14 @@ pidfile @VARRUN@/aprx.pid
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
 #    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
 #    #</source>
-#    #### NOTE: Some APRSIS / Tx-IGate processing rules are not yet implemented
+#
 #    #<source>                  # APRSIS source makes this tx-igate
-#    #    interface    APRSIS
-#    #    relay-type   third-party  # Must define this for APRSIS source!
-#    #    viscous-delay 5      # recommendation: 5 seconds delay to give
+#    #   interface    APRSIS
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
+#    #   relay-type   third-party  # Must define this for APRSIS source!
+#    #   viscous-delay 5      # recommendation: 5 seconds delay to give
 #    #                         # RF delivery time make itself known.
-#    #	  filter        t/m
-#    #    
 #    #</source>
 #
 #</digipeater>
