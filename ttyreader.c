@@ -356,7 +356,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 /*
  *  ttyreader_getc()  -- pick one char ( >= 0 ) out of input buffer, or -1 if out of buffer
  */
-static int ttyreader_getc(struct serialport *S)
+int ttyreader_getc(struct serialport *S)
 {
 	if (S->rdcursor >= S->rdlen) {	/* Out of data ? */
 		if (S->rdcursor)
@@ -560,6 +560,15 @@ static int ttyreader_pulltext(struct serialport *S)
 {
 	int c;
 
+	time_t rdtime = S->rdline_time;
+	if (rdtime+2 < now) {
+		// A timeout has happen? Either data is added constantly, or
+		// nothing was received from TEXT datastream for couple seconds!
+		S->rdlinelen = 0;
+		// S->kissstate = KISSSTATE_SYNCHUNT;
+	}
+	S->rdline_time = now;
+
 	for (;;) {
 
 		c = ttyreader_getc(S);
@@ -591,10 +600,7 @@ static int ttyreader_pulltext(struct serialport *S)
 
 				/* .. and process it depending ..  */
 
-				if (S->linetype == LINETYPE_DPRSGW) {
-					dprsgw_receive(S);
-
-				} else if (S->linetype == LINETYPE_TNC2) {
+				if (S->linetype == LINETYPE_TNC2) {
 					ttyreader_pulltnc2(S);
 #if 0
 				} else {	/* .. it is LINETYPE_AEA ? */
@@ -809,11 +815,16 @@ static void ttyreader_lineread(struct serialport *S)
 		ttyreader_pullkiss(S);
 
 
+
+	} else if (S->linetype == LINETYPE_DPRSGW) {
+
+		dprsgw_pulldprs(S);
+
 	} else if (S->linetype == LINETYPE_TNC2
 #if 0
 		   || S->linetype == LINETYPE_AEA
 #endif
-		   || S->linetype == LINETYPE_DPRSGW) {
+		   ) {
 
 		ttyreader_pulltext(S);
 
