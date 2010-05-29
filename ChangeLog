@@ -1,5 +1,15 @@
 2010-05-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c, doc/aprx-manual.odt:
+	    Effects of 'filter ...'  on different <digipeater>
+	    <source> sections are subtly different. See the manual!
+
+	* aprx.h, digipeater.c, doc/aprx-manual.odt, aprx.conf.in,
+	  aprx-complex.conf.in:
+	    Remodelled the ratelimiting to use 'token bucket filter':
+	       ratelimit average burst
+	    both values are packets per minute, and both default to 60.
+
 	* digipeater.c, interface.c:
 	    Return adjunk filters to RF->RF digipeating.
 	    They got lost a bit back with Tx-IGate needing

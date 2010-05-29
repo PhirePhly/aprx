@@ -203,9 +203,13 @@ aprxlog @VARLOG@/aprx.log
 #
 #beacon                     file /tmp/wxbeacon.txt
 #beacon interface N0CALL-3 srccall N0CALL-3 \
-#                           raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
+#                           raw "!6016.30NR02506.36E&Rx-only iGate"
+#beacon interface N0CALL-3 srccall N0CALL-3 \
+#                           raw "!6016.30NI02506.36E&Tx-iGate"
 #beacon interface $mycall   symbol "R&" lat "6016.30N" lon "02506.36E" \
-#                           comment "aprx - an Rx-only iGate"
+#                           comment "Rx-only iGate"
+#beacon interface $mycall   symbol "I&" lat "6016.30N" lon "02506.36E" \
+#                           comment "Tx-iGate"
 #
 </beacon>
 
@@ -232,20 +236,27 @@ aprxlog @VARLOG@/aprx.log
 #
 #<digipeater>
 #    transmitter     $mycall
-#    #ratelimit      120      # default: max 120 packets/minute
+#    #ratelimit      60 120      # default: average 60 packets/minute,
+#    #                           #          burst max 120 packets/minute
 #
 #    <source>
 #        source         $mycall
 #    #   #relay-type    digipeated # default mode is "digipeated"
 #    #   viscous-delay  0     # no viscous delay for RF->RF digipeating
-#    #   ratelimit      120   # default: max 120 packets/minute
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
+#    ##  filter         a/la/lo/la/lo  # service area filter
+#    ##  filter         -b/CALL        # always block these
 #    </source>
-#    #### NOTE: Some APRSIS / Tx-IGate processing rules are not yet implemented
+#
 #    #<source>                # Adding APRSIS source makes this tx-igate
-#    #    source        APRSIS
-#    #    relay-type    third-party  # Must define this for APRSIS source!
-#    #    viscous-delay  5    # Recommendation: 5 seconds delay to give
-#    #                        # RF delivery time make itself known.
-#    #    filter         t/m  # Tx-IGate only messages sent to me by APRSIS
+#    #   source        APRSIS
+#    #   relay-type    third-party  # Must define this for APRSIS source!
+#    #   viscous-delay  5    # Recommendation: 5 seconds delay to give
+#    #                       # RF delivery time make itself known.
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
+#    ##  filter         a/la/lo/la/lo  # service area filter
+#    ##  filter         -b/CALL        # always block these
 #    #</source>
 #</digipeater>

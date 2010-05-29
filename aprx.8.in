@@ -472,8 +472,11 @@ server    rotate.aprs.net    14580
 #
 #beacon                 file /tmp/wxbeacon.txt
 #beacon srccall N0CALL\-3 raw "!6016.30NR02506.36E&aprx \- an Rx\-only iGate"
+#beacon srccall N0CALL\-3 raw "!6016.30NI02506.36E&aprx \- an iGate"
 #beacon srccall $mycall symbol "R&" lat "6016.30N" lon "02506.36E"  \\
                         comment "aprx \- an Rx\-only iGate"
+#beacon srccall $mycall symbol "I&" lat "6016.30N" lon "02506.36E"  \\
+                        comment "aprx iGate"
 </beacon>
 
 
@@ -491,20 +494,25 @@ server    rotate.aprs.net    14580
 #
 #<digipeater>
 #    transmitter     $mycall
-#    #ratelimit      120      # default: max 120 packets/minute
+#    #ratelimit      60 120      # default: average 60 packets/minute,
+#                                #          burst max 120 packets/minute
 #
 #    <source>
 #        source         $mycall
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
 #    #   viscous\-delay  0     # no viscous delay for RF\->RF digipeat
 #    #   ratelimit      120   # default: max 120 packets/minute
 #    </source>
-#\fI    #### NOTE: Some Tx\-iGate processing rules are not yet implemented\fR\fC
+#
 #    #<source>          # Adding APRSIS source makes this tx-igate
-#    #    source        APRSIS
-#    #    relay\-type    third\-party  # Must define this for APRSIS source!
-#    #    viscous\-delay  5 # Recommendation: 5 seconds delay to give
-#    #                     # RF delivery time make itself known.
-#    #    filter         t/m  # Tx-iGate only messages sent to me by APRSIS
+#    #   source        APRSIS
+#    #   ratelimit      60 120      # default: average 60 packets/minute,
+#    #                              #          burst max 120 packets/minute
+#    #   relay\-type    third\-party  # Must define this for APRSIS source!
+#    #   viscous\-delay  5 # Recommendation: 5 seconds delay to give
+#    #                    # RF delivery time make itself known.
+#    #   filter         t/m  # Tx-iGate only messages sent to me by APRSIS
 #    #</source>
 #
 #</digipeater>
@@ -747,12 +755,12 @@ has a new way to define them:
 The new way to define beacons:
 .nf
 \fCbeacon symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
-\fC       comment "aprx \- an Rx\-only iGate" \fR
+\fC       comment "aprx \- iGate" \fR
 .fi
 .IP \(bu 2
 Semi-clasical definition of raw APRS packet:
 .nf
-\fCbeacon raw "!6016.35NR02506.36E&aprx \- an Rx\-only iGate"\fR
+\fCbeacon raw "!6016.35NR02506.36E&aprx \- iGate"\fR
 .fi
 .IP \(bu 2
 Load beacon text from a file, path data is configurable:
@@ -995,6 +1003,22 @@ See also "viscous\-delay".
 .TP 14em
 .B third\-party
 Special mode for Tx-iGate.
+.PP
+The
+.B ratelimit
+defines two parameters:
+.I average
+and
+.I limit
+number of packets sent in 60 seconds.
+Its definitions can be both in
+.I <digipeater>
+and in
+digipeater's
+.I <source>
+sections, and therefore you can limit each individual source to
+a max accepted rate as well as define separate rate limits for
+the transmitter.
 .PP
 The
 .B viscous\-delay

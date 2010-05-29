@@ -676,9 +676,13 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  // filter_discard > 0: accept
 		  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
 		  // filter_discard < 0: reject
+		  if (debug)
+		    printf("source filtering result: %s\n",
+			   (filter_discard < 0 ? "DISCARD" :
+			    (filter_discard > 0 ? "ACCEPT" : "no-match")));
 
-		  if (filter_discard < 0)
-		    continue; // discard!
+		  if (filter_discard <= 0)
+		    continue; // allow only explicitly accepted
 		}
 	    }
 
