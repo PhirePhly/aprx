@@ -667,6 +667,19 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		if (debug)
 		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
 			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
+
+		if (digisource->src_filters != NULL) {
+		  int filter_discard =
+		    filter_process(pb,
+				   digisource->src_filters,
+				   digisource->parent->historydb);
+		  // filter_discard > 0: accept
+		  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
+		  // filter_discard < 0: reject
+
+		  if (filter_discard < 0)
+		    continue; // discard!
+		}
 	    }
 
 	    // Find out IGATE callsign (if any), and record it on historydb.
@@ -674,8 +687,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	      rx_analyze_3rdparty( digisource->parent->historydb, pb );
 	    }
 
-
-	    // Feed it to digipeaters ...
+	    // Feed it to digipeater ...
 	    digipeater_receive( digisource, pb);
 
 	    // .. and finally free up the pbuf (if refcount goes to zero)
