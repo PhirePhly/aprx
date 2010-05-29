@@ -244,6 +244,7 @@ int main(int argc, char *const argv[])
 		i = dupecheck_prepoll(&app);
 		i = digipeater_prepoll(&app);
 		i = historydb_prepoll(&app);
+		i = dprsgw_prepoll(&app);
 
 		if (app.next_timeout <= now)
 		  app.next_timeout = now + 1;	// Just to be on safe side..
@@ -262,6 +263,7 @@ int main(int argc, char *const argv[])
 		i = dupecheck_postpoll(&app);
 		i = digipeater_postpoll(&app);
 		i = historydb_postpoll(&app);
+		i = dprsgw_postpoll(&app);
 
 	}
 	aprxpolls_free(&app); // valgrind..

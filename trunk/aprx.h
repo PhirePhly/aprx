@@ -143,7 +143,8 @@ typedef enum {
 
 typedef enum {
 	DPRSSTATE_SYNCHUNT = 0,
-	DPRSSTATE_SYNC
+	DPRSSTATE_SAW_GPSPOS,
+	DPRSSTATE_COLLECTING
 } DprsState;
 
 
@@ -189,7 +190,9 @@ struct serialport {
 	int rdlen, rdcursor;	/* rdlen = last byte in buffer,
 				   rdcursor = next to read.
 				   When rdlen == 0, buffer is empty.    */
-	uint8_t rdline[2000];	/* processed into lines/records       */
+
+	time_t  rdline_time;	/* last time something was added there  */
+	uint8_t rdline[2000];	/* processed into lines/records         */
 	int rdlinelen;		/* length of this record                */
 
 	uint8_t wrbuf[4000];	/* buffering area for raw stream read */
@@ -207,6 +210,7 @@ extern const char *ttyreader_serialcfg(struct configfile *cf, char *param1, char
 // New style init: ttyreader_new()
 extern struct serialport *ttyreader_new(void);
 extern void ttyreader_register(struct serialport *tty);
+extern int  ttyreader_getc(struct serialport *tty);
 // extern void               ttyreader_setlineparam(struct serialport *tty, const char *ttyname, const int baud, int const kisstype);
 // extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
 extern int  ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
@@ -265,7 +269,9 @@ extern int   config_parse_interval(const char *par, int *resultp);
 extern int   config_parse_boolean(const char *par, int *resultp);
 
 /* dprsgw.c */
-extern void dprsgw_receive(struct serialport *S);
+extern int  dprsgw_pulldprs(struct serialport *S);
+extern int  dprsgw_prepoll(struct aprxpolls *app);
+extern int  dprsgw_postpoll(struct aprxpolls *app);
 
 
 /* erlang.c */
