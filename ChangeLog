@@ -1,8 +1,9 @@
 2010-05-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* dprsgw.c, ttyreader.c, aprx.c, aprx.h:
-	    Experimental DPRS receiver. Studying packet identification from serial
-	    port datastream.
+	    Experimental DPRS receiver. Studying packet identification
+	    from serial port datastream with Rx-IGate of GPS-A type DPRS
+	    packets.
 
 	* interface.c, doc/aprx-manual.odt:
 	    Effects of 'filter ...'  on different <digipeater>
