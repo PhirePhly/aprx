@@ -598,8 +598,8 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	char *str = cf->buf;
 	int has_fault = 0;
 	int viscous_delay = 0;
-	int ratelimit = 120;
-	int rateincrement = 60;
+	float ratelimit = 120;
+	float rateincrement = 60;
 
 	struct aprx_interface *source_aif = NULL;
 	struct digipeater_source  *source = NULL;
@@ -672,16 +672,16 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			rateincrement = atoi(param1);
-			ratelimit     = atoi(param2);
-			if (rateincrement < 10 || rateincrement > 300)
+			rateincrement = (float)atof(param1);
+			ratelimit     = (float)atof(param2);
+			if (rateincrement < 0.01 || rateincrement > 300)
 				rateincrement = 60;
-			if (ratelimit < 10 || ratelimit > 300)
+			if (ratelimit < 0.01 || ratelimit > 300)
 				ratelimit = 120;
 			if (ratelimit < rateincrement)
 			  rateincrement = ratelimit;
 			if (debug)
-			  printf("  .. ratelimit %d %d\n",
+			  printf("  .. ratelimit %f %f\n",
 				 rateincrement, ratelimit);
 
 		} else if (strcmp(name,"regex-filter") == 0) {
@@ -806,8 +806,8 @@ void digipeater_config(struct configfile *cf)
 	const int line0 = cf->linenum;
 
 	struct aprx_interface *aif = NULL;
-	int ratelimit = 60;
-	int rateincrement = 60;
+	float ratelimit = 60;
+	float rateincrement = 60;
 	int sourcecount = 0;
 	struct digipeater_source **sources = NULL;
 	struct digipeater *digi = NULL;
@@ -860,16 +860,16 @@ void digipeater_config(struct configfile *cf)
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			rateincrement = atoi(param1);
-			ratelimit     = atoi(param2);
-			if (rateincrement < 10 || rateincrement > 300)
+			rateincrement = (float)atof(param1);
+			ratelimit     = (float)atof(param2);
+			if (rateincrement < 0.01 || rateincrement > 300)
 				rateincrement = 60;
-			if (ratelimit < 10 || ratelimit > 300)
+			if (ratelimit < 0.01 || ratelimit > 300)
 				ratelimit = 60;
 			if (ratelimit < rateincrement)
 			  rateincrement = ratelimit;
 			if (debug)
-			  printf("  .. ratelimit %d %d\n",
+			  printf("  .. ratelimit %f %f\n",
 				 rateincrement, ratelimit);
 
 		} else if (strcmp(name, "<trace>") == 0) {
@@ -1234,7 +1234,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	historydb_insert( digi->historydb, pb );
 
 	// Now we do token bucket filtering -- rate limiting
-	if (digi->tokenbucket == 0) {
+	if (digi->tokenbucket < 1) {
 	  if (debug>1) printf("TRANSMITTER RATELIMIT DISCARD.\n");
 	  return;
 	}
@@ -1261,7 +1261,7 @@ void digipeater_receive( struct digipeater_source *src,
 	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
 		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
 
-	if (src->tokenbucket == 0) {
+	if (src->tokenbucket < 1) {
 	  if (debug) printf("SOURCE RATELIMIT DISCARD\n");
 	  return;
 	}

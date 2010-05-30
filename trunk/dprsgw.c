@@ -23,10 +23,10 @@
 
 
 
-void dprslog( const time_t stamp, const char *buf ) {
+void dprslog( const time_t stamp, const uint8_t *buf ) {
   FILE *fp = fopen("/tmp/dprslog.txt","a");
 
-  fprintf(fp, "%ld\t%s\n", stamp, buf);
+  fprintf(fp, "%ld\t%s\n", stamp, (const char *)buf);
 
   fclose(fp);
 }
@@ -71,8 +71,8 @@ static int dprsgw_isvalid( struct serialport *S )
 	  S->rdline[S->rdlinelen] = '\r';
 	  crc = dprsgw_crccheck(S->rdline+10, S->rdlinelen+1-10); // INCLUDE the CR on CRC calculation!
 	  S->rdline[S->rdlinelen] = 0;
-	  i = sscanf(S->rdline, "$$CRC%04x,", &csum);
-	  if (csum != crc) {
+	  i = sscanf((const char*)(S->rdline), "$$CRC%04x,", &csum);
+	  if (i != 1 || csum != crc) {
 	    if (debug) printf("Bad DPRS APRS CRC: l=%d, i=%d, %04x/%04x vs. %s\n", S->rdlinelen, i, crc, csum, S->rdline);
 	    // return 0;
 	  } else {
@@ -85,25 +85,30 @@ static int dprsgw_isvalid( struct serialport *S )
 	  // Maybe  $GPRMC,170130.02,A,6131.6583,N,02339.1552,E,0.00,154.8,290510,6.5,E,A*02  ?
 	  int xor = 0;
 	  int csum = -1;
-	  char *p;
-	  for (i = 0; i < S->rdlinelen; ++i) {
-	    char c = S->rdline[i];
-	    if (c == '*' && (i == S->rdlinelen - 3))
+	  char c;
+	  if (debug) printf("NMEA: '%s'\n", S->rdline);
+	  for (i = 1; i < S->rdlinelen; ++i) {
+	    c = S->rdline[i];
+	    if (c == '*' && (i >= S->rdlinelen - 3)) {
 	      break;
+	    }
 	    xor ^= c;
 	  }
 	  xor &= 0xFF;
 	  if (i != S->rdlinelen -3 || S->rdline[i] != '*')
 	    return 0; // Wrong place to stop
-	  if (sscanf(S->rdline+i, "*%02x%c", &csum, &csum) != 1) {
+	  if (sscanf((const char *)(S->rdline+i), "*%02x%c", &csum, &c) != 1) {
 	    return 0; // Too little or too much
 	  }
 	  if (xor != csum) {
-	    if (debug) printf("Bad DPRS $GP... checksum: %s vs. %02x\n", S->rdline+i, xor);
+	    if (debug) printf("Bad DPRS $GP... checksum: %02x vs. %02x\n", csum, xor);
 	    return 0;
 	  }
 	  return 1;
 	} else {
+	  int xor = 0;
+	  int csum = -1;
+	  char c;
 	  // .. uh?  maybe?  Precisely 29 characters:
 	  // "OH3KGR M,                    "
 	  if (S->rdlinelen != 29 || S->rdline[8] != ',') {
@@ -111,18 +116,34 @@ static int dprsgw_isvalid( struct serialport *S )
 			      S->rdlinelen, S->rdline);
 	    return 0;
 	  }
+	  if (debug) printf("NMEA: '%s'\n", S->rdline);
+	  for (i = 0; i < S->rdlinelen; ++i) {
+	    c = S->rdline[i];
+	    if (c == '*') {
+	      break;
+	    }
+	    xor ^= c;
+	  }
+	  xor &= 0xFF;
+	  if (sscanf((const char *)(S->rdline+i), "*%x%c", &csum, &c) < 1) {
+	    return 0; // Too little or too much
+	  }
+	  if (xor != csum) {
+	    if (debug) printf("Bad DPRS IDENT LINE checksum: %02x vs. %02x\n", csum, xor);
+	    return 0;
+	  }
+	  if (debug) printf("DPRS IDENT LINE OK: '%s'\n", S->rdline);
 	  return 1; // Maybe valid?
 	}
 }
 
 static void dprsgw_rxigate( struct serialport *S )
 {
-	int i;
 	const struct aprx_interface *aif = S->interface[0];
-	char *tnc2addr = S->rdline;
-	int   tnc2addrlen = S->rdlinelen;
-	char *tnc2body = S->rdline;
-	int   tnc2bodylen = S->rdlinelen;
+	uint8_t *tnc2addr    = S->rdline;
+	int      tnc2addrlen = S->rdlinelen;
+	uint8_t *tnc2body    = S->rdline;
+	int      tnc2bodylen = S->rdlinelen;
 
 #ifndef DPRSGW_DEBUG_MAIN
 	if (aif == NULL) {
@@ -142,7 +163,7 @@ static void dprsgw_rxigate( struct serialport *S )
 
 	    // MAYBE RATELIMIT
 	    // Acceptable packet, Rx-iGate it!
-	    igate_to_aprsis( aif->callsign, 0, tnc2addr, tnc2addrlen, tnc2bodylen, 0);
+	    igate_to_aprsis( aif->callsign, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0);
 
 /*
 	    // MUST RATELIMIT!
@@ -386,18 +407,34 @@ int main(int argc, char *argv[]) {
   struct serialport S;
   // A test where string has initially some incomplete data, then finally a real data
   printf("\nFIRST TEST\n");
-  strcpy(S.rdline, "x$x4$GPPP$$$GP  $$CRCB727,OH3BK-D>$$CRCB727,OH3BK-D>APRATS,DSTAR*:@165340h6128.23N/02353.52E-D-RATS (GPS-A) /A=000377");
-  S.rdlinelen = strlen(S.rdline);
+  strcpy((void*)S.rdline, "x$x4$GPPP$$$GP  $$CRCB727,OH3BK-D>$$CRCB727,OH3BK-D>APRATS,DSTAR*:@165340h6128.23N/02353.52E-D-RATS (GPS-A) /A=000377");
+  S.rdlinelen = strlen((void*)S.rdline);
   dprsgw_receive(&S);
 
   printf("\nSECOND TEST\n");
-  strcpy(S.rdline, "\304\3559\202\333$$CRCC3F5,OH3KGR-M>API282,DSTAR*:/123035h6131.29N/02340.45E>/IC-E2820");
-  S.rdlinelen = strlen(S.rdline);
+  strcpy((void*)S.rdline, "\304\3559\202\333$$CRCC3F5,OH3KGR-M>API282,DSTAR*:/123035h6131.29N/02340.45E>/IC-E2820");
+  S.rdlinelen = strlen((void*)S.rdline);
   dprsgw_receive(&S);
 
   printf("\nTHIRD TEST\n");
-  strcpy(S.rdline, "[SOB]\"=@=@=@=>7\310=@\010!~~~~~~~!~~~~~~~\001\001\001\001\001\001\001\001[EOB]$$CRCBFB7,OH3BK>APRATS,DSTAR*:@124202h6128.23N/02353.52E-D-RATS (GPS-A) /A=000377");
-  S.rdlinelen = strlen(S.rdline);
+  strcpy((void*)S.rdline, "[SOB]\"=@=@=@=>7\310=@\010!~~~~~~~!~~~~~~~\001\001\001\001\001\001\001\001[EOB]$$CRCBFB7,OH3BK>APRATS,DSTAR*:@124202h6128.23N/02353.52E-D-RATS (GPS-A) /A=000377");
+  S.rdlinelen = strlen((void*)S.rdline);
+  dprsgw_receive(&S);
+
+  printf("\nTEST 4.\n");
+  strcpy((void*)S.rdline, "$GPGGA,164829.02,6131.6572,N,02339.1567,E,1,08,1.1,111.3,M,19.0,M,,*61");
+  S.rdlinelen = strlen((void*)S.rdline);
+  dprsgw_receive(&S);
+
+  printf("\nTEST 5.\n");
+  strcpy((void*)S.rdline, "$GPRMC,170130.02,A,6131.6583,N,02339.1552,E,0.00,154.8,290510,6.5,E,A*02");
+  // strcpy((void*)S.rdline, "$GPRMC,164830.02,A,6131.6572,N,02339.1567,E,0.00,182.2,290510,6.5,E,A*07");
+  S.rdlinelen = strlen((void*)S.rdline);
+  dprsgw_receive(&S);
+
+  printf("\nTEST 6.\n");
+  strcpy((void*)S.rdline, "OH3BK  D,BN  *59             ");
+  S.rdlinelen = strlen((void*)S.rdline);
   dprsgw_receive(&S);
 
   return 0;
@@ -405,6 +442,7 @@ int main(int argc, char *argv[]) {
 
 int ttyreader_getc(struct serialport *S)
 {
+  return -1; // EOF
 }
 void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard)
 {
