@@ -22,19 +22,6 @@
  */
 
 
-typedef struct dprsgw_receiver {
-	int i;
-} dprsgw_receiver_t;
-
-
-/*
- * ??
- */
-
-void *dprsgw_new( void )
-{
-}
-
 
 void dprslog( const time_t stamp, const char *buf ) {
   FILE *fp = fopen("/tmp/dprslog.txt","a");
@@ -44,9 +31,9 @@ void dprslog( const time_t stamp, const char *buf ) {
   fclose(fp);
 }
 
-// The "Specification" says to use this checksum..
+// The "Specification" says to use this checksum method..
 // It uses right-left inverted version of the polynome
-// of CCITT-CRC-16 but processing is not compatible..
+// of CCITT-CRC-16 but processing is not correct..
 // Thus the result is NOT CCITT-CRC-16, but something
 // uniquely ICOM D-STAR..
 
