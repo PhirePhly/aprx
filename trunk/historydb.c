@@ -45,7 +45,7 @@ historydb_t *historydb_new(void)
 			      sizeof(struct history_cell_t),
 			      __alignof__(struct history_cell_t), 
 			      CELLMALLOC_POLICY_FIFO,
-			      32 /* 32 kB */,
+			      128 /* 128 kB */,
 			      0 /* minfree */ );
 
 
