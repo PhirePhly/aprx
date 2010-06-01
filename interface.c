@@ -681,14 +681,16 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 			   (filter_discard < 0 ? "DISCARD" :
 			    (filter_discard > 0 ? "ACCEPT" : "no-match")));
 
-		  if (filter_discard <= 0)
+		  if (filter_discard <= 0) {
+		    pbuf_put(pb);
 		    continue; // allow only explicitly accepted
+		  }
 		}
-	    }
 
-	    // Find out IGATE callsign (if any), and record it on historydb.
-	    if (pb->packettype & T_THIRDPARTY) {
-	      rx_analyze_3rdparty( digisource->parent->historydb, pb );
+		// Find out IGATE callsign (if any), and record it on historydb.
+		if (pb->packettype & T_THIRDPARTY) {
+		  rx_analyze_3rdparty( digisource->parent->historydb, pb );
+		}
 	    }
 
 	    // Feed it to digipeater ...
