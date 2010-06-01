@@ -1,4 +1,7 @@
-2010-05-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2010-06-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c:
+	    Set software tocall to 'APRX1H'.
 
 	* interface.c:
 	    Found a memory leak on AX.25 type packet receiver. Oops!
