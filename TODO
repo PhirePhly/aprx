@@ -9,16 +9,16 @@
   When configuration does not define it, not do not use backing storage.
 
 - Tx-IGate filter rules (interface.c)
-  Tx-IGate is lacking following things, but it is already doing
-  most important ones ('recipient heard recently in my service area')
+  Tx-IGate is lacking following things, but it is already doing most
+  important ones ('recipient heard recently in my service area')
    - figure out (at parse_aprs() ?) the number of hops a packet has
      traversed so far, and log that on historydb (for recipient "locality"
      analysis)
    - test that message recipients known coordinates are within
      "my service area" 
       -->  separate filter from adjunct-style areas or distances?
-   - for position-less packets, send at first a position packet for same
-      source callsign, if available
+   - for position-less packets, send at first a position packet for
+     same source callsign, if available
 
 
 - digipeater behaviour on "requested wideness exceeds allowed
@@ -26,13 +26,13 @@
    - now mark all H-bits set
    - ADDITION: inject transmitter callsign into first VIA slot.
 
-- Digipeating details of non-APRS UI protocols?  Some way to
-  handle "WIDEn-N" on selected PIDs?
+- Digipeating details of non-APRS UI protocols?  Some way to handle
+  "WIDEn-N" on selected PIDs?
 - OpenTRAC support ?  (UI, PID=0x77)
   - Yes, on DIGIPEATER ONLY - what about WIDEn-N ? Y/N ?
 
-- "<interface> serial-device ... KISS .." to support more
-  esoteric polling modes
+- "<interface> serial-device ... KISS .." to support more esoteric polling
+  modes
 
 - Windows port?
   - AGWPE interface for Windows ?

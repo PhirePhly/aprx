@@ -1,5 +1,19 @@
 2010-05-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    Found a memory leak on AX.25 type packet receiver. Oops!
+	    Ax.25 packets that were rejected by <digipeater> <source>'s
+	    filters were just leaked, not disposed.
+
+	* historydb.c:
+	    Allocate cell arenas in 128 kB blocks.
+
+	* digipeater.c:
+	    Valgrind complained about uninitialized variables.
+	    Default zero is not good enough...
+
+2010-05-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* aprx.h, digipeater.c:
 	    Use 'float' for ratelimit variables.  Permitting as low
 	    rate definitions as 'once per 10 minutes.
