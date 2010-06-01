@@ -774,6 +774,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 		source->tbf_limit     = (ratelimit * TOKENBUCKET_INTERVAL)/60;
 		source->tbf_increment = (rateincrement * TOKENBUCKET_INTERVAL)/60;
+		source->tokenbucket   = source->tbf_limit;
 		
 		// RE pattern reject filters
 		source->sourceregscount      = regexsrc.sourceregscount;
@@ -967,6 +968,7 @@ void digipeater_config(struct configfile *cf)
 		digi->transmitter   = aif;
 		digi->tbf_limit     = (ratelimit * TOKENBUCKET_INTERVAL)/60;
 		digi->tbf_increment = (rateincrement * TOKENBUCKET_INTERVAL)/60;
+		digi->tokenbucket   = digi->tbf_limit;
 
 		digi->dupechecker   = dupecheck_new();  // Dupecheck is per transmitter
 		digi->historydb     = historydb_new();  // HistoryDB is per transmitter
