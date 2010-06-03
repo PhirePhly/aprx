@@ -199,6 +199,8 @@ struct serialport {
 	int wrlen, wrcursor;	/* wrlen = last byte in buffer,
 				   wrcursor = next to write.
 				   When wrlen == 0, buffer is empty.    */
+
+	void *dprsgw;		/* opaque DPRS GW data */
 };
 
 

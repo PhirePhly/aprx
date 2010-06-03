@@ -21,6 +21,13 @@
  *
  */
 
+typedef struct dprs_gw {
+	char *ggaline;
+	char *rmcline;
+	int ggaspace;
+	int rmcspace;
+
+} dprsgw_t;
 
 
 void dprslog( const time_t stamp, const uint8_t *buf ) {
@@ -29,6 +36,25 @@ void dprslog( const time_t stamp, const uint8_t *buf ) {
   fprintf(fp, "%ld\t%s\n", stamp, (const char *)buf);
 
   fclose(fp);
+}
+
+
+static void dprsgw_flush(dprsgw_t *dp) {
+	if (dp->ggaline == NULL)
+	  dp->ggaline = malloc(200);
+	if (dp->rmcline == NULL)
+	  dp->rmcline = malloc(200);
+	dp->ggaspace = 200;
+	dp->rmcspace = 200;
+	dp->ggaline[0] = 0;
+	dp->rmcline[0] = 0;
+}
+
+static void *dprsgw_new() {
+	dprsgw_t *dp = malloc(sizeof(struct dprs_gw));
+	memset(dp, 0, sizeof(*dp));
+	dprsgw_flush(dp);
+	return dp;
 }
 
 // The "Specification" says to use this checksum method..
@@ -86,7 +112,7 @@ static int dprsgw_isvalid( struct serialport *S )
 	  int xor = 0;
 	  int csum = -1;
 	  char c;
-	  if (debug) printf("NMEA: '%s'\n", S->rdline);
+	  // if (debug) printf("NMEA: '%s'\n", S->rdline);
 	  for (i = 1; i < S->rdlinelen; ++i) {
 	    c = S->rdline[i];
 	    if (c == '*' && (i >= S->rdlinelen - 3)) {
@@ -126,6 +152,7 @@ static int dprsgw_isvalid( struct serialport *S )
 	  }
 	  xor &= 0xFF;
 	  if (sscanf((const char *)(S->rdline+i), "*%x%c", &csum, &c) < 1) {
+	    // if (debug) printf("csum bad NMEA: '%s'\n", S->rdline);
 	    return 0; // Too little or too much
 	  }
 	  if (xor != csum) {
@@ -133,6 +160,7 @@ static int dprsgw_isvalid( struct serialport *S )
 	    return 0;
 	  }
 	  if (debug) printf("DPRS IDENT LINE OK: '%s'\n", S->rdline);
+	  // if (debug) printf("csum valid NMEA: '%s'\n", S->rdline);
 	  return 1; // Maybe valid?
 	}
 }
@@ -163,7 +191,7 @@ static void dprsgw_rxigate( struct serialport *S )
 
 	    // MAYBE RATELIMIT
 	    // Acceptable packet, Rx-iGate it!
-	    igate_to_aprsis( aif->callsign, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0);
+	    igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0);
 
 /*
 	    // MUST RATELIMIT!
@@ -179,8 +207,41 @@ static void dprsgw_rxigate( struct serialport *S )
 	    return;
 	  }
 
+	} else if (memcmp("$GPGGA,", tnc2addr, 7) == 0) {
+	  dprsgw_t *dp = S->dprsgw;
+	  
+	  if (dp->ggaspace <= S->rdlinelen) {
+	    dp->ggaline  = realloc(dp->ggaline, S->rdlinelen+1);
+	    dp->ggaspace = S->rdlinelen;
+	  }
+	  memcpy(dp->ggaline, tnc2addr, tnc2bodylen);
+	  dp->ggaline[tnc2bodylen] = 0;
+	  if (debug) printf("GGA: %s\n", dp->ggaline);
+
+	} else if (memcmp("$GPRMC,", tnc2addr, 7) == 0) {
+	  dprsgw_t *dp = S->dprsgw;
+	  
+	  if (dp->rmcspace <= S->rdlinelen) {
+	    dp->rmcline  = realloc(dp->rmcline, S->rdlinelen+1);
+	    dp->rmcspace = S->rdlinelen;
+	  }
+	  memcpy(dp->rmcline, tnc2addr, tnc2bodylen);
+	  dp->rmcline[tnc2bodylen] = 0;
+	  if (debug) printf("RMC: %s\n", dp->rmcline);
+
+	} else if (tnc2addr[8] == ',' && tnc2bodylen == 29) {
+	  // Acceptable DPRS "ident" line
+	  dprsgw_t *dp = S->dprsgw;
+
+	  if (debug) {
+	    printf(" DPRS: ident='%s', GGA='%s', RMC='%s'\n", tnc2addr, dp->ggaline, dp->rmcline);
+	  }
+
+	  
+
 	} else {
-	  if (debug) printf("Unsupported packet! %s\n", S->rdline);
+	  // this should never be called...
+	  if (debug) printf("Unrecognized DPRS packet: %s\n", S->rdline);
 	  return;
 	}
 }
@@ -210,9 +271,12 @@ static void dprsgw_receive( struct serialport *S )
 	      return; // Done!
 	    }
 	    // FIXME: Other packet formats!
+	    dprsgw_rxigate( S );
 	    return; // Done!
 	  } else {
 	    // Not a good packet! See if there is a good packet inside?
+	    dprsgw_flush(S->dprsgw);  // bad input -> discard accumulated data
+
 	    uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
 	    if (p == NULL)
 	      break; // No '$' to start something
@@ -235,11 +299,17 @@ static void dprsgw_receive( struct serialport *S )
 int dprsgw_pulldprs( struct serialport *S )
 {
 	int c;
+	int i;
+
+	if (S->dprsgw == NULL)
+	  S->dprsgw = dprsgw_new();
 
 	time_t rdtime = S->rdline_time;
 	if (rdtime+2 < now) {
 		// A timeout has happen? Either data is added constantly,
 		// or nothing was received from DPRS datastream!
+
+	  if (debug)printf("dprsgw: previous data is %d sec old, discarding its state.\n",((int)(now-rdtime)));
 
 		S->rdline[S->rdlinelen] = 0;
 		if (S->rdlinelen > 0)
@@ -247,14 +317,19 @@ int dprsgw_pulldprs( struct serialport *S )
 
 		S->rdlinelen = 0;
 		S->dprsstate = DPRSSTATE_SYNCHUNT;
+
+		dprsgw_flush(S->dprsgw);  // timeout -> discard accumulated data
 	}
 	S->rdline_time = now;
 
-	for (;;) {
+	for (i=0 ; ; ++i) {
 
 		c = ttyreader_getc(S);
-		if (c < 0)
+		if (c < 0) {
+		  // if (debug) printf("dprsgw_pulldprs: read %d chars\n", i);
 			return c;	/* Out of input.. */
+		}
+		// if (debug) printf("dprs %02X '%c'\n", c, c);
 
 		/* S->dprsstate != 0: read data into S->rdline,
 		   == 0: discard data until CR|LF.
@@ -278,6 +353,8 @@ int dprsgw_pulldprs( struct serialport *S )
 			        // Too long a line...
 				do {
 					int len;
+					dprsgw_flush(S->dprsgw);
+
 					// Look for first '$' in buffer _after_ first char
 					uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
 					if (!p) {
@@ -313,6 +390,7 @@ int dprsgw_pulldprs( struct serialport *S )
 			    (memcmp("$$C", S->rdline, 3) != 0 &&
 			     memcmp("$GP", S->rdline, 3) != 0)) {
 				// No correct start, discard...
+				dprsgw_flush(S->dprsgw);
 				S->rdlinelen = 2;
 				memcpy(S->rdline, S->rdline+1, 2);
 				S->rdline[S->rdlinelen] = 0;
@@ -401,10 +479,47 @@ int  dprsgw_postpoll(struct aprxpolls *app)
 
 
 #ifdef DPRSGW_DEBUG_MAIN
+
+int freadln(FILE *fp, char *p, int buflen)
+{
+  int n = 0;
+  while (!feof(fp)) {
+    int c = fgetc(fp);
+    if (c == EOF) break;
+    if (n >= buflen) break;
+    *p++ = c;
+    ++n;
+    if (c == '\n') break;
+    if (c == '\r') break;
+  }
+  return n;
+}
+
+int ttyreader_getc(struct serialport *S)
+{
+	if (S->rdcursor >= S->rdlen) {	/* Out of data ? */
+		if (S->rdcursor)
+			S->rdcursor = S->rdlen = 0;
+		/* printf("-\n"); */
+		return -1;
+	}
+
+	/* printf(" %02X", 0xFF & S->rdbuf[S->rdcursor++]); */
+
+	return (0xFF & S->rdbuf[S->rdcursor++]);
+}
+void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard)
+{
+  printf("RX-IGATE: %s\n", tnc2buf);
+}
+
 int debug = 1;
 time_t now;
 int main(int argc, char *argv[]) {
   struct serialport S;
+  memset(&S, 0, sizeof(S));
+
+#if 0
   // A test where string has initially some incomplete data, then finally a real data
   printf("\nFIRST TEST\n");
   strcpy((void*)S.rdline, "x$x4$GPPP$$$GP  $$CRCB727,OH3BK-D>$$CRCB727,OH3BK-D>APRATS,DSTAR*:@165340h6128.23N/02353.52E-D-RATS (GPS-A) /A=000377");
@@ -436,16 +551,29 @@ int main(int argc, char *argv[]) {
   strcpy((void*)S.rdline, "OH3BK  D,BN  *59             ");
   S.rdlinelen = strlen((void*)S.rdline);
   dprsgw_receive(&S);
+#endif
+
+  S.ttyname = "testfile";
+  S.ttycallsign[0] = "OH2MQK-DR";
+  FILE *fp = fopen("tt.log", "r");
+  for (;;) {
+    char buf1[3000];
+    int n = freadln(fp, buf1, sizeof(buf1));
+    if (n == 0) break;
+    char *ep;
+    now = strtol(buf1, &ep, 10);
+    if (*ep == '\t') ++ep;
+    int len = n - (ep - buf1);
+    if (len > 0) {
+      memcpy(S.rdbuf+S.rdlen, ep, len);
+      S.rdlen += len;
+    }
+    if (S.rdlen > 0)
+      dprsgw_pulldprs(&S);
+
+  }
+  fclose(fp);
 
   return 0;
-}
-
-int ttyreader_getc(struct serialport *S)
-{
-  return -1; // EOF
-}
-void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard)
-{
-  printf("RX-IGATE: %s\n", tnc2buf);
 }
 #endif
