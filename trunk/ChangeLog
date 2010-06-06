@@ -1,5 +1,8 @@
 2010-06-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* parse_aprs.c, dprsgw.c:
+	    Rudimentary GPSxyz -> APRS symbol mapping for DPRS.
+
 	* debian/aprx.init:
 	    The "restart" command fails to work quite often.
 	    The reason being "set -e"...

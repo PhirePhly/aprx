@@ -206,10 +206,14 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	char *p2, *p0;
 	char *s;
 	int  alt_feet = -9999999;
+	char aprssym[3];
 
 	if (debug) {
 	  printf(" DPRS: ident='%s', GGA='%s', RMC='%s'\n", ident, dp->ggaline, dp->rmcline);
 	}
+
+	strcpy(aprssym, "/>"); // Default..
+	parse_gps2aprs_symbol(ident+9, aprssym);
 
 	memset(gga, 0, sizeof(gga));
 	memset(rmc, 0, sizeof(rmc));
@@ -246,7 +250,9 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  }
 	  *p++ = ident[i];
 	}
+
 	p += sprintf(p, ">APDPRS,DSTAR*");
+
 
 	tnc2addrlen = p - tnc2buf;
 	*p++ = ':';
@@ -284,7 +290,7 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	}
 	p += sprintf(p, "%s", s);
 
-	*p++ = '/'; // FIXME: SYMBOL!
+	*p++ = aprssym[0];
 	p2 = p;
 	if (gga[2] != NULL) {
 	  s = gga[4]; // yyymm.dddd
@@ -314,7 +320,7 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  p += sprintf(p, "%s", rmc[6]); // <E|W>
 	}
 
-	*p++ = '>'; // FIXME: SYMBOL!
+	*p++ = aprssym[1];
 
 	//  DPRS: ident='OH3BK  D,BN  *59             ', GGA='$GPGGA,204805,6128.230,N,2353.520,E,1,3,0,115,M,0,M,,*6d', RMC=''
 	//  DPRSGW GPS data: OH3BK-D>APDPRS,DSTAR*:!6128.23N/02353.52E>
@@ -631,7 +637,7 @@ int ttyreader_getc(struct serialport *S)
 
 	return (0xFF & S->rdbuf[S->rdcursor++]);
 }
-void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard)
+void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25_)
 {
   printf("DPRS RX-IGATE: %s\n", tnc2buf);
 }
