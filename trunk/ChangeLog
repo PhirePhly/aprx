@@ -1,3 +1,29 @@
+2010-06-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, igate.c, dprsgw.c, ttyreader.c, ax25.c:
+	    igate_to_aprsis(... , STRICTAX25)  -- new flag
+	    to control source specific information about
+	    TNC2 format address formats.
+
+	* parse_aprs.c:
+	    Remove unnecessary double precission floating point math.
+	    Use of 'float' is quite enough.
+
+	* debian/control:
+	    Change package name a bit
+
+	* dprsgw.c:
+	    Data collection code fixes
+
+	* telemetry.c:
+	    Send first telemetry at 20.0 minutes after start.
+	    This is related to defaulting to EMBEDDED operation mode.
+
+	* configure.in, aprx.h, erlang.c:
+	    Change defaults so that System is always "--with-embedded",
+	    and requires explicit "--with-erlangstorage" to compile with
+	    a filesystem based backing storage codes.
+
 2010-06-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, dprsgw.c:

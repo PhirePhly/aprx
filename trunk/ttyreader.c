@@ -506,7 +506,7 @@ static int ttyreader_pulltnc2(struct serialport *S)
 	/* netax25_sendax25_tnc2(S->rdline, S->rdlinelen); */
 
 	/* S->rdline[] has text line without line ending CR/LF chars   */
-	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), addrlen, S->rdlinelen, 0);
+	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), addrlen, S->rdlinelen, 0, 1);
 
 	return 0;
 }

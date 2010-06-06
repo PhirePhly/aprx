@@ -6,6 +6,10 @@
 /* Define for pthread(3p) enabling */
 #undef ENABLE_PTHREAD
 
+/* Define for a non-embedded system with filesystem based Erlang history
+   storage */
+#undef ERLANGSTORAGE
+
 /* Define to 1 if you have the `atan2f' function. */
 #undef HAVE_ATAN2F
 
@@ -68,6 +72,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION

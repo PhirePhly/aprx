@@ -28,6 +28,9 @@ void telemetry_start()
 	 * compromise.
 	 */
 	telemetry_seq = (time(NULL)) & 255;
+
+	telemetry_time = now + telemetry_interval;
+
 }
 
 int telemetry_prepoll(struct aprxpolls *app)

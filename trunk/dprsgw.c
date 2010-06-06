@@ -142,7 +142,7 @@ static int dprsgw_isvalid( struct serialport *S )
 			      S->rdlinelen, S->rdline);
 	    return 0;
 	  }
-	  if (debug) printf("NMEA: '%s'\n", S->rdline);
+	  if (debug) printf("DPRS NMEA: '%s'\n", S->rdline);
 	  for (i = 0; i < S->rdlinelen; ++i) {
 	    c = S->rdline[i];
 	    if (c == '*') {
@@ -191,7 +191,7 @@ static void dprsgw_rxigate( struct serialport *S )
 
 	    // MAYBE RATELIMIT
 	    // Acceptable packet, Rx-iGate it!
-	    igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0);
+	    igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0, 0);
 
 /*
 	    // MUST RATELIMIT!
@@ -203,7 +203,7 @@ static void dprsgw_rxigate( struct serialport *S )
 	    
 	  } else {
 	    // Bad packet!
-	    if (debug) printf("Bad packet! %s\n", S->rdline);
+	    if (debug) printf("Bad DPRS packet! %s\n", S->rdline);
 	    return;
 	  }
 
@@ -216,7 +216,7 @@ static void dprsgw_rxigate( struct serialport *S )
 	  }
 	  memcpy(dp->ggaline, tnc2addr, tnc2bodylen);
 	  dp->ggaline[tnc2bodylen] = 0;
-	  if (debug) printf("GGA: %s\n", dp->ggaline);
+	  if (debug) printf("DPRS GGA: %s\n", dp->ggaline);
 
 	} else if (memcmp("$GPRMC,", tnc2addr, 7) == 0) {
 	  dprsgw_t *dp = S->dprsgw;
@@ -227,7 +227,7 @@ static void dprsgw_rxigate( struct serialport *S )
 	  }
 	  memcpy(dp->rmcline, tnc2addr, tnc2bodylen);
 	  dp->rmcline[tnc2bodylen] = 0;
-	  if (debug) printf("RMC: %s\n", dp->rmcline);
+	  if (debug) printf("DPRS RMC: %s\n", dp->rmcline);
 
 	} else if (tnc2addr[8] == ',' && tnc2bodylen == 29) {
 	  // Acceptable DPRS "ident" line
@@ -309,14 +309,13 @@ int dprsgw_pulldprs( struct serialport *S )
 		// A timeout has happen? Either data is added constantly,
 		// or nothing was received from DPRS datastream!
 
-	  if (debug)printf("dprsgw: previous data is %d sec old, discarding its state.\n",((int)(now-rdtime)));
+		if (S->rdlinelen > 0)
+		  if (debug)printf("dprsgw: previous data is %d sec old, discarding its state: %s\n",((int)(now-rdtime)), S->rdline);
 
 		S->rdline[S->rdlinelen] = 0;
 		if (S->rdlinelen > 0)
 		  dprslog(rdtime, S->rdline);
-
 		S->rdlinelen = 0;
-		S->dprsstate = DPRSSTATE_SYNCHUNT;
 
 		dprsgw_flush(S->dprsgw);  // timeout -> discard accumulated data
 	}
@@ -329,137 +328,85 @@ int dprsgw_pulldprs( struct serialport *S )
 		  // if (debug) printf("dprsgw_pulldprs: read %d chars\n", i);
 			return c;	/* Out of input.. */
 		}
-		// if (debug) printf("dprs %02X '%c'\n", c, c);
+		if (debug) printf("DPRS %ld %3d %02X '%c'\n", now, S->rdlinelen, c, c);
 
 		/* S->dprsstate != 0: read data into S->rdline,
 		   == 0: discard data until CR|LF.
 		   Zero-size read line is discarded as well
 		   (only CR|LF on input frame)  */
 
-		if (S->dprsstate == DPRSSTATE_SYNCHUNT) {
-			/* Looking for CR or LF.. */
-			if (c == '\n' || c == '\r') {
-				// This should have re-synced before..
-				S->rdlinelen = 0;
-				continue;
-			}
-			// A '$' starts possible data..
-			if (c == '$' && S->rdlinelen == 0) {
-				S->rdline[S->rdlinelen++] = c;
-				continue;
-			}
-			// More fits in?
-			if (S->rdlinelen > 0 && S->rdlinelen >= sizeof(S->rdline)-3) {
-			        // Too long a line...
-				do {
-					int len;
-					dprsgw_flush(S->dprsgw);
-
-					// Look for first '$' in buffer _after_ first char
-					uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
-					if (!p) {
-					  S->rdlinelen = 0;
-					  break; // Not found
-					}
-					len = S->rdlinelen - (p - S->rdline);
-					if (len <= 0) {
-					  S->rdlinelen = 0;
-					  break; // exhausted
-					}
-					memcpy(S->rdline, p, len);
-					S->rdline[len] = 0;
-					S->rdlinelen = len;
-					if (len >= 3) {
-					  if (memcmp("$$C", S->rdline, 3) != 0 &&
-					      memcmp("$GP", S->rdline, 3) != 0) {
-					    // Not acceptable 3-char prefix
-					    // Eat away the collected prefixes..
-					    continue;
-					  }
-					}
-					break;
-				} while(1);
-			}
-			S->rdline[S->rdlinelen++] = c;
-
-			// Too short to say anything?
-			if (S->rdlinelen < 3) {
-				continue;
-			}
-			if (S->rdlinelen == 3 &&
-			    (memcmp("$$C", S->rdline, 3) != 0 &&
-			     memcmp("$GP", S->rdline, 3) != 0)) {
-				// No correct start, discard...
-				dprsgw_flush(S->dprsgw);
-				S->rdlinelen = 2;
-				memcpy(S->rdline, S->rdline+1, 2);
-				S->rdline[S->rdlinelen] = 0;
-				if (S->rdline[0] != '$') {
-					// Didn't start with a '$'
-					S->rdlinelen = 0;
-				}
-				continue;
-			}
-			if (S->rdlinelen == 3 && memcmp(S->rdline, "$GP", 3) == 0) {
-				S->dprsstate = DPRSSTATE_COLLECTING;
-				continue;
-			} else if (S->rdlinelen == 5 && memcmp(S->rdline, "$$CRC", 5) == 0) {
-				S->dprsstate = DPRSSTATE_COLLECTING;
-				continue;
-			}
-		}
-
-		/* Now: (S->dprsstate != DPRSSTATE_SYNCHUNT)  */
-
+		/* Looking for CR or LF.. */
 		if (c == '\n' || c == '\r') {
-			/* End of line seen! */
-			if (S->rdlinelen > 0) {
-
-				/* Non-zero-size string, put terminating 0 byte on it. */
-				S->rdline[S->rdlinelen] = 0;
-
-				dprsgw_receive(S);
-			}
-			S->rdlinelen = 0;
+		  /* End of line seen! */
+		  if (S->rdlinelen > 0) {
+		  
+		    /* Non-zero-size string, put terminating 0 byte on it. */
+		    S->rdline[S->rdlinelen] = 0;
+		  
+		    dprsgw_receive(S);
+		  }
+		  S->rdlinelen = 0;
+		  continue;
+		}
+		// A '$' starts possible data..
+		if (c == '$' && S->rdlinelen == 0) {
+		  S->rdline[S->rdlinelen++] = c;
+		  continue;
+		}
+		// More fits in?
+		if (S->rdlinelen >= sizeof(S->rdline)-3) {
+		  // Too long a line...
+		  do {
+		    int len;
+		    dprsgw_flush(S->dprsgw);
+		    
+		    // Look for first '$' in buffer _after_ first char
+		    uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
+		    if (!p) {
+		      S->rdlinelen = 0;
+		      break; // Not found
+		    }
+		    len = S->rdlinelen - (p - S->rdline);
+		    if (len <= 0) {
+		      S->rdlinelen = 0;
+		      break; // exhausted
+		    }
+		    memcpy(S->rdline, p, len);
+		    S->rdline[len] = 0;
+		    S->rdlinelen = len;
+		    if (len >= 3) {
+		      if (memcmp("$$C", S->rdline, 3) != 0 &&
+			  memcmp("$GP", S->rdline, 3) != 0) {
+			// Not acceptable 3-char prefix
+			// Eat away the collected prefixes..
 			continue;
+		      }
+		    }
+		    break;
+		  } while(1);
 		}
-
-		// Now see if the rdline is overflowing or not.
-		// If it is, hunt for possible start-of-frame within the buffer,
-		// and discard preceding data..
-		if (S->rdlinelen >= (sizeof(S->rdline) - 3)) {	/* Too long !  Way too long ! */
-			// Too long a line...
-			do {
-				int len;
-				// Look for first '$' in buffer _after_ first char
-				uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
-				if (!p) {
-				  S->rdlinelen = 0;
-				  break; // Not found
-				}
-				len = S->rdlinelen - (p - S->rdline);
-				if (len <= 0) {
-				  S->rdlinelen = 0;
-				  break; // exhausted
-				}
-				memcpy(S->rdline, p, len);
-				S->rdline[len] = 0;
-				S->rdlinelen = len;
-				if (len >= 3) {
-				  if (memcmp("$$C", S->rdline, 3) != 0 &&
-				      memcmp("$GP", S->rdline, 3) != 0) {
-				    // Not acceptable 3-char prefix
-				    // Eat away the collected prefixes..
-				    continue;
-				  }
-				}
-				break;
-			} while(1);
-		}
-
-		/* Put it on line store: */
 		S->rdline[S->rdlinelen++] = c;
 
+/*
+		// Too short to say anything?
+		if (S->rdlinelen < 3) {
+		  continue;
+		}
+		if (S->rdlinelen == 3 &&
+		    (memcmp("$$C", S->rdline, 3) != 0 &&
+		     memcmp("$GP", S->rdline, 3) != 0)) {
+		  // No correct start, discard...
+		  dprsgw_flush(S->dprsgw);
+		  S->rdlinelen = 2;
+		  memcpy(S->rdline, S->rdline+1, 2);
+		  S->rdline[S->rdlinelen] = 0;
+		  if (S->rdline[0] != '$') {
+		    // Didn't start with a '$'
+		    S->rdlinelen = 0;
+		  }
+		  continue;
+		}
+*/
 	}			/* .. input loop */
 
 	return 0;		/* not reached */
@@ -510,7 +457,7 @@ int ttyreader_getc(struct serialport *S)
 }
 void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard)
 {
-  printf("RX-IGATE: %s\n", tnc2buf);
+  printf("DPRS RX-IGATE: %s\n", tnc2buf);
 }
 
 int debug = 1;

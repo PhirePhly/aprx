@@ -24,8 +24,8 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 
-const char *tocall = "APRX1H";
-const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'1'<<1,'H'<<1,0x60};
+const char *tocall = "APRX1I";
+const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'1'<<1,'I'<<1,0x60};
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
@@ -80,7 +80,7 @@ int main(int argc, char *const argv[])
 	int foreground = 0;
 	struct aprxpolls app = APRXPOLLS_INIT;
 
-	now = time(NULL);
+	now = time(NULL); // init global time reference
 
 	setlinebuf(stdout);
 	setlinebuf(stderr);

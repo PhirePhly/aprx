@@ -200,6 +200,7 @@ aprxlog @VARLOG@/aprx.log
 # Symbol  R&   is for "Rx-only iGate"
 # Symbol  I&   is for "Tx-iGate"
 # Symbol  /#   is for "Digipeater"
+# Symbol  I#   is for "Tx-iGate + Digipeater""
 #
 #beacon                     file /tmp/wxbeacon.txt
 #beacon interface N0CALL-3 srccall N0CALL-3 \

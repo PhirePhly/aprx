@@ -39,8 +39,15 @@ AC_CHECK_FUNCS(openpty,,
 			    [AC_DEFINE(HAVE_OPENPTY,1,[])] [LIBS="$LIBS -lutil"]))
 
 dnl Check for user options
+
+dnl The "EMBEDDED" is now always on, replaced with --with-erlangstorage
+AC_DEFINE(EMBEDDED,1,[Define for an embedded target])
+
 AC_ARG_WITH(embedded, [  --with-embedded  When desiring to target as embedded],
 		      [AC_DEFINE(EMBEDDED,1,[Define for an embedded target]) EMBEDDED=1])
+
+AC_ARG_WITH(erlangstorage, [  --with-erlangstorage  When desiring a longer term backing storage on erlang datasets.  NOT compatible with EMBEDDED, REQUIRES FILESYSTEM!],
+		      [AC_DEFINE(ERLANGSTORAGE,1,[Define for a non-embedded system with filesystem based Erlang history storage]) ERLANGSTORAGE=1])
 
 AC_ARG_WITH(pthread,  [  --with-pthread   When desiring use pthread subsystem],
 		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])

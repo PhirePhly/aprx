@@ -285,7 +285,7 @@ extern int  erlang_postpoll(struct aprxpolls *app);
 /* igate.c */
 extern void igate_start(void);
 extern void igate_from_aprsis(const char *ax25, int ax25len);
-extern void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard);
+extern void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25);
 extern void enable_tx_igate(const char *, const char *);
 extern void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len);
 
@@ -345,18 +345,19 @@ struct erlangline {
 	int e10_cursor, e10_max;
 	int e60_cursor, e60_max;
 
-#ifdef EMBEDDED			/* When making very small memory footprint,
+
+#ifdef ERLANGSTORAGE
+
+#define APRXERL_1M_COUNT   (60*24)    // 1 day of 1 minute data
+#define APRXERL_10M_COUNT  (60*24*7)  // 1 week of 10 minute data
+#define APRXERL_60M_COUNT  (24*31*3)  // 3 months of hourly data
+
+#else /* EMBEDDED */		/* When making very small memory footprint,
 				   like embedding on Linksys WRT54GL ... */
 
 #define APRXERL_1M_COUNT   (30)	      // 30 minutes of 1 minute data
 #define APRXERL_10M_COUNT  (3)        // 30 minutes of 10 minute data
 #define APRXERL_60M_COUNT  (2)        // 2 hours of 60 minute data
-
-#else
-
-#define APRXERL_1M_COUNT   (60*24)    // 1 day of 1 minute data
-#define APRXERL_10M_COUNT  (60*24*7)  // 1 week of 10 minute data
-#define APRXERL_60M_COUNT  (24*31*3)  // 3 months of hourly data
 #endif
 	struct erlang_rxtxbytepkt e1[APRXERL_1M_COUNT];
 	struct erlang_rxtxbytepkt e10[APRXERL_10M_COUNT];

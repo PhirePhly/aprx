@@ -564,8 +564,9 @@ static int parse_aprs_compressed(struct pbuf_t *pb, const char *body, const char
 {
 	char sym_table, sym_code;
 	int i;
-	int lat1, lat2, lat3, lat4, lng1, lng2, lng3, lng4;
-	double lat = 0.0, lng = 0.0;
+	int lat1, lat2, lat3, lat4;
+	int lng1, lng2, lng3, lng4;
+	float lat, lng;
 	
 	DEBUG_LOG("parse_aprs_compressed");
 	
@@ -590,18 +591,24 @@ static int parse_aprs_compressed(struct pbuf_t *pb, const char *body, const char
 	// fprintf(stderr, "\tpassed length and format checks, sym %c%c\n", sym_table, sym_code);
 	
 	/* decode */
-	lat1 = body[1] - 33;
-	lat2 = body[2] - 33;
-	lat3 = body[3] - 33;
-	lat4 = body[4] - 33;
-	lng1 = body[5] - 33;
-	lng2 = body[6] - 33;
-	lng3 = body[7] - 33;
-	lng4 = body[8] - 33;
+	lat1 = (body[1] - 33);
+	lat2 = (body[2] - 33);
+	lat3 = (body[3] - 33);
+	lat4 = (body[4] - 33);
+
+	lat1 = ((((lat1 * 91) + lat2) * 91) + lat3) * 91 + lat4;
+
+	lng1 = (body[5] - 33);
+	lng2 = (body[6] - 33);
+	lng3 = (body[7] - 33);
+	lng4 = (body[8] - 33);
+
+	lng1 = ((((lng1 * 91) + lng2) * 91) + lng3) * 91 + lng4;
 	
 	/* calculate latitude and longitude */
-	lat = 90.0 - ((double)(lat1 * 91 * 91 * 91 + lat2 * 91 * 91 + lat3 * 91 + lat4) / (double)380926.0);
-	lng = -180.0 + ((double)(lng1 * 91 * 91 * 91 + lng2 * 91 * 91 + lng3 * 91 + lng4) / (double)190463.0);
+	
+	lat =   90.0F - ((float)(lat1) / 380926.0F);
+	lng = -180.0F + ((float)(lng1) / 190463.0F);
 	
 	return pbuf_fill_pos(pb, lat, lng, sym_table, sym_code);
 }
