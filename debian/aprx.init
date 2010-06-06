@@ -30,17 +30,17 @@ if [ "$STARTAPRX" != "yes" ];then
 	exit 0
 fi
 
-set -e
-
 case "$1" in
   start)
 	echo -n "Starting $DESC: "
+	set -e
 	start-stop-daemon --start --quiet --pidfile /var/run/$NAME.pid \
 		--exec $DAEMON -- $DAEMON_OPTS
 	echo
 	;;
   stop)
 	echo -n "Stopping $DESC: "
+	set -e
 	start-stop-daemon --stop --quiet --pidfile /var/run/$NAME.pid  \
 		--exec $DAEMON --oknodo
 	echo
@@ -64,6 +64,7 @@ case "$1" in
 	#	just the same as "restart" except that it does nothing if the
 	#   daemon isn't already running.
 	# check wether $DAEMON is running. If so, restart
+	set -e
 	start-stop-daemon --stop --test --quiet --pidfile \
 		/var/run/$NAME.pid --exec $DAEMON \
 	&& $0 restart \
@@ -74,6 +75,7 @@ case "$1" in
 	start-stop-daemon --stop --quiet --pidfile \
 		/var/run/$NAME.pid --exec $DAEMON
 	sleep 1
+	set -e
 	start-stop-daemon --start --quiet --pidfile \
 		/var/run/$NAME.pid --exec $DAEMON -- $DAEMON_OPTS
 	echo "$NAME."

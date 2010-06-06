@@ -1,5 +1,9 @@
 2010-06-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* debian/aprx.init:
+	    The "restart" command fails to work quite often.
+	    The reason being "set -e"...
+
 	* aprx.h, igate.c, dprsgw.c, ttyreader.c, ax25.c:
 	    igate_to_aprsis(... , STRICTAX25)  -- new flag
 	    to control source specific information about
