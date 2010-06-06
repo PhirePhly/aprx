@@ -796,7 +796,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 
 static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,' '<<1,' '<<1,0x60 };
 
-void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *tnc2data, const int tnc2datalen)
+void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen)
 {
 	int d;
 	struct pbuf_t *pb;
@@ -865,8 +865,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  *a++ = 0x03; // UI
 	  *a++ = 0xF0; // PID = 0xF0
 
-	  a += sprintf((char*)a, "}%s>%s,TCPIP,%s*:",
-		       fromcall, origtocall, tx_aif->callsign );
+	  a += sprintf((char*)a, "}%s>%s,%s,%s*:",
+		       fromcall, origtocall, gwtype, tx_aif->callsign );
 	  ax25len = a - ax25buf;
 	  if (tnc2datalen + ax25len > sizeof(ax25buf)) {
 	    // Urgh...  Can not fit it in :-(
@@ -887,8 +887,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  tnc2addrlen = t - tnc2buf;
 	  *t++ = ':';
-	  t += sprintf(t, "}%s>%s,TCPIP,%s*:",
-		       fromcall, origtocall, tx_aif->callsign );
+	  t += sprintf(t, "}%s>%s,%s,%s*:",
+		       fromcall, origtocall, gwtype, tx_aif->callsign );
 	  if (tnc2datalen + (t-tnc2buf) +4 > sizeof(tnc2buf)) {
 	    // Urgh...  Can not fit it in :-(
 	    if(debug)printf("data does not fit into tnc2buf: %d > %d\n",

@@ -1,3 +1,10 @@
+2010-06-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, aprx.h, dprsgw.c, igate.c:
+	    Rate-limit source callsigns per source interface to
+	    once per 30 seconds.  RF iGate DPRS messages to APRS
+	    as 3rd-party messages.
+
 2010-06-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* parse_aprs.c, dprsgw.c:
