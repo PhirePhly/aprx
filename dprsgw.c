@@ -340,6 +340,24 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	// RMC HEADING/SPEED
 	// IDENT text
 
+	p0 = ident + 29;
+	s  = ident + 9+4;
+	p2 = p;
+
+	for ( ; s < p0; ++s ) {
+	  if (*s != ' ')
+	    break;
+	}
+	if (s < p0)
+	  *p++ = ' ';
+	for ( ; s < p0; ++s ) {
+	  if (*s == '*')
+	    break;
+	  *p++ = *s;
+	}
+	if (p > p2)
+	  *p++ = ' ';
+
 	if (alt_feet > -9999999) {
 	  p += sprintf(p, "/A=%06d", alt_feet);
 	}

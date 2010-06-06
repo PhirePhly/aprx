@@ -1,7 +1,9 @@
 2010-06-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* parse_aprs.c, dprsgw.c:
-	    Rudimentary GPSxyz -> APRS symbol mapping for DPRS.
+	    Rudimentary GPSxyz -> APRS symbol mapping for DPRS,
+	    with GPSxyz overlay character where possible.
+	    Also IDENT TEXT, if any.
 
 	* debian/aprx.init:
 	    The "restart" command fails to work quite often.

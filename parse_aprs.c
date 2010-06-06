@@ -257,12 +257,15 @@ int parse_gps2aprs_symbol(const char *gpsxxx, char *aprssymbol) {
 	while (low < high) {
 	  mid = (low + high) >> 1; // divide by 2
 	  i = strcmp(gps, gps2aprsSyms[mid].gps);
-	  if (debug) printf("GPS2APRS: '%s' '%s', low=%d mid=%d high=%d\n",
-			    gps, gps2aprsSyms[mid].gps, low, mid, high);
+	  // if (debug) printf("GPS2APRS: '%s' '%s', low=%d mid=%d high=%d\n",gps, gps2aprsSyms[mid].gps, low, mid, high);
 	  if (i == 0) {
 	    // Exact match
+	    char c3 = gpsxxx[2];
 	    strcpy(aprssymbol, gps2aprsSyms[mid].aprs);
-	    // FIXME: overlay ???
+	    if (c3 != 0 && c3 != ' ' && aprssymbol[0] != '/') {
+	      // FIXME: overlay ???
+	      aprssymbol[0] = c3;
+	    }
 	    return 0;
 	  }
 	  if (i > 0) {
