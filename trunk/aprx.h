@@ -141,13 +141,6 @@ typedef enum {
 	KISSSTATE_KISSFESC
 } KissState;
 
-typedef enum {
-	DPRSSTATE_SYNCHUNT = 0,
-	DPRSSTATE_SAW_GPSPOS,
-	DPRSSTATE_COLLECTING
-} DprsState;
-
-
 struct serialport {
 	int fd;			/* UNIX fd of the port                  */
 
@@ -160,7 +153,6 @@ struct serialport {
 
 	KissState kissstate;	/* state for KISS frame reader,
 				   also for line collector              */
-	DprsState dprsstate;
 
 	/* NOTE: The smack_probe is separate on all
 	**       sub-tnc:s on SMACK loop
@@ -570,7 +562,7 @@ extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int ui_pid, const uint8_t *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
 extern void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
-extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *tnc2data, const int tnc2datalen);
+extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen);
 extern int  interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *tncbuf, const int tnclen);
 
 
