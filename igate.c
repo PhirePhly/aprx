@@ -204,14 +204,14 @@ void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
  * It does presume that the record is in a buffer that can be written on!
  */
 
-void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard0)
+void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard0, const int strictax25_)
 {
 	const char *tp, *t, *t0;
 	const char *s;
 	const char *ae;
 	const char *e;
 	int discard = discard0;
-	int strictax25 = 1;	// Callsigns per strict AX25 (not 3rd-party)
+	int strictax25 = strictax25_; // Callsigns per strict AX25 (not 3rd-party)
 
 	tp = tnc2buf;           // 3rd-party recursion moves tp
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae

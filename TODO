@@ -50,6 +50,27 @@
 - Calculate and note APRS DXes (like digi_ned does) ?
 - Calculate ALOHA range, and publish it?
 
+- Embedded SNTP client?
+  (Reads NTP time from 127.0.0.1:123 - or configured external source)
+  Supports Aprx-Aprx clustered UDP based protocol where all messages
+  are equipped with NTP timestamp and if in receiver's opinnion the
+  time is too far off, network delays have been excessive and message
+  is discarded.
+
+  If Aprx System has no time at all, one SNTP probe is made to determine
+  "initial system time".
+
+  This SNTP client will have two time management states:
+    - "current time"
+    - "new time"
+  If SNTP probes return times that agree with "current time",
+  the "new time" accumulator is discarded, and possible minor
+  drift sync is done on "current time."
+
+  If SNTP probes return times that do not agree with "current time", then
+  a "new time" accumulator is used to track the time. If the "new time" is
+  consistently tracked for 5 samples, "new time" becomes "current time".
+
 
 BoB:
 	Shucks, it would sure be nice if EVERY DIGIPEATER also had a

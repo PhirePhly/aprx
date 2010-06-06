@@ -72,7 +72,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 {
 	struct erlang_file *EF;
 	int i;
-#ifndef EMBEDDED
+#ifdef ERLANGSTORAGE
 	struct stat st;
 	char buf[256];
 	int new_size, pagesize = sysconf(_SC_PAGE_SIZE);
@@ -240,7 +240,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 
 		return 0;	/* OK ! */
 	}
-#endif				/* ... EMBEDDED ... */
+#endif				/* ... ERLANGSTORAGE ... */
 
       embedded_only:;
 	erlang_data_is_nonshared = 1;
@@ -269,7 +269,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 
 static int erlang_backingstore_open(int do_create)
 {
-#ifndef EMBEDDED
+#ifdef ERLANGSTORAGE
 	if (!erlang_backingstore) {
 		syslog(LOG_ERR, "erlang_backingstore not defined!");
 		erlang_data_is_nonshared = 1;

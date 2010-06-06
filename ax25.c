@@ -290,7 +290,7 @@ int ax25_to_tnc2(const struct aprx_interface *aif, const char *portname,
 
 	// APRS type packets are first rx-igated (and rflog()ed)
 	if (is_aprs) {
-		igate_to_aprsis(portname, tncid, tnc2buf, tnc2addrlen, tnc2len, 0);
+	  igate_to_aprsis(portname, tncid, tnc2buf, tnc2addrlen, tnc2len, 0, 1);
 	}
 
 	// Send to interface system to receive it..  (digipeater!)
