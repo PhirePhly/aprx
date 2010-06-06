@@ -17,8 +17,13 @@
  *  Convert to 3rd-party frame.
  *  Send out to APRSIS and Digipeaters.
  *
- *  http://www.aprs-is.net/DPRS.aspx
+ *      http://www.aprs-is.net/DPRS.aspx
  *
+ *
+ *
+ *  GPSxyz -> APRS symbols mapping:
+ *
+ *      http://www.aprs.org/symbols/symbolsX.txt
  */
 
 typedef struct dprs_gw {
@@ -26,7 +31,6 @@ typedef struct dprs_gw {
 	char *rmcline;
 	int ggaspace;
 	int rmcspace;
-
 } dprsgw_t;
 
 
@@ -40,12 +44,14 @@ void dprslog( const time_t stamp, const uint8_t *buf ) {
 
 
 static void dprsgw_flush(dprsgw_t *dp) {
-	if (dp->ggaline == NULL)
+	if (dp->ggaline == NULL) {
+	  dp->ggaspace = 200;
 	  dp->ggaline = malloc(200);
-	if (dp->rmcline == NULL)
+	}
+	if (dp->rmcline == NULL) {
+	  dp->rmcspace = 200;
 	  dp->rmcline = malloc(200);
-	dp->ggaspace = 200;
-	dp->rmcspace = 200;
+	}
 	dp->ggaline[0] = 0;
 	dp->rmcline[0] = 0;
 }
@@ -152,6 +158,10 @@ static int dprsgw_isvalid( struct serialport *S )
 	  }
 	  xor &= 0xFF;
 	  if (sscanf((const char *)(S->rdline+i), "*%x%c", &csum, &c) < 1) {
+	    if (memcmp(S->rdline+8, ",                    ", 21) == 0) {
+	      if (debug) printf("DPRS IDENT LINE OK: '%s'\n", S->rdline);
+	      return 1;
+	    }
 	    // if (debug) printf("csum bad NMEA: '%s'\n", S->rdline);
 	    return 0; // Too little or too much
 	  }
@@ -163,6 +173,177 @@ static int dprsgw_isvalid( struct serialport *S )
 	  // if (debug) printf("csum valid NMEA: '%s'\n", S->rdline);
 	  return 1; // Maybe valid?
 	}
+}
+
+
+// Split NMEA text line at ',' characters
+static int dprsgw_nmea_split(char *nmea, char *fields[], int n) {
+	int i = 0;
+	--n;
+	fields[i] = nmea;
+	for ( ; *nmea; ++nmea ) {
+	  for ( ; *nmea != 0 && *nmea != ','; ++nmea )
+	    ;
+	  if (*nmea == 0) break; // THE END!
+	  if (*nmea == ',')
+	    *nmea++ = 0; // COMMA terminates a field, change to SPACE
+	  if (i < n) ++i;  // Prep next field index
+	  fields[i] = nmea; // save field pointer
+	}
+	fields[i] = NULL;
+	return i;
+}
+
+static void dprsgw_nmea_igate( const struct aprx_interface *aif,
+			       char *ident, dprsgw_t *dp ) {
+	int i;
+	char *gga[20];
+	char *rmc[20];
+	char tnc2buf[2000];
+	int  tnc2addrlen;
+	int  tnc2buflen;
+	char *p;
+	char *p2, *p0;
+	char *s;
+	int  alt_feet = -9999999;
+
+	if (debug) {
+	  printf(" DPRS: ident='%s', GGA='%s', RMC='%s'\n", ident, dp->ggaline, dp->rmcline);
+	}
+
+	memset(gga, 0, sizeof(gga));
+	memset(rmc, 0, sizeof(rmc));
+
+	// $GPGGA,hhmmss.dd,xxmm.dddd,<N|S>,yyymm.dddd,<E|W>,v,
+	//        ss,d.d,h.h,M,g.g,M,a.a,xxxx*hh<CR><LF>
+
+	// $GPRMC,hhmmss.dd,S,xxmm.dddd,<N|S>,yyymm.dddd,<E|W>,
+	//        s.s,h.h,ddmmyy,d.d, <E|W>,M*hh<CR><LF>
+	//    ,S, = Status:  'A' = Valid, 'V' = Invalid
+
+	if (dp->ggaline[0] != 0)
+	  dprsgw_nmea_split(dp->ggaline, gga, 20);
+	if (dp->rmcline[0] != 0)
+	  dprsgw_nmea_split(dp->rmcline, rmc, 20);
+
+	if (rmc[2] != NULL && strcmp(rmc[2],"A") != 0) {
+	  if (debug) printf("Invalid DPRS $GPRMC packet (validity='%s')\n",
+			    rmc[2]);
+	  return;
+	}
+	if (gga[6] != NULL && strcmp(gga[6],"1") != 0) {
+	  if (debug) printf("Invalid DPRS $GPGGA packet (validity='%s')\n",
+			    gga[6]);
+	  return;
+	}
+
+	p = tnc2buf;
+	for (i = 0; i < 8; ++i) {
+	  if (ident[i] == ' ') {
+	    *p++ = '-';
+	    for ( ; ident[i+1] == ' ' && i < 8; ++i );
+	    continue;
+	  }
+	  *p++ = ident[i];
+	}
+	p += sprintf(p, ">APDPRS,DSTAR*");
+
+	tnc2addrlen = p - tnc2buf;
+	*p++ = ':';
+	*p++ = '!'; // Std position w/o messaging
+	p2 = p;
+	if (gga[2] != NULL) {
+	  s = gga[2];
+	} else if (rmc[3] != NULL) {
+	  s = rmc[3];
+	} else {
+	  // No coordinate!
+	  if (debug) printf("dprsgw: neither GGA nor RMC coordinates available, discarding!\n");
+	  return;
+	}
+	p0 = strchr(s, '.');
+	if (!p0) {
+	  if (debug) printf("dprsgw: invalid format NMEA North coordinate: '%s'\n", s);
+	  return;
+	}
+	while (p0 - s < 4) {
+	  *p++ = '0';
+	  ++p0; // move virtually
+	}
+	p += sprintf(p, "%s", s);
+	if (p2+7 < p) { // Too long!
+	  p = p2+7;
+	}
+	while (p2+7 > p) { // Too short!
+	  *p++ = ' '; // unprecise position
+	}
+	if (gga[2] != NULL) {
+	  s = gga[3]; // <N|S>
+	} else if (rmc[3] != NULL) {
+	  s = rmc[4]; // <N|S>
+	}
+	p += sprintf(p, "%s", s);
+
+	*p++ = '/'; // FIXME: SYMBOL!
+	p2 = p;
+	if (gga[2] != NULL) {
+	  s = gga[4]; // yyymm.dddd
+	} else if (rmc[3] != NULL) {
+	  s = rmc[5]; // yyymm.dddd
+	}
+	p0 = strchr(s, '.');
+	if (!p0) {
+	  if (debug) printf("dprsgw: invalid format NMEA East coordinate: '%s'\n", s);
+	  return;
+	}
+	while (p0 - s < 5) {
+	  *p++ = '0';
+	  ++p0; // move virtually
+	}
+
+	p += sprintf(p, "%s", s);
+	if (p2+8 < p) { // Too long!
+	  p = p2+8;
+	}
+	while (p2+8 > p) { // Too short!
+	  *p++ = ' '; // unprecise position
+	}
+	if (gga[2] != NULL) {
+	  p += sprintf(p, "%s", gga[5]); // <E|W>
+	} else if (rmc[3] != NULL) {
+	  p += sprintf(p, "%s", rmc[6]); // <E|W>
+	}
+
+	*p++ = '>'; // FIXME: SYMBOL!
+
+	//  DPRS: ident='OH3BK  D,BN  *59             ', GGA='$GPGGA,204805,6128.230,N,2353.520,E,1,3,0,115,M,0,M,,*6d', RMC=''
+	//  DPRSGW GPS data: OH3BK-D>APDPRS,DSTAR*:!6128.23N/02353.52E>
+
+	if (gga[2] != NULL) {
+	  if (gga[9] != NULL && gga[9][0] != 0)
+	    alt_feet = strtol(gga[9], NULL, 10);
+	  if (strcmp(gga[10],"M") == 0) {
+	    // Meters!  Convert to feet..
+	    alt_feet = (10000 * alt_feet) / 3048;
+	  } else {
+	    // Already feet - presumably
+	  }
+	}
+
+	// FIXME: more data!
+	// RMC HEADING/SPEED
+	// IDENT text
+
+	if (alt_feet > -9999999) {
+	  p += sprintf(p, "/A=%06d", alt_feet);
+	}
+
+	*p = 0;
+	tnc2buflen = p - tnc2buf;
+
+	if (debug) printf("DPRSGW GPS data: %s\n", tnc2buf);
+
+	igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2buf, tnc2addrlen, tnc2buflen, 0, 0);
 }
 
 static void dprsgw_rxigate( struct serialport *S )
@@ -232,12 +413,8 @@ static void dprsgw_rxigate( struct serialport *S )
 	} else if (tnc2addr[8] == ',' && tnc2bodylen == 29) {
 	  // Acceptable DPRS "ident" line
 	  dprsgw_t *dp = S->dprsgw;
-
-	  if (debug) {
-	    printf(" DPRS: ident='%s', GGA='%s', RMC='%s'\n", tnc2addr, dp->ggaline, dp->rmcline);
-	  }
-
-	  
+	  tnc2addr[tnc2bodylen] = 0; // zero-terminate just in case
+	  dprsgw_nmea_igate(aif, tnc2addr, dp);
 
 	} else {
 	  // this should never be called...
@@ -245,7 +422,6 @@ static void dprsgw_rxigate( struct serialport *S )
 	  return;
 	}
 }
-
 
 /*
  *  Receive one text line from serial port
@@ -328,7 +504,7 @@ int dprsgw_pulldprs( struct serialport *S )
 		  // if (debug) printf("dprsgw_pulldprs: read %d chars\n", i);
 			return c;	/* Out of input.. */
 		}
-		if (debug) printf("DPRS %ld %3d %02X '%c'\n", now, S->rdlinelen, c, c);
+		if (debug>2) printf("DPRS %ld %3d %02X '%c'\n", now, S->rdlinelen, c, c);
 
 		/* S->dprsstate != 0: read data into S->rdline,
 		   == 0: discard data until CR|LF.
