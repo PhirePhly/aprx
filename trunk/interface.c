@@ -668,6 +668,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
 			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
 
+		// If there are no filters, permit all packets
 		if (digisource->src_filters != NULL) {
 		  int filter_discard =
 		    filter_process(pb,
@@ -1032,8 +1033,11 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  // Accept/Reject the packet by digipeater rx filter?
 	  int filter_discard = 0;
-	  if (digisrc->src_filters != NULL)
+	  if (digisrc->src_filters == NULL) {
+	    filter_discard = 1; // permit!
+	  } else {
 	    filter_discard = filter_process(pb, digisrc->src_filters, digisrc->parent->historydb);
+	  }
 	  // filter_discard > 0: accept
 	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
 	  // filter_discard < 0: reject
