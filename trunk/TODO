@@ -2,12 +2,6 @@
 
 				TODO / Wishlist
 
-- Shrink memory consumption @ Erlang datasets.
-  When there is no backing storage, always use small datasets,
-  and when there is active backing storage, use larger one.
-  Make the aprx.state file name to be non-defaulted.
-  When configuration does not define it, not do not use backing storage.
-
 - Tx-IGate filter rules (interface.c)
   Tx-IGate is lacking following things, but it is already doing most
   important ones ('recipient heard recently in my service area')
@@ -21,10 +15,11 @@
      same source callsign, if available
 
 
-- digipeater behaviour on "requested wideness exceeds allowed
+- Digipeater behaviour on "requested wideness exceeds allowed
   max limit" and this is a directly heard packet:
    - now mark all H-bits set
    - ADDITION: inject transmitter callsign into first VIA slot.
+
 
 - Digipeating details of non-APRS UI protocols?  Some way to handle
   "WIDEn-N" on selected PIDs?
@@ -46,16 +41,23 @@
   This should be able to flag bad input on RAW beacon data.
 
 - DPRS-to-APRS gateway
+  Rx-iGate and Rx-DPRS-to-APRS exist.  Tx to DPRS not even in plans.
 
 - Calculate and note APRS DXes (like digi_ned does) ?
 - Calculate ALOHA range, and publish it?
 
 - Embedded SNTP client?
   (Reads NTP time from 127.0.0.1:123 - or configured external source)
-  Supports Aprx-Aprx clustered UDP based protocol where all messages
-  are equipped with NTP timestamp and if in receiver's opinnion the
-  time is too far off, network delays have been excessive and message
-  is discarded.
+
+  Supports Aprx-Aprx clustered protocol where all messages are equipped
+  with NTP timestamp and if in receiver's opinnion the time is too far off,
+  the network delays have been excessive and message is discarded.
+
+  This SNTP client _does_ _not_ adjust host system clock, only tracks
+  difference of it against a high(er)-quality NTP service elsewere.
+  The difference and drift parameters are used to convert current system
+  gettimeofday() result to NTP timestamp within the code, and to determine
+  how old something is, a NTP timestamp is compared against "current time."
 
   If Aprx System has no time at all, one SNTP probe is made to determine
   "initial system time".
