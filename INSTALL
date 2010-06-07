@@ -1,5 +1,5 @@
 
-          INSTALL of  APRX 1.99
+          INSTALL of  APRX 2.00
 
 A rough-cut version of the installation instructions
 
@@ -44,7 +44,7 @@ instead of using precompiled binaries:
 
      $ make make-deb
 
-     # dpkg -i aprx_1.98-....deb
+     # dpkg -i aprx_2.00-....deb
 
 
 For RedHat/Fedora users:
@@ -52,4 +52,4 @@ For RedHat/Fedora users:
 
     $ make make-rpm
 
-    # rpm -Uvh aprx-1.98.svn###-1.i386.rpm
+    # rpm -Uvh aprx-2.00.svn###-1.i386.rpm

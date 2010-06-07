@@ -10,8 +10,8 @@ Version 2
     - Digipeater					- Working
       - Analyze and detect station distance             - Working
     - Radio beacons					- Working
-    - Bidirection (Rx/Tx) APRS iGate			- Beta
-    - DPRS->APRS GW	       				- Planned
+    - Bidirection (Rx/Tx) APRS iGate			- Working
+    - DPRS->APRS GW	       				- Working
     - Port to ucLinux	       				- Planned (pthreads OK)
 
 Version 2.5

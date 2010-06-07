@@ -1,0 +1,180 @@
+
+		A PROPOSAL FOR TIMESTAMPS AT APRSIS
+
+It can be taken as granted that today at least server systems are
+running with NTP service keeping their system clocks within a few
+milliseconds of UTC time.
+
+Systems utilized as APRS IGATE should be able to utilize NTP service
+as well, and keep their internal time well disciplined.
+
+SimpleNTP clients are available even for embedded system code bases
+making all kinds of internet capable systems able to have high quality
+time management.
+
+Timestamps are added on APRS text lines as prefixes of 8 characters.
+Eighth character is always ':'.  Details are in "ENCODING" part.
+
+
+
+		TRANSPORT COMPATIBILITY
+
+As APRSIS clients would not know at first what to do with the timestamps,
+a transport compatibility must be introduced:
+
+	* APRSIS server announces on its connection message that it
+	  is TIMESTAMP capable, and clients MUST NOT send timestamps
+	  to APRSIS server without that capability
+
+		# telnet aprsisserver 14580
+		Connected to aprsisserver
+		Escape character is '^]'.
+		# javAPRSSrvr 4.0b1 [APRSIS TIMESTAMP]
+
+	  Capability announcements follow style of IMAPv4 protocol,
+	  where capability tokens are in square brackets, and are
+	  separated by space character.
+
+	* If a client does not send timestamped data to APRSIS, APRSIS
+	  server adds the timestamp upon receiving the line.
+
+	  APRSIS server does this conditional timestamping also for packets
+	  received via UDP for initial deployment compatibility.
+
+	* An APRSIS server connected to upstream with TCP is a client,
+	  and must strip received/internal timestamps from packets sent to
+	  upstream, if the upstream does not announce TIMESTAMP capability.
+
+	  If upstream does not send timestamps for any reason, APRSIS server
+	  adds it locally.
+
+	* A client that has not announced timestamp awareness does
+	  not receive timestamps from APRSIS, and furthermore, APRSIS is
+	  filtering all packets with maximum age of 15 seconds.
+
+	* A client that sends to APRSIS a text line with recognized
+	  timestamp will get also timestampped lines sent up to itself.
+
+	  No maximum age filtering is applied to clients that are timestamp
+	  capable, and therefore those clients must be able to do timestamp
+	  age analysis themselves.
+
+	  Special timestamp-line  "AAAAAAA:\n"  tells APRSIS server, that
+	  the client is APRSIS aware, and has nothing to actually send
+	  to APRSIS at this time, but it wants all data sent to it to
+	  contain timestamps.
+
+
+APRSIS server software needs a configuration parameter
+       udptimestamps = <boolean>
+which defaults to "false".  When the value is "false" the software will
+not send timestampped data to core peer machines over UDP.
+
+
+There probably is no need for an Adjunct Filter that knows about timestamps.
+
+
+
+		INITIAL DEPLOYMENT OF TIMESTAMP CAPABILITY
+
+Because APRSIS core uses UDP protocol, and thus can not be aware of remote
+node capabilities, the deployment of timestamp aware APRSIS servers at
+APRSIS core has two phases:
+
+	1) Software has configuration parameter   "udptimestamps"
+	   non defined or defined as "false".
+
+	2) After all core APRSIS systems are running timestamp
+	   aware software, the configuration parameter can be
+	   changed to   "udptimestamps = true"  and APRSIS server
+	   starts to send timestamped packets over UDP to its peers.
+
+
+Everybody else can take TIMESTAMP capable system into use at a time that is
+convenient to them, unless communication involves UDP.
+
+
+
+		ENCODING
+
+Use NTP timestamp (see RFC 2030) based time abstraction:
+
+   Since NTP timestamps are cherished data and, in fact, represent the
+   main product of the protocol, a special timestamp format has been
+   established. NTP timestamps are represented as a 64-bit unsigned
+   fixed-point number, in seconds relative to 0h on 1 January 1900. The
+   integer part is in the first 32 bits and the fraction part in the
+   last 32 bits. In the fraction part, the non-significant low order can
+   be set to 0.
+
+Take highest 32+10 bits of the timestamp, and encode those in BASE64
+characters, most significant character first.  This produces 7 encoded
+characters.
+
+A hex encoded byte sequence of NTP timestamp looks like this:
+
+	cf b4 ff a4 b5 a8 8b f9
+
+it represent timestamp 3484745636.709603071 (2010/06/05 19:53:56)
+and encoded timestamp value is: 
+
+	z7T/pLW
+
+
+The APRSIS passes around APRS messages as lines of text:
+
+	OH2JCQ>APX195,TCPIP*,qAC,T2FINLAND:=6013.63N/02445.59E-Jani
+
+Adding 7 character encoded timestamp + ":" character in the beginning
+of a line would make this:
+
+	Tstamp/:OH2JCQ>APX195,TCPIP*,qAC,T2FINLAND:=6013.63N/02445.59E-Jani
+
+There 8th character is always ':', and preceding 7 bytes present _current_
+timestamp at 1/1024 second resolution.
+
+Timestamp value "AAAAAAA:" is "no timestamp" (decodes as time 0.0) and
+a client can use it to tell that it has no idea of timestamp, but it
+wants to receive timestamped data.  An APRSIS data collector can enable
+timestamp reception by sending line: "AAAAAAA:\n".
+
+
+Packets with timestamps outside -1 to +N seconds limits are sign that
+communication is retrying too much, or otherwise delayed, and such packets
+are to be discarded.  (Services like APRSFI, FINDU et.al. may want even
+old packets!)
+
+To be compatible with NTP Era roll-over, the timestamp must really be
+treated as 64-bit unsigned long integer, and compared with twos complement
+arithmetic using overflows.
+
+
+		TIMESTAMP ENCODING CODE EXAMPLE
+
+Example UNIX system C code to produce and encode a timestamp:
+
+	uint64_t ntptime;
+	struct timeval tv;
+	char timestamp[8];
+	int i;
+
+	gettimeofday(&tv, NULL);
+	ntptime = ((uint64_t)(TIME_LOCAL_TO_NTP(tv.tv_sec))) << 32
+		  + microseconds_to_ntp_picoseconds(tv.tv_usec);
+
+	ntptime >>= 22; // scale to 1/1024 seconds
+	for (i = 6; i >= 0; --i) {
+	    int n = (((int)ntptime) & 0x3F); // lowest 6 bits
+	    ntptime >>= 6;
+	    timestamp[i] = BASE64EncodingDictionary[n];
+	}
+	timestamp[7] = 0;
+
+
+You may choose to produce timestamps with coarser resolution than 1/1024
+seconds. Let least significant bits to be zero.
+
+A heavy producer and consumer of timestamps, like an APRSIS server, may have
+single thread waking up 10 times per second and producing a new timestamp
+object every time.  Then received messages just copy that timestamp if
+necessary, and not run its production by themselves.

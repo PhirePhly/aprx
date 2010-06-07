@@ -1,5 +1,12 @@
 2010-06-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* README, ROADMAP, TODO, INSTALL, PROTOCOLS:
+	    Updates on plans and rough guides.
+
+	* TIMESTAMP-AT-APRSIS, timestamp.c:
+	    A proposal to put about 1ms resolution timestamps
+	    on APRSIS with full backwards compatibility.
+
 	* aprx.c:
 	    Giving this version code: APRX1J
 
