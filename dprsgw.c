@@ -72,7 +72,7 @@ static void *dprsgw_new() {
 }
 
 // Ratelimit returns 0 for "can send", 1 for "too soon"
-static int dprsgw_ratelimit( dprsgw_t *dp, const char *tnc2buf ) {
+static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
 	int i, n;
 	char callsign[10];
 	time_t expiry = now - 30; // FIXME: hard-coded 30 second delay for DPRS repeats
@@ -101,8 +101,8 @@ static int dprsgw_ratelimit( dprsgw_t *dp, const char *tnc2buf ) {
 	  }
 	}
 	if (n >= 0) {
-	  memcpy(dp->history[i].callsign, callsign, sizeof(callsign));
-	  dp->history[i].gated = now;
+	  memcpy(dp->history[n].callsign, callsign, sizeof(callsign));
+	  dp->history[n].gated = now;
 	}
 	return 0;
 }
@@ -240,16 +240,16 @@ static int dprsgw_nmea_split(char *nmea, char *fields[], int n) {
 }
 
 static void dprsgw_nmea_igate( const struct aprx_interface *aif,
-			       char *ident, dprsgw_t *dp ) {
+			       const uint8_t *ident, dprsgw_t *dp ) {
 	int i;
 	char *gga[20];
 	char *rmc[20];
 	char tnc2buf[2000];
 	int  tnc2addrlen;
 	int  tnc2buflen;
-	char *p;
-	char *p2, *p0;
-	char *s;
+	char *p, *p2;
+	const char *p0;
+	const char *s;
 	int  alt_feet = -9999999;
 	char aprssym[3];
 
@@ -258,7 +258,7 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	}
 
 	strcpy(aprssym, "/>"); // Default..
-	parse_gps2aprs_symbol(ident+9, aprssym);
+	parse_gps2aprs_symbol((const char *)ident+9, aprssym);
 
 	memset(gga, 0, sizeof(gga));
 	memset(rmc, 0, sizeof(rmc));
@@ -384,8 +384,8 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	// FIXME: more data!
 	// RMC HEADING/SPEED
 
-	p0 = ident + 29;
-	s  = ident + 9+4;
+	p0 = (const char *)ident + 29;
+	s  = (const char *)ident + 9+4;
 	p2 = p;
 
 	for ( ; s < p0; ++s ) {
@@ -419,18 +419,18 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2buf, tnc2addrlen, tnc2buflen, 0, 0);
 
 	  fromcall = tnc2buf;
-	  s = fromcall;
+	  p = fromcall;
 	  origtocall = NULL;
-	  while (*s != '>' && *s != 0) ++s;
-	  if (*s == '>') {
-	    *s++ = 0;
-	    origtocall = s;
+	  while (*p != '>' && *p != 0) ++s;
+	  if (*p == '>') {
+	    *p++ = 0;
+	    origtocall = p;
 	  } else
 	    return; // BAD :-(
-	  s = origtocall;
-	  while (s != NULL && *s != ':' &&  *s != 0 && *s != ',') ++s;
-	  if (s != NULL && (*s == ':' || *s == ',')) {
-	    *s++ = 0;
+	  p = origtocall;
+	  while (p != NULL && *p != ':' &&  *p != 0 && *p != ',') ++p;
+	  if (p != NULL && (*p == ':' || *p == ',')) {
+	    *p++ = 0;
 	  }
 	  b = tnc2buf + tnc2addrlen +1;
 	  interface_receive_3rdparty( aif,
@@ -474,7 +474,7 @@ static void dprsgw_rxigate( struct serialport *S )
 	    // Acceptable packet, Rx-iGate it!
 	    igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0, 0);
 
-	    fromcall = tnc2addr;
+	    fromcall = (char*)tnc2addr;
 	    s = fromcall;
 	    origtocall = NULL;
 	    while (*s != '>' && *s != 0) ++s;
@@ -491,7 +491,7 @@ static void dprsgw_rxigate( struct serialport *S )
 
 	    interface_receive_3rdparty( aif,
 					fromcall, origtocall, "DSTAR*",
-					tnc2body, tnc2bodylen - (tnc2body-tnc2addr) );
+					(const char*)tnc2body, tnc2bodylen - (tnc2body-tnc2addr) );
 	    return;
 	    
 	  } else {

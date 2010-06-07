@@ -1,5 +1,15 @@
 2010-06-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c:
+	    Giving this version code: APRX1J
+
+	* dprsgw.c, digipeater.c, aprx.h, doc/aprx-manual.odt:
+	    Clean DPRS Rx gateway code.
+
+	* interface.c:
+	    Correct 3rd-party packet gating filter behaviour:
+	    If there are _no_ filters, pass all packets thru.
+
 	* interface.c, aprx.h, dprsgw.c, igate.c:
 	    Rate-limit source callsigns per source interface to
 	    once per 30 seconds.  RF iGate DPRS messages to APRS

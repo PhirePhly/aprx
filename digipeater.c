@@ -997,20 +997,26 @@ static int decrement_ssid(uint8_t *ax25addr)
 
 
 /* 0 == accept, otherwise reject */
+/*
 int digipeater_receive_filter(struct digipeater_source *src, struct pbuf_t *pb)
 {
-	if (src->src_filters != NULL) {
-	  int rc = filter_process(pb, src->src_filters, src->parent->historydb);
-	  if (rc != 1) {
-	    if (debug>1)
-	      printf("Source filtering rejected the packet from %s.\n", src->src_if->callsign);
-	    return 1;
-	  }
+ 	
+	if (src->src_filters == NULL) {
 	  if (debug>1)
-	    printf("Source filtering accepted the packet from %s.\n", src->src_if->callsign);
+	    printf("No source filters, accepted the packet from %s.\n", src->src_if->callsign);
+	  return 0;
 	}
+	int rc = filter_process(pb, src->src_filters, src->parent->historydb);
+	if (rc != 1) {
+	  if (debug>1)
+	    printf("Source filtering rejected the packet from %s.\n", src->src_if->callsign);
+	  return 1;
+	}
+	if (debug>1)
+	  printf("Source filtering accepted the packet from %s.\n", src->src_if->callsign);
 	return 0;
 }
+*/
 
 static void digipeater_receive_backend(struct digipeater_source *src, struct pbuf_t *pb)
 {
