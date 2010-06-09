@@ -1,3 +1,11 @@
+2010-06-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* kiss.c, ttyreader.c, dprsgw.c, aprx.h:
+	    Tracked specification origins of each of the three
+	    different CRC-16 calculations that this code has.
+	    What was called "crc_ccitt" was in fact something
+	    totally different: the SMACK CRC16.
+
 2010-06-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* README, ROADMAP, TODO, INSTALL, PROTOCOLS:
