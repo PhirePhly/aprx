@@ -112,7 +112,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 	}
 	if (S->linetype == LINETYPE_KISS && (cmdbyte & 0x80)) {
 	  // Huh?  Perhaps a SMACK packet?
-	  int smack_ok = crc16_calc(S->rdline, S->rdlinelen);
+	  int smack_ok = calc_crc_smack(S->rdline, S->rdlinelen);
 	  if (smack_ok == 0) {
 	    if (debug) printf("ALERT: Looks like received KISS frame is a SMACK with CRC!\n");
 	    S->linetype = LINETYPE_KISSSMACK;
@@ -215,7 +215,7 @@ static int ttyreader_kissprocess(struct serialport *S)
 		   Verify the CRC.. */
 
 		// Whole buffer including CMD-byte!
-		if (crc16_calc(S->rdline, S->rdlinelen) != 0) {
+		if (calc_crc_smack(S->rdline, S->rdlinelen) != 0) {
 			if (debug) {
 			  printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC: ",
 				 now, S->ttyname, tncid);

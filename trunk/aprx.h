@@ -431,11 +431,12 @@ extern int            dupecheck_postpoll(struct aprxpolls *app);
 #define KISS_TFEND (0xDC)
 #define KISS_TFESC (0xDD)
 
-extern uint16_t crc16_calc(uint8_t *buf, int n); /* SMACK's CRC16 */
-extern uint16_t calc_crc_flex(uint8_t *buf, int n); /* FLEXNET's CRC16 */
-extern int     check_crc_flex(uint8_t *buf, int n); /* FLEXNET's CRC16 */
-extern int kissencoder(void *, int, LineType, const void *, int, int);
-
+extern uint16_t calc_crc_smack(const uint8_t *buf, int n); /* SMACK's CRC16 */
+extern uint16_t calc_crc_flex(const uint8_t *buf, int n); /* FLEXNET's CRC16 */
+extern uint16_t calc_crc_ccitt(uint16_t crc, const uint8_t *buf, int len); // X.25's FCS a.k.a. CRC-CCITT a.k.a. CCITT-CRC
+extern int      check_crc_flex(const uint8_t *buf, int n); /* FLEXNET's CRC16 */
+extern int      check_crc_ccitt(const uint8_t *buf, int n);
+extern int      kissencoder(void *, int, LineType, const void *, int, int);
 
 
 /* digipeater.c */

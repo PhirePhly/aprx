@@ -113,10 +113,10 @@ static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
 
 // The "Specification" says to use this checksum method..
 // It uses right-left inverted version of the polynome
-// of CCITT-CRC-16 but processing is not correct..
+// of CCITT-CRC-16 but in the end it INVERTS the result!
 // Thus the result is NOT CCITT-CRC-16, but something
 // uniquely ICOM D-STAR..
-
+/*
 static int dprsgw_crccheck( const uint8_t *s, int len )
 {
 	int icomcrc = 0xffff;
@@ -133,6 +133,7 @@ static int dprsgw_crccheck( const uint8_t *s, int len )
 	}
 	return (~icomcrc) & 0xffff;
 }
+*/
 
 static int dprsgw_isvalid( struct serialport *S )
 {
@@ -147,15 +148,20 @@ static int dprsgw_isvalid( struct serialport *S )
 	  // Maybe a $$CRCB727,OH3BK-D>APRATS,DSTAR*:@165340h6128.23N/02353.52E-D-RATS (GPS-A) /A=000377
 	  int crc;
 	  int csum = -1;
+	  int crc16;
 
 	  S->rdline[S->rdlinelen] = '\r';
-	  crc = dprsgw_crccheck(S->rdline+10, S->rdlinelen+1-10); // INCLUDE the CR on CRC calculation!
+	  crc16 = calc_crc_ccitt(0xFFFF, S->rdline+10, S->rdlinelen+1-10); // INCLUDE the CR on CRC calculation!
+	  crc = (crc16 ^ 0xFFFF); // Output is INVERTED
+
 	  S->rdline[S->rdlinelen] = 0;
 	  i = sscanf((const char*)(S->rdline), "$$CRC%04x,", &csum);
 	  if (i != 1 || csum != crc) {
 	    if (debug) printf("Bad DPRS APRS CRC: l=%d, i=%d, %04x/%04x vs. %s\n", S->rdlinelen, i, crc, csum, S->rdline);
 	    // return 0;
 	  } else {
+	    if (debug>1) printf("$$CRC  DSTAR=%04x CCITT-X25-FCS=%04x\n", csum, crc16);
+
 	    if (debug) printf("Good DPRS APRS CRC: l=%d, i=%d, %04x/%04x vs. %s\n", S->rdlinelen, i, crc, csum, S->rdline);
 	    return 1;
 	  }
@@ -428,7 +434,7 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  fromcall = tnc2buf;
 	  p = fromcall;
 	  origtocall = NULL;
-	  while (*p != '>' && *p != 0) ++s;
+	  while (*p != '>' && *p != 0) ++p;
 	  if (*p == '>') {
 	    *p++ = 0;
 	    origtocall = p;
@@ -754,7 +760,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	 fromcall, origtocall, gwtype, tnc2data);
 }
 
-int debug = 1;
+int debug = 3;
 time_t now;
 int main(int argc, char *argv[]) {
   struct serialport S;
