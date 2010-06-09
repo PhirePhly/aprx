@@ -42,6 +42,9 @@ typedef struct dprs_gw {
 } dprsgw_t;
 
 
+// The dprslog() logs ONLY when '-d' mode is running.
+// .. and it will be removed soon.
+
 void dprslog( const time_t stamp, const uint8_t *buf ) {
   FILE *fp = fopen("/tmp/dprslog.txt","a");
 
@@ -283,6 +286,10 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	if (gga[6] != NULL && strcmp(gga[6],"1") != 0) {
 	  if (debug) printf("Invalid DPRS $GPGGA packet (validity='%s')\n",
 			    gga[6]);
+	  return;
+	}
+	if (dp->ggaline[0] == 0 && dp->rmcline[0] == 0) {
+	  if (debug) printf("No DPRS $GPRMC nor $GPGGA packets available.\n");
 	  return;
 	}
 
@@ -548,7 +555,7 @@ static void dprsgw_receive( struct serialport *S )
 {
 	int i;
 
-	dprslog(S->rdline_time, S->rdline);
+	if (debug) dprslog(S->rdline_time, S->rdline);
 
 	do {
 	  if (dprsgw_isvalid(S)) {
@@ -595,8 +602,7 @@ int dprsgw_pulldprs( struct serialport *S )
 		  if (debug)printf("dprsgw: previous data is %d sec old, discarding its state: %s\n",((int)(now-rdtime)), S->rdline);
 
 		S->rdline[S->rdlinelen] = 0;
-		if (S->rdlinelen > 0)
-		  dprslog(rdtime, S->rdline);
+		if (S->rdlinelen > 0 && debug) dprslog(rdtime, S->rdline);
 		S->rdlinelen = 0;
 
 		dprsgw_flush(S->dprsgw);  // timeout -> discard accumulated data
