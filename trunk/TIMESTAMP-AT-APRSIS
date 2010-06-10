@@ -60,13 +60,15 @@ a transport compatibility must be introduced:
 	  age analysis themselves.
 
 	  Special timestamp-line  "AAAAAAA:\n"  tells APRSIS server, that
-	  the client is APRSIS aware, and has nothing to actually send
-	  to APRSIS at this time, but it wants all data sent to it to
+	  the client is APRSIS aware, and while it has nothing to actually
+          send to APRSIS at this time, it does want all data sent to it to
 	  contain timestamps.
 
 
 APRSIS server software needs a configuration parameter
+
        udptimestamps = <boolean>
+
 which defaults to "false".  When the value is "false" the software will
 not send timestampped data to core peer machines over UDP.
 
@@ -87,12 +89,13 @@ APRSIS core has two phases:
 	2) After all core APRSIS systems are running timestamp
 	   aware software, the configuration parameter can be
 	   changed to   "udptimestamps = true"  and APRSIS server
-	   starts to send timestamped packets over UDP to its peers.
+	   starts to send timestamped packets over UDP to all of
+           its peers.  -->  peer machines do not need to locally
+	   add timestamps at reception time.
 
 
-Everybody else can take TIMESTAMP capable system into use at a time that is
-convenient to them, unless communication involves UDP.
-
+Everybody else can take TIMESTAMP capable system into use at any time
+that is convenient to them, unless communication involves UDP.
 
 
 		ENCODING
@@ -109,7 +112,9 @@ Use NTP timestamp (see RFC 2030) based time abstraction:
 
 Take highest 32+10 bits of the timestamp, and encode those in BASE64
 characters, most significant character first.  This produces 7 encoded
-characters.
+characters with time resolution of 1/1024 seconds.  With 6 encoded
+characters the time resolution would be 1/16, which is felt to be
+too coarse.
 
 A hex encoded byte sequence of NTP timestamp looks like this:
 
@@ -128,7 +133,7 @@ The APRSIS passes around APRS messages as lines of text:
 Adding 7 character encoded timestamp + ":" character in the beginning
 of a line would make this:
 
-	Tstamp/:OH2JCQ>APX195,TCPIP*,qAC,T2FINLAND:=6013.63N/02445.59E-Jani
+	z7T/pLW:OH2JCQ>APX195,TCPIP*,qAC,T2FINLAND:=6013.63N/02445.59E-Jani
 
 There 8th character is always ':', and preceding 7 bytes present _current_
 timestamp at 1/1024 second resolution.
@@ -142,7 +147,7 @@ timestamp reception by sending line: "AAAAAAA:\n".
 Packets with timestamps outside -1 to +N seconds limits are sign that
 communication is retrying too much, or otherwise delayed, and such packets
 are to be discarded.  (Services like APRSFI, FINDU et.al. may want even
-old packets!)
+older packets!)
 
 To be compatible with NTP Era roll-over, the timestamp must really be
 treated as 64-bit unsigned long integer, and compared with twos complement
@@ -153,28 +158,107 @@ arithmetic using overflows.
 
 Example UNIX system C code to produce and encode a timestamp:
 
-	uint64_t ntptime;
-	struct timeval tv;
-	char timestamp[8];
-	int i;
+  // Time Base Conversion Macros
+  //
+  // The NTP timebase is 00:00 Jan 1 1900.  The local
+  // time base is 00:00 Jan 1 1970.  Convert between
+  // these two by added or substracting 70 years
+  // worth of time.  Note that 17 of these years were
+  // leap years.
+  
+  #define TIME_BASEDIFF           (((70U*365U + 17U) * 24U*3600U))
+  #define TIME_LOCAL_TO_NTP(t)    ((t)+TIME_BASEDIFF)
+  
+  void unix_tv_to_ntp(struct timeval *tv, uint64_t *ntp) {
+    // Reciprocal conversion of tv_usec to fractional NTP seconds
+    // Multiply tv_usec by  ((2^64)/1_000_000) / (2^32)
+    uint64_t fract =  18446744073709ULL * (uint32_t)(tv->tv_usec);
+    // Scale it back by 32 bit positions
+    fract >>= 32;
+    // Place seconds on upper 32 bits
+    fract += ((uint64_t)TIME_LOCAL_TO_NTP(tv->tv_sec)) << 32;
+    // Deliver time to caller
+    *ntp  = fract;
+  }
 
-	gettimeofday(&tv, NULL);
-	ntptime = ((uint64_t)(TIME_LOCAL_TO_NTP(tv.tv_sec))) << 32
-		  + microseconds_to_ntp_picoseconds(tv.tv_usec);
-
-	ntptime >>= 22; // scale to 1/1024 seconds
-	for (i = 6; i >= 0; --i) {
-	    int n = (((int)ntptime) & 0x3F); // lowest 6 bits
-	    ntptime >>= 6;
-	    timestamp[i] = BASE64EncodingDictionary[n];
-	}
-	timestamp[7] = 0;
+  static const char *BASE64EncodingDictionary =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789"
+    "+/";
+  
+  void encode_aprsis_ntptimestamp(uint64_t ntptime, char timestamp[8])
+  {
+  	int i;
+  
+  	ntptime >>= 22; // scale to 1/1024 seconds
+  	for (i = 6; i >= 0; --i) {
+  	    int n = (((int)ntptime) & 0x3F); // lowest 6 bits
+  	    // printf("  [n=%d]\n", n);
+  	    ntptime >>= 6;
+  	    timestamp[i] = BASE64EncodingDictionary[n];
+  	}
+  	timestamp[7] = 0;
+  }
+  
+  static const int8_t BASE64DecodingDictionary[128] =
+    { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1,  // ' ', '!', '"', '#'
+      -1, -1, -1, -1,  // '$', '%', '&'', '\''
+      -1, -1, -1, 62,  // '(', ')', '*', '+',
+      -1, -1, -1, 63,  // ',', '-', '.', '/'
+      52, 53, 54, 55, 56, 57, 58, 59, 60, 61, // '0' .. '9'
+      -1, -1, -1, -1, -1, -1, // ':', ';', '<', '=', '>', '?'
+      -1,  0,  1,  2,  3,  4,  5,  6, // '@', 'A' .. 'G'
+       7,  8,  9, 10, 11, 12, 13, 14, // 'H' .. 'O'
+      15, 16, 17, 18, 19, 20, 21, 22, // 'P' .. 'W'
+      23, 24, 25, -1, -1, -1, -1, -1, // 'X'..'Z', '[', '\\', ']', '^', '_'
+      -1, 26, 27, 28, 29, 30, 31, 32, // '`', 'a' .. 'g'
+      33, 34, 35, 36, 37, 38, 39, 40, // 'h' .. 'o'
+      41, 42, 43, 44, 45, 46, 47, 48, // 'p' .. 'w'
+      49, 50, 51, -1, -1, -1, -1, -1 }; // 'x'..'z', ...
+  
+  
+  int decode_aprsis_ntptimestamp(char timestamp[8], uint64_t *ntptimep)
+  {
+  	uint64_t ntptime = 0;
+  
+  	int i, n;
+  	char c;
+  
+  	for (i = 0; i < 7; ++i) {
+  	  c = timestamp[i];
+  	  if (c <= 0 || c > 127) return -1; // BARF!
+  	  n = BASE64DecodingDictionary[(int)c];
+  	  // printf("  [n=%d]\n", n);
+  	  if (n < 0) {
+  	    // Should not happen!
+  	    return -1; // Decode fail!
+  	  }
+  
+  	  ntptime <<= 6;
+  	  ntptime |= n;
+  	}
+  	ntptime <<= 22;
+  	*ntptimep = ntptime;
+  	return 0; // Decode OK
+  }
 
 
 You may choose to produce timestamps with coarser resolution than 1/1024
-seconds. Let least significant bits to be zero.
+seconds. Let least significant bits to be zero.  The about 1 millisecond
+resolution is a compromise in between 1 second, and sub-nanosecond
+resolutions.
 
 A heavy producer and consumer of timestamps, like an APRSIS server, may have
 single thread waking up 10 times per second and producing a new timestamp
-object every time.  Then received messages just copy that timestamp if
-necessary, and not run its production by themselves.
+object every time, and overwriting global storage pointer to "current" one.
+For access there is no need to do any sort of synchronizations.
+Then received messages just copy that timestamp if necessary, and not run
+its production by themselves.
+
+Note: There is no need to convert NTP timestamps to local time in this
+application.  It is quite enough that system receiving NTP timestamps
+does regularly create current reference NTP timestamp to be able to
+determine offset from received timestamp to reference time.
