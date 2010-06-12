@@ -62,6 +62,9 @@ A multitalented APRS / DPRS / APRSIS "i-gate" with following properties:
      20 minutes from previous telemetry reporting, and first one is sent
      20 minutes after program start.
 
+   - Telemetry reported erlang data can be sent also over APRS radio
+     port, but only for ports with valid AX.25 callsigns. See aprx-manual.pdf
+
    - The netbeacons are distributed timewise more evenly around the interval,
      and even the interval length is varied at random in between 20 and 30
      minutes.  Number of netbeacons are unlimited, but their minimum transmit
