@@ -1162,7 +1162,16 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 	ax25addr[ax25addrlen-1] |= 0x01; // set address field end bit
 
-	// (no duplicate filtering of beacons)
+
+	// Feed to dupe-filter (transmitter specific)
+	// this means we have already seen it, and when 
+	// it comes back from somewhere, we do not digipeat
+	// it ourselves.
+
+	if (dupechecker != NULL)
+	  dupecheck_aprs( dupechecker,
+			  axaddrbuf, strlen(axaddrbuf),
+			  txbuf+2, txlen-2  ); // ignore Ctrl+PID
 
 	// Transmit it to actual radio interface
 
