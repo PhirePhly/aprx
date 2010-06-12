@@ -79,6 +79,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 	if (debug)
 	  printf("Telemetry Tx run; next one in %.2f minutes\n", (telemetry_interval/60.0));
 
+	// Init these for RF transmission
+	buf[0] = 0x03; // AX.25 Control
+	buf[1] = 0xF0; // AX.25 PID
 
 	++telemetry_seq;
 	telemetry_seq %= 256;
@@ -87,7 +90,8 @@ int telemetry_postpoll(struct aprxpolls *app)
 		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
 
 		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
-		s = buf;
+		// First two bytes of BUF are for AX.25 control+PID fields
+		s = buf+2;
 		s += sprintf(s, "T#%03d,", telemetry_seq);
 
 
@@ -263,35 +267,35 @@ int telemetry_postpoll(struct aprxpolls *app)
 		/* Send those (net)beacons.. */
 		buflen = s - buf;
 		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
-			     buf, buflen);
+			     buf+2, buflen-2);
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 		if ((telemetry_params % 32) == 0) { /* every 5h20m */
 
 			/* Send every 5h20m or thereabouts. */
 
-			s = buf + sprintf(buf,
-					  ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
-					  E->name);
+			s = buf+2 + sprintf(buf+2,
+					    ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
+					    E->name);
 			buflen = s - buf;
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf, buflen);
+				     buf+2, buflen-2);
 			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
-			s = buf + sprintf(buf,
-					  ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
-					  E->name);
+			s = buf+2 + sprintf(buf+2,
+					    ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
+					    E->name);
 			buflen = s - buf;
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf, buflen);
+				     buf+2, buflen-2);
 			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
-			s = buf + sprintf(buf,
-					  ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
-					  E->name);
+			s = buf+2 + sprintf(buf+2,
+					    ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
+					    E->name);
 			buflen = s - buf;
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf, buflen);
+				     buf+2, buflen-2);
 			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		}
 	}
@@ -333,8 +337,6 @@ static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
 					dest,
 					rftlm->viapath,
 					buf, buflen);
-
-	      
 	    }
 	  }
 	}

@@ -1,5 +1,14 @@
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c:
+	    Giving this version code: APRX1K
+
+	* interface.c:
+	    Beacons are not subject to duplicate filtering
+
+	* telemetry.c:
+	    Correct AX.25 data frame for RF transmission
+
 	* telemetry.c, config.c, aprx.h, doc/aprx-manual.odt,
 	  aprx.conf.in, aprx-complex.conf.in:
 	    New <telemetry> config section, be able to tx
