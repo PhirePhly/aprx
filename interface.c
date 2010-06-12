@@ -1074,6 +1074,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 /*
  * Process transmit of APRS beacons
+ *
+ * Note:  txbuf  starts if AX.25 Control+PID bytes!
  */
 
 int interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *txbuf, const int txlen)
@@ -1160,13 +1162,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 	ax25addr[ax25addrlen-1] |= 0x01; // set address field end bit
 
-
-	// Feed to dupe-filter (transmitter specific)
-
-	if (dupechecker != NULL)
-	  dupecheck_aprs( dupechecker,
-			  axaddrbuf, strlen(axaddrbuf),
-			  txbuf+2, txlen-2  ); // ignore Ctrl+PID
+	// (no duplicate filtering of beacons)
 
 	// Transmit it to actual radio interface
 
