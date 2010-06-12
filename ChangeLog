@@ -1,5 +1,15 @@
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* debian/aprx.init:
+	    Pleasing init-script behaviour during package re-install
+
+	* telemetry.c, doc/aprx-manual.odt:
+	    Stagger telemetry transmissions a bit.
+	    All RF reported telemetry sources are reported at the same time,
+	    but telemetry data is time-wise separated from labels, and labels
+	    are sent so that 3 different labels are sent every 2 hours, and
+	    total label carouselle time is 6 hours.
+
 	* aprx.c:
 	    Giving this version code: APRX1K
 

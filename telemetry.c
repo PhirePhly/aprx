@@ -10,8 +10,12 @@
 
 #include "aprx.h"
 
-#define  telemetry_timescaler 2       // scale to 10 minute sums
-static int telemetry_interval = 20 * 60; // 20 minutes
+#define  telemetry_timescaler 2              // scale to 10 minute sums
+
+static int telemetry_interval = 20 * 60;     // every 20 minutes
+static int telemetry_labelinterval = 120*60; // every 2 hours
+static int telemetry_labelindex = 0;
+
 #if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 static int telemetry_1min_steps = 20;
 #endif
@@ -20,6 +24,7 @@ static int telemetry_10min_steps = 2;
 #endif
 
 static time_t telemetry_time;
+static time_t telemetry_labeltime;
 static int telemetry_seq;
 static int telemetry_params;
 
@@ -46,35 +51,56 @@ void telemetry_start()
 	 */
 	telemetry_seq = (time(NULL)) & 255;
 
-	telemetry_time = now + telemetry_interval;
+	// "now" is supposedly current time..
 
+	telemetry_time      = now + telemetry_interval;
+	telemetry_labeltime = now + 120; // first label 2 minutes from now
 }
 
 int telemetry_prepoll(struct aprxpolls *app)
 {
-	if (telemetry_time == 0)
-		telemetry_time = now + 30;
 
 	if (app->next_timeout > telemetry_time)
 		app->next_timeout = telemetry_time;
+	if (app->next_timeout > telemetry_labeltime)
+		app->next_timeout = telemetry_labeltime;
 
 	return 0;
 }
 
+static void telemetry_datatx();
+static void telemetry_labeltx();
+
 int telemetry_postpoll(struct aprxpolls *app)
 {
-	int i, j, k, t;
+	if (telemetry_time <= now) {
+	  telemetry_time += telemetry_interval;
+	  if (telemetry_time <= now)
+	    telemetry_time = now + telemetry_interval;
+	  telemetry_datatx();
+	}
+
+	if (telemetry_labeltime <= now) {
+	  telemetry_labeltime += telemetry_labelinterval;
+	  if (telemetry_labeltime <= now)
+	    telemetry_labeltime = now + 120;
+	  telemetry_labeltx();
+	}
+
+	return 0;
+}
+
+static void telemetry_datatx()
+{
+	int  i, j, k, t;
 	char buf[200], *s;
 	int  buflen;
 	char beaconaddr[60];
 	int  beaconaddrlen;
 	long erlmax;
 	float erlcapa;
+	float f;
 
-	if (telemetry_time > now)
-		return 0;	/* Not yet ... */
-
-	telemetry_time += telemetry_interval;
 
 	if (debug)
 	  printf("Telemetry Tx run; next one in %.2f minutes\n", (telemetry_interval/60.0));
@@ -84,7 +110,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 	buf[1] = 0xF0; // AX.25 PID
 
 	++telemetry_seq;
-	telemetry_seq %= 256;
+	telemetry_seq %= 1000;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
@@ -96,212 +122,240 @@ int telemetry_postpoll(struct aprxpolls *app)
 
 
 		// Raw Rx Erlang - plotting scale factor: 1/200
+		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
-			erlmax = 0;
-			k = E->e1_cursor;
-			t = E->e1_max;
-			if (t > telemetry_1min_steps)
-				t = telemetry_1min_steps;	// Up to 10 of 1 minute samples
-			erlcapa = 1.0 / E->erlang_capa; // 1/capa of 1 minute
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e1_max - 1;
-				if (E->e1[k].bytes_rx > erlmax)
-					erlmax = E->e1[k].bytes_rx;
-			}
-			k = (int) (200.0 * erlcapa * erlmax);
-			// if (k > 255) k = 255;
-			s += sprintf(s, "%d,", k);
+		// Find busiest 1 minute
+		k = E->e1_cursor;
+		t = E->e1_max;
+		if (t > telemetry_1min_steps)
+		  t = telemetry_1min_steps;	// Up to 10 of 1 minute samples
+		erlcapa = 1.0 / E->erlang_capa; // 1/capa of 1 minute
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e1_max - 1;
+		  if (E->e1[k].bytes_rx > erlmax)
+		    erlmax = E->e1[k].bytes_rx;
+		}
 #else
-			erlmax = 0;
-			k = E->e10_cursor;
-			t = E->e10_max;
-			if (t > telemetry_10min_steps)
-				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
-			erlcapa = 0.1 / E->erlang_capa; // 1/capa of 10 minute 
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e10_max - 1;
-				if (E->e10[k].bytes_rx > erlmax)
-					erlmax = E->e10[k].bytes_rx;
-			}
-			k = (int) (200.0 * erlcapa * erlmax);
-			// if (k > 255) k = 255;
-			s += sprintf(s, "%d,", k);
+		// Find busiest 10 minute
+		k = E->e10_cursor;
+		t = E->e10_max;
+		if (t > telemetry_10min_steps)
+		  t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
+		erlcapa = 0.1 / E->erlang_capa; // 1/capa of 10 minute 
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e10_max - 1;
+		  if (E->e10[k].bytes_rx > erlmax)
+		    erlmax = E->e10[k].bytes_rx;
+		}
 #endif
-
+		f = (200.0 * erlcapa * erlmax);
+		s += sprintf(s, "%.1f,", f);
+		
 		// Raw Tx Erlang - plotting scale factor: 1/200
+		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
-			erlmax = 0;
-			k = E->e1_cursor;
-			t = E->e1_max;
-			if (t > telemetry_1min_steps)
-				t = telemetry_1min_steps;	// Up to 10 of 1 minute samples
-			erlcapa = 1.0 / E->erlang_capa; // 1/capa of 1 minute
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e1_max - 1;
-				if (E->e1[k].bytes_tx > erlmax)
-					erlmax = E->e1[k].bytes_tx;
-			}
-			k = (int) (200.0 * erlcapa * erlmax);
-			// if (k > 255) k = 255;
-			s += sprintf(s, "%d,", k);
+		// Find busiest 1 minute
+		k = E->e1_cursor;
+		t = E->e1_max;
+		if (t > telemetry_1min_steps)
+		  t = telemetry_1min_steps;	// Up to 10 of 1 minute samples
+		erlcapa = 1.0 / E->erlang_capa; // 1/capa of 1 minute
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e1_max - 1;
+		  if (E->e1[k].bytes_tx > erlmax)
+		    erlmax = E->e1[k].bytes_tx;
+		}
 #else
-			erlmax = 0;
-			k = E->e10_cursor;
-			t = E->e10_max;
-			if (t > telemetry_10min_steps)
-				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
-			erlcapa = 0.1 / E->erlang_capa; // 1/capa of 10  minute
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e10_max - 1;
-				if (E->e10[k].bytes_tx > erlmax)
-					erlmax = E->e10[k].bytes_tx;
-			}
-			k = (int) (200.0 * erlcapa * erlmax);
-			// if (k > 255) k = 255;
-			s += sprintf(s, "%d,", k);
+		// Find busiest 10 minute
+		k = E->e10_cursor;
+		t = E->e10_max;
+		if (t > telemetry_10min_steps)
+		  t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
+		erlcapa = 0.1 / E->erlang_capa; // 1/capa of 10  minute
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e10_max - 1;
+		  if (E->e10[k].bytes_tx > erlmax)
+		    erlmax = E->e10[k].bytes_tx;
+		}
 #endif
+		f = (200.0 * erlcapa * erlmax);
+		s += sprintf(s, "%.1f,", f);
 
+		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
-			erlmax = 0;
-			k = E->e1_cursor;
-			t = E->e1_max;
-			if (t > telemetry_1min_steps)
-				t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e1_max - 1;
-				erlmax += E->e1[k].packets_rx;
-			}
-			erlmax /= telemetry_timescaler;
-			s += sprintf(s, "%d,", (int) erlmax); // scale to same as 10 minute data
+		// Sum of 1 minute packet counts
+		k = E->e1_cursor;
+		t = E->e1_max;
+		if (t > telemetry_1min_steps)
+		  t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e1_max - 1;
+		  erlmax += E->e1[k].packets_rx;
+		}
 #else
-			erlmax = 0;
-			k = E->e10_cursor;
-			t = E->e10_max;
-			if (t > telemetry_10min_steps)
-				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e10_max - 1;
-				erlmax += E->e10[k].packets_rx;
-			}
-			erlmax /= telemetry_timescaler;
-			s += sprintf(s, "%d,", (int) erlmax);
+		// Sum of 10 minute packet counts
+		erlmax = 0;
+		k = E->e10_cursor;
+		t = E->e10_max;
+		if (t > telemetry_10min_steps)
+		  t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e10_max - 1;
+		  erlmax += E->e10[k].packets_rx;
+		}
 #endif
+		f = erlmax / telemetry_timescaler;
+		s += sprintf(s, "%.1f,", f);
 
+		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
-			erlmax = 0;
-			k = E->e1_cursor;
-			t = E->e1_max;
-			if (t > telemetry_1min_steps)
-				t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e1_max - 1;
-				erlmax += E->e1[k].packets_rxdrop;
-			}
-			erlmax /= telemetry_timescaler;
-			s += sprintf(s, "%d,", 10*(int) erlmax); // scale to same as 10 minute data
+		// Sum of 1 minute packet drop counts
+		k = E->e1_cursor;
+		t = E->e1_max;
+		if (t > telemetry_1min_steps)
+		  t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e1_max - 1;
+		  erlmax += E->e1[k].packets_rxdrop;
+		}
 #else
-			erlmax = 0;
-			k = E->e10_cursor;
-			t = E->e10_max;
-			if (t > telemetry_10min_steps)
-				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e10_max - 1;
-				erlmax += E->e10[k].packets_rxdrop;
-			}
-			erlmax /= telemetry_timescaler;
-			s += sprintf(s, "%d,", (int) erlmax);
+		// Sum of 10 minute packet drop counts
+		k = E->e10_cursor;
+		t = E->e10_max;
+		if (t > telemetry_10min_steps)
+		  t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e10_max - 1;
+		  erlmax += E->e10[k].packets_rxdrop;
+		}
 #endif
+		f = erlmax / telemetry_timescaler;
+		s += sprintf(s, "%.1f,", f);
 
+		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
-			erlmax = 0;
-			k = E->e1_cursor;
-			t = E->e1_max;
-			if (t > telemetry_1min_steps)
-				t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e1_max - 1;
-				erlmax += E->e1[k].packets_tx;
-			}
-			erlmax /= telemetry_timescaler;
-			s += sprintf(s, "%d,", 10*(int) erlmax); // scale to same as 10 minute data
+		// Sum of 1 minute packet tx counts
+		k = E->e1_cursor;
+		t = E->e1_max;
+		if (t > telemetry_1min_steps)
+		  t = telemetry_1min_steps;	/* Up to 10 of 1 minute samples */
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e1_max - 1;
+		  erlmax += E->e1[k].packets_tx;
+		}
 #else
-			erlmax = 0;
-			k = E->e10_cursor;
-			t = E->e10_max;
-			if (t > telemetry_10min_steps)
-				t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
-			for (j = 0; j < t; ++j) {
-				--k;
-				if (k < 0)
-					k = E->e10_max - 1;
-				erlmax += E->e10[k].packets_tx;
-			}
-			erlmax /= telemetry_timescaler;
-			s += sprintf(s, "%03d,", (int) erlmax);
+		// Sum of 10 minute packet tx counts
+		k = E->e10_cursor;
+		t = E->e10_max;
+		if (t > telemetry_10min_steps)
+		  t = telemetry_10min_steps;	// Up to 1 of 10 minute samples
+		for (j = 0; j < t; ++j) {
+		  --k;
+		  if (k < 0)
+		    k = E->e10_max - 1;
+		  erlmax += E->e10[k].packets_tx;
+		}
 #endif
+		f = erlmax / telemetry_timescaler;
+		s += sprintf(s, "%.1f,", f);
 		
 		/* Tail filler */
 		s += sprintf(s, "00000000");  // FIXME: flag telemetry?
-
+		
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
-
+		
 		/* Send those (net)beacons.. */
 		buflen = s - buf;
 		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
 			     buf+2, buflen-2);
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
-		if ((telemetry_params % 32) == 0) { /* every 5h20m */
+	}
+	++telemetry_params;
+}
 
-			/* Send every 5h20m or thereabouts. */
+// Telemetry Labels are transmitted separately
+static void telemetry_labeltx()
+{
+	int  i;
+	char buf[200], *s;
+	int  buflen;
+	char beaconaddr[60];
+	int  beaconaddrlen;
 
-			s = buf+2 + sprintf(buf+2,
-					    ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
-					    E->name);
-			buflen = s - buf;
-			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf+2, buflen-2);
-			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
-			s = buf+2 + sprintf(buf+2,
-					    ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
-					    E->name);
-			buflen = s - buf;
-			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf+2, buflen-2);
-			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+	if (debug)
+	  printf("Telemetry LabelTx run; next one in %.2f minutes\n", (telemetry_labelinterval/60.0));
 
-			s = buf+2 + sprintf(buf+2,
-					    ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
-					    E->name);
-			buflen = s - buf;
-			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf+2, buflen-2);
-			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+	// Init these for RF transmission
+	buf[0] = 0x03; // AX.25 Control
+	buf[1] = 0xF0; // AX.25 PID
+
+	++telemetry_seq;
+	telemetry_seq %= 1000;
+	for (i = 0; i < ErlangLinesCount; ++i) {
+		struct erlangline *E = ErlangLines[i];
+		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
+
+		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
+		// First two bytes of BUF are for AX.25 control+PID fields
+
+		/* Send every 5h20m or thereabouts. */
+
+		if (telemetry_labelindex == 0) {
+		  s = buf+2 + sprintf(buf+2,
+				      ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
+				      E->name);
+		  buflen = s - buf;
+		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+			       buf+2, buflen-2);
+		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+
+		} else if (telemetry_labelindex == 1) {
+		
+		  s = buf+2 + sprintf(buf+2,
+				      ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
+				      E->name);
+		  buflen = s - buf;
+		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+			       buf+2, buflen-2);
+		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+		  
+		} else if (telemetry_labelindex == 2) {
+		  
+		  s = buf+2 + sprintf(buf+2,
+				      ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
+				      E->name);
+		  buflen = s - buf;
+		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+			       buf+2, buflen-2);
+		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		}
 	}
 	++telemetry_params;
 
-	return 0;
+	// Switch label-index..
+	++telemetry_labelindex;
+	if (telemetry_labelindex > 2)
+	  telemetry_labelindex = 0;
 }
 
 static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
