@@ -8,6 +8,9 @@
 	* filter.c:
 	    Shrink filter cell storage to 4 kB per alloc arena (from 512 kB!)
 
+	* historydb.c:
+	    Shrink historydb cell storage to 32 kB per alloc arena (from 128 kB)
+
 	* debian/aprx.init:
 	    Pleasing init-script behaviour during package re-install
 
