@@ -593,6 +593,7 @@ extern int  interface_transmit_beacon(const struct aprx_interface *aif, const ch
 
 
 /* pbuf.c */
+extern void           pbuf_init(void);
 extern struct pbuf_t *pbuf_get(struct pbuf_t *pb);
 extern void           pbuf_put(struct pbuf_t *pb);
 extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axdatalen, const int tnc2len);

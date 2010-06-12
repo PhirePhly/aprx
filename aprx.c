@@ -131,6 +131,7 @@ int main(int argc, char *const argv[])
 	dupecheck_init(); // before aprsis_init() !
 	aprsis_init();
 	filter_init();
+	pbuf_init();
 
 	readconfig(cfgfile);
 
