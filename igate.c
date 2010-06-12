@@ -63,7 +63,7 @@ const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax2
 					   limited to VIA fields :-(  */
 		++s;
 
-	if (s >= e) {
+	if (s > e) {
 		if (debug)
 			printf("callsign scanner ran over end of buffer");
 		return NULL; /* Over the end-of-buffer */
@@ -74,7 +74,7 @@ const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax2
 		return NULL;	/* Too short ? */
 	}
 
-	if (*s != '>' && *s != ',' && *s != ':') {
+	if (*s != '>' && *s != ',' && *s != ':' && *s != 0) {
 		/* Terminates badly.. */
 		if (debug)
 			printf("%s callsign format verify got bad character: '%c' in string: '%.20s'\n", strictax25 ? "Strict":"Lenient", *s, t);

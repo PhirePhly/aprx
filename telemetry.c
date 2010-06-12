@@ -12,8 +12,12 @@
 
 #define  telemetry_timescaler 2       // scale to 10 minute sums
 static int telemetry_interval = 20 * 60; // 20 minutes
+#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 static int telemetry_1min_steps = 20;
+#endif
+#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 0))
 static int telemetry_10min_steps = 2;
+#endif
 
 static time_t telemetry_time;
 static int telemetry_seq;
