@@ -305,6 +305,10 @@ static void cfgparam(struct configfile *cf)
 	  interface_config(cf);
 	  return;
 	}
+	if (strcmp(name, "<telemetry>") == 0) {
+	  telemetry_config(cf);
+	  return;
+	}
 	if (strcmp(name, "<digipeater>") == 0) {
 	  digipeater_config(cf);
 	  return;

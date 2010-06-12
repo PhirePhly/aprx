@@ -1,3 +1,20 @@
+2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* telemetry.c, config.c, aprx.h, doc/aprx-manual.odt
+	    New <telemetry> config section, be able to tx
+	    telemetry to RF ports.
+
+	* beacon.c:
+	    Error reporting additions.
+
+	* erlang.c, aprx-stat.c, aprx.h, telemetry.c:
+	    Use pre-processor conditionals to select only small
+	    subset of storage and processing codes used for
+	    erlang data in embedded mode.
+
+	* parse_aprs.c:
+	    Compile warning silencing.
+
 2010-06-10  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* kiss.c, ttyreader.c, dprsgw.c, aprx.h:

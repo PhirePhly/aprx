@@ -11,6 +11,7 @@
 
 #include "aprx.h"
 
+#ifdef ERLANGSTORAGE
 time_t now;
 int debug; /* linkage dummy */
 int erlangout;
@@ -241,3 +242,21 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
+#else
+
+time_t now;
+int debug;			/* linkage dummy */
+int erlangout;
+int epochtime;
+const char *aprxlogfile;	/* linkage dummy */
+const char *aprsis_login;	/* linkage dummy */
+
+void printtime(char *buf, int buflen) {} /* linkage dummy */
+
+int main(int argc, char **argv)
+{
+  fprintf(stderr,"Sorry - aprx-stat program not available in system configured without ERLANGSTORAGE\n");
+  return 1;
+}
+#endif
