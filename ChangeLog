@@ -1,3 +1,9 @@
+2010-06-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* historydb.c, historydb.h:
+	    Instead of historydb instance specific history entry pools,
+	    have one global pool.
+
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* cellmalloc.c:

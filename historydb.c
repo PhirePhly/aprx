@@ -25,6 +25,9 @@ void historydb_hashmatch(void) {}
 void historydb_keymatch(void) {}
 void historydb_dataupdate(void) {}
 
+// Single aprx wide alloc system
+static cellarena_t   *historydb_cells;
+static struct history_cell_t *historydb_freelist;
 
 void historydb_init(void)
 {
@@ -33,6 +36,13 @@ void historydb_init(void)
 
 	_dbs = malloc(sizeof(void*));
 	_dbs_count = 0;
+
+	historydb_cells = cellinit( "historydb",
+				    sizeof(struct history_cell_t),
+				    __alignof__(struct history_cell_t), 
+				    CELLMALLOC_POLICY_FIFO,
+				    32 /* 32 kB */,
+				    0 /* minfree */ );
 }
 
 /* new instance - for new digipeater tx */
@@ -40,14 +50,6 @@ historydb_t *historydb_new(void)
 {
 	historydb_t *db = malloc(sizeof(*db));
 	memset(db, 0, sizeof(*db));
-
-	db->cells = cellinit( "historydb",
-			      sizeof(struct history_cell_t),
-			      __alignof__(struct history_cell_t), 
-			      CELLMALLOC_POLICY_FIFO,
-			      32 /* 128 kB */,
-			      0 /* minfree */ );
-
 
 	++_dbs_count;
 	_dbs = realloc(_dbs, sizeof(void*)*_dbs_count);
@@ -65,14 +67,22 @@ void historydb_free(struct history_cell_t *p)
 		free(p->packet);
 
 	--p->db->historydb_cellgauge;
-	cellfree( p->db->cells, p );
+
+	p->next = historydb_freelist;
+	historydb_freelist = p;
+	// cellfree( historydb_cells, p );
 }
 
 /* Called only under WR-LOCK */
 struct history_cell_t *historydb_alloc(historydb_t *db, int packet_len)
 {
 	++db->historydb_cellgauge;
-	struct history_cell_t *ret = cellmalloc( db->cells );
+	struct history_cell_t *ret = historydb_freelist;
+	if (ret != NULL) {
+	  historydb_freelist = ret->next;
+	} else {
+	  ret = cellmalloc( historydb_cells );
+	}
 	ret->db = db;
 	return ret;
 }
@@ -95,6 +105,12 @@ void historydb_atend(void)
 	      hp = hp2;
 	    }
 	  }
+	}
+	while (historydb_freelist != NULL) {
+	  struct history_cell_t *hp = historydb_freelist->next;
+	  historydb_freelist->next = NULL;
+	  cellfree( historydb_cells, historydb_freelist );
+	  historydb_freelist = hp;
 	}
 }
 
