@@ -19,6 +19,19 @@ static time_t telemetry_time;
 static int telemetry_seq;
 static int telemetry_params;
 
+struct rftelemetry {
+	struct aprx_interface  *transmitter;
+	struct aprx_interface **sources;
+	int		        source_count;
+	char	               *viapath;
+};
+
+static int                  rftelemetrycount;
+static struct rftelemetry **rftelemetry;
+
+static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
+			 const char *buf, const int buflen);
+
 void telemetry_start()
 {
 	/*
@@ -48,7 +61,8 @@ int telemetry_postpoll(struct aprxpolls *app)
 {
 	int i, j, k, t;
 	char buf[200], *s;
-	char beaconaddr[30];
+	int  buflen;
+	char beaconaddr[60];
 	int  beaconaddrlen;
 	long erlmax;
 	float erlcapa;
@@ -66,15 +80,15 @@ int telemetry_postpoll(struct aprxpolls *app)
 	telemetry_seq %= 256;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
+		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
 
-		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, i + 1);
+		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
 		s = buf;
 		s += sprintf(s, "T#%03d,", telemetry_seq);
 
-#define USE_ONE_MINUTE_DATA 0
 
 		// Raw Rx Erlang - plotting scale factor: 1/200
-		if (USE_ONE_MINUTE_DATA) {
+#if (USE_ONE_MINUTE_DATA == 1)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
@@ -91,7 +105,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			k = (int) (200.0 * erlcapa * erlmax);
 			// if (k > 255) k = 255;
 			s += sprintf(s, "%d,", k);
-		} else {
+#else
 			erlmax = 0;
 			k = E->e10_cursor;
 			t = E->e10_max;
@@ -108,10 +122,10 @@ int telemetry_postpoll(struct aprxpolls *app)
 			k = (int) (200.0 * erlcapa * erlmax);
 			// if (k > 255) k = 255;
 			s += sprintf(s, "%d,", k);
-		}
+#endif
 
 		// Raw Tx Erlang - plotting scale factor: 1/200
-		if (USE_ONE_MINUTE_DATA) {
+#if (USE_ONE_MINUTE_DATA == 1)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
@@ -128,7 +142,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			k = (int) (200.0 * erlcapa * erlmax);
 			// if (k > 255) k = 255;
 			s += sprintf(s, "%d,", k);
-		} else {
+#else
 			erlmax = 0;
 			k = E->e10_cursor;
 			t = E->e10_max;
@@ -145,9 +159,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 			k = (int) (200.0 * erlcapa * erlmax);
 			// if (k > 255) k = 255;
 			s += sprintf(s, "%d,", k);
-		}
+#endif
 
-		if (USE_ONE_MINUTE_DATA) {
+#if (USE_ONE_MINUTE_DATA == 1)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
@@ -161,7 +175,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			}
 			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", (int) erlmax); // scale to same as 10 minute data
-		} else {
+#else
 			erlmax = 0;
 			k = E->e10_cursor;
 			t = E->e10_max;
@@ -175,9 +189,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 			}
 			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", (int) erlmax);
-		}
+#endif
 
-		if (USE_ONE_MINUTE_DATA) {
+#if (USE_ONE_MINUTE_DATA == 1)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
@@ -191,7 +205,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			}
 			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", 10*(int) erlmax); // scale to same as 10 minute data
-		} else {
+#else
 			erlmax = 0;
 			k = E->e10_cursor;
 			t = E->e10_max;
@@ -205,9 +219,9 @@ int telemetry_postpoll(struct aprxpolls *app)
 			}
 			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", (int) erlmax);
-		}
+#endif
 
-		if (USE_ONE_MINUTE_DATA) {
+#if (USE_ONE_MINUTE_DATA == 1)
 			erlmax = 0;
 			k = E->e1_cursor;
 			t = E->e1_max;
@@ -221,7 +235,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			}
 			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%d,", 10*(int) erlmax); // scale to same as 10 minute data
-		} else {
+#else
 			erlmax = 0;
 			k = E->e10_cursor;
 			t = E->e10_max;
@@ -235,7 +249,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 			}
 			erlmax /= telemetry_timescaler;
 			s += sprintf(s, "%03d,", (int) erlmax);
-		}
+#endif
 		
 		/* Tail filler */
 		s += sprintf(s, "00000000");  // FIXME: flag telemetry?
@@ -243,8 +257,10 @@ int telemetry_postpoll(struct aprxpolls *app)
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 		/* Send those (net)beacons.. */
+		buflen = s - buf;
 		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
-			     buf, (int) (s - buf));
+			     buf, buflen);
+		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 		if ((telemetry_params % 32) == 0) { /* every 5h20m */
 
@@ -253,23 +269,183 @@ int telemetry_postpoll(struct aprxpolls *app)
 			s = buf + sprintf(buf,
 					  ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
 					  E->name);
+			buflen = s - buf;
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf, (int) (s - buf));
+				     buf, buflen);
+			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 			s = buf + sprintf(buf,
 					  ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
 					  E->name);
+			buflen = s - buf;
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf, (int) (s - buf));
+				     buf, buflen);
+			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 			s = buf + sprintf(buf,
 					  ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 					  E->name);
+			buflen = s - buf;
 			aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
-				     buf, (int) (s - buf));
+				     buf, buflen);
+			rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		}
 	}
 	++telemetry_params;
 
 	return 0;
+}
+
+static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
+			 const char *buf, const int buflen)
+{
+	int i;
+	int t_idx;
+	char *dest;
+
+	if (rftelemetrycount == 0) return; // Nothing to do!
+	if (sourceaif == NULL) return; // Huh? Unknown source..
+
+	// The beaconaddr comes in as:
+	//    "interfacecall>RXTLM-n,TCPIP"
+	dest = strchr(beaconaddr, ',');
+	if (dest != NULL) *dest = 0;
+	dest = strchr(beaconaddr, '>');
+	if (dest != NULL) *dest++ = 0;
+	if (dest == NULL) {
+	  // Impossible -- said she...
+	  return;
+	}
+
+	for (t_idx = 0; t_idx < rftelemetrycount; ++t_idx) {
+	  struct rftelemetry *rftlm = rftelemetry[t_idx];
+	  if (rftlm == NULL) break;
+	  for (i = 0; i < rftlm->source_count; ++i) {
+	    if (rftlm->sources[i] == sourceaif) {
+	      // Found telemetry transmitter which wants this source
+
+	      interface_transmit_beacon(rftlm->transmitter,
+					beaconaddr,
+					dest,
+					rftlm->viapath,
+					buf, buflen);
+
+	      
+	    }
+	  }
+	}
+}
+
+void telemetry_config(struct configfile *cf)
+{
+	char *name, *param1;
+	char *str = cf->buf;
+	int   has_fault = 0;
+
+	struct aprx_interface  *aif          = NULL;
+	struct aprx_interface **sources      = NULL;
+	int			source_count = 0;
+	char                   *viapath      = NULL;
+
+	while (readconfigline(cf) != NULL) {
+		if (configline_is_comment(cf))
+			continue;	/* Comment line, or empty line */
+
+		// It can be severely indented...
+		str = config_SKIPSPACE(cf->buf);
+
+		name = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+		config_STRLOWER(name);
+
+		param1 = str;
+		str = config_SKIPTEXT(str, NULL);
+		str = config_SKIPSPACE(str);
+
+		if (strcmp(name, "</telemetry>") == 0)
+		  break;
+
+		if (strcmp(name, "transmit") == 0 ||
+		    strcmp(name, "transmitter") == 0) {
+			if (strcmp(param1,"$mycall") == 0)
+				param1 = (char*)mycall;
+
+			aif = find_interface_by_callsign(param1);
+			if (aif != NULL && (!aif->txok)) {
+			  aif = NULL; // Not 
+			  printf("%s:%d ERROR: This transmit interface has no TX-OK TRUE setting: '%s'\n",
+				 cf->name, cf->linenum, param1);
+			  has_fault = 1;
+			} else if (aif == NULL) {
+			  printf("%s:%d ERROR: Unknown interface: '%s'\n",
+				 cf->name, cf->linenum, param1);
+			  has_fault = 1;
+			}
+		} else if (strcmp(name, "via") == 0) {
+			if (viapath != NULL) {
+			  printf("%s:%d ERROR: Double definition of 'via'\n",
+				 cf->name, cf->linenum);
+			  has_fault = 1;
+			} else if (*param1 == 0) {
+			  printf("%s:%d ERROR: 'via' keyword without parameter\n",
+				 cf->name, cf->linenum);
+			  has_fault = 1;
+			}
+			if (!has_fault) {
+			  const char *check;
+			  config_STRUPPER(param1);
+			  check = tnc2_verify_callsign_format(param1, 0, 1, param1+strlen(param1));
+			  if (check == NULL) {
+			    has_fault = 1;
+			    printf("%s:%d ERROR: The 'via %s' parameter is not acceptable AX.25 format\n",
+				   cf->name, cf->linenum, param1);
+
+			  }
+			}
+			if (!has_fault) {
+			  // Save it
+			  viapath = strdup(param1);
+			}
+		} else if (strcmp(name, "source") == 0) {
+			struct aprx_interface *source_aif = NULL;
+			if (debug)
+			  printf("%s:%d <telemetry> source = '%s'\n",
+				 cf->name, cf->linenum, param1);
+
+			if (strcmp(param1,"$mycall") == 0)
+			  param1 = (char*)mycall;
+
+			source_aif = find_interface_by_callsign(param1);
+			if (source_aif == NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Digipeater source '%s' not found\n",
+				 cf->name, cf->linenum, param1);
+			} else {
+			  // Collect them all...
+			  sources = realloc(sources, sizeof(void*)*(source_count+2));
+			  sources[source_count++] = source_aif;
+			  sources[source_count+1] = NULL;
+			}
+			if (debug>1)
+			  printf(" .. source_aif = %p\n", source_aif);
+		}
+	}
+
+	if (has_fault) {
+	  if (sources != NULL)
+	    free(sources);
+	  if (viapath != NULL)
+	    free(viapath);
+	} else {
+	  struct rftelemetry *newrf = malloc(sizeof(*newrf));
+	  newrf->transmitter = aif;
+	  newrf->viapath     = viapath;
+	  newrf->sources     = sources;
+	  newrf->source_count = source_count;
+	  rftelemetry = realloc(rftelemetry, sizeof(void*)*(rftelemetrycount+2));
+	  rftelemetry[rftelemetrycount++] = newrf;
+
+	  if (debug) printf("Defined <telemetry> to transmitter %s\n", aif->callsign);
+	}
 }

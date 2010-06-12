@@ -1046,7 +1046,7 @@ static int parse_aprs_item(struct pbuf_t *pb, const char *body, const char *body
 }
 
 
-
+#if 0
 int parse_aprs_txgate(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *historydb)
 {
 	int rc = parse_aprs(pb, look_inside_3rd_party, historydb);
@@ -1065,6 +1065,7 @@ int parse_aprs_txgate(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t 
 	}
 	return rc;
 }
+#endif
 
 /*
  *	Try to parse an APRS packet.

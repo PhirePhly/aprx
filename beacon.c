@@ -171,6 +171,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 				if (debug)printf("\n");
 				printf("%s:%d ERROR: beacon interface '%s' that is not a known interface.\n",
 				       cf->name, cf->linenum, to);
+				has_fault = 1;
 			}
 
 			if (debug)
@@ -179,6 +180,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "srccall") == 0 ||
 			   strcmp(p1, "for") == 0) {
 
+			if (srcaddr != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			srcaddr = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -198,6 +204,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "dstcall") == 0 ||
 			   strcmp(p1, "dest") == 0) {
 
+			if (destaddr != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			destaddr = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -209,6 +220,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 		} else if (strcmp(p1, "via") == 0) {
 
+			if (via != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			via  = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -220,6 +236,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 		} else if (strcmp(p1, "name") == 0) {
 
+			if (name != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			name  = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -228,8 +249,17 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 				printf("name '%s' ", name);
 
 		} else if (strcmp(p1, "item") == 0) {
+			if (name != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
+			if (type != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of type parameter\n",
+				 cf->name, cf->linenum);
+			}
 			type = ")";
-
 			name  = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -238,6 +268,16 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 				printf("item '%s' ", name);
 
 		} else if (strcmp(p1, "object") == 0) {
+			if (name != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
+			if (type != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of type parameter\n",
+				 cf->name, cf->linenum);
+			}
 			type = ";";
 
 			name  = str;
@@ -250,9 +290,15 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "type") == 0) {
 			/* text up to .. 40 chars */
 
+			if (type != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			type = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
+			type = strdup(type);
 
 			if (debug)
 				printf("type '%s' ", type);
@@ -270,13 +316,19 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "lat") == 0) {
 			/*  ddmm.mmN   */
 
+			if (lat != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			lat = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			if (validate_degmin_input(lat, 90)) {
+			if (!has_fault && validate_degmin_input(lat, 90)) {
 			  has_fault = 1;
-			  printf("Latitude input has bad format: '%s'\n",lat);
+			  printf("%s:%d ERROR: Latitude input has bad format: '%s'\n",
+				 cf->name, cf->linenum, lat);
 			}
 
 			if (debug)
@@ -285,6 +337,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "lon") == 0) {
 			/*  dddmm.mmE  */
 
+			if (lon != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			lon = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -300,6 +357,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "symbol") == 0) {
 			/*   R&    */
 
+			if (code != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			code = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -314,6 +376,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		} else if (strcmp(p1, "comment") == 0) {
 			/* text up to .. 40 chars */
 
+			if (comment != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			comment = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
@@ -327,7 +394,12 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			bm->msg = strdup(p1);
+			if (bm->msg != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			} else
+			  bm->msg = strdup(p1);
 
 			// FIXME: validate the data with APRS parser...
 
@@ -340,12 +412,22 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			bm->filename = strdup(p1);
+			if (bm->filename != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			} else
+			  bm->filename = strdup(p1);
 
 			if (debug)
 				printf("file '%s' ", bm->filename);
 
 		} else if (strcmp(p1, "timefix") == 0) {
+			if (bm->timefix) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
 			bm->timefix = 1;
 			if (debug)
 				printf("timefix ");
@@ -365,7 +447,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			bm->msg = strdup(p1);
 
 			if (debug)
-				printf("raw '%s' ", bm->msg);
+				printf("ASSUMING raw '%s' ", bm->msg);
 
 			break;
 #endif
@@ -500,7 +582,7 @@ void beacon_config(struct configfile *cf)
 	char *name, *param1;
 	char *str = cf->buf;
 	int   beaconmode = 0;
-	int   has_fault;
+	int   has_fault  = 0;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))

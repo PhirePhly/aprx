@@ -24,7 +24,7 @@ void igate_start()
 
 }
 
-static const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e)
+const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e)
 {
 	const char *s = t;
 

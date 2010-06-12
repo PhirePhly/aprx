@@ -29,20 +29,27 @@ static float erlang_time_ival_1min = 1.0;
 static time_t erlang_time_end_10min;
 static float erlang_time_ival_10min = 1.0;
 
+#ifdef ERLANGSTORAGE
 static time_t erlang_time_end_60min;
 static float erlang_time_ival_60min = 1.0;
+#endif
 
+#ifdef ERLANGSTORAGE
 static const char *erlangtitle = "APRX SNMP + Erlang dataset\n";
+#endif
 
 int erlangsyslog;		/* if set, will log via syslog(3)  */
 int erlanglog1min;		/* if set, will log also "ERLANG1" interval  */
 
-const char *erlang_backingstore = VARRUN "/aprx.state";
 const char *erlanglogfile;
+const char *erlang_backingstore = VARRUN "/aprx.state";
+
+#ifdef ERLANGSTORAGE
 static int erlang_file_fd = -1;
+static int erlang_mmap_size;
+#endif
 
 static void *erlang_mmap;
-static int erlang_mmap_size;
 
 struct erlanghead *ErlangHead;
 struct erlangline **ErlangLines;
@@ -240,9 +247,10 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 
 		return 0;	/* OK ! */
 	}
-#endif				/* ... ERLANGSTORAGE ... */
 
       embedded_only:;
+#endif				/* ... ERLANGSTORAGE ... */
+
 	erlang_data_is_nonshared = 1;
 
 	if (add_count > 0 || !erlang_mmap) {
@@ -335,10 +343,22 @@ static struct erlangline *erlang_findline(const char *portname,
 		E->erlang_capa = bytes_per_minute;
 		E->index = ErlangLinesCount - 1;
 
-		E->e1_cursor = E->e10_cursor = E->e60_cursor = 0;
+#ifdef ERLANGSTORAGE
+		E->e1_cursor = 0;
 		E->e1_max  = APRXERL_1M_COUNT;
+		E->e10_cursor = 0;
 		E->e10_max = APRXERL_10M_COUNT;
+		E->e60_cursor = 0;
 		E->e60_max = APRXERL_60M_COUNT;
+#else
+#if (USE_ONE_MINUTE_DATA == 1)
+		E->e1_cursor = 0;
+		E->e1_max  = APRXERL_1M_COUNT;
+#else
+		E->e10_cursor = 0;
+		E->e10_max = APRXERL_10M_COUNT;
+#endif
+#endif
 	}
 	return E;
 }
@@ -376,6 +396,7 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->SNMP.update = now;
 		E->last_update = now;
 
+#ifdef ERLANGSTORAGE
 		E->erl1m.bytes_rx += bytes;
 		E->erl1m.packets_rx += packets;
 		E->erl1m.update = now;
@@ -387,6 +408,17 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->erl60m.bytes_rx += bytes;
 		E->erl60m.packets_rx += packets;
 		E->erl60m.update = now;
+#else
+#if (USE_ONE_MINUTE_STORAGE == 1)
+		E->erl1m.bytes_rx += bytes;
+		E->erl1m.packets_rx += packets;
+		E->erl1m.update = now;
+#else
+		E->erl10m.bytes_rx += bytes;
+		E->erl10m.packets_rx += packets;
+		E->erl10m.update = now;
+#endif
+#endif
 	}
 	if (erl == ERLANG_TX) {
 		E->SNMP.bytes_tx += bytes;
@@ -394,6 +426,7 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->SNMP.update = now;
 		E->last_update = now;
 
+#ifdef ERLANGSTORAGE
 		E->erl1m.bytes_tx += bytes;
 		E->erl1m.packets_tx += packets;
 		E->erl1m.update = now;
@@ -405,6 +438,17 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->erl60m.bytes_tx += bytes;
 		E->erl60m.packets_tx += packets;
 		E->erl60m.update = now;
+#else
+#if (USE_ONE_MINUTE_STORAGE == 1)
+		E->erl1m.bytes_tx += bytes;
+		E->erl1m.packets_tx += packets;
+		E->erl1m.update = now;
+#else
+		E->erl10m.bytes_tx += bytes;
+		E->erl10m.packets_tx += packets;
+		E->erl10m.update = now;
+#endif
+#endif
 	}
 	if (erl == ERLANG_DROP) {
 		E->SNMP.bytes_rxdrop += bytes;
@@ -412,6 +456,7 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->SNMP.update = now;
 		E->last_update = now;
 
+#ifdef ERLANGSTORAGE
 		E->erl1m.bytes_rxdrop += bytes;
 		E->erl1m.packets_rxdrop += packets;
 		E->erl1m.update = now;
@@ -423,6 +468,17 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 		E->erl60m.bytes_rxdrop += bytes;
 		E->erl60m.packets_rxdrop += packets;
 		E->erl60m.update = now;
+#else
+#if (USE_ONE_MINUTE_STORAGE == 1)
+		E->erl1m.bytes_rxdrop += bytes;
+		E->erl1m.packets_rxdrop += packets;
+		E->erl1m.update = now;
+#else
+		E->erl10m.bytes_rxdrop += bytes;
+		E->erl10m.packets_rxdrop += packets;
+		E->erl10m.update = now;
+#endif
+#endif
 	}
 }
 
@@ -444,6 +500,7 @@ static void erlang_time_end(void)
 
 	printtime(logtime, sizeof(logtime));
 
+#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 	if (now >= erlang_time_end_1min) {
 		erlang_time_end_1min += 60;
 		for (i = 0; i < ErlangLinesCount; ++i) {
@@ -490,6 +547,8 @@ static void erlang_time_end(void)
 		}
 		erlang_time_ival_1min = 1.0;
 	}
+#endif
+#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 0))
 	if (now >= erlang_time_end_10min) {
 		erlang_time_end_10min += 600;
 
@@ -525,12 +584,13 @@ static void erlang_time_end(void)
 			++E->e10_cursor;
 			if (E->e10_cursor >= E->e10_max)
 				E->e10_cursor = 0;
-
 			memset(&E->erl10m, 0, sizeof(E->erl10m));
 			E->erl10m.update = now;
 		}
 		erlang_time_ival_10min = 1.0;
 	}
+#endif
+#ifdef ERLANGSTORAGE
 	if (now >= erlang_time_end_60min) {
 		erlang_time_end_60min += 3600;
 
@@ -572,6 +632,7 @@ static void erlang_time_end(void)
 		}
 		erlang_time_ival_60min = 1.0;
 	}
+#endif
 	if (fp)
 		fclose(fp);
 }
@@ -583,16 +644,21 @@ int erlang_prepoll(struct aprxpolls *app)
 		app->next_timeout = erlang_time_end_1min;
 	if (app->next_timeout > erlang_time_end_10min)
 		app->next_timeout = erlang_time_end_10min;
+#ifdef ERLANGSTORAGE
 	if (app->next_timeout > erlang_time_end_60min)
 		app->next_timeout = erlang_time_end_60min;
-
+#endif
 	return 0;
 }
 
 int erlang_postpoll(struct aprxpolls *app)
 {
 	if (now >= erlang_time_end_1min ||
-	    now >= erlang_time_end_10min || now >= erlang_time_end_60min)
+	    now >= erlang_time_end_10min
+#ifdef ERLANGSTORAGE
+	    || now >= erlang_time_end_60min
+#endif
+	    )
 		erlang_time_end();
 
 	return 0;
@@ -660,8 +726,10 @@ void erlang_init(const char *syslog_facility_name)
 	erlang_time_end_10min = now + 600 - (now % 600);
 	erlang_time_ival_10min = (float) (600 - now % 600) / 600.0;
 
+#ifdef ERLANGSTORAGE
 	erlang_time_end_60min = now + 3600 - (now % 3600);
 	erlang_time_ival_60min = (float) (3600 - now % 3600) / 3600.0;
+#endif
 
 	for (i = 0;; ++i) {
 		if (syslog_facs[i].name == NULL) {
