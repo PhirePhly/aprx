@@ -50,7 +50,7 @@ void dupecheck_init(void)
 				    sizeof(struct dupe_record_t),
 				    __alignof__(struct dupe_record_t),
 				    CELLMALLOC_POLICY_LIFO | CELLMALLOC_POLICY_NOMUTEX,
-				    256 /* 0.25 MB at the time */,
+				    16 /* 16 kB at the time */,
 				    0 /* minfree */);
 #endif
 }

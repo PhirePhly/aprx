@@ -1,5 +1,13 @@
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* dupecheck.c:
+	    Shrink dupecheck to 16 kB per alloc arena (from 256 KB).
+	    That should be enough for a very busy 1200 bps channel,
+	    and probably even for a 9600 bps channel.
+
+	* filter.c:
+	    Shrink filter cell storage to 4 kB per alloc arena (from 512 kB!)
+
 	* debian/aprx.init:
 	    Pleasing init-script behaviour during package re-install
 

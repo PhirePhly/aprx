@@ -242,14 +242,14 @@ float filter_lon2rad(float lon)
 void filter_init(void)
 {
 #ifndef _FOR_VALGRIND_
-	/* A few hundred... */
+	/* A _few_... */
 
 	filter_cells = cellinit( "filter",
 				 sizeof(struct filter_t),
 				 __alignof__(struct filter_t),
 				 CELLMALLOC_POLICY_LIFO,
-				 512 /* 512 kB at the time,
-					should be enough forever.. */,
+				 4 /* 4 kB at the time,
+				      should be enough in all cases.. */,
 				 0 /* minfree */ );
 
 	/* printf("filter: sizeof=%d alignof=%d\n",
