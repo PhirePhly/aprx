@@ -3,9 +3,6 @@
 	* aprx.c:
 	    Giving this version code: APRX1K
 
-	* interface.c:
-	    Beacons are not subject to duplicate filtering
-
 	* telemetry.c:
 	    Correct AX.25 data frame for RF transmission
 
