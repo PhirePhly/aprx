@@ -18,21 +18,64 @@
  * - Handle refcount  (get/put)
  */
 
+#ifndef _FOR_VALGRIND_
+static cellarena_t *pbuf_cells;
+static struct pbuf_t *pbuf_freechain;
+#endif
+
+// int pbuf_size = sizeof(struct pbuf_t); // 152 bytes on i386
+// int pbuf_alignment = __alignof__(struct pbuf_t); // 8 on i386
+
+void pbuf_init(void)
+{
+#ifndef _FOR_VALGRIND_
+	/* A _few_... */
+
+	pbuf_cells = cellinit( "filter",
+				 sizeof(struct pbuf_t) + 2150,
+				 __alignof__(struct pbuf_t),
+				 CELLMALLOC_POLICY_LIFO,
+				 16 /* 16 kB at the time,
+				      should be enough in all cases.. */,
+				 0 /* minfree */ );
+#endif
+}
 
 static void pbuf_free(struct pbuf_t *pb)
 {
+#ifndef _FOR_VALGRIND_
+	pb->next = pbuf_freechain;
+	pbuf_freechain = pb;
+#else
 	free(pb);
+#endif
 	if (debug > 1) printf("pbuf_free(%p)\n",pb);
 }
 
 struct pbuf_t *pbuf_alloc( const int axlen,
 			   const int tnc2len )
 {
+#ifndef _FOR_VALGRIND_
+
 	// Picks suitably sized pbuf, and pre-cleans it
 	// before passing to user
 
+	struct pbuf_t *pb = pbuf_freechain;
+	if (pbuf_freechain != NULL) {
+	  pbuf_freechain = pb->next;
+	} else {
+	  pb = cellmalloc(pbuf_cells);
+	}
+	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
+	if (pblen > 2150) {
+	  // Outch!
+	  pbuf_free(pb);
+	  return NULL;
+	}
+#else
 	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 	struct pbuf_t *pb = malloc( pblen );
+#endif
 
 	if (debug > 1) printf("pbuf_alloc(%d,%d) -> %p\n",axlen,tnc2len,pb);
 
@@ -68,6 +111,8 @@ void pbuf_put( struct pbuf_t *pb )
 struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axlen, const int tnc2len)
 {
 	struct pbuf_t *pb = pbuf_alloc( axlen, tnc2len );
+	if (pb == NULL) return NULL;
+
 	pbuf_get(pb);
 
 	pb->is_aprs        = is_aprs;

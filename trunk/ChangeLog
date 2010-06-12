@@ -1,5 +1,11 @@
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* pbuf.c, aprx.c, aprx.h:
+	    Using cellmalloc() on pbuf storage. Support up to 2150 byte
+	    received AX.25 frames. (Up to 7 pbufs of that size on 16 kB
+	    cell arena .. and there never should be larger than around
+	    512 byte AX.25 frames.)
+
 	* dupecheck.c:
 	    Shrink dupecheck to 16 kB per alloc arena (from 256 KB).
 	    That should be enough for a very busy 1200 bps channel,
