@@ -63,7 +63,6 @@ typedef struct history_cell_t {
 } history_cell_t;
 
 typedef struct historydb_t {
-	cellarena_t *cells;
 	struct history_cell_t *hash[HISTORYDB_HASH_MODULO];
 
 	// monitor counters and gauges
