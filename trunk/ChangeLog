@@ -1,5 +1,9 @@
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* cellmalloc.c:
+	    Remove pthread_mutex_t usage, not needed in this application!
+	    Conditionalize debugging code.
+
 	* pbuf.c, aprx.c, aprx.h:
 	    Using cellmalloc() on pbuf storage. Support up to 2150 byte
 	    received AX.25 frames. (Up to 7 pbufs of that size on 16 kB

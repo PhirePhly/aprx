@@ -17,6 +17,8 @@
 
 #include "cellmalloc.h"
 
+#define NO_MMAP_ON_CELLMALLOC
+
 /*
  *   cellmalloc() -- manages arrays of cells of data 
  *
@@ -33,7 +35,7 @@ struct cellarena_t {
 
 	const char *arenaname;
 
-	pthread_mutex_t mutex;
+//	pthread_mutex_t mutex;  // we have a mutex-less usage environment!
 
   	struct cellhead *free_head;
   	struct cellhead *free_tail;
@@ -41,9 +43,11 @@ struct cellarena_t {
 	int	 freecount;
 	int	 createsize;
 
+#ifdef MEMDEBUG
 	int	 cellblocks_count;
 #define CELLBLOCKS_MAX 40 /* track client cell allocator limit! */
 	char	*cellblocks[CELLBLOCKS_MAX];	/* ref as 'char pointer' for pointer arithmetics... */
+#endif
 };
 
 #define CELLHEAD_DEBUG 0
@@ -93,14 +97,19 @@ int new_cellblock(cellarena_t *ca)
 #ifndef MAP_ANON
 #  define MAP_ANON 0
 #endif
+#ifdef NO_MMAP_ON_CELLMALLOC
+	cb = malloc( ca->createsize );
+#else
 	cb = mmap( NULL, ca->createsize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+#endif
 #endif
 	if (cb == NULL || cb == (char*)-1)
 	  return -1;
 
+#ifdef MEMDEBUG
 	if (ca->cellblocks_count >= CELLBLOCKS_MAX) return -1;
-
 	ca->cellblocks[ca->cellblocks_count++] = cb;
+#endif
 
 	for (i = 0; i <= ca->createsize-ca->increment; i += ca->increment) {
 		struct cellhead *ch = (struct cellhead *)(cb + i); /* pointer arithmentic! */
@@ -157,11 +166,14 @@ cellarena_t *cellinit( const char *arenaname, const int cellsize, const int alig
 	ca->lifo_policy =  policy & CELLMALLOC_POLICY_LIFO;
 
 	ca->createsize = createkb * 1024;
+#if !defined(MEMDEBUG) && defined(NO_MMAP_ON_CELLMALLOC)
+	ca->createsize -= 16;
+#endif
 
 	n = ca->createsize / ca->increment;
 	// hlog( LOG_DEBUG, "cellinit: %-12s block size %4d kB, cells/block: %d", arenaname, createkb, n );
 
-	pthread_mutex_init(&ca->mutex, NULL);
+//	pthread_mutex_init(&ca->mutex, NULL);
 
 	new_cellblock(ca); /* First block of cells, not yet need to be mutex protected */
 	while (ca->freecount < ca->minfree)
@@ -201,7 +213,7 @@ void *cellmalloc(cellarena_t *ca)
 
 	while (!ca->free_head  || (ca->freecount < ca->minfree))
 		if (new_cellblock(ca)) {
-			pthread_mutex_unlock(&ca->mutex);
+//			pthread_mutex_unlock(&ca->mutex);
 			return NULL;
 		}
 
