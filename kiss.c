@@ -55,10 +55,10 @@
    on SMACK frames.
 
    SMACK runs CRC16 over whole KISS frame buffer, including the CMD byte.
-   The CRC-code is thus _different_ from what will be sent out on radio.
+   The CRC-code is thus _different_ from what will be sent out on radio,
+   the latter being CRC-CCITT (see further below):
 
-
-      As check polynome, following CRC16-polynome is used:
+      Following CRC16-polynome is used:
 
          X^16 + X^15 + X^2 + 1
 
