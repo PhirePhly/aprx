@@ -1,6 +1,7 @@
 2010-06-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	* telemetry.c, config.c, aprx.h, doc/aprx-manual.odt
+	* telemetry.c, config.c, aprx.h, doc/aprx-manual.odt,
+	  aprx.conf.in, aprx-complex.conf.in:
 	    New <telemetry> config section, be able to tx
 	    telemetry to RF ports.
 

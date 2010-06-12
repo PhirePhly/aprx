@@ -298,6 +298,24 @@ pidfile @VARRUN@/aprx.pid
 #
 </beacon>
 
+# ***********  <telemetry>  definition(s) follow   *********
+#
+# The system will always send telemetry for all of its interfaces
+# to APRSIS, but there is an option to define telemetry to be sent
+# to radio channel by using following sections for each transmitter
+# that is wanted to send out the telemetry.
+#
+#   transmitter   -  callsign referring to <interface>
+#   via           -  optional via-path, only 1 callsign!
+#   source        -  one or more of <interface> callsigns for which
+#                    the telemetry transmission is wanted for
+#
+#<telemetry>
+#	transmitter	$mycall
+#	via		TRACE1-1
+#	source		$mycall
+#</telemetry>
+
 
 #<rx-igate>  ## FIXME: to be written
 # AX.25 filters block selected messages matching on selected regular
