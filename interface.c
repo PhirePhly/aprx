@@ -739,7 +739,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		axbuf = alloca(axlen);
 		memcpy(axbuf, axaddr, axaddrlen);
 		memcpy(axbuf + axaddrlen, axdata, axdatalen);
-		ttyreader_kisswrite(aif->tty, aif->subif, axbuf, axlen);
+		kiss_kisswrite(aif->tty, aif->subif, axbuf, axlen);
 		break;
 	case IFTYPE_AX25:
 		// The Linux netax25 sender takes same data as this interface
