@@ -705,6 +705,11 @@ int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, cha
 			baud = B38400;
 			break;
 #endif
+#ifdef B57600
+		case 57600:
+			baud = B57600;
+			break;
+#endif
 #ifdef B115200
 		case 115200:
 			baud = B115200;
