@@ -1,5 +1,8 @@
 2010-06-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* ttyreader.c:
+	    Missed baud speed 57600.
+
 	* dupecheck.c:
 	    Shrink the arena allocation size to 4 kB.  This allows
 	    14 reference packets in the dupecheck dataset within that
