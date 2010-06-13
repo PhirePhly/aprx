@@ -26,18 +26,22 @@ static struct pbuf_t *pbuf_freechain;
 // int pbuf_size = sizeof(struct pbuf_t); // 152 bytes on i386
 // int pbuf_alignment = __alignof__(struct pbuf_t); // 8 on i386
 
+// 2150 byte pbuf takes in an AX.25 packet of about 1kB in size,
+// and in APRS use there never should be larger than about 512 bytes.
+// A 16 kB arena fits in 7 of these humongous pbufs.
+
 void pbuf_init(void)
 {
 #ifndef _FOR_VALGRIND_
 	/* A _few_... */
 
 	pbuf_cells = cellinit( "filter",
-				 sizeof(struct pbuf_t) + 2150,
-				 __alignof__(struct pbuf_t),
-				 CELLMALLOC_POLICY_LIFO,
-				 16 /* 16 kB at the time,
-				      should be enough in all cases.. */,
-				 0 /* minfree */ );
+			       sizeof(struct pbuf_t) + 2150,
+			       __alignof__(struct pbuf_t),
+			       CELLMALLOC_POLICY_LIFO,
+			       16, // 16 kB at the time
+			       0   // minfree
+			       );
 #endif
 }
 
