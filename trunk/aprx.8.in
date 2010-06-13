@@ -1,8 +1,8 @@
 .TH aprx 8 "@DATEVERSION@"
 .LO 8
 .SH NAME
-.B aprx
-\- A receive-only APRS iGate application with integrated Digipeater.
+.B Aprx-2
+\- An APRS iGate application with integrated Digipeater.
 .SH SYNOPSIS
 .B aprx
 .RB [ \-d [ d [ d ]]]
@@ -12,11 +12,9 @@
 .RB [ \-f " \fI@CFGFILE@\fR]"
 .SH DESCRIPTION
 .B aprx
-begun as a
-.I receive-only
-APRS iGate application with minimum system support technology requirements.
-This version has also multi-port digipeater support, and plans include to
-add transmit iGate.
+begun as a receive-only APRS iGate application with minimum system
+support technology requirements.
+This version has also multi-port digipeater support, and transmit iGate.
 .PP
 .IP \(bu 3
 The Aprx does not require machine to have any other software in it, than things
@@ -642,7 +640,9 @@ modes are available:
 .B "    " 1200,
 .I 1800,
 .B 2400, 4800, 9600, 19200,
-.I 38400, 57600, 115200, 230400, 460800, 500000, 576000
+.I 38400, 57600,
+.br
+.I "    " 115200, 230400, 460800, 500000, 576000
 .br
 Likely available speeds are in bold, other supported values
 are listed in italics.
