@@ -1,5 +1,17 @@
 2010-06-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* dupecheck.c:
+	    Shrink the arena allocation size to 4 kB.  This allows
+	    14 reference packets in the dupecheck dataset within that
+	    arena alone, and will possibly request second arena when
+	    this get really busy.
+
+	* historydb.c, dupecheck.c, pbuf.c, filter.c:
+	    Made cell object sizes readable with a debugger
+
+	* crc.c:
+	    Object visibility adjustments.
+
 	* Makefile.in, crc.c, aprx.h, kiss.c, ttyreader.c, interface.c:
 	    Separated KISS processing to kiss.c, and CRC processing
 	    to crc.c.  Disabled unused codes.

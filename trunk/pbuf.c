@@ -29,14 +29,17 @@ static cellarena_t *pbuf_cells;
 // and in APRS use there never should be larger than about 512 bytes.
 // A 16 kB arena fits in 7 of these humongous pbufs.
 
+const int pbufcell_size  = sizeof(struct pbuf_t) + 2150;
+const int pbufcell_align = __alignof__(struct pbuf_t);
+
 void pbuf_init(void)
 {
 #ifndef _FOR_VALGRIND_
 	/* A _few_... */
 
 	pbuf_cells = cellinit( "filter",
-			       sizeof(struct pbuf_t) + 2150,
-			       __alignof__(struct pbuf_t),
+			       pbufcell_size,
+			       pbufcell_align,
 			       CELLMALLOC_POLICY_LIFO,
 			       16, // 16 kB at the time
 			       0   // minfree

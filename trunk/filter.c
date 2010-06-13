@@ -153,7 +153,7 @@ struct filter_head_t {
 
 struct filter_t {
 	struct filter_head_t h;
-#define FILT_TEXTBUFSIZE (512-sizeof(struct filter_head_t))
+#define FILT_TEXTBUFSIZE (508-sizeof(struct filter_head_t))
 	char textbuf[FILT_TEXTBUFSIZE];
 };
 
@@ -239,14 +239,17 @@ float filter_lon2rad(float lon)
 }
 
 
+const int filter_cellsize  = sizeof(struct filter_t);
+const int filter_cellalign = __alignof__(struct filter_t);
+
 void filter_init(void)
 {
 #ifndef _FOR_VALGRIND_
 	/* A _few_... */
 
 	filter_cells = cellinit( "filter",
-				 sizeof(struct filter_t),
-				 __alignof__(struct filter_t),
+				 filter_cellsize,
+				 filter_cellalign,
 				 CELLMALLOC_POLICY_LIFO,
 				 4 /* 4 kB at the time,
 				      should be enough in all cases.. */,
