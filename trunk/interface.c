@@ -629,6 +629,11 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	    // Allocate pbuf, it is born "gotten" (refcount == 1)
 	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
+	    if (pb == NULL) {
+	      // Urgh!  Can't do a thing to this!
+	      // Likely reason: axlen+tnc2len  > 2100 bytes!
+	      continue;
+	    }
 
 	    memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	    pb->data[tnc2len] = 0;
@@ -903,6 +908,11 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  // Allocate pbuf, it is born "gotten" (refcount == 1)
 	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+	  if (pb == NULL) {
+	    // Urgh!  Can't do a thing to this!
+	    // Likely reason: ax25len+tnc2len  > 2100 bytes!
+	    continue;
+	  }
 
 	  pb->from_aprsis = 1; // 3rd-party frames are always from APRSIS
 
