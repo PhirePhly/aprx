@@ -390,7 +390,7 @@ server    rotate.aprs.net    14580
 # The  TNC serial  options.  Parameters are:
 #   \- /dev/ttyUSB1    \-\- tty device
 #   \- 19200           \-\- baud rate, supported ones are:
-#                        1200, 2400, 4800, 9600, 19200, 38400
+#                        1200, 2400, 4800, 9600, 19200, 38400, ...
 #   \- 8n1             \-\- 8\-bits, no parity, one stop\-bit,
 #                        no other supported modes
 #   \- "KISS"                  \- plain basic KISS mode
@@ -642,7 +642,7 @@ modes are available:
 .B "    " 1200,
 .I 1800,
 .B 2400, 4800, 9600, 19200,
-.I 38400, 115200, 230400, 460800, 500000, 576000
+.I 38400, 57600, 115200, 230400, 460800, 500000, 576000
 .br
 Likely available speeds are in bold, other supported values
 are listed in italics.
@@ -667,13 +667,13 @@ Will autodetect (sometimes) packets with SMACK or FLEXNET characteristics.
 .TP 10em
 .B SMACK
 .IR "Stuttgart Modified Amateurradio-CRC-KISS" ,
-which runs CCITT-CRC16 checksum on KISS datastream much in the same
-way as HDLC has CRC16 checksum on it.
+which runs CRC-16 checksum on KISS datastream much in the same
+way as HDLC has CCITT-CRC checksum on it.
 .TP 10em
 .B FLEXNET
 .IR "FLEXNET"
-which runs a CRC16 checksum of its own polynomial on KISS datastream
-much in the same way as HDLC has CRC16 checksum on it.
+which runs a CRC checksum of its own polynomial on KISS datastream
+much in the same way as HDLC has CCITT-CRC checksum on it.
 .TP 10em
 .B BPQCRC
 XOR "checksum" on dataframes.

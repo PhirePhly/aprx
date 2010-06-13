@@ -1,5 +1,9 @@
 2010-06-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.8.in, doc/aprx-manual.odt:
+	    Some notes on available baud-rates, fixes on
+	    documentation about CRC algorithms.
+
 	* ttyreader.c:
 	    Missed baud speed 57600.
 
