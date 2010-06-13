@@ -28,6 +28,9 @@ void historydb_dataupdate(void) {}
 // Single aprx wide alloc system
 static cellarena_t   *historydb_cells;
 
+const int historydb_cellsize  = sizeof(struct history_cell_t);
+const int historydb_cellalign = __alignof__(struct history_cell_t);
+
 void historydb_init(void)
 {
 	// printf("historydb_init() sizeof(mutex)=%d sizeof(rwlock)=%d\n",
@@ -37,8 +40,8 @@ void historydb_init(void)
 	_dbs_count = 0;
 
 	historydb_cells = cellinit( "historydb",
-				    sizeof(struct history_cell_t),
-				    __alignof__(struct history_cell_t), 
+				    historydb_cellsize,
+				    historydb_cellalign, 
 				    CELLMALLOC_POLICY_FIFO,
 				    32 /* 32 kB */,
 				    0 /* minfree */ );

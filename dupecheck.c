@@ -37,6 +37,8 @@ static int           dupefilter_storetime = 30; /* 30 seconds */
 cellarena_t *dupecheck_cells;
 #endif
 
+const int duperecord_size  = sizeof(struct dupe_record_t);
+const int duperecord_align = __alignof__(struct dupe_record_t);
 
 /*
  *	The cellmalloc does not need internal MUTEX, it is being used in single thread..
@@ -46,10 +48,10 @@ void dupecheck_init(void)
 {
 #ifndef _FOR_VALGRIND_
 	dupecheck_cells = cellinit( "dupecheck",
-				    sizeof(struct dupe_record_t),
-				    __alignof__(struct dupe_record_t),
+				    duperecord_size,
+				    duperecord_align,
 				    CELLMALLOC_POLICY_LIFO | CELLMALLOC_POLICY_NOMUTEX,
-				    16 /* 16 kB at the time */,
+				    4 /* 4 kB at the time */,
 				    0 /* minfree */);
 #endif
 }
