@@ -34,7 +34,6 @@ static int           dupefilter_storetime = 30; /* 30 seconds */
 
 
 #ifndef _FOR_VALGRIND_
-dupe_record_t *dupecheck_free;
 cellarena_t *dupecheck_cells;
 #endif
 
@@ -79,13 +78,7 @@ static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 //	if (debug) printf("DUPECHECK db alloc(alen=%d,dlen=%d) %s",
 //			  alen,pktlen, dupecheck_free ? "FreeChain":"CellMalloc");
 
-	if (dupecheck_free) { /* pick from free chain */
-		dp = dupecheck_free;
-		dupecheck_free = dp->next;
-		dp->next = NULL;
-	} else {
-		dp = cellmalloc(dupecheck_cells);
-	}
+	dp = cellmalloc(dupecheck_cells);
 //	if (debug) printf(" dp=%p\n",dp);
 	if (dp == NULL)
 		return NULL;
@@ -120,9 +113,7 @@ static void dupecheck_db_free(dupe_record_t *dp)
 #ifndef _FOR_VALGRIND_
 	if (dp->packet != dp->packetbuf)
 		free(dp->packet);
-	dp->next = dupecheck_free;
-	dupecheck_free = dp;
-	// cellfree(dupecheck_cells, dp);
+	cellfree(dupecheck_cells, dp);
 #else
 	free(dp);
 #endif

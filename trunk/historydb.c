@@ -27,7 +27,6 @@ void historydb_dataupdate(void) {}
 
 // Single aprx wide alloc system
 static cellarena_t   *historydb_cells;
-static struct history_cell_t *historydb_freelist;
 
 void historydb_init(void)
 {
@@ -68,21 +67,15 @@ void historydb_free(struct history_cell_t *p)
 
 	--p->db->historydb_cellgauge;
 
-	p->next = historydb_freelist;
-	historydb_freelist = p;
-	// cellfree( historydb_cells, p );
+	cellfree( historydb_cells, p );
 }
 
 /* Called only under WR-LOCK */
 struct history_cell_t *historydb_alloc(historydb_t *db, int packet_len)
 {
 	++db->historydb_cellgauge;
-	struct history_cell_t *ret = historydb_freelist;
-	if (ret != NULL) {
-	  historydb_freelist = ret->next;
-	} else {
-	  ret = cellmalloc( historydb_cells );
-	}
+	struct history_cell_t *ret = cellmalloc( historydb_cells );
+	if (!ret) return NULL;
 	ret->db = db;
 	return ret;
 }
@@ -105,12 +98,6 @@ void historydb_atend(void)
 	      hp = hp2;
 	    }
 	  }
-	}
-	while (historydb_freelist != NULL) {
-	  struct history_cell_t *hp = historydb_freelist->next;
-	  historydb_freelist->next = NULL;
-	  cellfree( historydb_cells, historydb_freelist );
-	  historydb_freelist = hp;
 	}
 }
 

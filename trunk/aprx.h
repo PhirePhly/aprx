@@ -208,7 +208,7 @@ extern int  ttyreader_getc(struct serialport *tty);
 // extern void               ttyreader_setlineparam(struct serialport *tty, const char *ttyname, const int baud, int const kisstype);
 // extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
 extern int  ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
-extern void ttyreader_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
+extern void ttyreader_linewrite(struct serialport *S);
 
 
 extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr);
@@ -447,7 +447,18 @@ extern int            dupecheck_prepoll(struct aprxpolls *app);
 extern int            dupecheck_postpoll(struct aprxpolls *app);
 
 
-/* kiss.c */
+/* crc.c */
+
+// kissencoder() needs direct access to CRC tables..
+extern const uint16_t crc16_table[256];
+extern const uint16_t crc_flex_table[256];
+
+extern uint16_t calc_crc_16(const uint8_t *buf, int n);    /* SMACK's CRC-16 */
+extern uint16_t calc_crc_flex(const uint8_t *buf, int n);  /* FLEXNET's CRC */
+extern uint16_t calc_crc_ccitt(uint16_t crc, const uint8_t *buf, int len); // X.25's FCS a.k.a. CRC-CCITT a.k.a. CCITT-CRC
+extern int      check_crc_16(const uint8_t *buf, int n);   /* SMACK's CRC-16 */
+extern int      check_crc_flex(const uint8_t *buf, int n); /* FLEXNET's CRC */
+extern int      check_crc_ccitt(const uint8_t *buf, int n);
 
 /* KISS protocol encoder/decoder specials */
 
@@ -456,12 +467,10 @@ extern int            dupecheck_postpoll(struct aprxpolls *app);
 #define KISS_TFEND (0xDC)
 #define KISS_TFESC (0xDD)
 
-extern uint16_t calc_crc_smack(const uint8_t *buf, int n); /* SMACK's CRC16 */
-extern uint16_t calc_crc_flex(const uint8_t *buf, int n); /* FLEXNET's CRC16 */
-extern uint16_t calc_crc_ccitt(uint16_t crc, const uint8_t *buf, int len); // X.25's FCS a.k.a. CRC-CCITT a.k.a. CCITT-CRC
-extern int      check_crc_flex(const uint8_t *buf, int n); /* FLEXNET's CRC16 */
-extern int      check_crc_ccitt(const uint8_t *buf, int n);
-extern int      kissencoder(void *, int, LineType, const void *, int, int);
+extern int  kissencoder(void *, int, LineType, const void *, int, int);
+extern void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
+extern int kiss_pullkiss(struct serialport *S);
+
 
 
 /* digipeater.c */

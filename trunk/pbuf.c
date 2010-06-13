@@ -20,7 +20,6 @@
 
 #ifndef _FOR_VALGRIND_
 static cellarena_t *pbuf_cells;
-static struct pbuf_t *pbuf_freechain;
 #endif
 
 // int pbuf_size = sizeof(struct pbuf_t); // 152 bytes on i386
@@ -48,8 +47,7 @@ void pbuf_init(void)
 static void pbuf_free(struct pbuf_t *pb)
 {
 #ifndef _FOR_VALGRIND_
-	pb->next = pbuf_freechain;
-	pbuf_freechain = pb;
+	cellfree(pbuf_cells, pb);
 #else
 	free(pb);
 #endif
@@ -64,20 +62,16 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 	// Picks suitably sized pbuf, and pre-cleans it
 	// before passing to user
 
-	struct pbuf_t *pb = pbuf_freechain;
-	if (pbuf_freechain != NULL) {
-	  pbuf_freechain = pb->next;
-	} else {
-	  pb = cellmalloc(pbuf_cells);
-	}
+	struct pbuf_t *pb;
 	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 	if (pblen > 2150) {
 	  // Outch!
-	  pbuf_free(pb);
 	  return NULL;
 	}
+	pb = cellmalloc(pbuf_cells);
 #else
 	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
+	// No size limits with valgrind..
 	struct pbuf_t *pb = malloc( pblen );
 #endif
 

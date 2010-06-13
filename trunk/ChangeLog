@@ -1,5 +1,13 @@
 2010-06-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* Makefile.in, crc.c, aprx.h, kiss.c, ttyreader.c, interface.c:
+	    Separated KISS processing to kiss.c, and CRC processing
+	    to crc.c.  Disabled unused codes.
+
+	* pbuf.c, historydb.c, dupecheck.c:
+	    Shrink RAM usage, cellmalloc() does perfectly good job
+	    of using free-chains, no need to do it in applications.
+
 	* interface.c, pbuf.c:
 	    The pbuf_new() has a limit on maximum total size that
 	    a packet can be: 2150 bytes.  If ax25len + tnc2len are
