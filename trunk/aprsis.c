@@ -1169,7 +1169,7 @@ void aprsis_config(struct configfile *cf)
 		      // bad input...
 		    }
 		    if (debug)
-		      printf("%s:%d: LOGIN = '%s' '%s'\n",
+		      printf("%s:%d: INFO: LOGIN = '%s' '%s'\n",
 			     cf->name, cf->linenum, param1, str);
 		    if (AIH->login) free(AIH->login);
 		    AIH->login = strdup(param1);
@@ -1191,32 +1191,32 @@ void aprsis_config(struct configfile *cf)
 		    AIH->server_port = strdup("14580");
 		  } else {
 		    AIH->server_port = strdup("14580");
-		    printf("%s:%d SERVER = '%s' port='%s' is not supplying valid TCP port number, defaulting to '14580'\n",
+		    printf("%s:%d INFO: SERVER = '%s' port='%s' is not supplying valid TCP port number, defaulting to '14580'\n",
 			   cf->name, cf->linenum, AIH->server_name, param1);
 		  }
 
 		  if (debug)
-		    printf("%s:%d: SERVER = '%s':'%s'\n",
+		    printf("%s:%d: INFO: SERVER = '%s':'%s'\n",
 			   cf->name, cf->linenum, AIH->server_name, AIH->server_port);
 
 		} else if (strcmp(name, "heartbeat-timeout") == 0) {
 		  int i = 0;
 		  if (config_parse_interval(param1, &i)) {
 		    // FIXME: Report parameter failure ...
-		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%s'  - bad parameter'\n",
+		    printf("%s:%d: ERROR: HEARTBEAT-TIMEOUT = '%s'  - bad parameter'\n",
 			   cf->name, cf->linenum, param1);
 		    has_fault = 1;
 		  }
 		  if (i < 0) {	/* param failure ? */
 		    i = 0;	/* no timeout */
-		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%s'  - bad parameter'\n",
+		    printf("%s:%d: ERROR: HEARTBEAT-TIMEOUT = '%s'  - bad parameter'\n",
 			   cf->name, cf->linenum, param1);
 		    has_fault = 1;
 		  }
 		  AIH->heartbeat_monitor_timeout = i;
 		  
 		  if (debug)
-		    printf("%s:%d: HEARTBEAT-TIMEOUT = '%d' '%s'\n",
+		    printf("%s:%d: INFO: HEARTBEAT-TIMEOUT = '%d' '%s'\n",
 			   cf->name, cf->linenum, i, str);
 
 		} else if (strcmp(name, "filter") == 0) {
@@ -1233,16 +1233,16 @@ void aprsis_config(struct configfile *cf)
 		  }
 
 		  if (debug)
-		    printf("%s:%d: FILTER = '%s' -->  '%s'\n",
+		    printf("%s:%d: INFO: FILTER = '%s' -->  '%s'\n",
 			   cf->name, cf->linenum, param1, AIH->filterparam);
 
 		} else  {
-		  printf("%s:%d: Unknown configuration keyword: '%s'\n",
+		  printf("%s:%d: ERROR: Unknown configuration keyword in <aprsis> block: '%s'\n",
 			 cf->name, cf->linenum, param1);
 		}
 	}
 	if (AIH->server_name == NULL) {
-	  printf("%s:%d This <aprsis> block does not define server!\n",
+	  printf("%s:%d ERROR: This <aprsis> block does not define server!\n",
 		 cf->name, line0);
 	  has_fault = 1;
 	}

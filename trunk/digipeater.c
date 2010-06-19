@@ -80,13 +80,13 @@ static int regex_filter_add(struct configfile *cf,
 	} else if (strcmp(param1, "data") == 0) {
 		groupcode = 3;
 	} else {
-		printf("%s:%d Bad RE target: '%s'  must be one of: source, destination, via\n",
+		printf("%s:%d ERROR: Bad RE target: '%s'  must be one of: source, destination, via\n",
 		       cf->name, cf->linenum, param1);
 		return 1;
 	}
 
 	if (!*str) {
-		printf("%s:%d Expected RE pattern missing or a NUL string.\n",
+		printf("%s:%d ERROR: Expected RE pattern missing or a NUL string.\n",
 		       cf->name, cf->linenum);
 		return 1;		/* Bad input.. */
 	}
@@ -101,7 +101,7 @@ static int regex_filter_add(struct configfile *cf,
 	if (rc != 0) {		/* Something is bad.. */
 		*errbuf = 0;
 		regerror(rc, &re, errbuf, sizeof(errbuf));
-		printf("%s:%d Bad POSIX RE input, error: %s\n",
+		printf("%s:%d ERROR: Bad POSIX RE input, error: %s\n",
 		       cf->name, cf->linenum, errbuf);
 		return 1;
 	}
@@ -565,6 +565,8 @@ static struct tracewide *digipeater_config_tracewide(struct configfile *cf, int 
 
 		} else {
 		  has_fault = 1;
+		  printf("%s:%d ERROR: Unknown keyword inside %s subblock: '%s'\n",
+			 cf->name, cf->linenum, is_trace ? "<trace>":"<wide>", name);
 		}
 	}
 
@@ -661,7 +663,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  has_fault = 1;
 			}
 			if (viscous_delay > 9) {
-			  printf("%s:%d ERROR: Bad value for viscous-delay: '%s'\n",
+			  printf("%s:%d ERROR: Too large value for viscous-delay: '%s'\n",
 				 cf->name, cf->linenum, param1);
 			  viscous_delay = 9;
 			  has_fault = 1;
@@ -686,17 +688,19 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 		} else if (strcmp(name,"regex-filter") == 0) {
 			if (regex_filter_add(cf, &regexsrc, param1, str)) {
+			  // prints errors internally
 			  has_fault = 1;
 			}
 
 		} else if (strcmp(name, "via-path") == 0) {
 
 			// Validate that source callsign is "APRSIS"
-			// for this parameter
+			// or "DPRS" for this parameter
 
 			if (source_aif == NULL ||
-			    strcmp(source_aif->callsign,"APRSIS") != 0) {
-			  printf("%s:%d ERROR: via-path parameter is available only on 'source APRSIS' case\n",
+			    (strcmp(source_aif->callsign,"APRSIS") != 0 &&
+			     strcmp(source_aif->callsign,"DPRS") != 0)) {
+			  printf("%s:%d ERROR: via-path parameter is available only on 'source APRSIS' and 'source DPRS' cases.\n",
 				 cf->name, cf->linenum);
 			  has_fault = 1;
 			  continue;
@@ -719,14 +723,16 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 		} else if (strcmp(name,"<trace>") == 0) {
 			source_trace = digipeater_config_tracewide(cf, 1);
+			// prints errors internally
 
 		} else if (strcmp(name,"<wide>") == 0) {
 			source_wide  = digipeater_config_tracewide(cf, 0);
+			// prints errors internally
 
 		} else if (strcmp(name,"filter") == 0) {
 			if (filter_parse(&filters, param1)) {
-				// Error in filter parsing
-				has_fault = 1;
+			  // prints errors internally
+			  has_fault = 1;
 			} else {
 			  if (debug)
 			    printf(" .. OK filter %s\n", param1);
@@ -902,7 +908,7 @@ void digipeater_config(struct configfile *cf)
 			}
 
 		} else {
-		  printf("%s:%d ERROR: Unknown config keyword: '%s'\n",
+		  printf("%s:%d ERROR: Unknown <digipeater> config keyword: '%s'\n",
 			 cf->name, cf->linenum, name);
 		  has_fault = 1;
 		  continue;
@@ -942,7 +948,7 @@ void digipeater_config(struct configfile *cf)
 		free_tracewide(traceparam);
 		free_tracewide(wideparam);
 
-		printf("Config fault observed on <digipeater> definitions! \n");
+		printf("ERROR: Config fault observed on <digipeater> definitions! \n");
 	} else {
 		// Construct the digipeater
 

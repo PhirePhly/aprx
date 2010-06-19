@@ -11,15 +11,28 @@
 .RB [ \-l " \fIsyslogfacilityname\fR]"
 .RB [ \-f " \fI@CFGFILE@\fR]"
 .SH DESCRIPTION
+The
 .B aprx
-begun as a receive-only APRS iGate application with minimum system
+program is a special purpose Ham-radio application supplying
+infrastructure services for APRS protocol use.
+.PP
+A more detailed manual is available at:
+http://ham.zmailer.org/oh2mqk/aprx/aprx-manual.pdf
+.PP
+.SH FEATURES
+The Aprx begun as a receive-only APRS iGate application with minimum system
 support technology requirements.
-This version has also multi-port digipeater support, and transmit iGate.
+This version has also multi-port digipeater support, transmit iGate,
+and experimental D-PRS-to-APRS RF/Rx-iGate.
 .PP
 .IP \(bu 3
 The Aprx does not require machine to have any other software in it, than things
 in UNIX standard libc. In particular no special AX.25 libraries at all, nor
 widgets or even C++ runtime.
+.IP \(bu 3
+Important goal has been to keep R/W memory footprint as small as possible,
+and on general purpose i386 Linux a single radio port iGate+digipeater is
+now around 250 kB of R/W memory allocations.
 .IP \(bu 3
 Any UNIX (and UNIX like) platform should work for the Aprx, or be trivially ported.
 .IP \(bu 3
@@ -32,8 +45,9 @@ ports (port 4001, TCP STREAM without TELNET escapes.)
 The Aprx does not require machine to have AX.25 protocol support internally!
 (Thus this works also on e.g. Solaris and BSD machines without PF\_AX25 sockets.)
 .IP \(bu 3
-On Linux machine with kernel internal AX.25 protocol support, can listen
-on it with promiscuous mode, and in order to use that, must be started as
+On Linux machine with kernel internal AX.25 protocol support,
+the Aprx can listen on it with promiscuous mode and in order to use that,
+the Aprx must be started as
 .I root
 user, and be configured to list interface callsigns that APRS packets are
 coming in.
@@ -47,7 +61,7 @@ serial port servers.  One must change local serial port ownership or
 access-groups (if any are used) to userid that runs the program and possibly
 do several changes of file paths in configuration file beginning
 with its location (startup parameter).
-How that is done is up to the user of this program.
+How that is done is up to the user or system integrator of this program.
 .IP \(bu 3
 The Aprx connects with one callsign-ssid pair to APRS-IS core for all received
 radio ports.
@@ -75,10 +89,19 @@ The Aprx has built-in "Erlang monitor" mechanism that telemeters each receiving
 interface to APRS-IS. It can also syslog the interface specific channel occupancy,
 and optionally can output to STDOUT.
 .IP \(bu 3
+The Aprx (since version 1.91) can do digipeater functions.
+.IP \(bu 3
+The Aprx (since version 1.99) does have experimental D-STAR D-PRS to APRS
+gateway functionality.  See the
+.I aprx-manual.pdf
+for details.
+.IP \(bu 3
 The Aprx can be run on systems without writable storage, even with very little
 memory, like on NSLU2, and OpenWrt platforms.
-.IP \(bu 3
-The Aprx (since version 1.91) can do digipeater functions.
+The experiments have shown that a single radio Tx-iGate+digipeater works
+with less than 300 kB of writable RAM for the Aprx itself.
+Additional memory is necessary for operating system services of TCP/IP
+networking, and serial port drivers.
 .PP
 .SH OPTIONS
 The
@@ -268,7 +291,8 @@ A configuration token without surrounding quotes does not understand the backsla
 #   2)  <logging>    ** zero or one
 #   3)  <interface>  ** one to many
 #   4)  <beacon>     ** zero to many
-#   5)  <digipeater> ** zero to many (at most one for each Tx)
+#   5)  <telemetry   ** zero to many
+#   6)  <digipeater> ** zero to many (at most one for each Tx)
 #
 
 #
@@ -304,6 +328,11 @@ server    rotate.aprs.net    14580
 #
 # You can define the filter as single long quoted string, or as
 # many short segments with explaining comments following them.
+#
+# Usability of these filters for a Tx-iGate is dubious, but
+# they exist in case you for example want to Tx-iGate packets
+# from some source callsigns in all cases even when they are
+# not in your local area.
 #
 #filter "possibly multiple filter specs in quotes"
 #
@@ -476,6 +505,24 @@ server    rotate.aprs.net    14580
 #beacon srccall $mycall symbol "I&" lat "6016.30N" lon "02506.36E"  \\
                         comment "aprx iGate"
 </beacon>
+
+# ***********  <telemetry>  definition(s) follow   *********
+#
+# The system will always send telemetry for all of its interfaces
+# to APRSIS, but there is an option to define telemetry to be sent
+# to radio channel by using following sections for each transmitter
+# that is wanted to send out the telemetry.
+#
+#   transmitter   -  callsign referring to <interface>
+#   via           -  optional via-path, only 1 callsign!
+#   source        -  one or more of <interface> callsigns for which
+#                    the telemetry transmission is wanted for
+#
+#<telemetry>
+#	transmitter	$mycall
+#	via		TRACE1-1
+#	source		$mycall
+#</telemetry>
 
 
 # ***********  <digipeater>  definition(s) follow   *********
@@ -657,7 +704,7 @@ debug output, and Rx-iGate, but they are not acceptable as
 source for a <digipeater>.
 .TP 10em
 .B DPRS
-is special mode for gateway from D-STAR DPRS to APRS.
+is special mode for gateway from D-STAR D-PRS to APRS.
 This must always have a callsign definition for the gateway.
 .TP 10em
 .B KISS
@@ -879,6 +926,31 @@ It splits input into small slices that are possible
 to validate in detail.
 (See "DEBUGGING SYSTEM" above.)
 .PP
+.SH RF-TELEMETRY
+The
+.I aprx
+system will always send telemetry for all of its interfaces
+to APRSIS, but there is an option to define telemetry to be sent
+to radio channel by using following sections for each transmitter
+that is wanted to send out the telemetry.
+.PP
+The parameters of
+.B <telemetry>
+configuration section are:
+.TP 12em
+.B transmitter
+A mandatory callsign referring to an
+.I interface.
+.TP 12em
+.B via
+An optional
+.I via-path
+parameter.  Only 1 callsign!
+.TP 12em
+.B source
+One or more of
+.I interface
+callsigns for which the telemetry transmission is made.
 .SH DIGIPEATER
 The
 .I aprx
@@ -893,9 +965,9 @@ configuration section and its subsections.
 .I be multiple digipeaters, each with different behaviour rules.
 .PP
 Minimalistic setup for a digipeater will be as follows:
+.PP
 .nf
-\fC
-<digipeater>
+\fC<digipeater>
     transmitter     $mycall
     <source>
         source      $mycall

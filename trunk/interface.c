@@ -166,14 +166,14 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		  // all fine..
 		} else {
 		  // FIXME: <KISS-SubIF nnn>  parameter value is bad!
-		  printf("%s:%d  <kiss-subif %s parameter value is bad\n",
+		  printf("%s:%d ERROR: <kiss-subif %s parameter value is bad\n",
 			 cf->name, cf->linenum, param1);
 		  return 1;
 		}
 	}
 	if (subif >= maxsubif) {
 		// FIXME: <KISS-SubIF nnn>  parameter value is bad!
-		printf("%s:%d  <kiss-subif %s parameter value is too large for this KISS variant.\n",
+		printf("%s:%d ERROR: <kiss-subif %s parameter value is too large for this KISS variant.\n",
 		       cf->name, cf->linenum, param1);
 		return 1;
 	}
@@ -208,10 +208,10 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 		  if (!validate_callsign_input(callsign,txok)) {
 		    if (txok)
-		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+		      printf("%s:%d ERROR: The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, callsign);
 		    else
-		      printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid APRSIS format! '%s'\n",
+		      printf("%s:%d ERROR: The CALLSIGN parameter on AX25-DEVICE must be of valid APRSIS format! '%s'\n",
 			     cf->name, cf->linenum, callsign);
 		    fail = 1;
 		    break;
@@ -225,7 +225,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 		} else if (strcmp(name, "tx-ok") == 0) {
 		  if (!config_parse_boolean(param1, &txok)) {
-		    printf("%s:%d Bad TX-OK parameter value -- not a recognized boolean: %s\n",
+		    printf("%s:%d ERROR: Bad TX-OK parameter value -- not a recognized boolean: %s\n",
 			   cf->name, cf->linenum, param1);
 		    fail = 1;
 		    break;
@@ -241,7 +241,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		  }
 
 		} else {
-		  printf("%s:%d Unrecognized keyword: %s\n",
+		  printf("%s:%d ERROR: Unrecognized <interface> block keyword: %s\n",
 			   cf->name, cf->linenum, name);
 		  fail = 1;
 		  break;
@@ -251,7 +251,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 	if (callsign == NULL) {
 	  // FIXME: Must define at least a callsign!
-	  printf("%s:%d <kiss-subif ..> MUST define CALLSIGN parameter!\n",
+	  printf("%s:%d ERROR: <kiss-subif ..> MUST define CALLSIGN parameter!\n",
 		 cf->name, cf->linenum);
 	  return 1;
 	}
@@ -345,7 +345,7 @@ void interface_config(struct configfile *cf)
 		    aif->iftype = IFTYPE_AX25;
 		    // aif->nax25p = NULL;
 		  } else {
-		    printf("%s:%d Only single device specification per interface block!\n",
+		    printf("%s:%d ERROR: Only single device specification per interface block!\n",
 			   cf->name, cf->linenum);
 		    have_fault = 1;
 		    continue;
@@ -355,7 +355,7 @@ void interface_config(struct configfile *cf)
 		    param1 = strdup(mycall);
 
 		  if (!validate_callsign_input(param1,1)) {
-		    printf("%s:%d The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+		    printf("%s:%d ERROR: The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
@@ -369,13 +369,13 @@ void interface_config(struct configfile *cf)
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  aif->nax25p = netax25_addrxport(param1, aif);
 		  if (aif->nax25p == NULL) {
-		    printf("%s:%d Failed to open this AX25-DEVICE: '%s'\n",
+		    printf("%s:%d ERROR: Failed to open this AX25-DEVICE: '%s'\n",
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
 		  }
 #else
-		  printf("%s:%d AX25-DEVICE interfaces not supported at this system!\n",
+		  printf("%s:%d ERROR: AX25-DEVICE interfaces are not supported at this system!\n",
 			 cf->name, cf->linenum, param1);
 #endif
 
@@ -391,7 +391,7 @@ void interface_config(struct configfile *cf)
 		    // end processing registers it
 
 		  } else {
-		    printf("%s:%d Only single device specification per interface block!\n",
+		    printf("%s:%d ERROR: Only single device specification per interface block!\n",
 			   cf->name, cf->linenum);
 		    have_fault = 1;
 		    continue;
@@ -420,7 +420,7 @@ void interface_config(struct configfile *cf)
 		    // end-step processing registers it
 
 		  } else {
-		    printf("%s:%d Only single device specification per interface block!\n",
+		    printf("%s:%d ERROR: Only single device specification per interface block!\n",
 			   cf->name, cf->linenum);
 		    have_fault = 1;
 		    continue;
@@ -446,14 +446,14 @@ void interface_config(struct configfile *cf)
 		} else if (strcmp(name,"tx-ok") == 0) {
 
 		  if (!config_parse_boolean(param1, &(aif->txok))) {
-		    printf("%s:%d Bad TX-OK parameter value -- not a recognized boolean: %s\n",
+		    printf("%s:%d ERROR: Bad TX-OK parameter value -- not a recognized boolean: %s\n",
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
 		  }
 		  if (aif->txok && aif->callsign) {
 		    if (!validate_callsign_input(aif->callsign,aif->txok)) {  // Transmitters REQUIRE valid AX.25 address
-		      printf("%s:%d: TX-OK 'TRUE' -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
+		      printf("%s:%d: ERROR: TX-OK 'TRUE' -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
 			     cf->name, cf->linenum);
 		      continue;
 		    }
@@ -463,7 +463,7 @@ void interface_config(struct configfile *cf)
 		  if (config_parse_interval(param1, &(aif->timeout) ) ||
 		      (aif->timeout < 0) || (aif->timeout > 1200)) {
 		    aif->timeout = 0;
-		    printf("%s:%d Bad TIMEOUT parameter value: %s\n",
+		    printf("%s:%d ERROR: Bad TIMEOUT parameter value: '%s' accepted range: 0 to 1200 seconds.\n",
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
@@ -478,7 +478,7 @@ void interface_config(struct configfile *cf)
 
 		  if (!validate_callsign_input(param1,aif->txok)) {
 		    if (aif->txok) {
-		      printf("%s:%d The CALLSIGN parameter on transmit capable interface must be of valid AX.25 format! '%s'\n",
+		      printf("%s:%d ERROR: The CALLSIGN parameter on transmit capable interface must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, param1);
 		      have_fault = 1;
 		      continue;
@@ -516,7 +516,7 @@ void interface_config(struct configfile *cf)
 		  }
 
 		} else {
-		  printf("%s:%d Unknown config entry name: '%s'\n",
+		  printf("%s:%d ERROR: Unknown <interface> config entry name: '%s'\n",
 			 cf->name, cf->linenum, name);
 		  have_fault = 1;
 		}
