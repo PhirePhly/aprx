@@ -396,7 +396,7 @@ static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
 	}
 }
 
-void telemetry_config(struct configfile *cf)
+int telemetry_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -513,4 +513,5 @@ void telemetry_config(struct configfile *cf)
 
 	  if (debug) printf("Defined <telemetry> to transmitter %s\n", aif->callsign);
 	}
+	return has_fault;
 }

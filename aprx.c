@@ -133,7 +133,10 @@ int main(int argc, char *const argv[])
 	filter_init();
 	pbuf_init();
 
-	readconfig(cfgfile);
+	i = readconfig(cfgfile);
+	if (i) {
+	  exit(1); // CONFIGURATION ERRORS SEEN! ABORT!
+	}
 
 	erlang_start(1);
 	historydb_init();

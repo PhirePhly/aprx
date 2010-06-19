@@ -1,8 +1,10 @@
 2010-06-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	* aprsis.c, beacon.c, config.c, digipeater.c, interface.c,
-	  telemetry.c, ttyreader.c:
+	* aprx.c, aprx.h, aprsis.c, beacon.c, config.c, digipeater.c,
+	  interface.c, telemetry.c, ttyreader.c:
 	    Improve config file parsing error reporting.
+	    Any ERROR observed on configuration parsing causes immediate
+	    abort with exit-code 1.
 
 	* aprx.conf.in, aprx-complex.conf.in, aprx.8.in:
 	    Clarify the documentation at man-page, and at config templates.

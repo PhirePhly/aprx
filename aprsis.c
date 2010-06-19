@@ -851,7 +851,7 @@ static void aprsis_main(void)
  *  aprsis_add_server() - old style configuration
  */
 
-void aprsis_add_server(const char *server, const char *port)
+int aprsis_add_server(const char *server, const char *port)
 {
 	struct aprsis_host *H;
 
@@ -875,10 +875,12 @@ void aprsis_add_server(const char *server, const char *port)
 
 	AprsIS->server_socket = -1;
 	AprsIS->next_reconnect = now;	/* perhaps somewhen latter.. */
+
+	return 0;
 }
 
 // old style configuration
-void aprsis_set_heartbeat_timeout(const int tout)
+int aprsis_set_heartbeat_timeout(const int tout)
 {
 	int i = AIShcount;
 	struct aprsis_host *H;
@@ -888,10 +890,12 @@ void aprsis_set_heartbeat_timeout(const int tout)
 	H = AISh[i];
 
 	H->heartbeat_monitor_timeout = tout;
+
+	return 0;
 }
 
 // old style configuration
-void aprsis_set_filter(const char *filter)
+int aprsis_set_filter(const char *filter)
 {
 	int i = AIShcount;
 	struct aprsis_host *H;
@@ -901,10 +905,12 @@ void aprsis_set_filter(const char *filter)
 	H = AISh[i];
 
 	H->filterparam = strdup(filter);
+
+	return 0;
 }
 
 // old style configuration
-void aprsis_set_login(const char *login)
+int aprsis_set_login(const char *login)
 {
 	int i = AIShcount;
 	struct aprsis_host *H;
@@ -914,6 +920,8 @@ void aprsis_set_login(const char *login)
 	H = AISh[i];
 
 	H->login = strdup(login);
+
+	return 0;
 }
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
@@ -1121,7 +1129,7 @@ int aprsis_postpoll(struct aprxpolls *app)
 
 
 // main program side
-void aprsis_config(struct configfile *cf)
+int aprsis_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -1252,7 +1260,6 @@ void aprsis_config(struct configfile *cf)
 		if (AIH->filterparam != NULL) free(AIH->filterparam);
 		if (AIH->login       != NULL) free(AIH->login);
 		free(AIH);
-		return;
 
 	} else {
 		if (AprsIS == NULL) {
@@ -1265,4 +1272,5 @@ void aprsis_config(struct configfile *cf)
 		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
 		AISh[AIShcount] = AIH;
 	}
+	return has_fault;
 }
