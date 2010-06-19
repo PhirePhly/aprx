@@ -202,10 +202,11 @@ void config_STRUPPER(char *s)
 	}
 }
 
-static void logging_config(struct configfile *cf)
+static int logging_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
+	int has_fault = 0;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -277,11 +278,13 @@ static void logging_config(struct configfile *cf)
 		} else {
 			printf("%s:%d: ERROR: Unknown <logging> keyword: '%s' '%s'\n",
 			       cf->name, cf->linenum, name, param1);
+			has_fault = 1;
 		}
 	}
+	return has_fault;
 }
 
-static void cfgparam(struct configfile *cf)
+static int cfgparam(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -298,28 +301,22 @@ static void cfgparam(struct configfile *cf)
 	str = config_SKIPSPACE(str);
 
 	if (strcmp(name, "<aprsis>") == 0) {
-	  aprsis_config(cf);
-	  return;
+	  return aprsis_config(cf);
 	}
 	if (strcmp(name, "<interface>") == 0) {
-	  interface_config(cf);
-	  return;
+	  return interface_config(cf);
 	}
 	if (strcmp(name, "<telemetry>") == 0) {
-	  telemetry_config(cf);
-	  return;
+	  return telemetry_config(cf);
 	}
 	if (strcmp(name, "<digipeater>") == 0) {
-	  digipeater_config(cf);
-	  return;
+	  return digipeater_config(cf);
 	}
 	if (strcmp(name, "<beacon>") == 0) {
-	  beacon_config(cf);
-	  return;
+	  return beacon_config(cf);
 	}
 	if (strcmp(name, "<logging>") == 0) {
-	  logging_config(cf);
-	  return;
+	  return logging_config(cf);
 	}
 
 
@@ -334,6 +331,7 @@ static void cfgparam(struct configfile *cf)
 		} else {
 		    printf("%s:%d: MYCALL = '%s'  value is not valid AX.25 node callsign.\n",
 			   cf->name, cf->linenum, param1);
+		    return 1;
 		}
 
 	} else if (strcmp(name, "aprsis-login") == 0) {
@@ -350,6 +348,7 @@ static void cfgparam(struct configfile *cf)
 		} else {
 		    printf("%s:%d: APRSIS-LOGIN = '%s' value is not valid AX25-like node'\n",
 			   cf->name, cf->linenum, aprsis_login);
+		    return 1;
 		}
 
 	} else if (strcmp(name, "aprsis-server") == 0) {
@@ -357,17 +356,16 @@ static void cfgparam(struct configfile *cf)
 		printf("%s:%d WARNING: Old-style top-level 'aprsis-server' definition, it should be inside <aprsis> group tags.\n",
 		       cf->name, cf->linenum);
 
-		aprsis_add_server(param1, str);
-
 		if (debug)
 			printf("%s:%d: APRSIS-SERVER = '%s':'%s'\n",
 			       cf->name, cf->linenum, param1, str);
+
+		return aprsis_add_server(param1, str);
 
 	} else if (strcmp(name, "aprsis-heartbeat-timeout") == 0) {
 		int i = atoi(param1);
 		if (i < 0)	/* param failure ? */
 			i = 0;	/* no timeout */
-		aprsis_set_heartbeat_timeout(i);
 
 		printf("%s:%d WARNING: Old-style top-level 'aprsis-heartbeat-timeout' definition, it should be inside <aprsis> group tags.\n",
 		       cf->name, cf->linenum);
@@ -376,16 +374,15 @@ static void cfgparam(struct configfile *cf)
 			printf("%s:%d: APRSIS-HEARTBEAT-TIMEOUT = '%d' '%s'\n",
 			       cf->name, cf->linenum, i, str);
 
+		return aprsis_set_heartbeat_timeout(i);
+
+
 	} else if (strcmp(name, "aprsis-filter") == 0) {
 
 		printf("%s:%d WARNING: Old-style top-level 'aprsis-filter' definition, it should be inside <aprsis> group tags.\n",
 		       cf->name, cf->linenum);
 
-		aprsis_set_filter(param1);
-
-		if (debug)
-			printf("%s:%d: APRSIS-FILTER = '%s' '%s'\n",
-			       cf->name, cf->linenum, param1, str);
+		return aprsis_set_filter(param1);
 
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 
@@ -396,7 +393,7 @@ static void cfgparam(struct configfile *cf)
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
 
-		netax25_addrxport(param1, NULL);
+		return (netax25_addrxport(param1, NULL) == NULL);
 
 	} else if (strcmp(name, "radio") == 0) {
 
@@ -406,28 +403,36 @@ static void cfgparam(struct configfile *cf)
 		if (debug)
 			printf("%s:%d: RADIO = %s %s..\n",
 			       cf->name, cf->linenum, param1, str);
-		ttyreader_serialcfg(cf, param1, str);
+		return (ttyreader_serialcfg(cf, param1, str) == NULL);
 
 	} else if (strcmp(name, "ax25-device") == 0) {
 		printf("%s:%d ERROR: The 'ax25-device' entry must be inside an <interface> group tag.\n",
 		       cf->name, cf->linenum);
+		return 1;
+
 	} else if (strcmp(name, "serial-device") == 0) {
 		printf("%s:%d ERROR: The 'serial-device' entry must be inside an <interface> group tag.\n",
 		       cf->name, cf->linenum);
+		return 1;
+
 	} else if (strcmp(name, "tcp-device") == 0) {
 		printf("%s:%d ERROR: The 'tcp-device' entry must be inside an <interface> group tag.\n",
 		       cf->name, cf->linenum);
+		return 1;
 
 	} else if (strcmp(name, "beacon") == 0) {
 		printf("%s:%d ERROR: The 'beacon' entry must be inside a <beacon> group tag.\n",
 		       cf->name, cf->linenum);
+		return 1;
 
 	} else {
 		printf("%s:%d: ERROR: Unknown config keyword: '%s' '%s'\n",
 		       cf->name, cf->linenum, name, param1);
 		printf("%s:%d: Perhaps this is due to lack of some surrounding <group> tag ?\n",
 		       cf->name, cf->linenum);
+		return 1;
 	}
+	return 0;
 }
 
 /*
@@ -586,22 +591,31 @@ int configline_is_comment(struct configfile *cf)
 	return 0;
 }
 
-void readconfig(const char *name)
+int readconfig(const char *name)
 {
 	struct configfile cf;
+	int has_fault = 0;
+	int i;
 
 	cf.linenum_i = 0;
 	cf.linenum   = 0;
 	cf.name      = name;
 
-	if ((cf.fp = fopen(name, "r")) == NULL)
-		return;
+	if ((cf.fp = fopen(name, "r")) == NULL) {
+		int e = errno;
+		printf("ERROR: Can not open named config file: '%s' -> %d %s\n",
+		       name, e, strerror(e)); 
+		return 1;
+	}
 
 	while (readconfigline(&cf) != NULL) {
 		if (configline_is_comment(&cf))
 			continue;	/* Comment line, or empty line */
 
-		cfgparam(&cf);
+		i = cfgparam(&cf);
+		if (i) has_fault = 1;
 	}
 	fclose(cf.fp);
+
+	return has_fault;
 }

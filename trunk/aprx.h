@@ -230,10 +230,10 @@ extern int  parse_ax25addr(uint8_t ax25[7], const char *text,
 
 
 /* aprsis.c */
-extern void aprsis_add_server(const char *server, const char *port);
-extern void aprsis_set_heartbeat_timeout(const int tout);
-extern void aprsis_set_filter(const char *filter);
-extern void aprsis_set_login(const char *login);
+extern int  aprsis_add_server(const char *server, const char *port);
+extern int  aprsis_set_heartbeat_timeout(const int tout);
+extern int  aprsis_set_filter(const char *filter);
+extern int  aprsis_set_login(const char *login);
 
 extern int  aprsis_queue(const char *addr, int addrlen,
 			 const char *gwcall,
@@ -243,17 +243,17 @@ extern int  aprsis_postpoll(struct aprxpolls *app);
 extern void aprsis_init(void);
 extern void aprsis_start(void);
 extern void aprsis_stop(void);
-extern void aprsis_config(struct configfile *cf);
+extern int  aprsis_config(struct configfile *cf);
 
 /* beacon.c */
 extern int  beacon_prepoll(struct aprxpolls *app);
 extern int  beacon_postpoll(struct aprxpolls *app);
-extern void beacon_config(struct configfile *cf);
+extern int  beacon_config(struct configfile *cf);
 
 /* config.c */
 extern void *readconfigline(struct configfile *cf);
 extern int   configline_is_comment(struct configfile *cf);
-extern void  readconfig(const char *cfgfile);
+extern int   readconfig(const char *cfgfile);
 extern char *config_SKIPSPACE(char *Y);
 extern char *config_SKIPTEXT(char *Y, int *lenp);
 extern void  config_STRLOWER(char *Y);
@@ -299,7 +299,7 @@ extern void        netax25_sendto(const void *nax25, const uint8_t *axaddr, cons
 extern void telemetry_start(void);
 extern int  telemetry_prepoll(struct aprxpolls *app);
 extern int  telemetry_postpoll(struct aprxpolls *app);
-extern void telemetry_config(struct configfile *cf);
+extern int  telemetry_config(struct configfile *cf);
 
 
 typedef enum {
@@ -547,7 +547,7 @@ struct digipeater {
 
 extern int  digipeater_prepoll(struct aprxpolls *app);
 extern int  digipeater_postpoll(struct aprxpolls *app);
-extern void digipeater_config(struct configfile *cf);
+extern int  digipeater_config(struct configfile *cf);
 extern void digipeater_receive(struct digipeater_source *src, struct pbuf_t *pb);
 extern int  digipeater_receive_filter(struct digipeater_source *src, struct pbuf_t *pb);
 extern dupecheck_t *digipeater_find_dupecheck(const struct aprx_interface *aif);
@@ -591,7 +591,7 @@ extern int                     all_interfaces_count;
 extern struct aprx_interface **all_interfaces;
 
 extern void interface_init(void);
-extern void interface_config(struct configfile *cf);
+extern int  interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
 

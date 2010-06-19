@@ -289,7 +289,7 @@ void interface_init()
 	interface_store( &aprsis_interface );
 }
 
-void interface_config(struct configfile *cf)
+int interface_config(struct configfile *cf)
 {
 	struct aprx_interface *aif = calloc(1, sizeof(*aif));
 	struct aprx_interface *aif2 = NULL; // subif copies here..
@@ -561,6 +561,7 @@ void interface_config(struct configfile *cf)
 		if (aif->iftype == IFTYPE_TCPIP)
 			ttyreader_register(aif->tty);
 	}
+	return have_fault;
 }
 
 

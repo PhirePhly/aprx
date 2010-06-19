@@ -577,7 +577,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	return;
 }
 
-void beacon_config(struct configfile *cf)
+int beacon_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -643,6 +643,7 @@ void beacon_config(struct configfile *cf)
 		  continue;
 		}
 	}
+	return has_fault;
 }
 
 static void fix_beacon_time(char *txt, int txtlen)

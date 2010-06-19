@@ -804,7 +804,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	return source;
 }
 
-void digipeater_config(struct configfile *cf)
+int digipeater_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
@@ -989,6 +989,7 @@ void digipeater_config(struct configfile *cf)
 		digis[digi_count] = digi;
 		++digi_count;
 	}
+	return has_fault;
 }
 
 
