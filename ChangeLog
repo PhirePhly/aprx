@@ -1,3 +1,21 @@
+2010-06-19  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsis.c, beacon.c, config.c, digipeater.c, interface.c,
+	  telemetry.c, ttyreader.c:
+	    Improve config file parsing error reporting.
+
+	* aprx.conf.in, aprx-complex.conf.in, aprx.8.in:
+	    Clarify the documentation at man-page, and at config templates.
+
+	* firmware/*
+	    Copied one source of TNC2 firmwares
+
+	* windows/*
+	    Just a placeholder.
+
+	* Makefile.in:
+	    Improving "make dist" behaviour.
+
 2010-06-13  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.8.in, doc/aprx-manual.odt:

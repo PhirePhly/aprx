@@ -385,8 +385,9 @@ static void ttyreader_linesetup(struct serialport *S)
 		i = tcsetattr(S->fd, TCSAFLUSH, &S->tio);
 
 		if (i < 0) {
-		  printf("%ld\tTCSETATTR failed; errno=%d\n",
-			       now, errno);
+			if (debug)
+			  printf("%ld\tERROR: TCSETATTR failed; errno=%d\n",
+				 now, errno);
 			close(S->fd);
 			S->fd = -1;
 			S->wait_until = now + TTY_OPEN_RETRY_DELAY_SECS;
@@ -817,7 +818,7 @@ int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, cha
 			if (debug)
 			  printf("initstring len=%d\n",parlen);
 		} else {
-		  printf("%s:%d Unknown sub-keyword on 'radio' configuration: '%s'\n",
+		  printf("%s:%d ERROR: Unknown sub-keyword on a serial/tcp device configuration: '%s'\n",
 			 cf->name, cf->linenum, param1);
 		  return 1;
 		}

@@ -489,6 +489,9 @@ void telemetry_config(struct configfile *cf)
 			}
 			if (debug>1)
 			  printf(" .. source_aif = %p\n", source_aif);
+		} else {
+		  printf("%s:%d ERROR: Unknown <telemetry> block keyword '%s'\n",
+			 cf->name, cf->linenum, name);
 		}
 	}
 
@@ -497,6 +500,8 @@ void telemetry_config(struct configfile *cf)
 	    free(sources);
 	  if (viapath != NULL)
 	    free(viapath);
+	  printf("ERROR: Failures on defining <telemetry> block parameters\n");
+	  printf("       APRS RF-Telemetry will not be activated.\n");
 	} else {
 	  struct rftelemetry *newrf = malloc(sizeof(*newrf));
 	  newrf->transmitter = aif;

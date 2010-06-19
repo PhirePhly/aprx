@@ -8,10 +8,9 @@
 #   1)  <aprsis>     ** zero to many
 #   2)  <logging>    ** zero or one
 #   3)  <interface>  ** there can be multiple!
-#   4)  <netbeacon>  ** zero to many
-#   5)  <rfbeacon>   ** zero to many
-#   6)  <rx-igate>   ** Optional Rx-IGate definitions
-#   7)  <digipeater> ** zero to many (at most one for each Tx)
+#   4)  <beacon>     ** zero to many
+#   5)  <telemetry>  ** zero to many
+#   5)  <digipeater> ** zero to many (at most one for each Tx)
 #
 
 
@@ -50,6 +49,11 @@ server    rotate.aprs.net    14580
 #
 # You can define the filter as single long quoted string, or as
 # many short segments with explaining comments following them.
+#
+# Usability of these filters for a Tx-iGate is dubious, but
+# they exist in case you for example want to Tx-iGate packets
+# from some source callsigns in all cases even when they are
+# not in your local area.
 #
 #filter "possibly multiple filter specs in quotes"
 #
@@ -144,26 +148,40 @@ pidfile @VARRUN@/aprx.pid
 #     DPRS            -- DPRS (RX) Gateway
 #
 #
+
+### KISS mode example with KISS TNC using TNCID 0
 #<interface>
 #   serial-device   /dev/ttyUSB0  19200 8n1    KISS
 #  #alias         RELAY,WIDE,TRACE
+#   callsign N0CALL-14
+#</interface>
+
+### KISS mode example with multiple sub-interfaces via TNCID multiplexing
+#<interface>
+#   serial-device   /dev/ttyUSB0  19200 8n1    KISS
+#  #alias         RELAY,WIDE,TRACE
+#   ## kiss-subif 0 == KISS TNCID 0
 #   <kiss-subif 0>
 #      callsign N0CALL-14
+#      tx-ok    true
+#   </kiss-subif>
+#   ## kiss-subif 3 == KISS TNCID 3
+#   <kiss-subif 3>
+#      callsign N0CALL-15
 #      tx-ok    false
 #   </kiss-subif>
 #</interface>
-#
+
 #<interface>
 #   serial-device   /dev/ttyUSB1  19200 8n1    TNC2
 #   callsign N0CALL-13
 #</interface>
-#
+
 #<interface>
 #   serial-device /dev/ttyUSB1  19200 8n1    DPRS
 #   callsign     dprsgwcallsign  # must define actual callsign
 #   #tx-ok       false           # DPRS monitor can not do transmit
 #</interface>
-#
 
 #
 #  "KISS"                  - plain basic KISS mode
@@ -209,7 +227,7 @@ pidfile @VARRUN@/aprx.pid
 #</interface>
 
 
-# The  radio tcp  option defines a connection to remote socket
+# The  tcp-device  option defines a connection to remote socket
 # beyond which is a binary transparent connection to a serial
 # port.  The parameter fields:  literal IP address (IPv4 or IPv6),
 # then literal port number, and finally protocol mode.
@@ -337,6 +355,7 @@ pidfile @VARRUN@/aprx.pid
 #   source   IFCALL-2
 #</rx-igate>
 
+
 # ***********  Multiple <digipeater>  definitions follow   *********
 
 #  The digipeater definitions tell transmitters that receive
@@ -384,7 +403,7 @@ pidfile @VARRUN@/aprx.pid
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
-#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
+#    #	 ##filter      "javAPRSSrvr adjunct filters"
 #    </source>
 #
 #    #<source>                   # Extra receiver(s)
@@ -396,7 +415,7 @@ pidfile @VARRUN@/aprx.pid
 #    #   #regex-filter  destination  "RE-pattern" # --"--; generic
 #    #   #regex-filter  via          "RE-pattern" # --"--; generic VIA
 #    #   #regex-filter  data         "RE-pattern" # --"--; APRS payload
-#    #	 ##filter      "javAPRSSrvr adjunct filters" ## FIXME: to implement!
+#    #	 ##filter      "javAPRSSrvr adjunct filters"
 #    #</source>
 #
 #    #<source>                  # APRSIS source makes this tx-igate
@@ -406,6 +425,13 @@ pidfile @VARRUN@/aprx.pid
 #    #   relay-type   third-party  # Must define this for APRSIS source!
 #    #   viscous-delay 5      # recommendation: 5 seconds delay to give
 #    #                         # RF delivery time make itself known.
+#    #</source>
+#
+#    #<source>              # DPRS source makes this DPRS->APRS RF gate
+#    #   interface    DPRS
+#    #   ratelimit    60 120       # default: average 60 packets/minute,
+#    #                             #          burst max 120 packets/minute
+#    #   relay-type   third-party  # Must define this for DPRS source!
 #    #</source>
 #
 #</digipeater>

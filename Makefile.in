@@ -47,7 +47,7 @@ MANDIR:=$(strip $(MANDIR))
 
 # generate version strings
 VERSION:=$(shell cat VERSION)
-SVNVERSION:=$(shell if [ -x /usr/bin/svnversion ] ; then /usr/bin/svnversion ; else echo "0"; fi)
+SVNVERSION:=$(shell if test -x /usr/bin/svnversion -a -d .svn  ; then /usr/bin/svnversion | sed -e 's/^.*://' | tee SVNVERSION ; else cat SVNVERSION; fi)
 DATE:=$(shell date +"%Y %B %d")
 RFCDATE:=$(shell date -R)
 
@@ -168,7 +168,7 @@ dist:
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
 	fi
-	tar cf - --exclude=.svn --exclude=*~ . | (cd $(DISTTARGET) ; tar xf -)
+	tar cf - --exclude-backups --exclude-vcs --exclude=*.log* --exclude=*.conf . | (cd $(DISTTARGET) ; tar xf -)
 	echo "$(DISTVERSION)" > $(DISTTARGET)/VERSION
 	perl -ne "\$$ver = '$(DISTVERSION)'; 	\
 		  \$$ver =~ tr/0-9.//cd;	\

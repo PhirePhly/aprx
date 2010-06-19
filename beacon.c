@@ -631,13 +631,13 @@ void beacon_config(struct configfile *cf)
 		    beaconmode = -1;
 
 		  } else {
-		    printf("%s:%d Unknown beaconmode parameter keyword: '%s'\n",
+		    printf("%s:%d ERROR: Unknown beaconmode parameter keyword: '%s'\n",
 			   cf->name, cf->linenum, param1);
 		    has_fault = 1;
 		  }
 
 		} else {
-		  printf("%s:%d Unknown config keyword: '%s'\n",
+		  printf("%s:%d ERROR: Unknown <beacon> block config keyword: '%s'\n",
 			 cf->name, cf->linenum, name);
 		  has_fault = 1;
 		  continue;

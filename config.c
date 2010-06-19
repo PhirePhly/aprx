@@ -228,54 +228,54 @@ static void logging_config(struct configfile *cf)
 	
 		if (strcmp(name, "aprxlog") == 0) {
 			if (debug)
-				printf("%s:%d: APRXLOG = '%s' '%s'\n",
+				printf("%s:%d: INFO: APRXLOG = '%s' '%s'\n",
 				       cf->name, cf->linenum, param1, str);
 	
 			aprxlogfile = strdup(param1);
 	
 		} else if (strcmp(name, "rflog") == 0) {
 			if (debug)
-				printf("%s:%d: RFLOG = '%s' '%s'\n",
+				printf("%s:%d: INFO: RFLOG = '%s' '%s'\n",
 				       cf->name, cf->linenum, param1, str);
 	
 			rflogfile = strdup(param1);
 	
 		} else if (strcmp(name, "pidfile") == 0) {
 			if (debug)
-				printf("%s:%d: PIDFILE = '%s' '%s'\n",
+				printf("%s:%d: INFO: PIDFILE = '%s' '%s'\n",
 				       cf->name, cf->linenum, param1, str);
 	
 			pidfile = strdup(param1);
 	
 		} else if (strcmp(name, "erlangfile") == 0) {
 			if (debug)
-				printf("%s:%d: ERLANGFILE = '%s' '%s'\n",
+				printf("%s:%d: INFO: ERLANGFILE = '%s' '%s'\n",
 				       cf->name, cf->linenum, param1, str);
 	
 			erlang_backingstore = strdup(param1);
 	
 		} else if (strcmp(name, "erlang-loglevel") == 0) {
 			if (debug)
-				printf("%s:%d: ERLANG-LOGLEVEL = '%s' '%s'\n",
+				printf("%s:%d: INFO: ERLANG-LOGLEVEL = '%s' '%s'\n",
 				       cf->name, cf->linenum, param1, str);
 			erlang_init(param1);
 	
 		} else if (strcmp(name, "erlanglog") == 0) {
 			if (debug)
-				printf("%s:%d: ERLANGLOG = '%s'\n",
+				printf("%s:%d: INFO: ERLANGLOG = '%s'\n",
 				       cf->name, cf->linenum, param1);
 	
 			erlanglogfile = strdup(param1);
 	
 		} else if (strcmp(name, "erlang-log1min") == 0) {
 			if (debug)
-				printf("%s:%d: ERLANG-LOG1MIN\n",
+				printf("%s:%d: INFO: ERLANG-LOG1MIN\n",
 				       cf->name, cf->linenum);
 	
 			erlanglog1min = 1;
 	
 		} else {
-			printf("%s:%d: Unknown <logging> keyword: '%s' '%s'\n",
+			printf("%s:%d: ERROR: Unknown <logging> keyword: '%s' '%s'\n",
 			       cf->name, cf->linenum, name, param1);
 		}
 	}
@@ -337,6 +337,10 @@ static void cfgparam(struct configfile *cf)
 		}
 
 	} else if (strcmp(name, "aprsis-login") == 0) {
+
+		printf("%s:%d WARNING: Old-style top-level 'aprsis-login' definition, it should be inside <aprsis> group tags.\n",
+		       cf->name, cf->linenum);
+
 		config_STRUPPER(param1);
 		if (validate_callsign_input(param1,0)) {
 		  aprsis_login = strdup(param1);
@@ -349,6 +353,10 @@ static void cfgparam(struct configfile *cf)
 		}
 
 	} else if (strcmp(name, "aprsis-server") == 0) {
+
+		printf("%s:%d WARNING: Old-style top-level 'aprsis-server' definition, it should be inside <aprsis> group tags.\n",
+		       cf->name, cf->linenum);
+
 		aprsis_add_server(param1, str);
 
 		if (debug)
@@ -361,11 +369,18 @@ static void cfgparam(struct configfile *cf)
 			i = 0;	/* no timeout */
 		aprsis_set_heartbeat_timeout(i);
 
+		printf("%s:%d WARNING: Old-style top-level 'aprsis-heartbeat-timeout' definition, it should be inside <aprsis> group tags.\n",
+		       cf->name, cf->linenum);
+
 		if (debug)
 			printf("%s:%d: APRSIS-HEARTBEAT-TIMEOUT = '%d' '%s'\n",
 			       cf->name, cf->linenum, i, str);
 
 	} else if (strcmp(name, "aprsis-filter") == 0) {
+
+		printf("%s:%d WARNING: Old-style top-level 'aprsis-filter' definition, it should be inside <aprsis> group tags.\n",
+		       cf->name, cf->linenum);
+
 		aprsis_set_filter(param1);
 
 		if (debug)
@@ -373,6 +388,10 @@ static void cfgparam(struct configfile *cf)
 			       cf->name, cf->linenum, param1, str);
 
 	} else if (strcmp(name, "ax25-rxport") == 0) {
+
+		printf("%s:%d WARNING: Old-style top-level 'ax25-rxport' definition.  See <interface> groups, 'ax25-device' definitions.\n",
+		       cf->name, cf->linenum);
+
 		if (debug)
 			printf("%s:%d: AX25-RXPORT '%s' '%s'\n",
 			       cf->name, cf->linenum, param1, str);
@@ -380,14 +399,34 @@ static void cfgparam(struct configfile *cf)
 		netax25_addrxport(param1, NULL);
 
 	} else if (strcmp(name, "radio") == 0) {
+
+		printf("%s:%d WARNING: Old-style top-level 'radio' definition.  See <interface> groups, 'serial-device' or 'tcp-device' definitions.\n",
+		       cf->name, cf->linenum);
+
 		if (debug)
 			printf("%s:%d: RADIO = %s %s..\n",
 			       cf->name, cf->linenum, param1, str);
 		ttyreader_serialcfg(cf, param1, str);
 
+	} else if (strcmp(name, "ax25-device") == 0) {
+		printf("%s:%d ERROR: The 'ax25-device' entry must be inside an <interface> group tag.\n",
+		       cf->name, cf->linenum);
+	} else if (strcmp(name, "serial-device") == 0) {
+		printf("%s:%d ERROR: The 'serial-device' entry must be inside an <interface> group tag.\n",
+		       cf->name, cf->linenum);
+	} else if (strcmp(name, "tcp-device") == 0) {
+		printf("%s:%d ERROR: The 'tcp-device' entry must be inside an <interface> group tag.\n",
+		       cf->name, cf->linenum);
+
+	} else if (strcmp(name, "beacon") == 0) {
+		printf("%s:%d ERROR: The 'beacon' entry must be inside a <beacon> group tag.\n",
+		       cf->name, cf->linenum);
+
 	} else {
-		printf("%s:%d: Unknown config keyword: '%s' '%s'\n",
+		printf("%s:%d: ERROR: Unknown config keyword: '%s' '%s'\n",
 		       cf->name, cf->linenum, name, param1);
+		printf("%s:%d: Perhaps this is due to lack of some surrounding <group> tag ?\n",
+		       cf->name, cf->linenum);
 	}
 }
 
