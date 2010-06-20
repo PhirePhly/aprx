@@ -200,6 +200,8 @@ A
 .I receive-only
 iGate server.
 .IP \(bu 3
+A digipeater with bi-directional iGate server.
+.IP \(bu 3
 A
 .I "single radio"
 digipeater.  (The most common type of digipeater.)
@@ -215,19 +217,16 @@ which relays a packet it heard from viscuous source after the viscuous delay,
 or it was heard from non-viscuous source before the viscuous one was digipeated.
 This allows of making fill-in digipeaters that will not digipeat the packet,
 if that same packet was heard twice or more before the viscuos delay expired.
-.IP \(bu 3
-A digipeater with receive-only iGate server.
-.PP
-This package does contain incomplete bi-directional iGate support,
-however as of present version, we do not recommend its use quite yet!
 .PP
 In the configuration file a line ending backslash (\\) character concatenates
 next input line into itself. Combined result can be up to 8000 bytes long.
 This combination can be a bit surprising:
+.RS 3em
 .nf
 \fC#beacon .... long text  \\
        continuation\fR
 .fi
+.RE
 results in single long input line that begins with '#' (it is comment) and all
 continuations following it have been folded in.
 Presented line number of combined continuation is the line number of the
