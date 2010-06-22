@@ -293,13 +293,13 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	}
 }
 
-static int match_transmitter(const char *viafield, const struct digipeater_source *src)
+static int match_transmitter(const char *viafield, const struct digipeater_source *src, const int lastviachar)
 {
 	struct aprx_interface *aif = src->parent->transmitter;
 	int tlen = strlen(aif->callsign);
 
 	if (memcmp(viafield, aif->callsign, tlen) == 0) {
-	  if (viafield[tlen] == '*')
+	  if (viafield[tlen] == lastviachar)
 	    return 1;
 	}
 
@@ -375,9 +375,11 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 {
 	const char *p = pb->dstcall_end+1;
 	const char *s;
+	const struct digipeater *digi = src->parent;
 	char viafield[14];
 	int have_fault = 0;
 	int viaindex = 1; // First via index will be 2..
+	int activeviacount = 0;
 	int len;
 
 	if (debug>1) printf(" hops count of buffer: %s\n",p);
@@ -436,7 +438,8 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  viafield[len] = 0;
 	  if (*s == ',') ++s;
 	  p = s;
-	  
+	  if (debug>1) printf(" - ViaField[%d]: '%s'\n", viaindex, viafield);
+
 	  // VIA-field picked up, now analyze it..
 
 	  if (try_reject_filters(2, viafield, src)) {
@@ -444,7 +447,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	    return 1; // via reject filters
 	  }
 
-	  if (match_transmitter(viafield, src)) {
+	  if (match_transmitter(viafield, src, '*')) {
 	    if (debug>1) printf(" - Tx match reject\n");
 	    return 1; /* Oops, LOOP!  I have transmit this in past
 			 (according to my transmitter callsign present
@@ -452,17 +455,31 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 		      */
 	  }
 
-	  if ((len = match_tracewide(viafield, src->src_trace))) {
-	    have_fault = count_single_tnc2_tracewide(state, viafield, 1, len, viaindex);
-	  } else if ((len = match_tracewide(viafield, src->parent->trace))) {
-	    have_fault = count_single_tnc2_tracewide(state, viafield, 1, len, viaindex);
-	  } else if ((len = match_tracewide(viafield, src->src_wide))) {
-	    have_fault = count_single_tnc2_tracewide(state, viafield, 0, len, viaindex);
-	  } else if ((len = match_tracewide(viafield, src->parent->wide))) {
-	    have_fault = count_single_tnc2_tracewide(state, viafield, 0, len, viaindex);
-	  } else {
-	    // Account traced nodes (or some such)
-	    have_fault = count_single_tnc2_tracewide(state, viafield, 1, 0, viaindex);
+	  if (strchr(viafield, '*') == NULL)
+	    ++activeviacount;
+
+
+	  if (activeviacount == 1 &&
+	      (match_transmitter(viafield, src, 0) ||
+	       match_aliases(viafield, digi->transmitter))) {
+	    if (debug>1) printf(" - Tx match accept!\n");
+	    state->hopsreq  += 1;
+	    state->tracereq += 1;
+	  }
+
+	  if (pb->is_aprs) {
+	    if ((len = match_tracewide(viafield, src->src_trace))) {
+	      have_fault = count_single_tnc2_tracewide(state, viafield, 1, len, viaindex);
+	    } else if ((len = match_tracewide(viafield, digi->trace))) {
+	      have_fault = count_single_tnc2_tracewide(state, viafield, 1, len, viaindex);
+	    } else if ((len = match_tracewide(viafield, src->src_wide))) {
+	      have_fault = count_single_tnc2_tracewide(state, viafield, 0, len, viaindex);
+	    } else if ((len = match_tracewide(viafield, digi->wide))) {
+	      have_fault = count_single_tnc2_tracewide(state, viafield, 0, len, viaindex);
+	    } else {
+	      // Account traced nodes (or some such)
+	      have_fault = count_single_tnc2_tracewide(state, viafield, 1, 0, viaindex);
+	    }
 	  }
 	  if (state->fixthis || state->fixall) {
 	    // Argh..  bogus WIDEn seen, which is what UIDIGIs put out..
@@ -1331,13 +1348,16 @@ void digipeater_receive( struct digipeater_source *src,
 			  return;
 			}
 
-			if (dupe->seen == 1 && dupe->delayed_seen > 0 &&
+			if (dupe->seen == 1 && dupe->delayed_seen >= 0 &&
 			    dupe->pbuf != NULL) {
+
 			  // First direct, and pbuf exists in dupe record.
 			  // It was added first to viscous queue, and
 			  // a bit latter came this direct one.
 			  // Remove one from viscous queue, and proceed
 			  // with direct processing.
+
+			  if (debug>1) printf(" .. discard dupe record, process immediately");
 
 			  pbuf_put(dupe->pbuf);
 			  dupe->pbuf = NULL;
