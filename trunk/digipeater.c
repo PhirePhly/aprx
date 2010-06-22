@@ -1309,8 +1309,9 @@ void digipeater_receive( struct digipeater_source *src,
 		//    If the dupe detector on this packet has reached
 		//    count > 1, drop it.
 
+		int jittery = src->viscous_delay > 0 ? random() % 3 + src->viscous_delay : 0;
 		dupe_record_t *dupe = dupecheck_pbuf( src->parent->dupechecker,
-						      pb, src->viscous_delay);
+						      pb, jittery);
 		if (dupe == NULL) {  // Oops.. allocation error!
 		  if (debug)
 		    printf("digipeater_receive() - dupecheck_pbuf() allocation error, packet discarded\n");
