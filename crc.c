@@ -260,8 +260,10 @@ uint16_t calc_crc_flex(const uint8_t *cp, int size)
 {
 	uint16_t crc = 0xffff;
 
-	while (size--)
-		crc = (crc << 8) ^ crc_flex_table[((crc >> 8) ^ *cp++) & 0xff];
+	while (size--) {
+	  uint8_t c = *cp++;
+	  crc = (crc << 8) ^ crc_flex_table[((crc >> 8) ^ c) & 0xff];
+	}
 
 	return crc;
 }
