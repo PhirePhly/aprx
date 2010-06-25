@@ -1,3 +1,16 @@
+2010-06-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c:
+	    Account the number of created interfaces and subinterfaces,
+	    and if there is just one and no callsign has been defined,
+	    only then supply a default value ("callsign $mycall").
+
+	* interface.c:
+	    Check interface callsigns to be unique.
+
+	* aprsis.c, beacon.c, digipeater.c, interface.c, telemetry.c:
+	    Recognize "$mycall" in case insensitive matching.
+
 2010-06-22  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c:

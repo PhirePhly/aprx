@@ -152,7 +152,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			if (strcmp(to,"$mycall") == 0) {
+			if (strcasecmp(to,"$mycall") == 0) {
 				to = mycall;
 			} else {
 				config_STRUPPER((void*)to);

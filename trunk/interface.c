@@ -164,6 +164,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 			subif = subif * 10 + (c - '0');
 		} else if (c == '>') {
 		  // all fine..
+		  break;
 		} else {
 		  // FIXME: <KISS-SubIF nnn>  parameter value is bad!
 		  printf("%s:%d ERROR: <kiss-subif %s parameter value is bad\n",
@@ -198,10 +199,9 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		  break; // End of this sub-group
 		}
 
-		// FIXME:   callsign   and   tx-ok   parameters!
 		if (strcmp(name, "callsign") == 0) {
 
-		  if (strcmp(param1,"$mycall") == 0)
+		  if (strcasecmp(param1,"$mycall") == 0)
 		    callsign = strdup(mycall);
 		  else
 		    callsign = strdup(param1);
@@ -256,6 +256,13 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	  return 1;
 	}
 
+	if (find_interface_by_callsign(callsign) != NULL) {
+	  // An interface with THIS callsign does exist already!
+	  printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
+		 cf->name, cf->linenum, callsign);
+	  return 1;
+	}
+
 	*aifp = malloc(sizeof(*aif));
 	memcpy(*aifp, aif, sizeof(*aif));
 
@@ -299,6 +306,7 @@ int interface_config(struct configfile *cf)
 	int    parlen     = 0;
 	int    have_fault = 0;
 	int    maxsubif   = 16;  // 16 for most KISS modes, 8 for SMACK
+	int    defined_subinterface_count = 0;
 
 	aif->iftype = IFTYPE_UNSET;
 	aif->aliascount = 3;
@@ -333,6 +341,8 @@ int interface_config(struct configfile *cf)
 		    // Bad inputs.. complained already
 		    have_fault = 1;
 		  }
+		  // Always count as defined, even when an error happened!
+		  ++defined_subinterface_count;
 
 		  continue;
 		}
@@ -351,11 +361,19 @@ int interface_config(struct configfile *cf)
 		    continue;
 		  }
 
-		  if (strcmp(param1,"$mycall") == 0)
+		  if (strcasecmp(param1,"$mycall") == 0)
 		    param1 = strdup(mycall);
 
 		  if (!validate_callsign_input(param1,1)) {
 		    printf("%s:%d ERROR: The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    continue;
+		  }
+
+		  if (find_interface_by_callsign(param1) != NULL) {
+		    // An interface with THIS callsign does exist already!
+		    printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
@@ -377,6 +395,7 @@ int interface_config(struct configfile *cf)
 #else
 		  printf("%s:%d ERROR: AX25-DEVICE interfaces are not supported at this system!\n",
 			 cf->name, cf->linenum, param1);
+		  have_fault = 1;
 #endif
 
 		} else if ((strcmp(name,"serial-device") == 0) && (aif->tty == NULL)) {
@@ -403,9 +422,19 @@ int interface_config(struct configfile *cf)
 
 		  have_fault |= ttyreader_parse_ttyparams(cf, aif->tty, str);
 
-		  if (aif->tty->linetype == LINETYPE_KISSSMACK) {
+		  switch (aif->tty->linetype) {
+		  case LINETYPE_KISSSMACK:
 		    maxsubif = 8;  // 16 for most KISS modes, 8 for SMACK
+		    break;
+		  case LINETYPE_KISSFLEXNET:
+		    // ???
+		    break;
+		  default:
+		    break;
 		  }
+
+		  // Always count as defined, even when an error happened!
+		  ++defined_subinterface_count;
 
 		} else if ((strcmp(name,"tcp-device") == 0) && (aif->tty == NULL)) {
 		  int len;
@@ -443,6 +472,20 @@ int interface_config(struct configfile *cf)
 
 		  have_fault |= ttyreader_parse_ttyparams( cf, aif->tty, str );
 
+		  switch (aif->tty->linetype) {
+		  case LINETYPE_KISSSMACK:
+		    maxsubif = 8;  // 16 for most KISS modes, 8 for SMACK
+		    break;
+		  case LINETYPE_KISSFLEXNET:
+		    // ???
+		    break;
+		  default:
+		    break;
+		  }
+
+		  // Always count as defined, even when an error happened!
+		  ++defined_subinterface_count;
+
 		} else if (strcmp(name,"tx-ok") == 0) {
 
 		  if (!config_parse_boolean(param1, &(aif->txok))) {
@@ -473,8 +516,16 @@ int interface_config(struct configfile *cf)
 		  }
 
 		} else if (strcmp(name, "callsign") == 0) {
-		  if (strcmp(param1,"$mycall") == 0)
+		  if (strcasecmp(param1,"$mycall") == 0)
 		    param1 = strdup(mycall);
+
+		  if (find_interface_by_callsign(param1) != NULL) {
+		    // An interface with THIS callsign does exist already!
+		    printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    continue;
+		  }
 
 		  if (!validate_callsign_input(param1,aif->txok)) {
 		    if (aif->txok) {
@@ -522,26 +573,44 @@ int interface_config(struct configfile *cf)
 		}
 	}
 
-	// Supply a default value
-	// if (aif->callsign == NULL)
-	// aif->callsign = strdup(mycall);
-	if (aif->callsign != NULL)
-	  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 
+	while (!have_fault &&
+	       aif->callsign == NULL &&
+	       (aif->iftype == IFTYPE_SERIAL || aif->iftype == IFTYPE_TCPIP) &&
+	       defined_subinterface_count == 1) {
 
-	// With enough defaults being used, the callsign is defined
-	// by global "macro"  mycall,  and never ends up activating
-	// the tty -> linux kernel kiss/smack pty  interface.
-	// This part does that final step for minimalistic config.
-	if (!have_fault &&
-	    aif->tty != NULL &&
-	    aif->tty->netax25[0] == NULL &&
-	    aif->tty->ttycallsign[0] != NULL) {
-		aif->tty->netax25[0] = netax25_open(aif->tty->ttycallsign[0]);
+	        // First check if there already is an interface with $mycall
+		// callsign on it..
+	
+		if (find_interface_by_callsign(mycall) != NULL) {
+		  // An interface with $MYCALL callsign does exist already!
+		  printf("%s:%d ERROR: The $MYCALL callsign (%s) exists already on another interface.\n",
+			 cf->name, cf->linenum, mycall);
+		  have_fault = 1;
+		  break;
+		}
+
+		// Supply a default value
+		aif->callsign = strdup(mycall);
+		parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
+		
+		// With enough defaults being used, the callsign is defined
+		// by global "macro"  mycall,  and never ends up activating
+		// the tty -> linux kernel kiss/smack pty  interface.
+		// This part does that final step for minimalistic config.
+		if (aif->tty != NULL &&
+		    aif->tty->netax25[0] == NULL &&
+		    aif->tty->ttycallsign[0] != NULL) {
+			aif->tty->netax25[0]
+			  = netax25_open(aif->tty->ttycallsign[0]);
+		}
+		// Done it, leave..
+		break;
 	}
 
 	if (!have_fault) {
 		int i;
+
 		if (aif->tty != NULL) {
 		  // Register all tty subinterfaces
 		  for (i = 0; i < maxsubif; ++i) {
@@ -556,11 +625,12 @@ int interface_config(struct configfile *cf)
 		}
 
 		if (aif->iftype == IFTYPE_SERIAL)
-			ttyreader_register(aif->tty);
+		  ttyreader_register(aif->tty);
 
 		if (aif->iftype == IFTYPE_TCPIP)
-			ttyreader_register(aif->tty);
+		  ttyreader_register(aif->tty);
 	}
+
 	return have_fault;
 }
 
