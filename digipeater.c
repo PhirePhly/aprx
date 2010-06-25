@@ -658,7 +658,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  printf("%s:%d <source> source = '%s'\n",
 				 cf->name, cf->linenum, param1);
 
-			if (strcmp(param1,"$mycall") == 0)
+			if (strcasecmp(param1,"$mycall") == 0)
 				param1 = (char*)mycall;
 
 			source_aif = find_interface_by_callsign(param1);
@@ -859,7 +859,7 @@ int digipeater_config(struct configfile *cf)
 		}
 		if (strcmp(name, "transmit") == 0 ||
 		    strcmp(name, "transmitter") == 0) {
-			if (strcmp(param1,"$mycall") == 0)
+			if (strcasecmp(param1,"$mycall") == 0)
 				param1 = (char*)mycall;
 
 			aif = find_interface_by_callsign(param1);

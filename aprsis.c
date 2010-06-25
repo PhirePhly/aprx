@@ -1170,7 +1170,7 @@ int aprsis_config(struct configfile *cf)
 		// heartbeat-timeout
 
 		if (strcmp(name, "login") == 0) {
-		  if (strcmp("$mycall",param1) != 0) {
+		  if (strcasecmp("$mycall",param1) != 0) {
 		    // If not "$mycall" ..
 		    config_STRUPPER(param1);
 		    if (!validate_callsign_input(param1,0)) {
@@ -1182,6 +1182,7 @@ int aprsis_config(struct configfile *cf)
 		    if (AIH->login) free(AIH->login);
 		    AIH->login = strdup(param1);
 		  }
+		    
 
 		} else if (strcmp(name, "server") == 0) {
 
