@@ -329,9 +329,18 @@ static int cfgparam(struct configfile *cf)
 		    printf("%s:%d: MYCALL = '%s' '%s'\n",
 			   cf->name, cf->linenum, mycall, str);
 		} else {
-		    printf("%s:%d: MYCALL = '%s'  value is not valid AX.25 node callsign.\n",
+		  if (validate_callsign_input(param1,0)) {
+		    mycall       = strdup(param1);
+		    aprsis_login = mycall;
+
+		    printf("%s:%d: MYCALL = '%s'  value is OK for APRSIS login, and Rx-IGate, but not valid AX.25 node callsign.\n",
+			   cf->name, cf->linenum, param1);
+
+		  } else {
+		    printf("%s:%d: MYCALL = '%s'  value is not valid AX.25 node callsign, nor valid for APRSIS login.\n",
 			   cf->name, cf->linenum, param1);
 		    return 1;
+		  }
 		}
 
 	} else if (strcmp(name, "aprsis-login") == 0) {
