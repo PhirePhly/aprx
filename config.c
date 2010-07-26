@@ -322,21 +322,20 @@ static int cfgparam(struct configfile *cf)
 
 	if (strcmp(name, "mycall") == 0) {
 		config_STRUPPER(param1);
+		// Store these always, it helps with latter error diagnostics
+		mycall       = strdup(param1);
+		aprsis_login = mycall;
 		if (validate_callsign_input(param1,1)) {
-		  mycall       = strdup(param1);
-		  aprsis_login = mycall;
 		  if (debug)
 		    printf("%s:%d: MYCALL = '%s' '%s'\n",
 			   cf->name, cf->linenum, mycall, str);
 		} else {
 		  if (validate_callsign_input(param1,0)) {
-		    mycall       = strdup(param1);
-		    aprsis_login = mycall;
-
 		    printf("%s:%d: MYCALL = '%s'  value is OK for APRSIS login, and Rx-IGate, but not valid AX.25 node callsign.\n",
 			   cf->name, cf->linenum, param1);
 
 		  } else {
+		    // but sometimes the parser yields an error!
 		    printf("%s:%d: MYCALL = '%s'  value is not valid AX.25 node callsign, nor valid for APRSIS login.\n",
 			   cf->name, cf->linenum, param1);
 		    return 1;
@@ -349,8 +348,8 @@ static int cfgparam(struct configfile *cf)
 		       cf->name, cf->linenum);
 
 		config_STRUPPER(param1);
+		aprsis_login = strdup(param1);
 		if (validate_callsign_input(param1,0)) {
-		  aprsis_login = strdup(param1);
 		  if (debug)
 		    printf("%s:%d: APRSIS-LOGIN = '%s' '%s'\n",
 			   cf->name, cf->linenum, aprsis_login, str);
