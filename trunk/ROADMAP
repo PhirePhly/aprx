@@ -12,12 +12,13 @@ Version 2
     - Radio beacons					- Working
     - Bidirection (Rx/Tx) APRS iGate			- Working
     - DPRS->APRS GW	       				- Working
+
+Version 2+
+
     - Port to ucLinux	       				- Planned (pthreads OK)
 
-Version 2.5
     - Port to Windows
 
-Version 3
     - Automated coverage statistics analyzer, and
       reporting it via digi node identity beacons.
             "ALOHA circles"
