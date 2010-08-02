@@ -174,22 +174,41 @@ aprxlog @VARLOG@/aprx.log
 #
 #cycle-size  20m
 #
+# Basic beaconed thing is positional message of type "!":
 #
-# There can be multiple beacon options.
+#beacon symbol "R&" lat "6016.35N" lon "02506.36E" comment "Rx-only iGate"
+#
+#Following are basic options:
+# 'symbol'    no default, must be defined!
+# 'lat'       coordinate latitude:   ddmm.mmN  (no default!)
+# 'lon'       coordinate longitude: dddmm.mmE  (no default!)
+# 'comment'   optional tail part of the item, default is nothing
+#
+# Sample symbols:
+#   R&   is for "Rx-only iGate"
+#   I&   is for "Tx-iGate"
+#   /#   is for "Digipeater"
+#   I#   is for "Tx-iGate + Digipeater""
+#
+#Additional options are:
 # 'srccall'   parameter sets claimed origination address.
 # 'dstcall'   sets destination address, default "APRXnn"
 # 'interface' parameter picks an interface (must be "tx-ok true" type)
 # 'via'       sets radio distribution pattern, default: none.
+# 'timefix'   On APRS messages with HMS timestamp (hour:min:sec), the
+#             system fixes appropriate field with transmit time timestamp.
+#
+# Message type is by default '!', which is positional no timestamp format.
+# Other possible formats are definable with options:
 # 'type'      Single character setting type:  ! = / @, default: !
 # 'item'      Defines a name of Item (')') type beacons.
 # 'object'    Defines a name of Object (';') type beacons.
 #
-# 'timefix'   On APRS messages with HMS timestamp (hour:min:sec), the
-#             system fixes appropriate field with transmit time timestamp.
 # 'file' option tells a file at which a _raw_ APRS message content is
 #        expected to be found as first line of text. Line ending newline
 #        is removed, and no escapes are supported.  The timefix is
 #        available, though probably should not be used.
+#         No \-processing is done on read text line.
 #
 # The parameter sets can vary:
 #  a) 'srccall nnn-n dstcall "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
@@ -206,10 +225,11 @@ aprxlog @VARLOG@/aprx.log
 # not to do it, then at least VERIFY the beacon result on
 # web service like  findu.com,  or  aprs.fi
 #
-# Symbol  R&   is for "Rx-only iGate"
-# Symbol  I&   is for "Tx-iGate"
-# Symbol  /#   is for "Digipeater"
-# Symbol  I#   is for "Tx-iGate + Digipeater""
+# Do remember that the \ -character has special treatment in the
+# Aprx configuration parser.  If you want a '\' on APRS content,
+# then you encode it on configuration file as:  '\\'
+#
+# Stranger combinations with explicite "transmit this to interface X":
 #
 #beacon                     file /tmp/wxbeacon.txt
 #beacon interface N0CALL-3 srccall N0CALL-3 \
@@ -289,7 +309,7 @@ aprxlog @VARLOG@/aprx.log
 #    ##  filter         -b/CALL        # always block these
 #    </source>
 #
-#    #<source>                # Adding APRSIS source makes this TX-IGATE
+#    #<source>                # APRSIS source adds a TX-IGATE
 #    #   source        APRSIS
 #    #   relay-type    third-party  # Must define this for APRSIS source!
 #    #   viscous-delay  5    # Recommendation: 5 seconds delay to give
@@ -300,7 +320,7 @@ aprxlog @VARLOG@/aprx.log
 #    ##  filter         -b/CALL        # always block these
 #    #</source>
 #
-#    #<source>              # DPRS source makes this DPRS->APRS RF gate
+#    #<source>              # DPRS source adds a DPRS->APRS RF gate
 #    #   interface    DPRS
 #    #   ratelimit    60 120       # default: average 60 packets/minute,
 #    #                             #          burst max 120 packets/minute

@@ -463,19 +463,37 @@ server    rotate.aprs.net    14580
 #
 #cycle-size  20m
 #
-# There can be multiple beacon entries. Parameters for each entry include:
+#
+# Basic beaconed thing is positional message of type "!":
+#
+#beacon symbol "R&" lat "6016.35N" lon "02506.36E" comment "Rx-only iGate"
+#
+# Following are basic options:
+#  'symbol'    no default, must be defined!
+#  'lat'       coordinate latitude:   ddmm.mmN  (no default!)
+#  'lon'       coordinate longitude: dddmm.mmE  (no default!)
+#  'comment'   optional tail part of the item, default is nothing
+#
+# Sample symbols:
+#   R&   is for "Rx-only iGate"
+#   I&   is for "Tx-iGate"
+#   /#   is for "Digipeater"
+#   I#   is for "Tx-iGate + Digipeater""
+#
+# Additional options are:
 # 'srccall'   parameter sets claimed origination address.
 # 'dstcall'   sets destination address, default "APRXnn"
 # 'interface' parameter picks an interface (must be "tx-ok true" type)
 # 'via'       sets radio distribution pattern, default: none.
+# 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
+#            system fixes appropriate field with transmit time timestamp.
+#
 # Message type is by default '!', which is positional no timestamp format.
 # Other possible formats are definable with options:
 # 'type'   Single character setting type:  ! = / @
 # 'item'   Defines a name of Item (')') type beacons.
 # 'object' Defines a name of Object (';') type beacons.
 #
-# 'timefix'  On APRS messages with HMS timestamp (hour:min:sec), the
-#            system fixes appropriate field with transmit time timestamp.
 # 'file' option tells a file at which a _raw_ APRS message content is
 #        expected to be found as first line of text. Line ending newline
 #        is removed, and no escapes are supported.  The timefix is

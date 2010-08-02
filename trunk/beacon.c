@@ -148,16 +148,28 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 		if (strcmp(p1, "interface") == 0 ||
 		    strcmp(p1, "to") == 0) {
 
+			if (to != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			}
+
 			to = str;
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
+
+			if (beaconmode < 0) {
+			  printf("%s:%d ERROR: beaconmode APRSIS is incompatible with beaconing to designated interface ('%s %s')\n",
+				 cf->name, cf->linenum, p1, to);
+			  has_fault = 1;
+			  goto discard_bm; // sigh..
+			}
 
 			if (strcasecmp(to,"$mycall") == 0) {
 				to = mycall;
 			} else {
 				config_STRUPPER((void*)to);
 			}
-
 
 			aif = find_interface_by_callsign(to);
 			if ((aif != NULL) && !aif->txok) {
@@ -836,8 +848,14 @@ static void beacon_now(void)
 		char *destbuf;
 
 
-		if (strcmp(callsign,"APRSIS")==0)
-		  continue;  // Always ignore the builtin APRSIS interface
+		if (strcmp(callsign,"APRSIS")==0) {
+		  // If we have no radio interfaces, we may still 
+		  // want to do beacons to APRSIS.  Ignore the
+		  // builtin APRSIS interface if there are more
+		  // interfaces available!
+		  if (all_interfaces_count > 1)
+		    continue;  // Ignore the builtin APRSIS interface
+		}
 
 		if (strcmp(src, callsign) != 0)
 		  len += strlen(callsign)+1;
