@@ -1,5 +1,11 @@
 2010-08-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* beacon.c, aprx.8.in, aprx.conf.in, aprx-complex.conf.in:
+	    OH7MMT complained difficulty of defining beacons on Rx-iGate.
+	    The default aprx.conf shows the use of "interface ..", which
+	    requires tx-enabled target interfaces.  Something that rx-only
+	    will not have.
+
 	* doc/aprx-manual.odt:
 	    Cross references, additional notes on digipeat of non-APRS
 	    packets.
