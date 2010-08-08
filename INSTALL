@@ -1,6 +1,11 @@
 
           INSTALL of  APRX 2.00
 
+
+Pre-made binary package building system exists for Debian and
+Redhat/Fedora systems.  See details at the end of this file.
+
+
 A rough-cut version of the installation instructions
 
   0) Prerequisites:
@@ -39,8 +44,9 @@ A rough-cut version of the installation instructions
      adapting.
 
 
-Things are even simpler for Debian users wanting to compile themselves
-instead of using precompiled binaries:
+
+For Debian users wanting to compile themselves instead of using
+precompiled binaries:
 
      $ make make-deb
 
@@ -48,7 +54,6 @@ instead of using precompiled binaries:
 
 
 For RedHat/Fedora users:
-
 
     $ make make-rpm
 
