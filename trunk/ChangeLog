@@ -1,3 +1,9 @@
+2010-08-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION:  2.00
+	* aprx.c:   Version tocall code: APRX20
+	* doc/aprx-manual.odt: version 2.00/1.00
+
 2010-08-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c:

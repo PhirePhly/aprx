@@ -24,8 +24,8 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 
-const char *tocall = "APRX1M";
-const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'1'<<1,'M'<<1,0x60};
+const char *tocall = "APRX20";
+const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'0'<<1,0x60};
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
