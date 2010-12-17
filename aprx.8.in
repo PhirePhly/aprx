@@ -7,6 +7,7 @@
 .B aprx
 .RB [ \-d [ d [ d ]]]
 .RB [ \-e ]
+.RB [ \-i ]
 .RB [ \-v ]
 .RB [ \-l " \fIsyslogfacilityname\fR]"
 .RB [ \-f " \fI@CFGFILE@\fR]"
@@ -107,6 +108,9 @@ networking, and serial port drivers.
 The
 .B aprx
 has following runtime options:
+.TP
+.B "\-i"
+Keep the program foreground without debugging outputs.
 .TP
 .B "\-d"
 Turn on verbose debugging, outputs data to STDOUT.

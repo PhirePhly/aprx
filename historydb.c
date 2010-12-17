@@ -36,8 +36,8 @@ void historydb_init(void)
 	// printf("historydb_init() sizeof(mutex)=%d sizeof(rwlock)=%d\n",
 	//       sizeof(pthread_mutex_t), sizeof(rwlock_t));
 
-	_dbs = malloc(sizeof(void*));
-	_dbs_count = 0;
+	// _dbs = malloc(sizeof(void*));
+	// _dbs_count = 0;
 
 	historydb_cells = cellinit( "historydb",
 				    historydb_cellsize,
@@ -267,10 +267,11 @@ int historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 
 				if ( cp->packet != cp->packetbuf )
 					free( cp->packet );
-				cp->packet = cp->packetbuf; /* default case */
+				cp->packet = cp->packetbuf; // default case
 				if ( cp->packetlen > sizeof(cp->packetbuf) ) {
-					/* Needs bigger buffer */
-					cp->packet = malloc( cp->packetlen );
+				  // Needs bigger buffer than pre-allocated one,
+				  // thus it retrieves that one from heap.
+				  cp->packet = malloc( cp->packetlen );
 				}
 				memcpy( cp->packet, pb->data, cp->packetlen );
 			}
@@ -302,10 +303,11 @@ int historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 		  cp->positiontime = pb->t;
 
 		cp->packetlen   = pb->packet_len;
-		cp->packet      = cp->packetbuf; /* default case */
+		cp->packet      = cp->packetbuf; // default case
 		if (cp->packetlen > sizeof(cp->packetbuf)) {
-			/* Needs bigger buffer */
-			cp->packet = realloc( cp->packet, cp->packetlen );
+		  // Needs bigger buffer than pre-allocated one,
+		  // thus it retrieves that one from heap.
+		  cp->packet = malloc( cp->packetlen );
 		}
 
 		*hp = cp; 

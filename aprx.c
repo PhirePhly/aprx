@@ -24,8 +24,8 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 
-const char *tocall = "APRX20";
-const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'0'<<1,0x60};
+const char *tocall = "APRX21";
+const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'1'<<1,0x60};
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
@@ -48,12 +48,13 @@ static void sig_handler(int sig)
 
 static void usage(void)
 {
-	printf("aprx: [-d][-d][-e][-v][-L][-l logfacility] [-f %s]\n",
+	printf("aprx: [-d[d[d]]][-e][-i][-v][-L][-l logfacility] [-f %s]\n",
 	       CFGFILE);
 	printf("    version: %s\n", swversion);
 	printf("    -f %s:  where the configuration is\n", CFGFILE);
 	printf("    -v:  Outputs textual format of received packets, and data on STDOUT.\n");
 	printf("    -e:  Outputs raw ERLANG-report lines on SYSLOG.\n");
+	printf("    -i:  Keep the program foreground without debugging printouts.\n");
 	printf("    -l ...: sets syslog FACILITY code for erlang reports, default: LOG_DAEMON\n");
 	printf("    -d:  turn debug printout on, use to verify config file!\n");
 	printf("         twice: prints also interaction with aprs-is system..\n");
@@ -92,7 +93,7 @@ int main(int argc, char *const argv[])
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
 
-	while ((i = getopt(argc, argv, "def:hLl:v?")) != -1) {
+	while ((i = getopt(argc, argv, "def:hiLl:v?")) != -1) {
 		switch (i) {
 		case '?':
 		case 'h':
@@ -104,6 +105,9 @@ int main(int argc, char *const argv[])
 			break;
 		case 'e':
 			++erlangout;
+			++foreground;
+			break;
+		case 'i':
 			++foreground;
 			break;
 		case 'L':

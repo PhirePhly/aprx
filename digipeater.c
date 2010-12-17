@@ -264,7 +264,7 @@ static int count_single_tnc2_tracewide(struct digistate *state, const char *viaf
 	    if (memcmp("TRACE",viafield,5)==0) // A real "TRACE" in first slot?
 	      state->probably_heard_direct = 1;
 
-	    else if (!hasHflag && req == done) // WIDE3-3 on first slot
+	    else if (!hasHflag && done == 0) // WIDE3-3 on first slot
 	      state->probably_heard_direct = 1;
 	  }
 	  // if (debug>1) printf(" g[req=%d,done=%d%s]",req,done,hasHflag ? ",Hflag!":"");
@@ -1078,7 +1078,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 		  if (src->src_relaytype == DIGIRELAY_DIGIPEAT_DIRECTONLY) {
 		    // Source relaytype is DIRECTONLY, and this was not
 		    // likely directly heard...
-		    if (debug>1) printf("DIRECTONLY -mode, and packet is not probably direct heard.");
+		    if (debug>1) printf("DIRECTONLY -mode, and packet is probably not direct heard.");
 		    return;
 		  }
 		}
