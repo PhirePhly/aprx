@@ -1,3 +1,27 @@
+2010-12-17  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION, INSTALL, README, TODO
+	    Version: 2.01
+
+	* doc/aprx-manual.odt:
+	    Write a few pages about debugging
+
+	* aprx.c:
+	    Version tocall code: APRX21
+
+	* aprx.c, aprx.8.in:
+	    Add '-i' option to keep the program foreground without
+	    enabling any debug printouts.
+
+	* digipeater.c:
+	    Correct the recognition of "probably heard on first hop"
+
+	* historydb.c:
+	    Memory realloc() bug fixed.
+
+	* kiss.c:
+	    Recognize a write attempt on closed file handle, don't write.
+
 2010-08-08  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION:  2.00

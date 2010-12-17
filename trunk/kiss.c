@@ -581,6 +581,11 @@ void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25ra
 	if (debug) {
 	  printf("kiss_kisswrite(->%s, axlen=%d)", S->ttycallsign[tncid], ax25rawlen);
 	}
+	if (S->fd < 0) {
+	  if (debug)
+	    printf("NOTE: Write to non-open serial port discarded.");
+	  return;
+	}
 
 
 	if ((S->linetype != LINETYPE_KISS)        && (S->linetype != LINETYPE_KISSSMACK) &&
