@@ -22,6 +22,17 @@ pthread_t aprsis_thread;
 pthread_attr_t pthr_attrs;
 #endif
 
+static void cancel_disable() {
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+#endif
+}
+static void cancel_enable() {
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#endif
+}
+
 /*
  * $aprsserver = "rotate.aprs.net:14580";
  *
@@ -71,7 +82,7 @@ static dupecheck_t *aprsis_rx_dupecheck;
 
 
 extern int log_aprsis;
-static int aprsis_die_now = 0;
+static int aprsis_die_now;
 
 void aprsis_init(void)
 {
@@ -114,6 +125,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 		       A->H->server_name, A->H->server_port,
 		       why ? why : "");
 	if (aprxlogfile) {
+		cancel_disable();
 		FILE *fp = fopen(aprxlogfile, "a");
 		if (fp) {
 			char timebuf[60];
@@ -124,6 +136,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 				why ? why : "");
 			fclose(fp);
 		}
+		cancel_enable();
 	}
 }
 
@@ -212,6 +225,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 			       1, stdout);	/* Does end on  \r\n */
 		}
 		if (aprxlogfile && log_aprsis) {
+			cancel_disable();
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				fprintf(fp, "%ld\t<< %s:%s << ",
@@ -222,6 +236,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 				       1, fp);	/* Does end on  \r\n */
 				fclose(fp);
 			}
+			cancel_enable();
 		}
 
 		A->wrbuf_cur += i;
@@ -291,6 +306,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		if (verbout)
 			printf("%ld\tFAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n", (long) now);
 		if (aprxlogfile) {
+			cancel_disable();
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				char timebuf[60];
@@ -301,6 +317,7 @@ static void aprsis_reconnect(struct aprsis *A)
 					timebuf);
 				fclose(fp);
 			}
+			cancel_enable();
 		}
 
 		return;		/* Will try to reconnect in about 60 seconds.. */
@@ -336,6 +353,7 @@ static void aprsis_reconnect(struct aprsis *A)
 			       (long) now, A->H->server_name,
 			       A->H->server_port, errstr);
 		if (aprxlogfile) {
+			cancel_disable();
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				char timebuf[60];
@@ -347,6 +365,7 @@ static void aprsis_reconnect(struct aprsis *A)
 					A->H->server_port, errstr);
 				fclose(fp);
 			}
+			cancel_enable();
 		}
 		return;
 	}
@@ -404,6 +423,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		printf("%ld\tCONNECT APRSIS %s:%s\n", (long) now,
 		       A->H->server_name, A->H->server_port);
 	if (aprxlogfile) {
+		cancel_disable();
 		FILE *fp = fopen(aprxlogfile, "a");
 		if (fp) {
 			char timebuf[60];
@@ -413,6 +433,7 @@ static void aprsis_reconnect(struct aprsis *A)
 				A->H->server_name, A->H->server_port);
 			fclose(fp);
 		}
+		cancel_enable();
 	}
 
 
@@ -459,6 +480,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 			     A->rdline);
 		    } else {
 			if (aprxlogfile && log_aprsis) {
+			    cancel_disable();
 			    FILE *fp = fopen(aprxlogfile, "a");
 			    if (fp) {
 				fprintf(fp, "%ld\t<< %s:%s >> ",
@@ -468,6 +490,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 				fprintf(fp, "\n");
 				fclose(fp);
 			    }
+			    cancel_enable();
 			}
 		    }
 
@@ -938,8 +961,9 @@ static void aprsis_runthread(int *dummy)
 	sigaddset(&sigs_to_block, SIGURG);
 	sigaddset(&sigs_to_block, SIGPIPE);
 	sigaddset(&sigs_to_block, SIGUSR1);
-	sigaddset(&sigs_to_block, SIGUSR2);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+
+	cancel_enable(); // generally the cancelability is enabled
 
 	if (debug) printf("aprsis_runthread()\n");
 
@@ -990,6 +1014,7 @@ void aprsis_start(void)
 void aprsis_stop(void)
 {
 	aprsis_die_now = 1;
+	pthread_cancel(aprsis_thread);
 	pthread_join(aprsis_thread, NULL);
 }
 

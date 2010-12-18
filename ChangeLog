@@ -1,3 +1,17 @@
+2010-12-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* netresolver.c, aprx.h, aprx.c:
+	    A pthread that resolves dynamic DNS names on background,
+	    and updates static copy of address data so that main loop
+	    can safely do asynchronous connections without needing
+	    to do synchronous DNS resolving processing.
+
+	* aprsis.c:
+	    Use pthread_cancel() in smart way to expedite shutdown.
+
+	* agwpesocket.c, aprx.h, aprx.c:
+	    Draft of a socket communication mechanism with AGWPE, and LDSPED.
+
 2010-12-17  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION, INSTALL, README, TODO

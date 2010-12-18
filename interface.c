@@ -65,7 +65,7 @@ struct aprx_interface aprsis_interface = {
 	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
 	0, NULL,
 	0, 0, 0, 0, NULL,
-	NULL, NULL,
+	NULL, NULL, NULL,
 	0, NULL
 };
 
@@ -816,7 +816,12 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		// The Linux netax25 sender takes same data as this interface
 		netax25_sendto( aif->nax25p,
 				axaddr, axaddrlen,
-				axdata, axdatalen ); // without Control+PID
+				axdata, axdatalen );
+		break;
+	case IFTYPE_AGWPE:
+		agwpe_sendto( aif->agwpe,
+			      axaddr, axaddrlen,
+			      axdata, axdatalen );
 		break;
 	default:
 		break;
