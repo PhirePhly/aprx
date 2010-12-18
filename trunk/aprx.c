@@ -132,6 +132,7 @@ int main(int argc, char *const argv[])
 	erlang_init(syslog_facility);
 	ttyreader_init();
 	netax25_init();
+	agwpe_init();
 	dupecheck_init(); // before aprsis_init() !
 	aprsis_init();
 	filter_init();
@@ -229,8 +230,10 @@ int main(int argc, char *const argv[])
 
 
 	// Must be after config reading ...
+	netresolv_start();
 	aprsis_start();
 	netax25_start();
+	agwpe_start();
 	telemetry_start();
 	igate_start();
 
@@ -247,6 +250,7 @@ int main(int argc, char *const argv[])
 		i = aprsis_prepoll(&app);
 		i = beacon_prepoll(&app);
 		i = netax25_prepoll(&app);
+		i = agwpe_prepoll(&app);
 		i = erlang_prepoll(&app);
 		i = telemetry_prepoll(&app);
 		i = dupecheck_prepoll(&app);
@@ -265,6 +269,7 @@ int main(int argc, char *const argv[])
 		i = beacon_postpoll(&app);
 		i = ttyreader_postpoll(&app);
 		i = netax25_postpoll(&app);
+		i = agwpe_postpoll(&app);
 		i = aprsis_postpoll(&app);
 		i = erlang_postpoll(&app);
 		i = telemetry_postpoll(&app);
@@ -277,6 +282,7 @@ int main(int argc, char *const argv[])
 	aprxpolls_free(&app); // valgrind..
 
 	aprsis_stop();
+	netresolv_stop();
 
 	if (pidfile) {
 		unlink(pidfile);

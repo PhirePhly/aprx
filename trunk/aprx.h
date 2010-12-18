@@ -62,6 +62,11 @@ extern int   strcasecmp(const char *s1, const char *s2);
 #include <regex.h>
 #include <alloca.h>
 
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+
+
 #define CALLSIGNLEN_MAX 9
 
 struct aprxpolls; // forward declarator
@@ -121,6 +126,20 @@ extern const char *erlanglogfile;
 extern const char *pidfile;
 
 extern void printtime(char *buf, int buflen);
+
+/* netresolver.c */
+extern void netresolv_start(void); // separate thread working on this!
+extern void netresolv_stop(void);
+
+struct netresolver {
+	char const	*hostname;
+	char const	*port;
+	time_t	re_resolve_time;
+	struct addrinfo ai;
+	struct sockaddr sa;
+};
+
+extern struct netresolver *netresolv_add(const char *hostname, const char *port);
 
 /* ttyreader.c */
 typedef enum {
@@ -559,6 +578,7 @@ typedef enum {
 	IFTYPE_AX25,
 	IFTYPE_SERIAL,
 	IFTYPE_TCPIP,
+	IFTYPE_AGWPE,
 	IFTYPE_APRSIS
 } iftype_e;
 
@@ -579,6 +599,7 @@ struct aprx_interface {
 	char	   *initstring;
 
 	const void        *nax25p; // used on IFTYPE_AX25
+	const void	  *agwpe;  // used on IFTYPE_AGWPE
 	struct serialport *tty;    // used on IFTYPE_SERIAL, IFTYPE_TCPIP
 
 	int	                   digisourcecount;
@@ -629,3 +650,11 @@ extern void filter_postprocess_dupefilter(struct pbuf_t *pb, historydb_t *histor
 
 extern float filter_lat2rad(float lat);
 extern float filter_lon2rad(float lon);
+
+/* agwpesocket.c */
+extern void agwpe_sendto(const void *_ap, const uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
+
+extern int  agwpe_prepoll(struct aprxpolls *);
+extern int  agwpe_postpoll(struct aprxpolls *);
+extern void agwpe_init(void);
+extern void agwpe_start(void);
