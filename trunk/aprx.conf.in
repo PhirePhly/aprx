@@ -38,8 +38,16 @@ mycall  N0CALL-1
 #
 #login     OTHERCALL-7	# login defaults to $mycall
 
-# APRS-IS server name and portnumber.
-server    rotate.aprs.net    14580
+# APRS-IS server name and optional portnumber.
+#
+# WARNING: Do not change from default port number [14580]
+#          unless you are absolutely certain you want
+#          something else, and you allow that something
+#          else also affect your tx-igate behaviour!
+#
+#server	   igates.aprs.fi
+#server    finland.aprs2.net
+server    rotate.aprs.net
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
