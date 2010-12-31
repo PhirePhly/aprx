@@ -1,4 +1,41 @@
+2011-01-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, VERSION, INSTALL, README, TODO
+	    Version: 2.02
+
+	* aprx.h, interface.c:
+	    A  null-device   for sinking infinite digipeat output.
+	    A debug tool.
+
+	* aprx.h, interface.c, historydb.c, historydb.h, pbuf.h:
+	    Properly track "heard from interface(group)" information
+	    for tx-igate processing.  Now a full APRSIS traffic feed
+	    won't transmit anything to RF, unless explicit manual
+	    filter definitions tells to transmit, or message recipient
+	    has been recently heard behind a radio channel X.
+	    See the new 'igate-group'  parameter on documents.
+
+	* aprsis.c, netresolver.c:
+	    Cleaned pthreads thread creation calls.
+
+	* agwpesocket.c:
+	    Erlang account on outbound socket.
+
+	* digipeater.c:
+	    Allow ratelimit parameter to be defined very high.
+	    This way a full APRSIS traffic feed can be sent to null-device.
+
+	* aprx.conf.in, aprx-complex.conf.in:
+	    Some new notes on digipeater and tx-igate controls.
+
+	* doc/aprx-manual.odt:
+	    Document update.
+
 2010-12-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, aprx.h:
+	    Add a "null-device" for system.  Never receive anything from it,
+	    have infinite transmit capacity.
 
 	* netresolver.c, aprx.h, aprx.c:
 	    A pthread that resolves dynamic DNS names on background,

@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 #include "aprx.h"
@@ -216,7 +216,7 @@ struct agwpecom {
 // One agwpesocket per interface
 struct agwpesocket {
 	int		portnum;
-	struct interface *iface;
+	struct aprx_interface *iface;
 	struct agwpecom  *com;
 };
 
@@ -317,6 +317,9 @@ void agwpe_sendto(const void *_ap, const uint8_t *axaddr, const int axaddrlen, c
 	com->wrlen += axdatalen;
 
 	agwpe_flush(com); // write out buffered data
+
+	// Account transmission
+	erlang_add(agwpe->iface->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);  // agwpe_sendto()
 }
 
 

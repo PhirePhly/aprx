@@ -4,12 +4,13 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 #include "aprx.h"
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+#include <signal.h>
 #include <pthread.h>
 pthread_t      netresolv_thread;
 pthread_attr_t pthr_attrs;
@@ -81,7 +82,7 @@ static void resolve_all() {
 
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-static void netresolv_runthread(int *dummy) {
+static void netresolv_runthread(void) {
 	sigset_t sigs_to_block;
 
 	sigemptyset(&sigs_to_block);
@@ -115,7 +116,7 @@ void netresolv_start(void) {
 	   default of 2 MB is way too much...*/
 	pthread_attr_setstacksize(&pthr_attrs, 64*1024);
 
-	int i = pthread_create(&netresolv_thread, &pthr_attrs, (void*)netresolv_runthread, pipes);
+	int i = pthread_create(&netresolv_thread, &pthr_attrs, (void*)netresolv_runthread, NULL);
 
 #endif
 }

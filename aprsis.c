@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -948,7 +948,7 @@ int aprsis_set_login(const char *login)
 }
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-static void aprsis_runthread(int *dummy)
+static void aprsis_runthread(void)
 {
 	sigset_t sigs_to_block;
 
@@ -981,7 +981,6 @@ void aprsis_start(void)
 	  return;
 	}
 
-
 	i = socketpair(AF_UNIX, SOCK_DGRAM, PF_UNSPEC, pipes);
 	if (i != 0) {
 		return;		/* FAIL ! */
@@ -999,7 +998,7 @@ void aprsis_start(void)
 	   default of 2 MB is way too much...*/
 	pthread_attr_setstacksize(&pthr_attrs, 64*1024);
 
-	i = pthread_create(&aprsis_thread, &pthr_attrs, (void*)aprsis_runthread, pipes);
+	i = pthread_create(&aprsis_thread, &pthr_attrs, (void*)aprsis_runthread, NULL);
 	if (i == 0) {
 	  if (debug) printf("APRSIS pthread_create() OK!\n");
 	} else {  // FAIL!
