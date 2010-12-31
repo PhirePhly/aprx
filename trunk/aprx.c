@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 #include "aprx.h"
@@ -12,9 +12,6 @@
 /* Bits used only in the main program.. */
 #include <signal.h>
 #include <sys/time.h>
-
-#include "historydb.h"
-
 
 time_t now;			/* this is globally used */
 int debug;
@@ -24,8 +21,8 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 
-const char *tocall = "APRX21";
-const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'1'<<1,0x60};
+const char *tocall = "APRX22";
+const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'2'<<1,0x60};
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"

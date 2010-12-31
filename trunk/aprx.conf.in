@@ -289,6 +289,14 @@ aprxlog @VARLOG@/aprx.log
 #  from 1 to 9.  This system does not correctly support other than
 #  immediate sending and one level of delay.
 #
+#  Note: In order to igate correct when multiple receivers and
+#        transmitters are used on single channel, the <interface>
+#        definitions of each radio port must have associated
+#        "igate-group N" parameter which has N of value 1 to 3.
+#        See the aprx-manual.pdf for details.
+#        (Default software compilation allows you to have up to
+#         three channels of APRS operation.)
+#
 #<digipeater>
 #    transmitter     $mycall
 #    #ratelimit      60 120      # default: average 60 packets/minute,
@@ -317,7 +325,7 @@ aprxlog @VARLOG@/aprx.log
 #    ##  filter         -b/CALL        # always block these
 #    </source>
 #
-#    #<source>                # APRSIS source adds a TX-IGATE
+#    #<source>                # APRSIS source adds a TX-IGATE behaviour
 #    #   source        APRSIS
 #    #   relay-type    third-party  # Must define this for APRSIS source!
 #    #   viscous-delay  5    # Recommendation: 5 seconds delay to give

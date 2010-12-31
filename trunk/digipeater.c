@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -52,6 +52,10 @@ static const struct tracewide default_wide_param = {
 	widewords,
 	widewordlens
 };
+
+
+float ratelimitmax     = 9999999.9;
+float rateincrementmax = 9999999.9;
 
 
 /*
@@ -693,9 +697,9 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 			rateincrement = (float)atof(param1);
 			ratelimit     = (float)atof(param2);
-			if (rateincrement < 0.01 || rateincrement > 300)
+			if (rateincrement < 0.01 || rateincrement > rateincrementmax)
 				rateincrement = 60;
-			if (ratelimit < 0.01 || ratelimit > 300)
+			if (ratelimit < 0.01 || ratelimit > ratelimitmax)
 				ratelimit = 120;
 			if (ratelimit < rateincrement)
 			  rateincrement = ratelimit;
@@ -886,9 +890,9 @@ int digipeater_config(struct configfile *cf)
 
 			rateincrement = (float)atof(param1);
 			ratelimit     = (float)atof(param2);
-			if (rateincrement < 0.01 || rateincrement > 300)
+			if (rateincrement < 0.01 || rateincrement > rateincrementmax)
 				rateincrement = 60;
-			if (ratelimit < 0.01 || ratelimit > 300)
+			if (ratelimit < 0.01 || ratelimit > ratelimitmax)
 				ratelimit = 60;
 			if (ratelimit < rateincrement)
 			  rateincrement = ratelimit;

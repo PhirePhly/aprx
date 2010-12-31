@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -58,10 +58,11 @@
 
 struct aprx_interface **all_interfaces;
 int                     all_interfaces_count;
+int			top_interfaces_group;
 
-
+// Init-code stores this with ifindex = 0.
 struct aprx_interface aprsis_interface = {
-	IFTYPE_APRSIS, 0, "APRSIS",
+	IFTYPE_APRSIS, 0, 0, 0, "APRSIS",
 	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
 	0, NULL,
 	0, 0, 0, 0, NULL,
@@ -103,14 +104,13 @@ static void rx_analyze_3rdparty( historydb_t *historydb, struct pbuf_t *pb )
 
 	// OK, this packet originated from an TX-IGATE
 
-	history_cell_t *hist_rx = historydb_lookup(historydb, pb->data, pb->dstcall_len);
-	if (hist_rx == NULL) {
-		// Insert it afresh
-		pb->from_aprsis = 1; // Claim its origin is APRSIS (sort of it is)
-		historydb_insert(historydb, pb);
-	} else {
-		// Timestamp it as received from "APRSIS"
-		hist_rx->from_aprsis = pb->t;
+	// Insert it afresh
+	history_cell_t *hist_rx = historydb_insert_heard(historydb, pb);
+	if (hist_rx != NULL) {
+	  // Explicitly mark it as "received from APRSIS"
+	  // The packet was received from a TX-IGATE, therefore
+	  // the source of that packet is now logged as "from APRSIS".
+	  hist_rx->last_heard[0] = pb->t;
 	}
 }
 
@@ -126,6 +126,12 @@ static void interface_store(struct aprx_interface *aif)
 	all_interfaces = realloc(all_interfaces,
 				 sizeof(all_interfaces) * all_interfaces_count);
 	all_interfaces[all_interfaces_count -1] = aif;
+	if (aif->ifindex < 0)
+	  aif->ifindex = all_interfaces_count -1;
+	if (aif->ifgroup < 0)
+	  aif->ifgroup = all_interfaces_count -1;
+	if (top_interfaces_group <= aif->ifgroup)
+	  top_interfaces_group = aif->ifgroup +1;
 }
 
 struct aprx_interface *find_interface_by_callsign(const char *callsign)
@@ -138,6 +144,16 @@ struct aprx_interface *find_interface_by_callsign(const char *callsign)
 	  }
 	}
 	return NULL; // Not found!
+}
+
+struct aprx_interface *find_interface_by_index(const int index)
+{
+	if (index >= all_interfaces_count ||
+	    index < 0) {
+	  return NULL; // Invalid index value
+	} else {
+	  return all_interfaces[index];
+	}
 }
 
 static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, struct aprx_interface **aifp, char *param1, char *str, int maxsubif)
@@ -154,6 +170,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	int   txok       = 0;
 	int   aliascount = 0;
 	char **aliases   = NULL;
+	int   ifgroup    = -1;
 
 	const char *p = param1;
 	int c;
@@ -240,6 +257,21 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    aliases[aliascount-1] = strdup(k);
 		  }
 
+		} else if (strcmp(name, "igate-group") == 0) {
+		  // param1 = integer 1 to N.
+		  ifgroup = atol(param1);
+		  if (ifgroup < 1) {
+		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with minimum value of 1.\n",
+			   cf->name, cf->linenum, param1);
+		    fail = 1;
+		    break;
+		  } else if (ifgroup >= MAX_IF_GROUP) {
+		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with maximum value of %d.\n",
+			   cf->name, cf->linenum, param1, MAX_IF_GROUP-1);
+		    fail = 1;
+		    break;
+		  }
+
 		} else {
 		  printf("%s:%d ERROR: Unrecognized <interface> block keyword: %s\n",
 			   cf->name, cf->linenum, name);
@@ -270,6 +302,8 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 	parse_ax25addr((*aifp)->ax25call, callsign, 0x60);
 	(*aifp)->subif    = subif;
 	(*aifp)->txok     = txok;
+	(*aifp)->ifindex  = -1; // system sets automatically at store time
+	(*aifp)->ifgroup  = ifgroup; // either user sets, or system sets at store time
 
 	aif->tty->interface  [subif] = *aifp;
 	aif->tty->ttycallsign[subif] = callsign;
@@ -307,10 +341,13 @@ int interface_config(struct configfile *cf)
 	int    have_fault = 0;
 	int    maxsubif   = 16;  // 16 for most KISS modes, 8 for SMACK
 	int    defined_subinterface_count = 0;
+	int    ifgroup    = -1;
 
 	aif->iftype = IFTYPE_UNSET;
 	aif->aliascount = 3;
 	aif->aliases    = interface_default_aliases;
+	aif->ifindex    = -1; // system sets automatically at store time
+	aif->ifgroup    = ifgroup; // either user sets, or system sets at store time
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -486,6 +523,37 @@ int interface_config(struct configfile *cf)
 		  // Always count as defined, even when an error happened!
 		  ++defined_subinterface_count;
 
+		} else if (strcmp(name,"null-device") == 0) {
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_NULL;
+		    // aif->nax25p = NULL;
+		  } else {
+		    printf("%s:%d ERROR: Only single device specification per interface block!\n",
+			   cf->name, cf->linenum);
+		    have_fault = 1;
+		    continue;
+		  }
+		  aif->txok = 1;
+
+		  if (strcasecmp(param1,"$mycall") == 0)
+		    param1 = strdup(mycall);
+
+		  if (find_interface_by_callsign(param1) != NULL) {
+		    // An interface with THIS callsign does exist already!
+		    printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    continue;
+		  }
+
+		  if (debug)
+		    printf("%s:%d: NULL-DEVICE '%s' '%s'\n",
+			   cf->name, cf->linenum, param1, str);
+
+		  aif->callsign = strdup(param1);
+		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
+
+
 		} else if (strcmp(name,"tx-ok") == 0) {
 
 		  if (!config_parse_boolean(param1, &(aif->txok))) {
@@ -528,7 +596,7 @@ int interface_config(struct configfile *cf)
 		  }
 
 		  if (!validate_callsign_input(param1,aif->txok)) {
-		    if (aif->txok) {
+		    if (aif->txok && aif->iftype != IFTYPE_NULL) {
 		      printf("%s:%d ERROR: The CALLSIGN parameter on transmit capable interface must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, param1);
 		      have_fault = 1;
@@ -564,6 +632,21 @@ int interface_config(struct configfile *cf)
 		    if (debug) printf(" n=%d alias='%s'\n",aif->aliascount,k);
 		    aif->aliases = realloc(aif->aliases, sizeof(char*) * aif->aliascount);
 		    aif->aliases[aif->aliascount-1] = strdup(k);
+		  }
+
+		} else if (strcmp(name, "igate-group") == 0) {
+		  // param1 = integer 1 to N.
+		  ifgroup = atol(param1);
+		  if (ifgroup < 1) {
+		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with minimum value of 1.\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    continue;
+		  } else if (ifgroup >= MAX_IF_GROUP) {
+		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with maximum value of %d.\n",
+			   cf->name, cf->linenum, param1, MAX_IF_GROUP-1);
+		    have_fault = 1;
+		    continue;
 		  }
 
 		} else {
@@ -621,7 +704,9 @@ int interface_config(struct configfile *cf)
 		} else {
 		  // Not TTY multiplexed ( = KISS ) interface,
 		  // register just the primary.
+		  aif->ifgroup = ifgroup; // either user sets, or system sets at store time
 		  interface_store(aif);
+
 		}
 
 		if (aif->iftype == IFTYPE_SERIAL)
@@ -705,6 +790,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	      // Likely reason: axlen+tnc2len  > 2100 bytes!
 	      continue;
 	    }
+	    pb->source_if_group = aif->ifgroup;
 
 	    memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	    pb->data[tnc2len] = 0;
@@ -749,7 +835,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  int filter_discard =
 		    filter_process(pb,
 				   digisource->src_filters,
-				   digisource->parent->historydb);
+				   historydb);
 		  // filter_discard > 0: accept
 		  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
 		  // filter_discard < 0: reject
@@ -766,7 +852,10 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 		// Find out IGATE callsign (if any), and record it on historydb.
 		if (pb->packettype & T_THIRDPARTY) {
-		  rx_analyze_3rdparty( digisource->parent->historydb, pb );
+		  rx_analyze_3rdparty( historydb, pb );
+		} else {
+		  // Everything else, feed to history-db
+		  historydb_insert_heard( historydb, pb );
 		}
 	    }
 
@@ -822,6 +911,12 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		agwpe_sendto( aif->agwpe,
 			      axaddr, axaddrlen,
 			      axdata, axdatalen );
+		break;
+	case IFTYPE_NULL:
+		// Efficient transmitter :-)
+		
+		// Account the transmission anyway ;-)
+		erlang_add(aif->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);
 		break;
 	default:
 		break;
@@ -883,6 +978,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	int d;
 	struct pbuf_t *pb;
 	const char *p;
+	int first = 1;
 
 	int tnc2addrlen;
 	int tnc2len;
@@ -990,7 +1086,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    continue;
 	  }
 
-	  pb->from_aprsis = 1; // 3rd-party frames are always from APRSIS
+	  pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
 
 	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	  pb->info_start = pb->data + tnc2addrlen + 1;
@@ -1074,17 +1170,21 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 		recipient[i] = 0; // Zero-terminate
 	    }
 
+// FIXME?  Should test all SSIDs of this target callsign, not just this one target,
+//         if this is a T_MESSAGE!  (strange BoB rules...)
+
 	    history_cell_t *hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
 	    if (hist_rx == NULL) {
 	      if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", pb->recipient);
 	      discard_this = 1;
 	    }
-	    // See that it has 'heard on radio' flag..
-	    if (hist_rx != NULL && (hist_rx->from_radio < recent_time &&
-				    hist_rx->from_radio != 0)) {
-	      // Not heard recently enough
-	      discard_this = 1;
-	      if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", pb->recipient);
+	    // See that it has 'heard on radio' flag on this tx interface
+	    if (hist_rx != NULL && discard_this == 0) {
+	      if (hist_rx->last_heard[tx_aif->ifgroup] >= recent_time) {
+		// Heard recently enough
+		discard_this = 0;
+		if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", pb->recipient);
+	      }
 	    }
 
 	    // FIXME: Check that recipient is in our service area
@@ -1092,9 +1192,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    //        b) last known hop-count is low enough
 	    //           (FIXME: RF hop-count recording infra needed!)
 
-
 	    // 4) the receiving station has not been heard via the internet
-	    if (hist_rx != NULL && hist_rx->from_aprsis > recent_time) {
+	    if (hist_rx != NULL && hist_rx->last_heard[0] > recent_time) {
 	      // "is heard recently via internet"
 	      discard_this = 1;
 	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
@@ -1107,9 +1206,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    // then rules 2 and 4 permit tx-igate
 	    if (hist_tx != NULL) {
 	      // There is a history entry for this tx callsign, check rules 2+4
-	      
-	      // 2) Sending station has not been heard recently on radio
-	      if (hist_tx->from_radio > recent_time) {
+	      // 2) Sending station has not been heard recently on radio (this target)
+	      if (hist_tx->last_heard[tx_aif->ifgroup] > recent_time) {
 		// "is heard recently"
 		discard_this = 1;
 		if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
@@ -1120,7 +1218,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  // Accept/Reject the packet by digipeater rx filter?
 	  int filter_discard = 0;
 	  if (digisrc->src_filters == NULL) {
-	    filter_discard = 1; // permit!
+	    // No filters defined, default Tx-iGate rules apply
 	  } else {
 	    filter_discard = filter_process(pb, digisrc->src_filters, digisrc->parent->historydb);
 	  }
@@ -1135,6 +1233,13 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  if (filter_discard < 0)
 	    discard_this = 1;
 
+	  if (first) {
+	    // Stores position, and message references
+	    historydb_insert_heard( digi->historydb, pb );
+	    //if (debug) printf("historydb_insert_heard(APRSIS)\n");
+	  }
+	  first = 0;
+
 	  if (!discard_this) {
 	    // Not discarding - approved for transmission
 
@@ -1145,12 +1250,6 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    }
 
 	    digipeater_receive( digisrc, pb);
-	  }
-	  // Not accepted as-is for transmission.
-	  // Perhaps a position data packet?
-	  else if ((pb->packettype & T_POSITION) != 0) {
-	    // Inject POSITION packets to historydb
-	    historydb_insert( digi->historydb, pb );
 	  }
 
 	  // .. and finally free up the pbuf (if refcount goes to 0)

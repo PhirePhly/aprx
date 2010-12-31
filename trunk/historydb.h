@@ -3,7 +3,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  ********************************************************************/
 
@@ -45,9 +45,10 @@ typedef struct history_cell_t {
 	struct historydb_t    *db;
 
 	time_t       arrivaltime;
-	time_t	     from_aprsis;
-	time_t	     from_radio;
 	time_t       positiontime; // When last position was received
+	time_t       *last_heard;  // Usually points to last_heard_buf[]
+	time_t	     last_heard_buf[MAX_IF_GROUP];
+
 	uint16_t     packettype;
 	uint16_t     flags;
 	uint16_t     packetlen;
@@ -87,7 +88,8 @@ extern int  historydb_prepoll(struct aprxpolls *app);
 extern int  historydb_postpoll(struct aprxpolls *app);
 
 /* insert and lookup... */
-extern int historydb_insert(historydb_t *db, const struct pbuf_t*);
+extern history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t*);
+extern history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t*);
 extern history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int keylen);
 
 #endif

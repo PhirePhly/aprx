@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2010                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -66,6 +66,11 @@ extern int   strcasecmp(const char *s1, const char *s2);
 #include <netdb.h>
 #include <netinet/in.h>
 
+/* Radio interface groups on igate receiption history tracking.
+ * Value range:  1 to MAX_IF_GROUP-1.
+ * Value 0 is reserved for APRSIS.
+ */
+#define MAX_IF_GROUP 4
 
 #define CALLSIGNLEN_MAX 9
 
@@ -579,12 +584,16 @@ typedef enum {
 	IFTYPE_SERIAL,
 	IFTYPE_TCPIP,
 	IFTYPE_AGWPE,
+	IFTYPE_NULL,
 	IFTYPE_APRSIS
 } iftype_e;
+
 
 struct aprx_interface {
 	iftype_e    iftype;
 	int	    timeout;
+	int16_t	    ifindex;       // Absolute index on this interface
+	int16_t	    ifgroup;	   // Group definition on this interface
 
 	char       *callsign;      // Callsign of this interface
 	uint8_t     ax25call[7];   // AX.25 address field format callsign
@@ -608,6 +617,7 @@ struct aprx_interface {
 
 extern struct aprx_interface aprsis_interface;
 
+extern int                     top_interfaces_group;
 extern int                     all_interfaces_count;
 extern struct aprx_interface **all_interfaces;
 

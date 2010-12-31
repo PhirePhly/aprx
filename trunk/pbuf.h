@@ -75,7 +75,7 @@ struct pbuf_t {
 
 	int16_t	 is_aprs;	// If not, then just digipeated frame..
 	int16_t	 digi_like_aprs;
-	int16_t	 from_aprsis;
+	int16_t  source_if_group;
 
 	int16_t  refcount;
 
