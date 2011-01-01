@@ -1,5 +1,8 @@
 2011-01-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    Always init interface specific Erlang accounting
+
 	* filter.c:
 	    Negative ranges on filters means "outside the distance".
 	    This allows adding "substractive" filters that tell
