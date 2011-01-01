@@ -1062,6 +1062,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	struct digistate viastate;
 	struct digipeater *digi = src->parent;
 	char viafield[14];
+	uint8_t *axaddr, *e;
 
 	memset(&state,    0, sizeof(state));
 	memset(&viastate, 0, sizeof(viastate));
@@ -1134,8 +1135,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	state.ax25addrlen = pb->ax25addrlen;
 	memcpy(state.ax25addr, pb->ax25addr, pb->ax25addrlen);
-	uint8_t *axaddr = state.ax25addr + 14;
-	uint8_t *e      = state.ax25addr + state.ax25addrlen;
+	axaddr = state.ax25addr + 14;
+	e      = state.ax25addr + state.ax25addrlen;
 
 	// Search for first AX.25 VIA field that does not have H-bit set:
 	viaindex = 1; // First via field is number 2
@@ -1217,6 +1218,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    // Must move it up in memory to be able to put
 	    // transmitter callsign in
 	    int taillen = e-axaddr;
+	    int newssid;
 	    if (state.ax25addrlen >= 70) {
 	      if (debug) printf(" TRACE overgrows the VIA fields! Discard.\n");
 	      return;
@@ -1224,7 +1226,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    memmove(axaddr+7, axaddr, taillen);
 	    state.ax25addrlen += 7;
 
-	    int newssid = decrement_ssid(axaddr+7);
+	    newssid = decrement_ssid(axaddr+7);
 	    if (newssid <= 0)
 	      axaddr[6+7] |= 0x80; // Set H-bit
 	    // Put the transmitter callsign in, and set the H-bit.
@@ -1232,24 +1234,24 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	    axaddr[6] |= 0x80; // Set H-bit
 
 	  } else if (viastate.hopsreq > viastate.hopsdone) {
+	    int newssid;
 	    if (debug) printf(" VIA on %s!\n",viafield);
-	    int newssid = decrement_ssid(axaddr);
+	    newssid = decrement_ssid(axaddr);
 	    if (newssid <= 0)
 	      axaddr[6] |= 0x80; // Set H-bit
 	  }
 	}
 	if (debug) {
+	  char tbuf[2800];
+	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0, t2l;
 	  uint8_t *u = state.ax25addr + state.ax25addrlen;
 	  *u++ = 0;
 	  *u++ = 0;
 	  *u++ = 0;
-
-	  char tbuf[2800];
-	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0;
-	  int t2l = ax25_format_to_tnc( state.ax25addr, state.ax25addrlen+6,
-					tbuf, sizeof(tbuf),
-					& frameaddrlen, &tnc2addrlen,
-					& is_ui, &ui_pid );
+	  t2l = ax25_format_to_tnc( state.ax25addr, state.ax25addrlen+6,
+				    tbuf, sizeof(tbuf),
+				    & frameaddrlen, &tnc2addrlen,
+				    & is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
 	  printf(" out-hdr: '%s' data='",tbuf);
 	  fwrite(pb->ax25data+2, pb->ax25datalen-2,  // without Control+PID

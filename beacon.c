@@ -132,9 +132,10 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	const struct aprx_interface *aif = NULL;
 	int has_fault = 0;
 
-	*buf = 0;
 	struct beaconmsg *bm = malloc(sizeof(*bm));
 	memset(bm, 0, sizeof(*bm));
+
+	*buf = 0;
 
 	if (debug) {
 	  printf("BEACON parameters: ");
@@ -838,6 +839,9 @@ static void beacon_now(void)
 	else {
 	    for ( i = 0; i < all_interfaces_count; ++i ) {
 		const struct aprx_interface *aif = all_interfaces[i];
+		const char *src;
+		int len;
+		char *destbuf;
 	
 		const char *callsign = aif->callsign;
 		if (callsign == NULL) {
@@ -845,10 +849,8 @@ static void beacon_now(void)
 		  continue;
 		}
 
-		const char *src = (bm->src != NULL) ? bm->src : callsign;
-		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
-		char *destbuf;
-
+		src = (bm->src != NULL) ? bm->src : callsign;
+		len  = destlen + 2 + strlen(src); // destlen contains bm->via
 
 		if (strcmp(callsign,"APRSIS")==0) {
 		  // If we have no radio interfaces, we may still 

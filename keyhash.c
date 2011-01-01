@@ -32,9 +32,11 @@
 //  fixed shifts and additions.
 */
 
+#include "config.h"
 
-
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 #include <sys/types.h>
 
 #include "keyhash.h"
@@ -55,7 +57,7 @@
 
 void keyhash_init(void) { }
 
-unsigned int __attribute__((pure)) keyhash(const void const *p, int len, unsigned int hash)
+unsigned int keyhash(const void *p, int len, unsigned int hash)
 {
 	const uint8_t *u = p;
 	int i;

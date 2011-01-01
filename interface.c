@@ -85,11 +85,12 @@ static void rx_analyze_3rdparty( historydb_t *historydb, struct pbuf_t *pb )
 {
 	const char *e = pb->data + pb->packet_len - 6;
 	const char *p = pb->info_start;
+	int from_igate = 0;
+	history_cell_t *hist_rx;
 
 	if (!p) return; // Bad packet..
 	++p;
 
-	int from_igate = 0;
 	for ( ; p < e; ++p ) {
 	  if (*p == ':') break;
 	  if (*p == ',') {
@@ -110,7 +111,7 @@ static void rx_analyze_3rdparty( historydb_t *historydb, struct pbuf_t *pb )
 	// OK, this packet originated from an TX-IGATE
 
 	// Insert it afresh
-	history_cell_t *hist_rx = historydb_insert_heard(historydb, pb);
+	hist_rx = historydb_insert_heard(historydb, pb);
 	if (hist_rx != NULL) {
 	  // Explicitly mark it as "received from APRSIS"
 	  // The packet was received from a TX-IGATE, therefore
@@ -800,6 +801,8 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 #ifndef DISABLE_IGATE
 	    historydb_t *historydb = digisource->parent->historydb;
 #endif
+	    char *p;
+	    int tnc2infolen;
 
 	    // Allocate pbuf, it is born "gotten" (refcount == 1)
 	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
@@ -814,7 +817,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	    pb->data[tnc2len] = 0;
 
 	    pb->info_start = pb->data + tnc2addrlen + 1;
-	    char *p = (char*)&pb->info_start[-1]; *p = 0;
+	    p = (char*)&pb->info_start[-1]; *p = 0;
 
 	    p = pb->data;
 	    for ( p = pb->data; p < (pb->info_start); ++p ) {
@@ -831,7 +834,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	    if (pb->dstcall_end == NULL)
 	      pb->dstcall_end = p;
 
-	    int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
+	    tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
 	    p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
 
 	    // Copy incoming AX.25 frame into its place too.
@@ -1048,6 +1051,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  struct digipeater_source *digisrc = aif->digisources[d];
 	  struct digipeater        *digi    = digisrc->parent;
 	  struct aprx_interface    *tx_aif  = digi->transmitter;
+	  char *p2, *srcif;
+	  int tnc2infolen, rc, discard_this, filter_discard;
 
 	  historydb_t *historydb = digisrc->parent->historydb;
 
@@ -1126,10 +1131,10 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
 	  pb->info_start = pb->data + tnc2addrlen + 1;
-	  char *p2    = (char*)&pb->info_start[-1]; *p2 = 0;
-	  char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+	  p2    = (char*)&pb->info_start[-1]; *p2 = 0;
+	  srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
 
-	  int tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
+	  tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
 	  p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
 
 	  p = pb->data;
@@ -1153,7 +1158,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  pb->ax25datalen = ax25len - ax25addrlen;
 
 	  // This is APRS packet, parse for APRS meaning ...
-	  int rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
+	  rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
 	  if (debug)
 	    printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
 		   rc ? "OK":"FAIL", srcif, pb->data,
@@ -1179,7 +1184,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 
 
 	  // Message Tx-IGate rules..
-	  int discard_this = 0;
+	  discard_this = 0;
 
 	  if (pb->recipient == NULL) {
 	    // Sanity -- not a message..
@@ -1199,6 +1204,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    //      recently on radio
 	    int i;
 	    char recipient[10];
+	    history_cell_t *hist_rx;
 	    strncpy(recipient, pb->recipient, sizeof(recipient)-1);
 	    recipient[9] = 0; // Zero-terminate at 10 chars
 	    for (i = 0; i < 10; ++i) {
@@ -1209,7 +1215,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 // FIXME?  Should test all SSIDs of this target callsign, not just this one target,
 //         if this is a T_MESSAGE!  (strange BoB rules...)
 
-	    history_cell_t *hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
+	    hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
 	    if (hist_rx == NULL) {
 	      if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", pb->recipient);
 	      discard_this = 1;
@@ -1252,7 +1258,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  }
 
 	  // Accept/Reject the packet by digipeater rx filter?
-	  int filter_discard = 0;
+	  filter_discard = 0;
 	  if (digisrc->src_filters == NULL) {
 	    // No filters defined, default Tx-iGate rules apply
 	  } else {

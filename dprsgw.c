@@ -562,6 +562,7 @@ static void dprsgw_rxigate( struct serialport *S )
 static void dprsgw_receive( struct serialport *S )
 {
 	int i;
+	uint8_t *p;
 
 	if (debug) dprslog(S->rdline_time, S->rdline);
 
@@ -574,7 +575,7 @@ static void dprsgw_receive( struct serialport *S )
 	    // Not a good packet! See if there is a good packet inside?
 	    dprsgw_flush(S->dprsgw);  // bad input -> discard accumulated data
 
-	    uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
+	    p = memchr(S->rdline+1, '$', S->rdlinelen-1);
 	    if (p == NULL)
 	      break; // No '$' to start something
 	    i = S->rdlinelen - (p - S->rdline);
@@ -597,11 +598,11 @@ int dprsgw_pulldprs( struct serialport *S )
 {
 	int c;
 	int i;
+	time_t rdtime = S->rdline_time;
 
 	if (S->dprsgw == NULL)
 	  S->dprsgw = dprsgw_new();
 
-	time_t rdtime = S->rdline_time;
 	if (rdtime+2 < now) {
 		// A timeout has happen? Either data is added constantly,
 		// or nothing was received from DPRS datastream!
@@ -654,10 +655,11 @@ int dprsgw_pulldprs( struct serialport *S )
 		  // Too long a line...
 		  do {
 		    int len;
+		    uint8_t *p;
 		    dprsgw_flush(S->dprsgw);
 		    
 		    // Look for first '$' in buffer _after_ first char
-		    uint8_t *p = memchr(S->rdline+1, '$', S->rdlinelen-1);
+		    p = memchr(S->rdline+1, '$', S->rdlinelen-1);
 		    if (!p) {
 		      S->rdlinelen = 0;
 		      break; // Not found

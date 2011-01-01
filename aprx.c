@@ -340,8 +340,10 @@ int main(int argc, char *const argv[])
 void printtime(char *buf, int buflen)
 {
 	struct timeval tv;
+	struct tm *t;
+
 	gettimeofday(&tv, NULL);
-	struct tm *t = gmtime(&tv.tv_sec);
+	t = gmtime(&tv.tv_sec);
 	// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
 		t->tm_year+1900,t->tm_mon+1,t->tm_mday,

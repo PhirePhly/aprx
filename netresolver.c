@@ -43,6 +43,7 @@ static void resolve_all() {
 		struct addrinfo *ai = NULL;
 		struct netresolver *n = nr[i];
 		struct addrinfo req;
+		int rc;
 
 		if (n->re_resolve_time > now) {
 		  // Not yet to re-resolve this one
@@ -58,7 +59,7 @@ static void resolve_all() {
 #else
 		req.ai_family = AF_INET;	/* IPv4 only */
 #endif
-		int rc = getaddrinfo(n->hostname, n->port, &req, &ai);
+		rc = getaddrinfo(n->hostname, n->port, &req, &ai);
 		if (rc != 0) {
 		  // re-resolving failed, discard possible junk result
 		  if (ai != NULL)
