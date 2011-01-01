@@ -427,9 +427,11 @@ static int kissprocess(struct serialport *S)
 			 cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
 		// The packet is valid per AX.25 header bit rules.
 
+#ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
 		/* Send the frame without cmdbyte to internal AX.25 network */
 		if (S->netax25[tncid] != NULL)
 			netax25_sendax25(S->netax25[tncid], S->rdline + 1, S->rdlinelen - 1);
+#endif
 
 	} else {
 	  // The packet is not valid per AX.25 header bit rules

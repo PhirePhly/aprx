@@ -13,12 +13,8 @@
  * dropped about 70% of worker.h stuff...
  */
 
-#ifndef WORKER_H
-#define WORKER_H
-
-#include <time.h>
-#include <stddef.h>
-#include <stdint.h>
+#ifndef PBUF_H
+#define PBUF_H
 
 /* minimum and maximum length of a callsign on APRS-IS */
 #define CALLSIGNLEN_MIN 3
@@ -123,6 +119,5 @@ extern struct pbuf_t **pbuf_global_prevp;
 extern struct pbuf_t  *pbuf_global_dupe;
 extern struct pbuf_t  *pbuf_global_dupe_last;
 extern struct pbuf_t **pbuf_global_dupe_prevp;
-
 
 #endif

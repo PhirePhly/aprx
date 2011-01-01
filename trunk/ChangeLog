@@ -1,5 +1,16 @@
 2011-01-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* filter.c:
+	    Negative ranges on filters means "outside the distance".
+	    This allows adding "substractive" filters that tell
+	    "don't pass messages to receipients outside given range".
+
+	* configure.in, interface.c, cellmalloc.c, timestamp.c,
+	  kiss.c, historydb.h, netax25.c, pbuf.h, aprx.c, aprx.h,
+	  filter.c:
+	    Clean autoconfig tests, make the code compilable on oldish
+	    FreeBSD.
+
 	* configure.in, aprx.h, aprx.c, agwpesocket.c, interface.c:
 	    Configuration option --enable-agwpe  to enable AGWPE socket
 	    interface code.

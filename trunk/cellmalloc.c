@@ -7,11 +7,19 @@
  *                                                                  *
  ********************************************************************/
 
+#include "config.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#ifdef HAVE_STDLIB_H
+# include <stdlib.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #include <string.h>
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
 #include <pthread.h>
+#endif
 #include <sys/mman.h>
 #include <fcntl.h>
 

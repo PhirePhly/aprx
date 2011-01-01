@@ -11,7 +11,12 @@
 
 /* Bits used only in the main program.. */
 #include <signal.h>
-#include <sys/time.h>
+#ifdef HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+#ifdef HAVE_TIME_H
+# include <time.h>
+#endif
 
 time_t now;			/* this is globally used */
 int debug;
@@ -128,7 +133,9 @@ int main(int argc, char *const argv[])
 	interface_init(); // before any interface system and aprsis init !
 	erlang_init(syslog_facility);
 	ttyreader_init();
+#ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 	netax25_init();
+#endif
 #ifdef ENABLE_AGWPE
 	agwpe_init();
 #endif
@@ -245,7 +252,9 @@ int main(int argc, char *const argv[])
 #ifndef DISABLE_IGATE
 	aprsis_start();
 #endif
+#ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 	netax25_start();
+#endif
 #ifdef ENABLE_AGWPE
 	agwpe_start();
 #endif
@@ -268,7 +277,9 @@ int main(int argc, char *const argv[])
 		i = aprsis_prepoll(&app);
 #endif
 		i = beacon_prepoll(&app);
+#ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 		i = netax25_prepoll(&app);
+#endif
 #ifdef ENABLE_AGWPE
 		i = agwpe_prepoll(&app);
 #endif
@@ -291,7 +302,9 @@ int main(int argc, char *const argv[])
 
 		i = beacon_postpoll(&app);
 		i = ttyreader_postpoll(&app);
+#ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 		i = netax25_postpoll(&app);
+#endif
 #ifdef ENABLE_AGWPE
 		i = agwpe_postpoll(&app);
 #endif
