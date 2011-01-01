@@ -117,7 +117,7 @@ void netresolv_start(void) {
 	   default of 2 MB is way too much...*/
 	pthread_attr_setstacksize(&pthr_attrs, 64*1024);
 
-	int i = pthread_create(&netresolv_thread, &pthr_attrs, (void*)netresolv_runthread, NULL);
+	pthread_create(&netresolv_thread, &pthr_attrs, (void*)netresolv_runthread, NULL);
 
 #endif
 }
