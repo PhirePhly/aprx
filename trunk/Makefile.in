@@ -49,7 +49,7 @@ MANDIR:=$(strip $(MANDIR))
 VERSION:=$(shell cat VERSION)
 SVNVERSION:=$(shell if test -x /usr/bin/svnversion -a -d .svn  ; then /usr/bin/svnversion | sed -e 's/^.*://' | tee SVNVERSION ; else cat SVNVERSION; fi)
 DATE:=$(shell date +"%Y %B %d")
-RFCDATE:=$(shell date -R)
+RFCDATE:=$(shell date +"%a, %d %b %Y %H:%M:%S %z")
 
 DEFS=	 -DAPRXVERSION="\"$(VERSION)\"" -DVARRUN="\"$(VARRUN)\"" \
 	 -DVARLOG="\"$(VARLOG)\"" -DCFGFILE="\"$(CFGFILE)\""
