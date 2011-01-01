@@ -66,11 +66,11 @@ static void erlang_backingstore_startops(void)
 	ErlangHead->server_pid = getpid();
 	ErlangHead->start_time = time(NULL);
 
-	if (!aprsis_login)
+	if (!mycall)
 		strncpy(ErlangHead->mycall, "N0CALL",
 			sizeof(ErlangHead->mycall));
 	else
-		strncpy(ErlangHead->mycall, aprsis_login,
+		strncpy(ErlangHead->mycall, mycall,
 			sizeof(ErlangHead->mycall));
 	ErlangHead->mycall[sizeof(ErlangHead->mycall) - 1] = 0;	/* NUL terminate */
 }

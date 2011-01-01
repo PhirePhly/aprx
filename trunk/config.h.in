@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+/* Define to 1 if you want to disable all IGATE codes. */
+#undef DISABLE_IGATE
+
 /* Define for an embedded target */
 #undef EMBEDDED
 

@@ -61,6 +61,7 @@ int                     all_interfaces_count;
 int			top_interfaces_group;
 
 // Init-code stores this with ifindex = 0.
+// This is necessary even for system where igate is removed
 struct aprx_interface aprsis_interface = {
 	IFTYPE_APRSIS, 0, 0, 0, "APRSIS",
 	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
@@ -70,7 +71,7 @@ struct aprx_interface aprsis_interface = {
 	0, NULL
 };
 
-
+#ifndef DISABLE_IGATE
 /*
  * A helper for interface_receive_ax25() - analyze 3rd-party packets received
  * via radio.  If data content inside has path saying "TCPIP" or "TCPXX", consider
@@ -113,7 +114,7 @@ static void rx_analyze_3rdparty( historydb_t *historydb, struct pbuf_t *pb )
 	  hist_rx->last_heard[0] = pb->t;
 	}
 }
-
+#endif
 
 static char *interface_default_aliases[] = { "RELAY","WIDE","TRACE" };
 
@@ -257,6 +258,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    aliases[aliascount-1] = strdup(k);
 		  }
 
+#ifndef DISABLE_IGATE
 		} else if (strcmp(name, "igate-group") == 0) {
 		  // param1 = integer 1 to N.
 		  ifgroup = atol(param1);
@@ -271,6 +273,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    fail = 1;
 		    break;
 		  }
+#endif
 
 		} else {
 		  printf("%s:%d ERROR: Unrecognized <interface> block keyword: %s\n",
@@ -634,6 +637,7 @@ int interface_config(struct configfile *cf)
 		    aif->aliases[aif->aliascount-1] = strdup(k);
 		  }
 
+#ifndef DISABLE_IGATE
 		} else if (strcmp(name, "igate-group") == 0) {
 		  // param1 = integer 1 to N.
 		  ifgroup = atol(param1);
@@ -648,6 +652,7 @@ int interface_config(struct configfile *cf)
 		    have_fault = 1;
 		    continue;
 		  }
+#endif
 
 		} else {
 		  printf("%s:%d ERROR: Unknown <interface> config entry name: '%s'\n",
@@ -781,7 +786,9 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	for (i = 0; i < aif->digisourcecount; ++i) {
 	    struct digipeater_source *digisource = aif->digisources[i];
+#ifndef DISABLE_IGATE
 	    historydb_t *historydb = digisource->parent->historydb;
+#endif
 
 	    // Allocate pbuf, it is born "gotten" (refcount == 1)
 	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
@@ -824,7 +831,13 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	    // If APRS packet, then parse for APRS meaning ...
 	    if (is_aprs) {
-		int rc = parse_aprs(pb, 0, historydb); // don't look inside 3rd party
+		int rc = parse_aprs(pb, 0,
+#ifndef DISABLE_IGATE
+				    historydb
+#else
+				    NULL
+#endif
+				    ); // don't look inside 3rd party
 		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
 		if (debug)
 		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
@@ -835,7 +848,12 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  int filter_discard =
 		    filter_process(pb,
 				   digisource->src_filters,
-				   historydb);
+#ifndef DISABLE_IGATE
+				   historydb
+#else
+				   NULL
+#endif
+				   );
 		  // filter_discard > 0: accept
 		  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
 		  // filter_discard < 0: reject
@@ -850,6 +868,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  }
 		}
 
+#ifndef DISABLE_IGATE
 		// Find out IGATE callsign (if any), and record it on historydb.
 		if (pb->packettype & T_THIRDPARTY) {
 		  rx_analyze_3rdparty( historydb, pb );
@@ -857,6 +876,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		  // Everything else, feed to history-db
 		  historydb_insert_heard( historydb, pb );
 		}
+#endif
 	    }
 
 	    // Feed it to digipeater ...
@@ -923,6 +943,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 	}
 }
 
+#ifndef DISABLE_IGATE
 /*
  * Process received AX.25 packet  -- for APRSIS
  *   - from AIF do find all DIGIPEATERS wanting this source.
@@ -1256,6 +1277,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  pbuf_put(pb);
 	}
 }
+#endif
 
 /*
  * Process transmit of APRS beacons

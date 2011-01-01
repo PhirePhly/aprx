@@ -169,7 +169,7 @@ dist:
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
 	fi
-	tar cf - --exclude-backups --exclude-vcs --exclude=*.log* --exclude=*.conf . | (cd $(DISTTARGET) ; tar xf -)
+	tar cf - --exclude-backups --exclude-vcs --exclude=windows --exclude=*.log* --exclude=*.conf . | (cd $(DISTTARGET) ; tar xf -)
 	echo "$(DISTVERSION)" > $(DISTTARGET)/VERSION
 	perl -ne "\$$ver = '$(DISTVERSION)'; 	\
 		  \$$ver =~ tr/0-9.//cd;	\

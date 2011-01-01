@@ -631,11 +631,15 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	struct tracewide    *source_trace = NULL;
 	struct tracewide     *source_wide = NULL;
 	struct digipeater_source regexsrc;
+#ifndef DISABLE_IGATE
 	char                    *via_path = NULL;
 	uint8_t               ax25viapath[7];
+#endif
 
 	memset(&regexsrc, 0, sizeof(regexsrc));
+#ifndef DISABLE_IGATE
 	memset(ax25viapath, 0, sizeof(ax25viapath));
+#endif
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -713,6 +717,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 			  has_fault = 1;
 			}
 
+#ifndef DISABLE_IGATE
 		} else if (strcmp(name, "via-path") == 0) {
 
 			// Validate that source callsign is "APRSIS"
@@ -741,7 +746,7 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 			if (debug)
 				printf("via-path '%s'\n", via_path);
-
+#endif
 		} else if (strcmp(name,"<trace>") == 0) {
 			source_trace = digipeater_config_tracewide(cf, 1);
 			// prints errors internally
@@ -794,8 +799,10 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->src_filters   = filters;
 		source->src_trace     = source_trace;
 		source->src_wide      = source_wide;
+#ifndef DISABLE_IGATE
 		source->via_path      = via_path;
 		memcpy(source->ax25viapath, ax25viapath, sizeof(ax25viapath));
+#endif
 
 		source->viscous_delay = viscous_delay;
 
@@ -998,7 +1005,9 @@ int digipeater_config(struct configfile *cf)
 		digi->tokenbucket   = digi->tbf_limit;
 
 		digi->dupechecker   = dupecheck_new();  // Dupecheck is per transmitter
+#ifndef DISABLE_IGATE
 		digi->historydb     = historydb_new();  // HistoryDB is per transmitter
+#endif
 
 		digi->trace         = (traceparam != NULL) ? traceparam : & default_trace_param;
 		digi->wide          = (wideparam  != NULL) ? wideparam  : & default_wide_param;
@@ -1266,8 +1275,10 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  }
 	}
 
+#ifndef DISABLE_IGATE
 	// Insert into history database
 	historydb_insert( digi->historydb, pb );
+#endif
 
 	// Now we do token bucket filtering -- rate limiting
 	if (digi->tokenbucket < 1) {

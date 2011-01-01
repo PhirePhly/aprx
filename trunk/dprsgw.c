@@ -10,6 +10,8 @@
 
 #include "aprx.h"
 
+#ifndef DISABLE_IGATE
+
 /*
  *  The DPRS RX Gateway
  *
@@ -823,4 +825,5 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+#endif
 #endif

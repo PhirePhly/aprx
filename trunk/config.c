@@ -10,7 +10,9 @@
 
 #include "aprx.h"
 
+#ifndef DISABLE_IGATE
 const char *aprsis_login;
+#endif
 
 
 char *config_SKIPSPACE(char *Y)
@@ -300,9 +302,11 @@ static int cfgparam(struct configfile *cf)
 	str = config_SKIPTEXT(str, NULL);
 	str = config_SKIPSPACE(str);
 
+#ifndef DISABLE_IGATE
 	if (strcmp(name, "<aprsis>") == 0) {
 	  return aprsis_config(cf);
 	}
+#endif
 	if (strcmp(name, "<interface>") == 0) {
 	  return interface_config(cf);
 	}
@@ -324,7 +328,9 @@ static int cfgparam(struct configfile *cf)
 		config_STRUPPER(param1);
 		// Store these always, it helps with latter error diagnostics
 		mycall       = strdup(param1);
+#ifndef DISABLE_IGATE
 		aprsis_login = mycall;
+#endif
 		if (validate_callsign_input(param1,1)) {
 		  if (debug)
 		    printf("%s:%d: MYCALL = '%s' '%s'\n",
@@ -342,6 +348,7 @@ static int cfgparam(struct configfile *cf)
 		  }
 		}
 
+#ifndef DISABLE_IGATE
 	} else if (strcmp(name, "aprsis-login") == 0) {
 
 		printf("%s:%d WARNING: Old-style top-level 'aprsis-login' definition, it should be inside <aprsis> group tags.\n",
@@ -391,6 +398,7 @@ static int cfgparam(struct configfile *cf)
 		       cf->name, cf->linenum);
 
 		return aprsis_set_filter(param1);
+#endif
 
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 

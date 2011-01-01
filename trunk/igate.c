@@ -12,17 +12,6 @@
 
 #include "aprx.h"
 
-static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
-
-
-/*
- * igate start -- make TX-igate allocations and inits
- */
-void igate_start()
-{
-	aprsisdupe = dupecheck_new();
-
-}
 
 const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e)
 {
@@ -82,6 +71,20 @@ const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax2
 	}
 
 	return s;
+}
+
+#ifndef DISABLE_IGATE
+
+static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
+
+
+/*
+ * igate start -- make TX-igate allocations and inits
+ */
+void igate_start()
+{
+	aprsisdupe = dupecheck_new();
+
 }
 
 static const char *tnc2_forbidden_source_stationid(const char *t, const int strictax25,const char *e)
@@ -154,40 +157,6 @@ static int tnc2_forbidden_data(const char *t)
 	return 0;
 }
 */
-/* ---------------------------------------------------------- */
-
-void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len)
-{
-    if (rflogfile) {
-      FILE *fp = NULL;
-      if (strcmp("-",rflogfile)==0) {
-	if (debug < 2) return;
-	fp = stdout;
-      } else {
-	fp = fopen(rflogfile, "a");
-      }
-    
-	if (fp) {
-		char timebuf[60];
-		printtime(timebuf, sizeof(timebuf));
-	  
-		fprintf(fp, "%s %-9s ", timebuf, portname);
-		fprintf(fp, "%s ", istx ? "T":"R");
-
-		if (discard < 0) {
-			fprintf(fp, "*");
-		}
-		if (discard > 0) {
-			fprintf(fp, "#");
-		}
-		fwrite( tnc2buf, tnc2len, 1, fp);
-		fprintf( fp, "\n" );
-
-		if (fp != stdout)
-		  fclose(fp);
-	}
-    }
-}
 
 void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
     if (verbout) {
@@ -636,4 +605,41 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	interface_receive_3rdparty( &aprsis_interface,
 				    fromcall, origtocall, "TCPIP*",
 				    b, ax25len - (b-ax25) );
+}
+
+#endif
+
+/* ---------------------------------------------------------- */
+
+void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len)
+{
+    if (rflogfile) {
+      FILE *fp = NULL;
+      if (strcmp("-",rflogfile)==0) {
+	if (debug < 2) return;
+	fp = stdout;
+      } else {
+	fp = fopen(rflogfile, "a");
+      }
+    
+	if (fp) {
+		char timebuf[60];
+		printtime(timebuf, sizeof(timebuf));
+	  
+		fprintf(fp, "%s %-9s ", timebuf, portname);
+		fprintf(fp, "%s ", istx ? "T":"R");
+
+		if (discard < 0) {
+			fprintf(fp, "*");
+		}
+		if (discard > 0) {
+			fprintf(fp, "#");
+		}
+		fwrite( tnc2buf, tnc2len, 1, fp);
+		fprintf( fp, "\n" );
+
+		if (fp != stdout)
+		  fclose(fp);
+	}
+    }
 }

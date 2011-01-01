@@ -102,8 +102,10 @@ static int ttyreader_pulltnc2(struct serialport *S)
 	/* Send the frame to internal AX.25 network */
 	/* netax25_sendax25_tnc2(S->rdline, S->rdlinelen); */
 
+#ifndef DISABLE_IGATE
 	/* S->rdline[] has text line without line ending CR/LF chars   */
 	igate_to_aprsis(S->ttycallsign[0], 0, (char *) (S->rdline), addrlen, S->rdlinelen, 0, 1);
+#endif
 
 	return 0;
 }
@@ -322,10 +324,12 @@ static void ttyreader_lineread(struct serialport *S)
 		kiss_pullkiss(S);
 
 
+#ifndef DISABLE_IGATE
 	} else if (S->linetype == LINETYPE_DPRSGW) {
 
 		dprsgw_pulldprs(S);
 
+#endif
 	} else if (S->linetype == LINETYPE_TNC2
 #if 0
 		   || S->linetype == LINETYPE_AEA
@@ -800,11 +804,13 @@ int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, cha
 			if (tncid < 0 || tncid > 15)
 				tncid = 0;
 
+#ifndef DISABLE_IGATE
 		} else if (strcmp(param1, "tnc2") == 0) {
 			tty->linetype = LINETYPE_TNC2;	/* TNC2 monitor */
 
 		} else if (strcmp(param1, "dprs") == 0) {
 			tty->linetype = LINETYPE_DPRSGW;
+#endif
 
 		} else if (strcmp(param1, "initstring") == 0) {
 			int parlen;

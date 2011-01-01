@@ -1271,15 +1271,16 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 					break;
 			}
 			keybuf[i] = 0;
-
+#ifndef DISABLE_IGATE
 			history = historydb_lookup( historydb, keybuf, i );
 			if (history != NULL) {
 				pb->lat     = history->lat;
 				pb->lng     = history->lon;
 				pb->cos_lat = history->coslat;
-
+			    
 				pb->flags  |= F_HASPOS;
 			}
+#endif
 		}
 		return 1;
 
