@@ -9,6 +9,8 @@
 
 #include "aprx.h"
 
+#ifndef DISABLE_IGATE
+
 #include <strings.h>
 #include <ctype.h>
 #include <math.h>
@@ -577,3 +579,5 @@ int  historydb_postpoll(struct aprxpolls *app)
 
 	return 0;
 }
+
+#endif

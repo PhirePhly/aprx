@@ -284,8 +284,10 @@ static void telemetry_datatx()
 		
 		/* Send those (net)beacons.. */
 		buflen = s - buf;
+#ifndef DISABLE_IGATE
 		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
 			     buf+2, buflen-2);
+#endif
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 	}
@@ -325,8 +327,10 @@ static void telemetry_labeltx()
 				      ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
 				      E->name);
 		  buflen = s - buf;
+#ifndef DISABLE_IGATE
 		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
 			       buf+2, buflen-2);
+#endif
 		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 		} else if (telemetry_labelindex == 1) {
@@ -335,8 +339,10 @@ static void telemetry_labeltx()
 				      ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
 				      E->name);
 		  buflen = s - buf;
+#ifndef DISABLE_IGATE
 		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
 			       buf+2, buflen-2);
+#endif
 		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		  
 		} else if (telemetry_labelindex == 2) {
@@ -345,8 +351,10 @@ static void telemetry_labeltx()
 				      ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 				      E->name);
 		  buflen = s - buf;
+#ifndef DISABLE_IGATE
 		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
 			       buf+2, buflen-2);
+#endif
 		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		}
 	}

@@ -804,11 +804,13 @@ static void beacon_now(void)
 			 ((beacon_nexttime - now)/60.0));
 		}
 
+#ifndef DISABLE_IGATE
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
 		  aprsis_queue(destbuf, strlen(destbuf),
 			       aprsis_login, txt, txtlen);
 		}
+#endif
 
 		if (bm->beaconmode >= 0) {
 		  // And to interfaces
@@ -890,11 +892,13 @@ static void beacon_now(void)
 			 ((beacon_nexttime - now)/60.0));
 		}
 
+#ifndef DISABLE_IGATE
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
 		  aprsis_queue(destbuf, strlen(destbuf),
 			       aprsis_login, txt, txtlen);
 		}
+#endif
 
 		if (bm->beaconmode >= 0 && aif->txok) {
 		  // And to transmit-capable interfaces
@@ -924,8 +928,10 @@ static void beacon_now(void)
 
 int beacon_prepoll(struct aprxpolls *app)
 {
+#ifndef DISABLE_IGATE
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
+#endif
 	if (!beacon_msgs)
 		return 0;	/* Nothing to do */
 
@@ -938,8 +944,10 @@ int beacon_prepoll(struct aprxpolls *app)
 
 int beacon_postpoll(struct aprxpolls *app)
 {
+#ifndef DISABLE_IGATE
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
+#endif
 	if (!beacon_msgs)
 		return 0;	/* Nothing to do */
 	if (beacon_nexttime > now)

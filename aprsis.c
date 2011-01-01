@@ -11,6 +11,9 @@
 /* This code works only with single  aprsis-server  instance! */
 
 #include "aprx.h"
+
+#ifndef DISABLE_IGATE
+
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -1299,3 +1302,5 @@ int aprsis_config(struct configfile *cf)
 	}
 	return has_fault;
 }
+
+#endif

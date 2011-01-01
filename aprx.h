@@ -110,7 +110,9 @@ extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
 extern void aprxpolls_free(struct aprxpolls *app);
 
 /* aprx.c */
+#ifndef DISABLE_IGATE
 extern const char *aprsis_login;
+#endif
 extern int die_now;
 extern const char *mycall;
 extern const char *tocall;
@@ -253,6 +255,7 @@ extern int  parse_ax25addr(uint8_t ax25[7], const char *text,
 			   int ssidflags);
 
 
+#ifndef DISABLE_IGATE
 /* aprsis.c */
 extern int  aprsis_add_server(const char *server, const char *port);
 extern int  aprsis_set_heartbeat_timeout(const int tout);
@@ -268,6 +271,7 @@ extern void aprsis_init(void);
 extern void aprsis_start(void);
 extern void aprsis_stop(void);
 extern int  aprsis_config(struct configfile *cf);
+#endif
 
 /* beacon.c */
 extern int  beacon_prepoll(struct aprxpolls *app);
@@ -299,10 +303,12 @@ extern int  erlang_prepoll(struct aprxpolls *app);
 extern int  erlang_postpoll(struct aprxpolls *app);
 
 /* igate.c */
+#ifndef DISABLE_IGATE
 extern void igate_start(void);
 extern void igate_from_aprsis(const char *ax25, int ax25len);
 extern void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25);
 extern void enable_tx_igate(const char *, const char *);
+#endif
 extern void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len);
 extern const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e);
 
@@ -525,8 +531,10 @@ struct digipeater_source {
 	struct filter_t       *src_filters;
 	struct tracewide      *src_trace;
 	struct tracewide      *src_wide;
+#ifndef DISABLE_IGATE
 	char		      *via_path; // for APRSIS only
 	uint8_t		       ax25viapath[7]; // APRSIS
+#endif
 
 	float		       tokenbucket;
 	float		       tbf_increment;
@@ -560,7 +568,9 @@ struct digipeater {
 	float		       tbf_limit;
 
 	dupecheck_t           *dupechecker;
+#ifndef DISABLE_IGATE
 	historydb_t	      *historydb;
+#endif
 
 	const struct tracewide *trace;
 	const struct tracewide *wide;

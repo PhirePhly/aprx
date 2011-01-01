@@ -684,6 +684,7 @@ void filter_postprocess_dupefilter(struct pbuf_t *pbuf, historydb_t *historydb)
 	 *    the packet sender.
 	 *    
 	 */
+#ifndef DISABLE_IGATE
 	if (!(pbuf->flags & F_HASPOS)) {
 		history_cell_t *hist;
 		hist = historydb_lookup(historydb, pbuf->srcname, pbuf->srcname_len);
@@ -697,6 +698,7 @@ void filter_postprocess_dupefilter(struct pbuf_t *pbuf, historydb_t *historydb)
 			pbuf->flags  |= F_HASPOS;
 		}
 	}
+#endif
 }
 
 
@@ -1599,6 +1601,7 @@ static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 }
 #endif
 
+#ifndef DISABLE_IGATE
 static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	/* f/call/dist  	Friend Range filter
@@ -1660,6 +1663,7 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 
 	return 0;
 }
+#endif
 
 #if 0
 static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
@@ -2022,6 +2026,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 		   Lets find callsign's location, and range to that item..
 		   .. 60-100 lookups per second. */
 
+#ifndef DISABLE_IGATE
 		if (f->h.hist_age < now) {
 			history = historydb_lookup( historydb, callsign, callsignlen );
 
@@ -2037,6 +2042,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 			f->h.f_lonE   = history->lon;
 			f->h.f_coslat = history->coslat;
 		}
+#endif
 		if (!f->h.numnames) return 0; /* No valid data at range center position cache */
 
 		lat1    = f->h.f_latN;
@@ -2115,10 +2121,12 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t
 		break;
 #endif
 
+#ifndef DISABLE_IGATE
 	case 'f':
 	case 'F':
 		rc = filter_process_one_f(pb, f, historydb);
 		break;
+#endif
 #if 0
 	case 'm':
 	case 'M':

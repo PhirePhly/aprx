@@ -131,7 +131,9 @@ int main(int argc, char *const argv[])
 	netax25_init();
 	agwpe_init();
 	dupecheck_init(); // before aprsis_init() !
+#ifndef DISABLE_IGATE
 	aprsis_init();
+#endif
 	filter_init();
 	pbuf_init();
 
@@ -141,13 +143,23 @@ int main(int argc, char *const argv[])
 	}
 
 	erlang_start(1);
+#ifndef DISABLE_IGATE
 	historydb_init();
+#endif
 
 	if (debug || verbout) {
-	  if (!mycall && !aprsis_login) {
+	  if (!mycall
+#ifndef DISABLE_IGATE
+	      && !aprsis_login
+#endif
+	      ) {
 		fprintf(stderr,
 			"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
-	  } else if (!mycall && !aprsis_login) {
+	  } else if (!mycall
+#ifndef DISABLE_IGATE
+		     && !aprsis_login
+#endif
+		     ) {
 		fprintf(stderr,
 			"APRX: NO GLOBAL  APRSIS-LOGIN=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	  }
@@ -228,11 +240,15 @@ int main(int argc, char *const argv[])
 
 	// Must be after config reading ...
 	netresolv_start();
+#ifndef DISABLE_IGATE
 	aprsis_start();
+#endif
 	netax25_start();
 	agwpe_start();
 	telemetry_start();
+#ifndef DISABLE_IGATE
 	igate_start();
+#endif
 
 	// The main loop
 
@@ -244,7 +260,9 @@ int main(int argc, char *const argv[])
 		app.next_timeout = now + 30;
 
 		i = ttyreader_prepoll(&app);
+#ifndef DISABLE_IGATE
 		i = aprsis_prepoll(&app);
+#endif
 		i = beacon_prepoll(&app);
 		i = netax25_prepoll(&app);
 		i = agwpe_prepoll(&app);
@@ -252,8 +270,10 @@ int main(int argc, char *const argv[])
 		i = telemetry_prepoll(&app);
 		i = dupecheck_prepoll(&app);
 		i = digipeater_prepoll(&app);
+#ifndef DISABLE_IGATE
 		i = historydb_prepoll(&app);
 		i = dprsgw_prepoll(&app);
+#endif
 
 		if (app.next_timeout <= now)
 		  app.next_timeout = now + 1;	// Just to be on safe side..
@@ -267,18 +287,24 @@ int main(int argc, char *const argv[])
 		i = ttyreader_postpoll(&app);
 		i = netax25_postpoll(&app);
 		i = agwpe_postpoll(&app);
+#ifndef DISABLE_IGATE
 		i = aprsis_postpoll(&app);
+#endif
 		i = erlang_postpoll(&app);
 		i = telemetry_postpoll(&app);
 		i = dupecheck_postpoll(&app);
 		i = digipeater_postpoll(&app);
+#ifndef DISABLE_IGATE
 		i = historydb_postpoll(&app);
 		i = dprsgw_postpoll(&app);
+#endif
 
 	}
 	aprxpolls_free(&app); // valgrind..
 
+#ifndef DISABLE_IGATE
 	aprsis_stop();
+#endif
 	netresolv_stop();
 
 	if (pidfile) {

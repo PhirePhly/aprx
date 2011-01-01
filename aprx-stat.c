@@ -17,7 +17,7 @@ int debug; /* linkage dummy */
 int erlangout;
 int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
-const char *aprsis_login;		/* linkage dummy */
+const char *mycall;		/* linkage dummy */
 
 void printtime(char *buf, int buflen)
 {
@@ -250,7 +250,7 @@ int debug;			/* linkage dummy */
 int erlangout;
 int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
-const char *aprsis_login;	/* linkage dummy */
+const char *mycall;		/* linkage dummy */
 
 void printtime(char *buf, int buflen) {} /* linkage dummy */
 
