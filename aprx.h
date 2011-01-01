@@ -15,12 +15,22 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <time.h>
+#ifdef HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+#ifdef HAVE_TIME_H
+# include <time.h>
+#endif
 #include <unistd.h>
-#include <stdlib.h>
+#ifdef HAVE_STDLIB_H
+# include <stdlib.h>
+#endif
 #define __need_size_t
 #define __need_NULL
-#include <stddef.h>
+#ifdef HAVE_STDDEF_H
+# include <stddef.h>
+#endif
+
 #ifdef _FOR_VALGRIND_
 #define strdup  aprx_strdup
 #define strcmp  aprx_strcmp
@@ -53,14 +63,27 @@ extern char *strtok(char *str, const char *delim);
 extern int   strcasecmp(const char *s1, const char *s2);
 
 #else
-#include <string.h>
+#ifdef HAVE_STRING_H
+# include <string.h>
+#endif
+#ifdef HAVE_STRINGS_H
+# include <strings.h>
+#endif
 #endif
 
 #include <termios.h>
 #include <errno.h>
 #include <syslog.h>
 #include <regex.h>
-#include <alloca.h>
+#ifdef HAVE_ALLOCA_H
+# include <alloca.h>
+#endif
+
+#include <ctype.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#include <math.h>
 
 #include <sys/socket.h>
 #include <netdb.h>
@@ -313,6 +336,7 @@ extern void rflog(const char *portname, int istx, int discard, const char *tnc2b
 extern const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e);
 
 /* netax25.c */
+#ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 extern void        netax25_init(void);
 extern void        netax25_start(void);
 extern const void* netax25_open(const char *ifcallsign);
@@ -321,6 +345,7 @@ extern int         netax25_postpoll(struct aprxpolls *);
 extern void      * netax25_addrxport(const char *callsign, const struct aprx_interface *aif);
 extern void        netax25_sendax25(const void *nax25, const void *ax25, int ax25len);
 extern void        netax25_sendto(const void *nax25, const uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
+#endif
 
 /* telemetry.c */
 

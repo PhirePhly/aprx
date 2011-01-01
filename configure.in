@@ -24,6 +24,8 @@ AC_SUBST(LD,"$LD")
 
 
 dnl Check for headers.
+AC_CHECK_HEADERS(time.h sys/time.h stdlib.h stddef.h stdint.h alloca.h)
+AC_CHECK_HEADERS(string.h strings.h)
 AC_CHECK_HEADERS(pty.h)
 AC_CHECK_HEADERS(pthread.h)
 

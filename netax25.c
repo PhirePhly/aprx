@@ -14,9 +14,8 @@
 
 #include "aprx.h"
 
-#include <sys/socket.h>
 
-#ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
+#ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -277,7 +276,8 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	}
 }
 
-#else
+#else /* !HAVE_OPENPTY */
+
 static const void* netax25_openpty(const char *mycall)
 {
 	return NULL;
@@ -788,48 +788,5 @@ void netax25_sendto(const void *nax25p, const uint8_t *axaddr, const int axaddrl
 	if (debug>1)printf("netax25_sendto() the sendmsg len=%d rc=%d errno=%d\n", len, i, errno);
 
 	erlang_add(nax25->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);  // netax25_sendto()
-}
-
-
-#else				/* Not Linux with PF_AX25 ?  Dummy routines.. */
-
-void netax25_init(void)
-{
-}
-
-int netax25_prepoll(struct aprxpolls *app)
-{
-	return 0;
-}
-
-int netax25_postpoll(struct aprxpolls *app)
-{
-	return 0;
-}
-
-void netax25_start(void)
-{
-}
-
-const void* netax25_open(const char *ifcallsign)
-{
-	return NULL;
-}
-
-void *netax25_addrxport(const char *portname, char *str)
-{
-	return NULL;
-}
-
-void netax25_sendax25(const void *nax25, const void *ax25, int ax25len)
-{
-}
-
-void netax25_sendax25_tnc2(const void *tnc2, int tnc2len)
-{
-}
-
-void netax25_sendto(const void *nax25, const uint8_t *txbuf, const int txlen)
-{
 }
 #endif

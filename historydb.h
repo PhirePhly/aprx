@@ -34,7 +34,9 @@
 #ifndef __HISTORYDB_H__
 #define __HISTORYDB_H__
 
-#include <stdint.h>
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
 #define HISTORYDB_HASH_MODULO 128 /* fold bits: 7 & 14 */
 
 struct pbuf_t;      // forward declarator

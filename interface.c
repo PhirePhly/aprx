@@ -314,7 +314,9 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 	aif->tty->interface  [subif] = *aifp;
 	aif->tty->ttycallsign[subif] = callsign;
+#ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
 	aif->tty->netax25    [subif] = netax25_open(callsign);
+#endif
 
 	if (aliascount == 0) {
 	  (*aifp)->aliascount = 3;
@@ -686,6 +688,7 @@ int interface_config(struct configfile *cf)
 		aif->callsign = strdup(mycall);
 		parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		
+#ifdef PF_AX25	// PF_AX25 exists -- highly likely a Linux system !
 		// With enough defaults being used, the callsign is defined
 		// by global "macro"  mycall,  and never ends up activating
 		// the tty -> linux kernel kiss/smack pty  interface.
@@ -696,6 +699,7 @@ int interface_config(struct configfile *cf)
 			aif->tty->netax25[0]
 			  = netax25_open(aif->tty->ttycallsign[0]);
 		}
+#endif
 		// Done it, leave..
 		break;
 	}
@@ -925,12 +929,14 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		memcpy(axbuf + axaddrlen, axdata, axdatalen);
 		kiss_kisswrite(aif->tty, aif->subif, axbuf, axlen);
 		break;
+#ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
 	case IFTYPE_AX25:
 		// The Linux netax25 sender takes same data as this interface
 		netax25_sendto( aif->nax25p,
 				axaddr, axaddrlen,
 				axdata, axdatalen );
 		break;
+#endif
 #ifdef ENABLE_AGWPE
 	case IFTYPE_AGWPE:
 		agwpe_sendto( aif->agwpe,

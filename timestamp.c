@@ -1,8 +1,4 @@
-
-#include <stdio.h>
-#include <stdint.h>
-#include <sys/time.h>
-
+#include "aprx.h"
 
 /* Time Base Conversion Macros
  *

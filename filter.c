@@ -18,13 +18,6 @@
 
 #include "aprx.h"
 
-#include <string.h>
-#include <strings.h>
-#include <ctype.h>
-#include <stdint.h>
-#include <math.h>
-#include <alloca.h>
-
 #include "cellmalloc.h"
 #include "historydb.h"
 #include "keyhash.h"
@@ -949,7 +942,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 	int i;
 	const char *filt0 = filt;
 	const char *s;
-	char dummyc;
+	char dummyc, dummy2;
 	struct filter_t *ff, *f;
 
 	ff = *ffp;
@@ -978,12 +971,23 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 	case 'A':
 		/*  a/latN/lonW/latS/lonE     Area filter -- OPTIMIZE!  */
 
-		i = sscanf(filt+1, "/%f/%f/%f/%f%c",
-			   &f0.h.f_latN, &f0.h.f_lonW,
-			   &f0.h.f_latS, &f0.h.f_lonE, &dummyc);
+		f0.h.type = 'a'; // inside area
 
-		if (i == 5 && dummyc == '/')
+		i = sscanf(filt+1, "/%f/%f/%f/%f%c%c",
+			   &f0.h.f_latN, &f0.h.f_lonW,
+			   &f0.h.f_latS, &f0.h.f_lonE, &dummyc, &dummy2);
+
+		if (i == 6 && dummyc == '/' && dummy2 == '-') {
 			i = 4;
+			f0.h.type = 'A'; // outside area!
+		}
+		if (i == 5 && dummyc == '-') {
+			i = 4;
+			f0.h.type = 'A'; // outside area!
+		}
+		if (i == 5 && dummyc == '/') {
+			i = 4;
+		}
 
 		if (i != 4) {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
@@ -1083,7 +1087,9 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		/*  f/call/dist         Friend's range filter  */
 
 		i = sscanf(filt+1, "/%9[^/]/%f", f0.h.refcallsign.callsign, &f0.h.f_dist);
-		if (i != 2 || f0.h.f_dist < 0.1) {
+		// negative distance means "outside this range."
+		// and makes most sense with overall negative filter!
+		if (i != 2 || (-0.1 < f0.h.f_dist && f0.h.f_dist < 0.1)) {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 		  if (debug)
 		    printf("Bad filter parse: %s", filt0);
@@ -1218,7 +1224,9 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 
 		i = sscanf(filt+1, "/%f/%f/%f",
 			 &f0.h.f_latN, &f0.h.f_lonE, &f0.h.f_dist);
-		if (i != 3 || f0.h.f_dist < 0.1) {
+		// negative distance means "outside this range."
+		// and makes most sense with overall negative filter!
+		if (i != 3 || (-0.1 < f0.h.f_dist && f0.h.f_dist < 0.1)) {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 		  if (debug)
 		    printf("Bad filter parse: %s", filt0);
@@ -1324,7 +1332,9 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		}
 		if (*s == '/' && s[1] != 0) { /* second format */
 			i = sscanf(s, "/%9[^/]/%f%c", f0.h.refcallsign.callsign, &f0.h.f_dist, &dummyc);
-			if ( i != 2 || f0.h.f_dist < 0.1 || /* 0.1 km minimum radius */
+			// negative distance means "outside this range."
+			// and makes most sense with overall negative filter!
+			if ( i != 2 || (-0.1 < f0.h.f_dist && f0.h.f_dist < 0.1) || /* 0.1 km minimum radius */
 			     strlen(f0.h.refcallsign.callsign) < CALLSIGNLEN_MIN ) {
 			  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 			  if (debug)
@@ -1493,9 +1503,13 @@ static int filter_process_one_a(struct pbuf_t *pb, struct filter_t *f)
 	if ((pb->lat <= f->h.f_latN) &&
 	    (pb->lat >= f->h.f_latS) &&
 	    (pb->lng <= f->h.f_lonE) && /* East POSITIVE ! */
-	    (pb->lng >= f->h.f_lonW))
+	    (pb->lng >= f->h.f_lonW)) {
 		/* Inside the box */
 		return f->h.negation ? 2 : 1;
+	} else if (f->h.type == 'A') {
+		/* Outside the box */
+		return f->h.negation ? 2 : 1;
+	}
 
 	return 0;
 }
@@ -1658,8 +1672,15 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
 
-	if (r < f->h.f_dist)  /* Range is less than given limit */
-		return (f->h.negation) ? 2 : 1;
+	if (f->h.f_dist < 0.0) {
+		// Test for _outside_ the range
+		if (r > -f->h.f_dist)  /* Range is more than given limit */
+			return (f->h.negation) ? 2 : 1;
+	} else {
+		// Test for _inside_ the range
+		if (r < f->h.f_dist)  /* Range is less than given limit */
+			return (f->h.negation) ? 2 : 1;
+	}
 
 	return 0;
 }
@@ -1717,8 +1738,15 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 	coslat2 = pb->cos_lat;
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
-	if (r < f->h.f_dist)  /* Range is less than given limit */
-		return f->h.negation ? 2 : 1;
+	if (f->h.f_dist < 0.0) {
+		// Test for _outside_ the range
+		if (r > -f->h.f_dist)  /* Range is more than given limit */
+			return (f->h.negation) ? 2 : 1;
+	} else {
+		// Test for _inside_ the range
+		if (r < f->h.f_dist)  /* Range is less than given limit */
+			return (f->h.negation) ? 2 : 1;
+	}
 
 	return 0;
 }
@@ -1880,8 +1908,11 @@ static int filter_process_one_r(struct pbuf_t *pb, struct filter_t *f)
 
 	float lat2, lon2, coslat2;
 
-	if (!(pb->flags & F_HASPOS)) /* packet with a position.. (msgs with RECEIVER's position) */
+	if (!(pb->flags & F_HASPOS)) {
+	  /* packet with a position..
+	     (msgs with RECEIVER's position) */
 		return 0;
+	}
 
 	lat2    = pb->lat;
 	lon2    = pb->lng;
@@ -1889,8 +1920,15 @@ static int filter_process_one_r(struct pbuf_t *pb, struct filter_t *f)
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
 
-	if (r < f->h.f_dist)  /* Range is less than given limit */
-		return (f->h.negation) ? 2 : 1;
+	if (f->h.f_dist < 0.0) {
+		// Test for _outside_ the range
+		if (r > -f->h.f_dist)  /* Range is more than given limit */
+			return (f->h.negation) ? 2 : 1;
+	} else {
+		// Test for _inside_ the range
+		if (r < f->h.f_dist)  /* Range is less than given limit */
+			return (f->h.negation) ? 2 : 1;
+	}
 
 	return 0;
 }
@@ -2055,8 +2093,15 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 
 		r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
 
-		if (r < range)  /* Range is less than given limit */
-			return (f->h.negation) ? 2 : 1;
+		if (range < 0.0) {
+			// Test for _outside_ the range
+			if (r > -range)  /* Range is more than given limit */
+				return (f->h.negation) ? 2 : 1;
+		} else {
+			// Test for _inside_ the range
+			if (r < range)  /* Range is less than given limit */
+				return (f->h.negation) ? 2 : 1;
+		}
 
 		return 0; /* unimplemented! */
 	}
