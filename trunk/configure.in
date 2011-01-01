@@ -68,6 +68,11 @@ AC_ARG_ENABLE(igate,    [  --disable-igate         Disable all IGate codes],
     AC_DEFINE(DISABLE_IGATE,1,[Define to 1 if you want to disable all IGATE codes.])
 fi])
 
+AC_ARG_ENABLE(agwpe,    [  --enable-agwpe          Enable AGWPE socket interface code.],
+[if test "${enable_agwpe}" != no ; then
+    AC_DEFINE(ENABLE_AGWPE,1,[Define to 1 if you want to enable AGWPE socket interface.])
+fi])
+
 
 
 dnl Solaris resolver solution:

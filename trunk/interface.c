@@ -67,7 +67,11 @@ struct aprx_interface aprsis_interface = {
 	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
 	0, NULL,
 	0, 0, 0, 0, NULL,
-	NULL, NULL, NULL,
+	NULL,
+#ifdef ENABLE_AGWPE
+	NULL,
+#endif
+	NULL,
 	0, NULL
 };
 
@@ -927,11 +931,13 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 				axaddr, axaddrlen,
 				axdata, axdatalen );
 		break;
+#ifdef ENABLE_AGWPE
 	case IFTYPE_AGWPE:
 		agwpe_sendto( aif->agwpe,
 			      axaddr, axaddrlen,
 			      axdata, axdatalen );
 		break;
+#endif
 	case IFTYPE_NULL:
 		// Efficient transmitter :-)
 		

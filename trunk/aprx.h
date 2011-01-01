@@ -618,7 +618,9 @@ struct aprx_interface {
 	char	   *initstring;
 
 	const void        *nax25p; // used on IFTYPE_AX25
+#ifdef ENABLE_AGWPE
 	const void	  *agwpe;  // used on IFTYPE_AGWPE
+#endif
 	struct serialport *tty;    // used on IFTYPE_SERIAL, IFTYPE_TCPIP
 
 	int	                   digisourcecount;
@@ -671,6 +673,7 @@ extern void filter_postprocess_dupefilter(struct pbuf_t *pb, historydb_t *histor
 extern float filter_lat2rad(float lat);
 extern float filter_lon2rad(float lon);
 
+#ifdef ENABLE_AGWPE
 /* agwpesocket.c */
 extern void agwpe_sendto(const void *_ap, const uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
 
@@ -678,3 +681,4 @@ extern int  agwpe_prepoll(struct aprxpolls *);
 extern int  agwpe_postpoll(struct aprxpolls *);
 extern void agwpe_init(void);
 extern void agwpe_start(void);
+#endif
