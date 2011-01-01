@@ -97,11 +97,13 @@ void enable_aprsis_rx_dupecheck(void) {
 	aprsis_rx_dupecheck = dupecheck_new();
 }
 
+#if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 static void sig_handler(int sig)
 {
 	aprsis_die_now = 1;
 	signal(sig, sig_handler);
 }
+#endif
 
 
 

@@ -1259,8 +1259,9 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 			char keybuf[CALLSIGNLEN_MAX+1];
 			const char *p;
 			int i;
+#ifndef DISABLE_IGATE
 			history_cell_t *history;
-
+#endif
 			p = body;
 			pb->recipient = p;
 			for (i = 0; i < CALLSIGNLEN_MAX; ++i) {

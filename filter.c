@@ -2046,12 +2046,14 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 	if (rc && f->h.type == 'T') { /* Within a range of callsign ?
 				       * Rather rare..  perhaps 2-3 in APRS-IS.
 				       */
-		const char *callsign    = f->h.u5.refcallsign.callsign;
-		const int   callsignlen = f->h.u5.refcallsign.reflen;
 		float range, r;
 		float lat1, lon1, coslat1;
 		float lat2, lon2, coslat2;
+#ifndef DISABLE_IGATE
+		const char *callsign    = f->h.u5.refcallsign.callsign;
+		const int   callsignlen = f->h.u5.refcallsign.reflen;
 		history_cell_t *history;
+#endif
 
 		/* hlog(LOG_DEBUG, "Type filter with callsign range used! '%s'", f->h.text); */
 
