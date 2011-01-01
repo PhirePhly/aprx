@@ -127,6 +127,9 @@ static void interface_store(struct aprx_interface *aif)
 	if (debug)
 	  printf("interface_store() aif->callsign = '%s'\n", aif->callsign);
 
+	// Init the interface specific Erlang accounting
+	erlang_add(aif->callsign, ERLANG_RX, 0, 0);
+
 	all_interfaces_count += 1;
 	all_interfaces = realloc(all_interfaces,
 				 sizeof(all_interfaces) * all_interfaces_count);
