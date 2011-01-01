@@ -1,10 +1,14 @@
 2011-01-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, aprx.h, aprx.c, agwpesocket.c, interface.c:
+	    Configuration option --enable-agwpe  to enable AGWPE socket
+	    interface code.
+
 	* configure.in, aprx.h, aprx.c, aprsis.c, ax25.c, beacon.c,
 	  digipeater.c, dpwsgw.c, erlang.c, filter.c, historydb.c,
 	  igate.c, interface.c, parse_aprs.c, telemetry.c, ttyreader.c:
 	    Configuration option  --disable-igate   for embedding
-	    code without igate network connection. Removes DPRS GW code,
+	    code without igate network connection. Disables DPRS GW code,
 	    and all of historydb, igate.c, aprsis.c.
 
 	* aprx.c, VERSION, INSTALL, README, TODO

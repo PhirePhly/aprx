@@ -129,7 +129,9 @@ int main(int argc, char *const argv[])
 	erlang_init(syslog_facility);
 	ttyreader_init();
 	netax25_init();
+#ifdef ENABLE_AGWPE
 	agwpe_init();
+#endif
 	dupecheck_init(); // before aprsis_init() !
 #ifndef DISABLE_IGATE
 	aprsis_init();
@@ -244,7 +246,9 @@ int main(int argc, char *const argv[])
 	aprsis_start();
 #endif
 	netax25_start();
+#ifdef ENABLE_AGWPE
 	agwpe_start();
+#endif
 	telemetry_start();
 #ifndef DISABLE_IGATE
 	igate_start();
@@ -265,7 +269,9 @@ int main(int argc, char *const argv[])
 #endif
 		i = beacon_prepoll(&app);
 		i = netax25_prepoll(&app);
+#ifdef ENABLE_AGWPE
 		i = agwpe_prepoll(&app);
+#endif
 		i = erlang_prepoll(&app);
 		i = telemetry_prepoll(&app);
 		i = dupecheck_prepoll(&app);
@@ -286,7 +292,9 @@ int main(int argc, char *const argv[])
 		i = beacon_postpoll(&app);
 		i = ttyreader_postpoll(&app);
 		i = netax25_postpoll(&app);
+#ifdef ENABLE_AGWPE
 		i = agwpe_postpoll(&app);
+#endif
 #ifndef DISABLE_IGATE
 		i = aprsis_postpoll(&app);
 #endif

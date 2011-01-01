@@ -8,6 +8,7 @@
  *                                                                  *
  * **************************************************************** */
 #include "aprx.h"
+#ifdef ENABLE_AGWPE
 
 /***  AGWPE interface description from Xastir + AGWPE documents.
  ***  As those documents are unclear, I am using Xastir to supply
@@ -587,3 +588,5 @@ int agwpe_postpoll(struct aprxpolls *app)
 
 	return 0;
 }
+
+#endif
