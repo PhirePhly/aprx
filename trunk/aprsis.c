@@ -129,6 +129,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 		       why ? why : "");
 	if (aprxlogfile) {
 		cancel_disable();
+		{
 		FILE *fp = fopen(aprxlogfile, "a");
 		if (fp) {
 			char timebuf[60];
@@ -138,6 +139,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 				A->H->server_name, A->H->server_port,
 				why ? why : "");
 			fclose(fp);
+		}
 		}
 		cancel_enable();
 	}
@@ -229,6 +231,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 		}
 		if (aprxlogfile && log_aprsis) {
 			cancel_disable();
+			{
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				fprintf(fp, "%ld\t<< %s:%s << ",
@@ -238,6 +241,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 				       (A->wrbuf_len - A->wrbuf_cur),
 				       1, fp);	/* Does end on  \r\n */
 				fclose(fp);
+			}
 			}
 			cancel_enable();
 		}
@@ -310,6 +314,7 @@ static void aprsis_reconnect(struct aprsis *A)
 			printf("%ld\tFAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n", (long) now);
 		if (aprxlogfile) {
 			cancel_disable();
+			{
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				char timebuf[60];
@@ -319,6 +324,7 @@ static void aprsis_reconnect(struct aprsis *A)
 					"%s FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n",
 					timebuf);
 				fclose(fp);
+			}
 			}
 			cancel_enable();
 		}
@@ -357,6 +363,7 @@ static void aprsis_reconnect(struct aprsis *A)
 			       A->H->server_port, errstr);
 		if (aprxlogfile) {
 			cancel_disable();
+			{
 			FILE *fp = fopen(aprxlogfile, "a");
 			if (fp) {
 				char timebuf[60];
@@ -367,6 +374,7 @@ static void aprsis_reconnect(struct aprsis *A)
 					timebuf, A->H->server_name,
 					A->H->server_port, errstr);
 				fclose(fp);
+			}
 			}
 			cancel_enable();
 		}
@@ -427,6 +435,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		       A->H->server_name, A->H->server_port);
 	if (aprxlogfile) {
 		cancel_disable();
+		{
 		FILE *fp = fopen(aprxlogfile, "a");
 		if (fp) {
 			char timebuf[60];
@@ -435,6 +444,7 @@ static void aprsis_reconnect(struct aprsis *A)
 			fprintf(fp, "%s CONNECT APRSIS %s:%s\n", timebuf,
 				A->H->server_name, A->H->server_port);
 			fclose(fp);
+		}
 		}
 		cancel_enable();
 	}
@@ -484,6 +494,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 		    } else {
 			if (aprxlogfile && log_aprsis) {
 			    cancel_disable();
+			    {
 			    FILE *fp = fopen(aprxlogfile, "a");
 			    if (fp) {
 				fprintf(fp, "%ld\t<< %s:%s >> ",
@@ -492,6 +503,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 				fwrite(A->rdline, A->rdlin_len, 1, fp);
 				fprintf(fp, "\n");
 				fclose(fp);
+			    }
 			    }
 			    cancel_enable();
 			}

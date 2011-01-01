@@ -80,9 +80,9 @@ void historydb_free(struct history_cell_t *p)
 /* Called only under WR-LOCK */
 struct history_cell_t *historydb_alloc(historydb_t *db, int packet_len)
 {
-	++db->historydb_cellgauge;
 	struct history_cell_t *ret = cellmalloc( historydb_cells );
 	if (!ret) return NULL;
+	++db->historydb_cellgauge;
 	ret->db = db;
 	ret->last_heard = ((top_interfaces_group <= MAX_IF_GROUP) ?
 			   ret->last_heard_buf :

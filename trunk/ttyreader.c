@@ -783,7 +783,9 @@ int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, cha
 			config_STRUPPER(param1);
 			tty->ttycallsign[tncid] = strdup(param1);
 
+#ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
 			tty->netax25[tncid] = netax25_open(param1);
+#endif
 
 			/* Use side-effect: this defines the tty into
 			   erlang accounting */

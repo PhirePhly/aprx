@@ -1,3 +1,12 @@
+2011-01-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsis.c, aprx.c, beacon.c, config.c, digipeater.c, dprsgw.c,
+	  filter.c, historydb.c, igate.c, interface.c, keyhash.c, kiss.c,
+	  netresolver.c, ttyreader.c:
+	    Cleaning compiling on a very old FreeBSD -- essentially K&R C
+	    compiler (gcc 2.95.4) not permitting variable declarations
+	    anywhere but beginning of code block.
+
 2011-01-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c:

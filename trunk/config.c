@@ -400,6 +400,7 @@ static int cfgparam(struct configfile *cf)
 		return aprsis_set_filter(param1);
 #endif
 
+#ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
 	} else if (strcmp(name, "ax25-rxport") == 0) {
 
 		printf("%s:%d WARNING: Old-style top-level 'ax25-rxport' definition.  See <interface> groups, 'ax25-device' definitions.\n",
@@ -410,7 +411,7 @@ static int cfgparam(struct configfile *cf)
 			       cf->name, cf->linenum, param1, str);
 
 		return (netax25_addrxport(param1, NULL) == NULL);
-
+#endif
 	} else if (strcmp(name, "radio") == 0) {
 
 		printf("%s:%d WARNING: Old-style top-level 'radio' definition.  See <interface> groups, 'serial-device' or 'tcp-device' definitions.\n",

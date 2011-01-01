@@ -221,6 +221,7 @@ static int kissprocess(struct serialport *S)
 
 	/* Are we expecting FLEXNET KISS ? */
 	if (S->linetype == LINETYPE_KISSFLEXNET && (cmdbyte & 0x20)) {
+	    int crc;
 	    tncid &= ~0x02; // FlexNet puts 0x20 as indication of CRC presense..
 
 	    if (S->ttycallsign[tncid] == NULL) {
@@ -234,7 +235,7 @@ static int kissprocess(struct serialport *S)
 	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 	      return -1;
 	    }
-	    int crc = calc_crc_flex(S->rdline, S->rdlinelen);
+	    crc = calc_crc_flex(S->rdline, S->rdlinelen);
 	    if (crc != 0x7070) {
 	      if (debug) {
 		printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",

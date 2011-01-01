@@ -118,11 +118,11 @@ struct filter_head_t {
 	union {
 	  float   f_latS;   /* for A filter */
 	  float   f_coslat; /* for R filter */
-	}; /* ANONYMOUS UNION */
+	} u1; /* ANONYMOUS UNION */
 	union {
 	  float   f_lonW; /* for A filter */
 	  float   f_dist; /* for R filter */
-	}; /* ANONYMOUS UNION */
+	} u2; /* ANONYMOUS UNION */
 	time_t  hist_age;
 
 	char	type;	  /* 1 char			*/
@@ -130,18 +130,18 @@ struct filter_head_t {
 	union {
 	  int16_t numnames; /* used as named, and as cache validity flag */
 	  int16_t len1s;    /*  or len1 of s-filter */
-	}; /* ANONYMOUS UNION */
+	} u3; /* ANONYMOUS UNION */
 	union {
 	  int16_t bitflags; /* used as bit-set on T_*** enumerations */
 	  int16_t len1;     /*  or as len2 of s-filter */
-	}; /* ANONYMOUS UNION */
+	} u4; /* ANONYMOUS UNION */
 	union {
 		int16_t len2s, len2, len3s, len3; /* of s-filter */
 		/* for cases where there is only one.. */
 		struct filter_refcallsign_t  refcallsign;
 		/*  malloc()ed array, alignment important! */
 		struct filter_refcallsign_t *refcallsigns;
-	}; /* ANONYMOUS UNION */
+	} u5; /* ANONYMOUS UNION */
 };
 
 struct filter_t {
@@ -707,10 +707,10 @@ void filter_postprocess_dupefilter(struct pbuf_t *pbuf, historydb_t *historydb)
 static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int keylen, struct filter_t *f, MatchEnum wildok)
 {
 	int i;
-	struct filter_refcallsign_t *r  = f->h.refcallsigns;
+	struct filter_refcallsign_t *r  = f->h.u5.refcallsigns;
 	const char                  *r1 = (const void*)ref->callsign;
 
-	for (i = 0; i < f->h.numnames; ++i) {
+	for (i = 0; i < f->h.u3.numnames; ++i) {
 		const int reflen = r[i].reflen;
 		const int len    = reflen & LengthMask;
 		const char   *r2 = (const void*)r[i].callsign;
@@ -830,11 +830,11 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		++refcount;
 	}
 
-	f0->h.refcallsigns = refbuf;
-	f0->h.numnames     = refcount;
+	f0->h.u5.refcallsigns = refbuf;
+	f0->h.u3.numnames     = refcount;
 	if (extend) {
 		char *s;
-		ff->h.numnames     = refcount;
+		ff->h.u3.numnames     = refcount;
 		i = strlen(ff->h.text) + strlen(filt0)+2;
 		if (i <= FILT_TEXTBUFSIZE) {
 			/* Fits in our built-in buffer block - like previous..
@@ -893,9 +893,9 @@ int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *f
 		while (*s && *s != '/') ++s;
 		len2 = s - filt0;
 
-		f0->h.len1s = len1;
-		f0->h.len1  = len2 - len1;
-		f0->h.len2s = f0->h.len2 = f0->h.len3s = f0->h.len3 = 0;
+		f0->h.u3.len1s = len1;
+		f0->h.u4.len1  = len2 - len1;
+		f0->h.u5.len2s = f0->h.u5.len2 = f0->h.u5.len3s = f0->h.u5.len3 = 0;
 
 		if (!*s) break;
 
@@ -904,8 +904,8 @@ int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *f
 		while (*s && *s != '/') ++s;
 		len4 = s - filt0;
 
-		f0->h.len2s = len3;
-		f0->h.len2  = len4 - len3;
+		f0->h.u5.len2s = len3;
+		f0->h.u5.len2  = len4 - len3;
 
 		if (!*s) break;
 
@@ -914,8 +914,8 @@ int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *f
 		while (*s) ++s;
 		len6 = s - filt0;
 
-		f0->h.len3s = len5;
-		f0->h.len3  = len6 - len5;
+		f0->h.u5.len3s = len5;
+		f0->h.u5.len3  = len6 - len5;
 
 		break;
 	}
@@ -974,8 +974,8 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		f0.h.type = 'a'; // inside area
 
 		i = sscanf(filt+1, "/%f/%f/%f/%f%c%c",
-			   &f0.h.f_latN, &f0.h.f_lonW,
-			   &f0.h.f_latS, &f0.h.f_lonE, &dummyc, &dummy2);
+			   &f0.h.f_latN, &f0.h.u2.f_lonW,
+			   &f0.h.u1.f_latS, &f0.h.f_lonE, &dummyc, &dummy2);
 
 		if (i == 6 && dummyc == '/' && dummy2 == '-') {
 			i = 4;
@@ -1002,13 +1002,13 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		    printf("Bad filter latN value: %s", filt0);
 		  return -2;
 		}
-		if (!(-180.01 < f0.h.f_lonW && f0.h.f_lonW < 180.01)) {
+		if (!(-180.01 < f0.h.u2.f_lonW && f0.h.u2.f_lonW < 180.01)) {
 		  // hlog(LOG_DEBUG, "Bad filter lonW value: %s", filt0);
 		  if (debug)
 		    printf("Bad filter lonW value: %s", filt0);
 		  return -2;
 		}
-		if (!( -90.01 < f0.h.f_latS && f0.h.f_latS <  90.01)) {
+		if (!( -90.01 < f0.h.u1.f_latS && f0.h.u1.f_latS <  90.01)) {
 		  // hlog(LOG_DEBUG, "Bad filter latS value: %s", filt0);
 		  if (debug)
 		    printf("Bad filter latS value: %s", filt0);
@@ -1021,26 +1021,26 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		  return -2;
 		}
 
-		if (f0.h.f_lonW > f0.h.f_lonE) {
+		if (f0.h.u2.f_lonW > f0.h.f_lonE) {
 		  // wrong way, swap longitudes
-		  float t = f0.h.f_lonW;
-		  f0.h.f_lonW = f0.h.f_lonE;
+		  float t = f0.h.u2.f_lonW;
+		  f0.h.u2.f_lonW = f0.h.f_lonE;
 		  f0.h.f_lonE = t;
 		}
-		if (f0.h.f_latS > f0.h.f_latN) {
+		if (f0.h.u1.f_latS > f0.h.f_latN) {
 		  // wrong way, swap latitudes
-		  float t = f0.h.f_latS;
-		  f0.h.f_latS = f0.h.f_latN;
+		  float t = f0.h.u1.f_latS;
+		  f0.h.u1.f_latS = f0.h.f_latN;
 		  f0.h.f_latN = t;
 		}
 
 		// hlog(LOG_DEBUG, "Filter: %s -> A %.3f %.3f %.3f %.3f", filt0, f0.h.f_latN, f0.h.f_lonW, f0.h.f_latS, f0.h.f_lonE);
 		
-		f0.h.f_latN = filter_lat2rad(f0.h.f_latN);
-		f0.h.f_lonW = filter_lon2rad(f0.h.f_lonW);
+		f0.h.f_latN    = filter_lat2rad(f0.h.f_latN);
+		f0.h.u2.f_lonW = filter_lon2rad(f0.h.u2.f_lonW);
 		
-		f0.h.f_latS = filter_lat2rad(f0.h.f_latS);
-		f0.h.f_lonE = filter_lon2rad(f0.h.f_lonE);
+		f0.h.u1.f_latS = filter_lat2rad(f0.h.u1.f_latS);
+		f0.h.f_lonE    = filter_lon2rad(f0.h.f_lonE);
 
 		break;
 
@@ -1086,21 +1086,21 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 	case 'F':
 		/*  f/call/dist         Friend's range filter  */
 
-		i = sscanf(filt+1, "/%9[^/]/%f", f0.h.refcallsign.callsign, &f0.h.f_dist);
+		i = sscanf(filt+1, "/%9[^/]/%f", f0.h.u5.refcallsign.callsign, &f0.h.u2.f_dist);
 		// negative distance means "outside this range."
 		// and makes most sense with overall negative filter!
-		if (i != 2 || (-0.1 < f0.h.f_dist && f0.h.f_dist < 0.1)) {
+		if (i != 2 || (-0.1 < f0.h.u2.f_dist && f0.h.u2.f_dist < 0.1)) {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 		  if (debug)
 		    printf("Bad filter parse: %s", filt0);
 		  return -1;
 		}
 
-		f0.h.refcallsign.callsign[CALLSIGNLEN_MAX] = 0;
-		f0.h.refcallsign.reflen = strlen(f0.h.refcallsign.callsign);
-		f0.h.numnames = 0; /* reusing this as "position-cache valid" flag */
+		f0.h.u5.refcallsign.callsign[CALLSIGNLEN_MAX] = 0;
+		f0.h.u5.refcallsign.reflen = strlen(f0.h.u5.refcallsign.callsign);
+		f0.h.u3.numnames = 0; /* reusing this as "position-cache valid" flag */
 
-		// hlog(LOG_DEBUG, "Filter: %s -> F xxx %.3f", filt0, f0.h.f_dist);
+		// hlog(LOG_DEBUG, "Filter: %s -> F xxx %.3f", filt0, f0.h.u2.f_dist);
 
 		/* NOTE: Could do static location resolving at connect time, 
 		** and then use the same way as 'r' range does.  The friends
@@ -1113,16 +1113,16 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 	case 'M':
 		/*  m/dist            My range filter  */
 
-		i = sscanf(filt+1, "/%f", &f0.h.f_dist);
-		if (i != 1 || f0.h.f_dist < 0.1) {
+		i = sscanf(filt+1, "/%f", &f0.h.u2.f_dist);
+		if (i != 1 || f0.h.u2.f_dist < 0.1) {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 		  if (debug)
 		    printf("Bad filter parse: %s", filt0);
 		  return -1;
 		}
-		f0.h.numnames = 0; /* reusing this as "position-cache valid" flag */
+		f0.h.u3.numnames = 0; /* reusing this as "position-cache valid" flag */
 
-		// hlog(LOG_DEBUG, "Filter: %s -> M %.3f", filt0, f0.h.f_dist);
+		// hlog(LOG_DEBUG, "Filter: %s -> M %.3f", filt0, f0.h.u2.f_dist);
 		break;
 #endif
 	case 'o':
@@ -1155,7 +1155,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		/* q/con/ana           q Contruct filter */
 		s = filt+1;
 		f0.h.type = 'q';
-		f0.h.bitflags = 0; /* For QC_*  flags */
+		f0.h.u4.bitflags = 0; /* For QC_*  flags */
 
 		if (*s++ != '/') {
 		  // hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
@@ -1166,34 +1166,34 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		for ( ; *s && *s != '/'; ++s ) {
 			switch (*s) {
 			case 'C':
-				f0.h.bitflags |= QC_C;
+				f0.h.u4.bitflags |= QC_C;
 				break;
 			case 'X':
-				f0.h.bitflags |= QC_X;
+				f0.h.u4.bitflags |= QC_X;
 				break;
 			case 'U':
-				f0.h.bitflags |= QC_U;
+				f0.h.u4.bitflags |= QC_U;
 				break;
 			case 'o':
-				f0.h.bitflags |= QC_o;
+				f0.h.u4.bitflags |= QC_o;
 				break;
 			case 'O':
-				f0.h.bitflags |= QC_O;
+				f0.h.u4.bitflags |= QC_O;
 				break;
 			case 'S':
-				f0.h.bitflags |= QC_S;
+				f0.h.u4.bitflags |= QC_S;
 				break;
 			case 'r':
-				f0.h.bitflags |= QC_r;
+				f0.h.u4.bitflags |= QC_r;
 				break;
 			case 'R':
-				f0.h.bitflags |= QC_R;
+				f0.h.u4.bitflags |= QC_R;
 				break;
 			case 'Z':
-				f0.h.bitflags |= QC_Z;
+				f0.h.u4.bitflags |= QC_Z;
 				break;
 			case 'I':
-				f0.h.bitflags |= QC_I;
+				f0.h.u4.bitflags |= QC_I;
 				break;
 			default:
 				// hlog(LOG_DEBUG, "Bad q-filter parse: %s", filt0);
@@ -1205,7 +1205,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		if (*s == '/') { /* second format */
 			++s;
 			if (*s == 'i' || *s == 'I') {
-				f0.h.bitflags |= QC_AnalyticsI;
+				f0.h.u4.bitflags |= QC_AnalyticsI;
 				++s;
 			}
 			if (*s) {
@@ -1223,10 +1223,10 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		/*  r/lat/lon/dist            Range filter  */
 
 		i = sscanf(filt+1, "/%f/%f/%f",
-			 &f0.h.f_latN, &f0.h.f_lonE, &f0.h.f_dist);
+			 &f0.h.f_latN, &f0.h.f_lonE, &f0.h.u2.f_dist);
 		// negative distance means "outside this range."
 		// and makes most sense with overall negative filter!
-		if (i != 3 || (-0.1 < f0.h.f_dist && f0.h.f_dist < 0.1)) {
+		if (i != 3 || (-0.1 < f0.h.u2.f_dist && f0.h.u2.f_dist < 0.1)) {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 		  if (debug)
 		    printf("Bad filter parse: %s", filt0);
@@ -1246,12 +1246,12 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		  return -2;
 		}
 
-		// hlog(LOG_DEBUG, "Filter: %s -> R %.3f %.3f %.3f", filt0, f0.h.f_latN, f0.h.f_lonE, f0.h.f_dist);
+		// hlog(LOG_DEBUG, "Filter: %s -> R %.3f %.3f %.3f", filt0, f0.h.f_latN, f0.h.f_lonE, f0.h.u2.f_dist);
 
 		f0.h.f_latN = filter_lat2rad(f0.h.f_latN);
 		f0.h.f_lonE = filter_lon2rad(f0.h.f_lonE);
 
-		f0.h.f_coslat = cosf( f0.h.f_latN ); /* Store pre-calculated COS of LAT */
+		f0.h.u1.f_coslat = cosf( f0.h.f_latN ); /* Store pre-calculated COS of LAT */
 		break;
 
 	case 's':
@@ -1276,8 +1276,8 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		*/
 		s = filt+1;
 		f0.h.type = 't';
-		f0.h.bitflags = 0;
-		f0.h.numnames = 0; /* reusing this as "position-cache valid" flag */
+		f0.h.u4.bitflags = 0;
+		f0.h.u3.numnames = 0; /* reusing this as "position-cache valid" flag */
 
 		if (*s++ != '/') {
 		  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
@@ -1288,40 +1288,40 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		for ( ; *s && *s != '/'; ++s ) {
 			switch (*s) {
 			case '*':
-				f0.h.bitflags |= ~T_CWOP; /* "ALL" -- excluding CWOP */
+				f0.h.u4.bitflags |= ~T_CWOP; /* "ALL" -- excluding CWOP */
 				break;
 			case 'c': case 'C':
-				f0.h.bitflags |= T_CWOP;
+				f0.h.u4.bitflags |= T_CWOP;
 				break;
 			case 'i': case 'I':
-				f0.h.bitflags |= T_ITEM;
+				f0.h.u4.bitflags |= T_ITEM;
 				break;
 			case 'm': case 'M':
-				f0.h.bitflags |= T_MESSAGE;
+				f0.h.u4.bitflags |= T_MESSAGE;
 				break;
 			case 'n': case 'N':
-				f0.h.bitflags |= T_NWS;
+				f0.h.u4.bitflags |= T_NWS;
 				break;
 			case 'o': case 'O':
-				f0.h.bitflags |= T_OBJECT;
+				f0.h.u4.bitflags |= T_OBJECT;
 				break;
 			case 'p': case 'P':
-				f0.h.bitflags |= T_POSITION;
+				f0.h.u4.bitflags |= T_POSITION;
 				break;
 			case 'q': case 'Q':
-				f0.h.bitflags |= T_QUERY;
+				f0.h.u4.bitflags |= T_QUERY;
 				break;
 			case 's': case 'S':
-				f0.h.bitflags |= T_STATUS;
+				f0.h.u4.bitflags |= T_STATUS;
 				break;
 			case 't': case 'T':
-				f0.h.bitflags |= T_TELEMETRY;
+				f0.h.u4.bitflags |= T_TELEMETRY;
 				break;
 			case 'u': case 'U':
-				f0.h.bitflags |= T_USERDEF;
+				f0.h.u4.bitflags |= T_USERDEF;
 				break;
 			case 'w': case 'W':
-				f0.h.bitflags |= T_WX;
+				f0.h.u4.bitflags |= T_WX;
 				break;
 			default:
 				// hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
@@ -1331,18 +1331,18 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 			}
 		}
 		if (*s == '/' && s[1] != 0) { /* second format */
-			i = sscanf(s, "/%9[^/]/%f%c", f0.h.refcallsign.callsign, &f0.h.f_dist, &dummyc);
+			i = sscanf(s, "/%9[^/]/%f%c", f0.h.u5.refcallsign.callsign, &f0.h.u2.f_dist, &dummyc);
 			// negative distance means "outside this range."
 			// and makes most sense with overall negative filter!
-			if ( i != 2 || (-0.1 < f0.h.f_dist && f0.h.f_dist < 0.1) || /* 0.1 km minimum radius */
-			     strlen(f0.h.refcallsign.callsign) < CALLSIGNLEN_MIN ) {
+			if ( i != 2 || (-0.1 < f0.h.u2.f_dist && f0.h.u2.f_dist < 0.1) || /* 0.1 km minimum radius */
+			     strlen(f0.h.u5.refcallsign.callsign) < CALLSIGNLEN_MIN ) {
 			  // hlog(LOG_DEBUG, "Bad filter parse: %s", filt0);
 			  if (debug)
 			    printf("Bad t-filter parse: %s", filt0);
 			  return -1;
 			}
-			f0.h.refcallsign.callsign[CALLSIGNLEN_MAX] = 0;
-			f0.h.refcallsign.reflen = strlen(f0.h.refcallsign.callsign);
+			f0.h.u5.refcallsign.callsign[CALLSIGNLEN_MAX] = 0;
+			f0.h.u5.refcallsign.reflen = strlen(f0.h.u5.refcallsign.callsign);
 			f0.h.type = 'T'; /* two variants... */
 		}
 
@@ -1501,9 +1501,9 @@ static int filter_process_one_a(struct pbuf_t *pb, struct filter_t *f)
 		return 0;
 
 	if ((pb->lat <= f->h.f_latN) &&
-	    (pb->lat >= f->h.f_latS) &&
+	    (pb->lat >= f->h.u1.f_latS) &&
 	    (pb->lng <= f->h.f_lonE) && /* East POSITIVE ! */
-	    (pb->lng >= f->h.f_lonW)) {
+	    (pb->lng >= f->h.u2.f_lonW)) {
 		/* Inside the box */
 		return f->h.negation ? 2 : 1;
 	} else if (f->h.type == 'A') {
@@ -1644,8 +1644,8 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 	float lat1, lon1, coslat1;
 	float lat2, lon2, coslat2;
 
-	const char *callsign = f->h.refcallsign.callsign;
-	int i                = f->h.refcallsign.reflen;
+	const char *callsign = f->h.u5.refcallsign.callsign;
+	int i                = f->h.u5.refcallsign.reflen;
 
 	if (!(pb->flags & F_HASPOS)) /* packet with a position.. (msgs with RECEIVER's position) */
 		return 0; /* No position data... */
@@ -1655,16 +1655,16 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 		history = historydb_lookup( historydb, callsign, i );
 		f->h.hist_age = now + hist_lookup_interval;
 		if (!history) return 0; /* no lookup result.. */
-		f->h.numnames = 1;
+		f->h.u3.numnames = 1;
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
-		f->h.f_coslat = history->coslat;
+		f->h.u1.f_coslat = history->coslat;
 	}
-	if (!f->h.numnames) return 0; /* histdb lookup cache invalid */
+	if (!f->h.u3.numnames) return 0; /* histdb lookup cache invalid */
 
 	lat1    = f->h.f_latN;
 	lon1    = f->h.f_lonE;
-	coslat1 = f->h.f_coslat;
+	coslat1 = f->h.u1.f_coslat;
 
 	lat2    = pb->lat;
 	lon2    = pb->lng;
@@ -1672,13 +1672,13 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
 
-	if (f->h.f_dist < 0.0) {
+	if (f->h.u2.f_dist < 0.0) {
 		// Test for _outside_ the range
-		if (r > -f->h.f_dist)  /* Range is more than given limit */
+		if (r > -f->h.u2.f_dist)  /* Range is more than given limit */
 			return (f->h.negation) ? 2 : 1;
 	} else {
 		// Test for _inside_ the range
-		if (r < f->h.f_dist)  /* Range is less than given limit */
+		if (r < f->h.u2.f_dist)  /* Range is less than given limit */
 			return (f->h.negation) ? 2 : 1;
 	}
 
@@ -1722,29 +1722,29 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 		history = historydb_lookup( c->username, strlen(c->username) );
 		f->h.hist_age = now + hist_lookup_interval;
 		if (!history) return 0; /* no result */
-		f->h.numnames = 1;
+		f->h.u3.numnames = 1;
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
-		f->h.f_coslat = history->coslat;
+		f->h.u1.f_coslat = history->coslat;
 	}
-	if (!f->h.numnames) return 0; /* cached lookup invalid.. */
+	if (!f->h.u3.numnames) return 0; /* cached lookup invalid.. */
 
 	lat1    = f->h.f_latN;
 	lon1    = f->h.f_lonE;
-	coslat1 = f->h.f_coslat;
+	coslat1 = f->h.u1.f_coslat;
 
 	lat2    = pb->lat;
 	lon2    = pb->lng;
 	coslat2 = pb->cos_lat;
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
-	if (f->h.f_dist < 0.0) {
+	if (f->h.u2.f_dist < 0.0) {
 		// Test for _outside_ the range
-		if (r > -f->h.f_dist)  /* Range is more than given limit */
+		if (r > -f->h.u2.f_dist)  /* Range is more than given limit */
 			return (f->h.negation) ? 2 : 1;
 	} else {
 		// Test for _inside_ the range
-		if (r < f->h.f_dist)  /* Range is less than given limit */
+		if (r < f->h.u2.f_dist)  /* Range is less than given limit */
 			return (f->h.negation) ? 2 : 1;
 	}
 
@@ -1869,11 +1869,11 @@ static int filter_process_one_q(struct pbuf_t *pb, struct filter_t *f)
 		break;
 	}
 
-	if (f->h.bitflags & mask) {
+	if (f->h.u4.bitflags & mask) {
 		/* Something matched! */
 		return 1;
 	}
-	if (f->h.bitflags & QC_AnalyticsI) {
+	if (f->h.u4.bitflags & QC_AnalyticsI) {
 		/* Oh ?  Analytical! 
 		   Has it ever been accepted into entry-igate database ? */
 		if (filter_entrycall_lookup(pb))
@@ -1903,7 +1903,7 @@ static int filter_process_one_r(struct pbuf_t *pb, struct filter_t *f)
 
 	float lat1    = f->h.f_latN;
 	float lon1    = f->h.f_lonE;
-	float coslat1 = f->h.f_coslat;
+	float coslat1 = f->h.u1.f_coslat;
 	float r;
 
 	float lat2, lon2, coslat2;
@@ -1920,13 +1920,13 @@ static int filter_process_one_r(struct pbuf_t *pb, struct filter_t *f)
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
 
-	if (f->h.f_dist < 0.0) {
+	if (f->h.u2.f_dist < 0.0) {
 		// Test for _outside_ the range
-		if (r > -f->h.f_dist)  /* Range is more than given limit */
+		if (r > -f->h.u2.f_dist)  /* Range is more than given limit */
 			return (f->h.negation) ? 2 : 1;
 	} else {
 		// Test for _inside_ the range
-		if (r < f->h.f_dist)  /* Range is less than given limit */
+		if (r < f->h.u2.f_dist)  /* Range is less than given limit */
 			return (f->h.negation) ? 2 : 1;
 	}
 
@@ -1955,26 +1955,26 @@ static int filter_process_one_s(struct pbuf_t *pb, struct filter_t *f)
 
 	// hlog( LOG_DEBUG, "s-filt %c|%c|%c  %s", symtable, symcode, symolay ? symolay : '-', f->h.text );
 
-	if (f->h.len1 != 0) {
+	if (f->h.u4.len1 != 0) {
 		/* Primary table symbols */
 		if ( symtable == '/' &&
-		     memchr(f->h.text+f->h.len1s, symcode, f->h.len1) != NULL )
+		     memchr(f->h.text+f->h.u3.len1s, symcode, f->h.u4.len1) != NULL )
 			return f->h.negation ? 2 : 1;
 		// return 0;
 	}
-	if (f->h.len3 != 0) {
+	if (f->h.u5.len3 != 0) {
 		/* Secondary table with overlay */
-		if ( memchr(f->h.text+f->h.len3s, symolay, f->h.len3) == NULL )
+		if ( memchr(f->h.text+f->h.u5.len3s, symolay, f->h.u5.len3) == NULL )
 			return 0; // No match on overlay
-		if ( memchr(f->h.text+f->h.len2s, symcode, f->h.len2) == NULL )
+		if ( memchr(f->h.text+f->h.u5.len2s, symcode, f->h.u5.len2) == NULL )
 			return 0; // No match on overlay
 		return f->h.negation ? 2 : 1;
 	}
 	/* OK, no overlay... */
-	if (f->h.len2 != 0) {
+	if (f->h.u5.len2 != 0) {
 		/* Secondary table symbols */
 		if ( symtable != '\\' &&
-		     memchr(f->h.text+f->h.len2s, symcode, f->h.len2) != NULL )
+		     memchr(f->h.text+f->h.u5.len2s, symcode, f->h.u5.len2) != NULL )
 			return f->h.negation ? 2 : 1;
 	}
 	/* No match */
@@ -2024,10 +2024,10 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 	                     ("." is dummy addition for C comments..)
 	*/
 	int rc = 0;
-	if (pb->packettype & f->h.bitflags) /* bitflags as comparison bitmask */
+	if (pb->packettype & f->h.u4.bitflags) /* u4.bitflags as comparison bitmask */
 		rc = 1;
 #if 0
-	if (!rc && (f->h.bitflags & T_WX) && (pb->flags & F_HASPOS)) {
+	if (!rc && (f->h.u4.bitflags & T_WX) && (pb->flags & F_HASPOS)) {
 		/* "Note: The weather type filter also passes positions packets
 		//        for positionless weather packets."
 		//
@@ -2046,8 +2046,8 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 	if (rc && f->h.type == 'T') { /* Within a range of callsign ?
 				       * Rather rare..  perhaps 2-3 in APRS-IS.
 				       */
-		const char *callsign    = f->h.refcallsign.callsign;
-		const int   callsignlen = f->h.refcallsign.reflen;
+		const char *callsign    = f->h.u5.refcallsign.callsign;
+		const int   callsignlen = f->h.u5.refcallsign.reflen;
 		float range, r;
 		float lat1, lon1, coslat1;
 		float lat2, lon2, coslat2;
@@ -2058,7 +2058,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 		if (!(pb->flags & F_HASPOS)) /* packet with a position.. (msgs with RECEIVER's position) */
 			return 0; /* No positional data.. */
 
-		range = f->h.f_dist;
+		range = f->h.u2.f_dist;
 
 		/* So..  Now we have a callsign, and we have range.
 		   Lets find callsign's location, and range to that item..
@@ -2074,18 +2074,18 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 
 
 			if (!history) return 0; /* no lookup result.. */
-			f->h.numnames = 1;
+			f->h.u3.numnames = 1;
 			f->h.hist_age = now + hist_lookup_interval;
 			f->h.f_latN   = history->lat;
 			f->h.f_lonE   = history->lon;
-			f->h.f_coslat = history->coslat;
+			f->h.u1.f_coslat = history->coslat;
 		}
 #endif
-		if (!f->h.numnames) return 0; /* No valid data at range center position cache */
+		if (!f->h.u3.numnames) return 0; /* No valid data at range center position cache */
 
 		lat1    = f->h.f_latN;
 		lon1    = f->h.f_lonE;
-		coslat1 = f->h.f_coslat;
+		coslat1 = f->h.u1.f_coslat;
 
 		lat2    = pb->lat;
 		lon2    = pb->lng;
