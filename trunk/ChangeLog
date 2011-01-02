@@ -1,5 +1,8 @@
 2011-01-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c, doc/aprx-manual.odt:
+	    Unlimit the number of "igate-group N" parameter's N value range.
+
 	* aprsis.c, aprx.c, beacon.c, config.c, digipeater.c, dprsgw.c,
 	  filter.c, historydb.c, igate.c, interface.c, keyhash.c, kiss.c,
 	  netresolver.c, ttyreader.c:
