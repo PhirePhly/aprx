@@ -22,6 +22,9 @@
 /* Define to 1 if you have the `atan2f' function. */
 #undef HAVE_ATAN2F
 
+/* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
+#undef HAVE_DOPRNT
+
 /* Define to 1 if you have the `getaddrinfo' function. */
 #undef HAVE_GETADDRINFO
 
@@ -48,6 +51,9 @@
 
 /* Define to 1 if you have the `socketpair' function. */
 #undef HAVE_SOCKETPAIR
+
+/* Define to 1 if you have the <stdarg.h> header file. */
+#undef HAVE_STDARG_H
 
 /* Define to 1 if you have the <stddef.h> header file. */
 #undef HAVE_STDDEF_H
@@ -78,6 +84,12 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <varargs.h> header file. */
+#undef HAVE_VARARGS_H
+
+/* Define to 1 if you have the `vprintf' function. */
+#undef HAVE_VPRINTF
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
