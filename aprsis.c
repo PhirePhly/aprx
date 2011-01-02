@@ -132,8 +132,10 @@ va_dcl
 	  printtime(timebuf, sizeof(timebuf));
 	  fprintf(stdout, "%s ", timebuf);
 	  vfprintf(stdout, fmt, ap);
-	  if (buf != NULL && buflen != 0)
+	  if (buf != NULL && buflen != 0) {
 	    fwrite(buf, buflen, 1, stdout);
+	    fprintf(stdout, "\n");
+	  }
 	}
 
 	if (!aprxlogfile || !log_aprsis) return; // Do nothing
@@ -146,8 +148,10 @@ va_dcl
 	  printtime(timebuf, sizeof(timebuf));
 	  fprintf(fp, "%s ", timebuf);
 	  vfprintf(fp, fmt, ap);
-	  if (buf != NULL && buflen != 0)
+	  if (buf != NULL && buflen != 0) {
 	    fwrite(buf, buflen, 1, fp);
+	    fprintf(fp, "\n");
+	  }
 	  fclose(fp);
 	}
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
@@ -256,7 +260,8 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 	i = write(A->server_socket, A->wrbuf + A->wrbuf_cur,
 		  A->wrbuf_len - A->wrbuf_cur);
 	if (i > 0) {
-		aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur),
+		// the buffer's last character is \n, don't write it
+		aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur) -1,
 			"<< %s:%s << ", A->H->server_name, A->H->server_port);
 
 		A->wrbuf_cur += i;

@@ -569,6 +569,87 @@ int interface_config(struct configfile *cf)
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 
 
+#ifdef ENABLE_AGWPE
+		} else if ((strcmp(name,"agwpe-device") == 0) && (aif->tty == NULL)) {
+
+		  // agwpe-device hostname hostport callsign agwpeportnum
+
+		  int len;
+		  const char *hostname, *hostport;
+		  char *callsign, *agwpeportnum;
+
+		  if (aif->iftype == IFTYPE_UNSET) {
+		    aif->iftype = IFTYPE_AGWPE;
+		    aif->tty = ttyreader_new();
+		    aif->tty->interface[0] = aif;
+		    aif->tty->ttycallsign[0]  = mycall;
+
+		    // end-step processing registers it
+
+		  } else {
+		    printf("%s:%d ERROR: Only single device specification per interface block!\n",
+			   cf->name, cf->linenum);
+		    have_fault = 1;
+		    continue;
+		  }
+
+		  hostname = strdup(param1);
+		  hostport = str;
+		  str = config_SKIPTEXT(str, NULL);
+		  str = config_SKIPSPACE(str);
+		  hostport = strdup(hostport);
+
+		  callsign = str;
+		  str = config_SKIPTEXT(str, NULL);
+		  str = config_SKIPSPACE(str);
+
+		  agwpeportnum = str;
+		  str = config_SKIPTEXT(str, NULL);
+		  str = config_SKIPSPACE(str);
+
+		  if (debug)
+		    printf(".. AGWPE-DEVICE:  '%s' '%s' '%s' '%s' ('%s'...)\n",
+			   hostname, hostport, callsign, agwpeportnum, str);
+
+		  len = strlen(hostname) + strlen(hostport) + strlen(agwpeportnum) + 8;
+		  aif->tty->ttyname = malloc(len);
+		  sprintf((char *) (aif->tty->ttyname), "tcp!%s!%s[%s]",
+			  hostname, hostport, agwpeportnum);
+
+
+		  if (strcasecmp(callsign,"$mycall") == 0)
+		    callsign = strdup(mycall);
+		  else
+		    callsign = strdup(callsign);
+
+		  if (!validate_callsign_input(callsign,1)) {
+		    printf("%s:%d ERROR: The CALLSIGN parameter on AGWPE-DEVICE must be of valid AX.25 format! '%s'\n",
+			   cf->name, cf->linenum, callsign);
+		    have_fault = 1;
+		    continue;
+		  }
+
+		  if (find_interface_by_callsign(callsign) != NULL) {
+		    // An interface with THIS callsign does exist already!
+		    printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
+			   cf->name, cf->linenum, callsign);
+		    have_fault = 1;
+		    continue;
+		  }
+
+		  aif->callsign = callsign;
+		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
+		  aif->agwpe = agwpe_addport(hostname, hostport, agwpeportnum, aif);
+		  if (aif->agwpe == NULL) {
+		    printf("%s:%d ERROR: Failed to setup this AGWPE-DEVICE: '%s'\n",
+			   cf->name, cf->linenum, callsign);
+		    have_fault = 1;
+		    continue;
+		  }
+
+		  // Always count as defined, even when an error happened!
+		  ++defined_subinterface_count;
+#endif
 		} else if (strcmp(name,"tx-ok") == 0) {
 
 		  if (!config_parse_boolean(param1, &(aif->txok))) {

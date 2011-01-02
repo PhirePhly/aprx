@@ -46,6 +46,8 @@ static void sig_handler(int sig)
 {
 	die_now = 1;
 	signal(sig, sig_handler);
+	if (debug)
+	  printf("SIGNAL %d - DYING!\n", sig);
 }
 
 static void usage(void)
@@ -81,19 +83,14 @@ int main(int argc, char *const argv[])
 	const char *cfgfile = "/etc/aprx.conf";
 	const char *syslog_facility = "NONE";
 	int foreground = 0;
+
+	/* Init the poll(2) descriptor array */
 	struct aprxpolls app = APRXPOLLS_INIT;
 
 	now = time(NULL); // init global time reference
 
 	setlinebuf(stdout);
 	setlinebuf(stderr);
-
-	/* Init the poll(2) descriptor array */
-
-	signal(SIGTERM, sig_handler);
-	signal(SIGINT, sig_handler);
-	signal(SIGHUP, sig_handler);
-	signal(SIGPIPE, SIG_IGN);
 
 	while ((i = getopt(argc, argv, "def:hiLl:v?")) != -1) {
 		switch (i) {
@@ -148,6 +145,9 @@ int main(int argc, char *const argv[])
 
 	i = readconfig(cfgfile);
 	if (i) {
+	  fflush(stdout);
+	  fprintf(stderr, "Seen configuration errors. Aborting!\n");
+	  fflush(stderr);
 	  exit(1); // CONFIGURATION ERRORS SEEN! ABORT!
 	}
 
@@ -162,6 +162,7 @@ int main(int argc, char *const argv[])
 	      && !aprsis_login
 #endif
 	      ) {
+		fflush(stdout);
 		fprintf(stderr,
 			"APRX: NO GLOBAL  MYCALL=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	  } else if (!mycall
@@ -169,6 +170,7 @@ int main(int argc, char *const argv[])
 		     && !aprsis_login
 #endif
 		     ) {
+		fflush(stdout);
 		fprintf(stderr,
 			"APRX: NO GLOBAL  APRSIS-LOGIN=  PARAMETER CONFIGURED, WILL NOT CONNECT APRS-IS\n(This is OK, if no connection to APRS-IS is needed.)\n");
 	  }
@@ -188,9 +190,11 @@ int main(int argc, char *const argv[])
 				er = errno;
 
 				if ((rc == 0) || (er == EPERM)) {
+					fflush(stdout);
 					fprintf(stderr,
 						"APRX: PIDFILE '%s' EXISTS, AND PROCESSID %d INDICATED THERE EXISTS TOO. FURTHER INSTANCES CAN ONLY BE RUN ON FOREGROUND!\n",
 						pidfile, pid);
+					fflush(stderr);
 					exit(1);
 				}
 			}
@@ -206,6 +210,7 @@ int main(int argc, char *const argv[])
 		}
 		/* child and error cases continue on main program.. */
 		poll((void*)&pid, 0, 500);
+
 	}
 
 	if (1) {
@@ -217,6 +222,7 @@ int main(int argc, char *const argv[])
 
 		if (!pf) {
 			/* Could not open pidfile! */
+			fflush(stdout);
 			fprintf(stderr, "COULD NOT OPEN PIDFILE: '%s'\n",
 				pidfile);
 			pidfile = NULL;
@@ -245,6 +251,15 @@ int main(int argc, char *const argv[])
 	}
 
 	// .. but not latter than this.
+
+
+	// Set default signal handling
+
+	signal(SIGTERM, sig_handler);
+	signal(SIGINT, sig_handler);
+	signal(SIGHUP, sig_handler);
+	signal(SIGPIPE, SIG_IGN);
+
 
 
 	// Must be after config reading ...
@@ -334,7 +349,6 @@ int main(int argc, char *const argv[])
 
 	exit(0);
 }
-
 
 
 void printtime(char *buf, int buflen)
