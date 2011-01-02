@@ -309,7 +309,7 @@ extern char *config_SKIPSPACE(char *Y);
 extern char *config_SKIPTEXT(char *Y, int *lenp);
 extern void  config_STRLOWER(char *Y);
 extern void  config_STRUPPER(char *Y);
-extern int   validate_callsign_input(char *callsign, int strict);
+extern int   validate_callsign_input(char *callsign, int strict); // this modifies callsign string!
 extern int   config_parse_interval(const char *par, int *resultp);
 extern int   config_parse_boolean(const char *par, int *resultp);
 
@@ -700,6 +700,7 @@ extern float filter_lon2rad(float lon);
 
 #ifdef ENABLE_AGWPE
 /* agwpesocket.c */
+extern void *agwpe_addport(const char *hostname, const char *hostport, const char *agwpeport, const struct aprx_interface *interface);
 extern void agwpe_sendto(const void *_ap, const uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
 
 extern int  agwpe_prepoll(struct aprxpolls *);

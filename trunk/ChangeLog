@@ -1,5 +1,14 @@
 2011-01-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c, agwpesocket.c, aprx.h:
+	    Configure <interface> agwpe-device.
+
+	* netresolv.c:
+	    Oops..  fixed functionality. Tuned debugging.
+
+	* aprsis.c, aprx.c:
+	    Tuned debugging.
+
 	* configure.in, aprsis.c:
 	    Autoconfig stdarg.h existence, use varargs on debug printout code.
 

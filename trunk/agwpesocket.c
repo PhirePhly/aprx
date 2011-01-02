@@ -198,10 +198,10 @@ struct agwpecom {
 	int		fd;
 	time_t		wait_until;
 
-	struct netresolver *netaddr;
+	const struct netresolver *netaddr;
 
-	int		socketscount;
-	struct agwpesocket *sockets;
+	int			   socketscount;
+	const struct agwpesocket **sockets;
 
 	int		wrlen;
 	int		wrcursor;
@@ -216,14 +216,14 @@ struct agwpecom {
 
 // One agwpesocket per interface
 struct agwpesocket {
-	int		portnum;
-	struct aprx_interface *iface;
+	int			portnum;
+	const struct aprx_interface *iface;
 	struct agwpecom  *com;
 };
 
 
-static struct agwpecom *pecom;
-static int              pecomcount;
+static struct agwpecom **pecom;
+static int               pecomcount;
 
 
 static uint32_t fetch_le32(uint8_t *u) {
@@ -244,6 +244,83 @@ static void set_le32(uint8_t *u, uint32_t value) {
 }
 
 
+static struct agwpecom *agwpe_find_or_add_com(const char *hostname, const char *hostport)
+{
+	struct agwpecom *com;
+	int i;
+	
+	for (i = 0; i < pecomcount; ++i) {
+	  com = pecom[i];
+	  if (strcasecmp(hostname,com->netaddr->hostname) == 0 &&
+	      strcasecmp(hostport,com->netaddr->port) == 0) {
+	    return com; // Found it!
+	  }
+	}
+
+	// Did not find it, create it..
+
+	com = malloc(sizeof(*com));
+	memset(com, 0, sizeof(*com));
+	com->fd = -1;
+	com->netaddr = netresolv_add(hostname, hostport);
+	com->rdneed = sizeof(struct agwpeheader);
+	com->wait_until = now + 30; // redo in 30 seconds or so
+
+	++pecomcount;
+	pecom = realloc(pecom, sizeof(void*)*pecomcount);
+	pecom[pecomcount-1] = com;
+
+	return com;
+}
+
+void *agwpe_addport(const char *hostname, const char *hostport, const char *agwpeport, const struct aprx_interface *interface)
+{
+	int agwpeportnum = atoi(agwpeport);
+	struct agwpesocket *S;
+	struct agwpecom *com;
+
+	if (agwpeportnum < 1 || agwpeportnum > 999) {
+	  if (debug)
+	    printf("ERROR: Bad AGWPE port number value, accepted range: 1 to 999\n");
+	  return NULL;
+	}
+
+	S = malloc(sizeof(*S));
+	memset(S, 0, sizeof(*S));
+
+	com = agwpe_find_or_add_com(hostname, hostport);
+
+	com->socketscount++;
+	com->sockets = realloc(com->sockets, sizeof(void*)*com->socketscount);
+	com->sockets[com->socketscount-1] = S;
+
+	S->iface   = interface;
+	S->com     = com;
+	S->portnum = agwpeportnum-1;
+
+	return S;
+}
+
+
+// close the AGWPE communication socket, retry its call at some point latter
+static void agwpe_reset(struct agwpecom *com, const char *why)
+{
+	com->wrlen = com->wrcursor = 0;
+	com->wait_until = now + 30;
+
+	if (debug>1)
+	  printf("Resetting AGWPE socket; %s\n", why);
+
+	if (com->fd < 0) {
+	  // Should not happen..
+	  return;
+	}
+
+	close(com->fd);
+	com->fd = -1;
+}
+
+
 /*
  *  agwpe_flush()  -- write out buffered data - at least partially
  */
@@ -260,11 +337,28 @@ static void agwpe_flush(struct agwpecom *com)
 
 	/* Now there is some data in between wrcursor and wrlen */
 
+#ifndef MSG_NOSIGNAL
+# define MSG_NOSIGNAL 0 /* This exists only on Linux  */
+#endif
+
 	len = com->wrlen - com->wrcursor;
-	if (len > 0)
-	  i = write(com->fd, com->wrbuf + com->wrcursor, len);
-	else
+	if (len > 0) {
+	  i = send(com->fd, com->wrbuf + com->wrcursor, len, MSG_NOSIGNAL);
+	  /* No SIGPIPE if the
+	     receiver is out,
+	     or pipe is full
+	     because it is doing
+	     slow reconnection. */
+	} else
 	  i = 0;
+	if (i < 0 && (errno == EPIPE ||
+		      errno == ECONNRESET ||
+		      errno == ECONNREFUSED ||
+		      errno == ENOTCONN)) {
+	  /* Sending failed, reset it.. */
+	  agwpe_reset(com,"write to remote closed socket");
+	  return;
+	}
 	if (i > 0) {		/* wrote something */
 		com->wrcursor += i;
 		len = com->wrlen - com->wrcursor;
@@ -331,11 +425,11 @@ static int agwpe_controlwrite(struct agwpecom *com, const uint32_t oper) {
 	struct agwpeheader hdr;
 
 	if (debug) {
-	  printf("agwpe_controlwrite(->%s, oper=%d)", "x", oper);
+	  printf("agwpe_controlwrite(oper=%x (%c))\n", oper, oper);
 	}
 	if (com->fd < 0) {
 	  if (debug)
-	    printf("NOTE: Write to non-open AGWPE socket discarded.");
+	    printf("NOTE: Write to non-open AGWPE socket discarded.\n");
 	  return -1;
 	}
 
@@ -354,18 +448,6 @@ static int agwpe_controlwrite(struct agwpecom *com, const uint32_t oper) {
 
 	agwpe_flush(com); // write out buffered data
 	return 0;
-}
-
-
-// close the AGWPE communication socket, retry its call at some point latter
-static void agwpe_reset(struct agwpecom *com) {
-	if (com->fd < 0) {
-	  // Should not happen..
-	  return;
-	}
-
-	close(com->fd);
-	com->fd = -1;
 }
 
 
@@ -471,7 +553,7 @@ static void agwpe_read(struct agwpecom *com) {
 	  }
 	  if (com->rdneed > sizeof(com->rdbuf)) {
 	    // line noise or something...
-	    agwpe_reset(com);
+	    agwpe_reset(com,"received junk data");
 	    return;
 	  }
 	  if (com->rdlen < com->rdneed) {
@@ -502,12 +584,17 @@ static void agwpe_connect(struct agwpecom *com) {
 	com->rdneed = sizeof(struct agwpeheader);
 
 	// Create socket
+	if (debug>1) {
+	  printf("AGWPE socket(%d %d %d)\n",
+		 com->netaddr->ai.ai_family, com->netaddr->ai.ai_socktype,
+		 com->netaddr->ai.ai_protocol);
+	}
 	com->fd = socket(com->netaddr->ai.ai_family, com->netaddr->ai.ai_socktype,
 			 com->netaddr->ai.ai_protocol);
 	if (com->fd < 0) {
-	  com->wait_until = now + 30; // redo in 30 seconds or so
 	  if (debug)
 	    printf("ERROR at AGWPE socket creation: errno=%d %s\n",errno,strerror(errno));
+	  agwpe_reset(com,"error at socket() creation");
 	  return;
 	}
 	// Put it on non-blocking mode
@@ -516,13 +603,11 @@ static void agwpe_connect(struct agwpecom *com) {
 	// Connect
 	i = connect(com->fd, com->netaddr->ai.ai_addr, com->netaddr->ai.ai_addrlen);
 	// Should result "EINPROGRESS"
-	if (i < 0 && (errno != EINPROGRESS)) {
+	if (i < 0 && (errno != EINPROGRESS && errno != EINTR)) {
 	  // Unexpected fault!
 	  if (debug)
 	    printf("ERROR on non-blocking connect(): errno=%d (%s)\n", errno, strerror(errno));
-	  close(com->fd);
-	  com->fd = -1;
-	  com->wait_until = now + 30; // redo in 30 seconds or so
+	  agwpe_reset(com,"connect failure");
 	  return;
 	}
 
@@ -568,7 +653,7 @@ int agwpe_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 
 	for (i = 0; i < pecomcount; ++i) {
-		S = &pecom[i];
+		S = pecom[i];
 		if (S->fd < 0) {
 			/* Not an open TTY, but perhaps waiting ? */
 			if ((S->wait_until != 0) && (S->wait_until > now)) {
@@ -621,7 +706,7 @@ int agwpe_postpoll(struct aprxpolls *app)
 			continue;	/* No read event we are interested in... */
 
 		for (i = 0; i < pecomcount; ++i) {
-			S = &pecom[i];
+			S = pecom[i];
 			if (S->fd != P->fd)
 				continue;	/* Not this one ? */
 			/* It is this one! */

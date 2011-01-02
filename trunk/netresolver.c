@@ -39,14 +39,21 @@ struct netresolver *netresolv_add(const char *hostname, const char *port) {
 static void resolve_all() {
 	int i;
 
+	if (debug>1)
+	  printf("netresolve nrcount=%d\n", nrcount);
+
 	for (i = 0; i < nrcount; ++i) {
-		struct addrinfo *ai = NULL;
 		struct netresolver *n = nr[i];
-		struct addrinfo req;
+		struct addrinfo *ai, req;
 		int rc;
+
+		now = time(NULL);
 
 		if (n->re_resolve_time > now) {
 		  // Not yet to re-resolve this one
+		  if (debug>1)
+		    printf("nr[%d] re_resolve_time in future (%d secs)\n",
+			   i, (int)(n->re_resolve_time - now));
 		  continue;
 		}
 
@@ -59,13 +66,22 @@ static void resolve_all() {
 #else
 		req.ai_family = AF_INET;	/* IPv4 only */
 #endif
+		ai = NULL;
+
 		rc = getaddrinfo(n->hostname, n->port, &req, &ai);
 		if (rc != 0) {
 		  // re-resolving failed, discard possible junk result
+		  if (debug>1)
+		    printf("nr[%d] resolving of %s:%s failed, error: %s\n",
+			   i, n->hostname, n->port, gai_strerror(errno));
 		  if (ai != NULL)
 		    freeaddrinfo(ai);
 		  continue;
 		}
+
+		if (debug>1)
+		  printf("nr[%d] resolving of %s:%s success!\n",
+			 i, n->hostname, n->port);
 
 		// Make local static copy of first result
 		memcpy(&n->sa, ai->ai_addr, ai->ai_addrlen);
