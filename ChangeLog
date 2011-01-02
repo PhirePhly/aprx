@@ -1,5 +1,11 @@
 2011-01-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, aprsis.c:
+	    Autoconfig stdarg.h existence, use varargs on debug printout code.
+
+	* agwpesocket.c:
+	    Debug printout on received frame.
+
 	* interface.c, doc/aprx-manual.odt:
 	    Unlimit the number of "igate-group N" parameter's N value range.
 

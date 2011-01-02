@@ -19,22 +19,17 @@
 #include <netinet/in.h>
 #include <signal.h>
 
+#ifdef HAVE_STDARG_H
+#include <stdarg.h>
+#else
+#include <varargs.h>
+#endif
+
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
 #include <pthread.h>
 pthread_t aprsis_thread;
 pthread_attr_t pthr_attrs;
 #endif
-
-static void cancel_disable() {
-#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-#endif
-}
-static void cancel_enable() {
-#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-#endif
-}
 
 /*
  * $aprsserver = "rotate.aprs.net:14580";
@@ -105,6 +100,60 @@ static void sig_handler(int sig)
 }
 #endif
 
+#ifdef HAVE_STDARG_H
+#ifdef __STDC__
+static void aprxlog(const char *buf, const int buflen, const char *fmt, ...)
+#else
+static void aprxlog(fmt)
+#endif
+#else
+/* VARARGS */
+static void aprxlog(va_list)
+va_dcl
+#endif
+{
+	va_list ap;
+	FILE *fp;
+	char timebuf[60];
+
+#ifdef 	HAVE_STDARG_H
+	va_start(ap, fmt);
+#else
+	const char *buf;
+	const int buflen;
+	const char *fmt;
+	va_start(ap);
+	buf    = va_arg(ap, const char *);
+	buflen = va_arg(ap, const int);
+	fmt    = va_arg(ap, const char *);
+#endif
+
+	if (verbout) {
+	  printtime(timebuf, sizeof(timebuf));
+	  fprintf(stdout, "%s ", timebuf);
+	  vfprintf(stdout, fmt, ap);
+	  if (buf != NULL && buflen != 0)
+	    fwrite(buf, buflen, 1, stdout);
+	}
+
+	if (!aprxlogfile || !log_aprsis) return; // Do nothing
+
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+#endif
+	fp = fopen(aprxlogfile, "a");
+	if (fp != NULL) {
+	  printtime(timebuf, sizeof(timebuf));
+	  fprintf(fp, "%s ", timebuf);
+	  vfprintf(fp, fmt, ap);
+	  if (buf != NULL && buflen != 0)
+	    fwrite(buf, buflen, 1, fp);
+	  fclose(fp);
+	}
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#endif
+}
 
 
 /*
@@ -125,26 +174,9 @@ static void aprsis_close(struct aprsis *A, const char *why)
 	if (!A->H)
 		return;		/* Not connected, nor defined.. */
 
-	if (verbout)
-		printf("%ld\tCLOSE APRSIS %s:%s %s\n", (long) now,
-		       A->H->server_name, A->H->server_port,
-		       why ? why : "");
-	if (aprxlogfile) {
-		cancel_disable();
-		{
-		FILE *fp = fopen(aprxlogfile, "a");
-		if (fp) {
-			char timebuf[60];
-			printtime(timebuf, sizeof(timebuf));
-
-			fprintf(fp, "%s CLOSE APRSIS %s:%s %s\n", timebuf,
-				A->H->server_name, A->H->server_port,
-				why ? why : "");
-			fclose(fp);
-		}
-		}
-		cancel_enable();
-	}
+	aprxlog(NULL, 0, "CLOSE APRSIS %s:%s %s\n", 
+		A->H->server_name, A->H->server_port,
+		why ? why : "");
 }
 
 
@@ -224,29 +256,8 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 	i = write(A->server_socket, A->wrbuf + A->wrbuf_cur,
 		  A->wrbuf_len - A->wrbuf_cur);
 	if (i > 0) {
-		if (debug > 1) {
-			printf("%ld\t<< %s:%s << ", now, A->H->server_name,
-			       A->H->server_port);
-			fwrite(A->wrbuf + A->wrbuf_cur,
-			       (A->wrbuf_len - A->wrbuf_cur),
-			       1, stdout);	/* Does end on  \r\n */
-		}
-		if (aprxlogfile && log_aprsis) {
-			cancel_disable();
-			{
-			FILE *fp = fopen(aprxlogfile, "a");
-			if (fp) {
-				fprintf(fp, "%ld\t<< %s:%s << ",
-					now, A->H->server_name,
-					A->H->server_port);
-				fwrite(A->wrbuf + A->wrbuf_cur,
-				       (A->wrbuf_len - A->wrbuf_cur),
-				       1, fp);	/* Does end on  \r\n */
-				fclose(fp);
-			}
-			}
-			cancel_enable();
-		}
+		aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur),
+			"<< %s:%s << ", A->H->server_name, A->H->server_port);
 
 		A->wrbuf_cur += i;
 		if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all ! */
@@ -282,11 +293,10 @@ static int aprspass(const char *login)
 
 
 /*
- *  THIS CONNECT ROUTINE WILL BLOCK THE WHOLE PROGRAM
- *  (or pthread ...)
- *
- *  On the other hand, it is no big deal in case of this
- *  programs principal reason for existence...
+ *  THIS CONNECT ROUTINE WILL BLOCK  (At DNS resolving)
+ *  
+ *  This is why APRSIS communication is run at either
+ *  a fork()ed child, or separate pthread from main loop.
  */
 
 // APRS-IS communicator
@@ -312,24 +322,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	}
 
 	if (!A->H->login) {
-		if (verbout)
-			printf("%ld\tFAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n", (long) now);
-		if (aprxlogfile) {
-			cancel_disable();
-			{
-			FILE *fp = fopen(aprxlogfile, "a");
-			if (fp) {
-				char timebuf[60];
-				printtime(timebuf, sizeof(timebuf));
-
-				fprintf(fp,
-					"%s FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n",
-					timebuf);
-				fclose(fp);
-			}
-			}
-			cancel_enable();
-		}
+		aprxlog(NULL, 0, "FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n");
 
 		return;		/* Will try to reconnect in about 60 seconds.. */
 	}
@@ -359,27 +352,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 		aprsis_close(A, "fail on connect");
 
-		if (verbout)
-			printf("%ld\tFAIL - Connect to %s:%s failed: %s\n",
-			       (long) now, A->H->server_name,
-			       A->H->server_port, errstr);
-		if (aprxlogfile) {
-			cancel_disable();
-			{
-			FILE *fp = fopen(aprxlogfile, "a");
-			if (fp) {
-				char timebuf[60];
-				printtime(timebuf, sizeof(timebuf));
-
-				fprintf(fp,
-					"%s FAIL - Connect to %s:%s failed: %s\n",
-					timebuf, A->H->server_name,
-					A->H->server_port, errstr);
-				fclose(fp);
-			}
-			}
-			cancel_enable();
-		}
+		aprxlog(NULL, 0, "FAIL - Connect to %s:%s failed: %s\n",
+			A->H->server_name, A->H->server_port, errstr);
 		return;
 	}
 
@@ -432,25 +406,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 
 	now = time(NULL);	/* unpredictable time since system did last poll.. */
-	if (verbout)
-		printf("%ld\tCONNECT APRSIS %s:%s\n", (long) now,
-		       A->H->server_name, A->H->server_port);
-	if (aprxlogfile) {
-		cancel_disable();
-		{
-		FILE *fp = fopen(aprxlogfile, "a");
-		if (fp) {
-			char timebuf[60];
-			printtime(timebuf, sizeof(timebuf));
-
-			fprintf(fp, "%s CONNECT APRSIS %s:%s\n", timebuf,
-				A->H->server_name, A->H->server_port);
-			fclose(fp);
-		}
-		}
-		cancel_enable();
-	}
-
+	aprxlog(NULL, 0, "CONNECT APRSIS %s:%s\n",
+		A->H->server_name, A->H->server_port);
 
 	/* From now the socket will be non-blocking for its entire lifetime.. */
 	fd_nonblockingmode(A->server_socket);
@@ -488,28 +445,8 @@ static int aprsis_sockreadline(struct aprsis *A)
 		    /* */
 		    A->last_read = now;	/* Time stamp me ! */
 
-		    if (debug > 1) {
-		      printf("%ld\t<< %s:%s >> %s\n",
-			     now, A->H->server_name,
-			     A->H->server_port,
-			     A->rdline);
-		    } else {
-			if (aprxlogfile && log_aprsis) {
-			    cancel_disable();
-			    {
-			    FILE *fp = fopen(aprxlogfile, "a");
-			    if (fp) {
-				fprintf(fp, "%ld\t<< %s:%s >> ",
-					now, A->H->server_name,
-					A->H->server_port);
-				fwrite(A->rdline, A->rdlin_len, 1, fp);
-				fprintf(fp, "\n");
-				fclose(fp);
-			    }
-			    }
-			    cancel_enable();
-			}
-		    }
+		    aprxlog(A->rdline, A->rdlin_len,
+			    ">> %s:%s >> ", A->H->server_name, A->H->server_port);
 
 		    /* Send the A->rdline content to main program */
 		    c = send(aprsis_up, A->rdline, strlen(A->rdline), 0);
@@ -980,7 +917,8 @@ static void aprsis_runthread(void)
 	sigaddset(&sigs_to_block, SIGUSR1);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
-	cancel_enable(); // generally the cancelability is enabled
+	// generally the cancelability is enabled
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
 	if (debug) printf("aprsis_runthread()\n");
 

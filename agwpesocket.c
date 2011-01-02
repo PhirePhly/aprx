@@ -370,23 +370,56 @@ static void agwpe_reset(struct agwpecom *com) {
 
 
 static void agwpe_parse_raw_ax25(struct agwpecom *com,
-				 struct agwpeheader *hdr, const uint8_t *buf)
+				 struct agwpeheader *hdr, const uint8_t *rxbuf)
 {
-	int i;
-
-#warning "WRITEME: AGWPE Raw AX.25 reception"	
+#warning "WRITEME: AGWPE Raw AX.25 reception"
 }
 
 
 static void agwpe_parsereceived(struct agwpecom *com,
-				struct agwpeheader *hdr, const uint8_t *buf)
+				struct agwpeheader *hdr, const uint8_t *rxbuf)
 {
 
 	uint8_t frameType = hdr->dataType;
 
+	if (debug) {
+	  int i;
+	  int rcvlen = hdr->dataLength;
+
+	  printf("AGWPE hdr radioPort=%d dataType=0x%x fromcall='%s' tocall='%s'"
+		 " datalen=%d userfield=%x\n",
+		 hdr->radioPort, hdr->dataType, hdr->fromCall, hdr->toCall,
+		 rcvlen,  hdr->userField);
+
+	  if (rcvlen > 512) rcvlen=512;
+	  printf("AGWPE Data: ");
+	  for (i = 0; i < rcvlen; ++i)
+	    printf(" %02x", rxbuf[i]);
+	  printf("\n");
+	  printf("AGWPE Text: ");
+	  for (i = 0; i < rcvlen; ++i) {
+	    uint8_t c = rxbuf[i];
+	    if (32 <= c && c <= 126)
+	      printf("  %c", c);
+	    else
+	      printf(" %02x", c);
+	  }
+	  printf("\n");
+	  printf("AGWPE AX25: ");
+	  for (i = 0; i < rcvlen; ++i) {
+	    uint8_t c = rxbuf[i] >> 1;
+	    if (32 <= c && c <= 126)
+	      printf("  %c", c);
+	    else
+	      printf(" %02x", c);
+	  }
+	  printf("\n");
+	}
+
+
 	switch (frameType) {
 	case 'K': // Raw AX.25 frame received
-		agwpe_parse_raw_ax25(com, hdr, buf);
+		agwpe_parse_raw_ax25(com, hdr, rxbuf);
 		break;
 
 	default:  // Everything else: discard
@@ -464,6 +497,11 @@ static void agwpe_read(struct agwpecom *com) {
 static void agwpe_connect(struct agwpecom *com) {
 	int i;
 
+	// Initial protocol reading parameters
+	com->rdcursor = 0;
+	com->rdneed = sizeof(struct agwpeheader);
+
+	// Create socket
 	com->fd = socket(com->netaddr->ai.ai_family, com->netaddr->ai.ai_socktype,
 			 com->netaddr->ai.ai_protocol);
 	if (com->fd < 0) {
@@ -472,8 +510,10 @@ static void agwpe_connect(struct agwpecom *com) {
 	    printf("ERROR at AGWPE socket creation: errno=%d %s\n",errno,strerror(errno));
 	  return;
 	}
+	// Put it on non-blocking mode
 	fd_nonblockingmode(com->fd);
 
+	// Connect
 	i = connect(com->fd, com->netaddr->ai.ai_addr, com->netaddr->ai.ai_addrlen);
 	// Should result "EINPROGRESS"
 	if (i < 0 && (errno != EINPROGRESS)) {
@@ -483,7 +523,14 @@ static void agwpe_connect(struct agwpecom *com) {
 	  close(com->fd);
 	  com->fd = -1;
 	  com->wait_until = now + 30; // redo in 30 seconds or so
+	  return;
 	}
+
+	// Aprx will snoop everything that happens on radio ports,
+	// and receive frames in raw AX.25.
+
+	// Queue necessary configuration parameters on newly constructed socket
+
 	agwpe_controlwrite(com, 'k'); // Ask for raw AX.25 frames
 	agwpe_controlwrite(com, 'm'); // Ask for full monitoring of all interfaces
 }
