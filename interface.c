@@ -275,11 +275,13 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 			   cf->name, cf->linenum, param1);
 		    fail = 1;
 		    break;
+/*
 		  } else if (ifgroup >= MAX_IF_GROUP) {
 		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with maximum value of %d.\n",
 			   cf->name, cf->linenum, param1, MAX_IF_GROUP-1);
 		    fail = 1;
 		    break;
+*/
 		  }
 #endif
 
@@ -656,11 +658,13 @@ int interface_config(struct configfile *cf)
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
+/*
 		  } else if (ifgroup >= MAX_IF_GROUP) {
 		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with maximum value of %d.\n",
 			   cf->name, cf->linenum, param1, MAX_IF_GROUP-1);
 		    have_fault = 1;
 		    continue;
+*/
 		  }
 #endif
 
