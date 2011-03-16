@@ -1,3 +1,9 @@
+2011-03-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c, telemetry.c, aprx.h, interface.c:
+	    Transmit only radio data port related beacons,
+	    and telemetry. Don't touch on other pseudo-interfaces.
+
 2011-01-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c, agwpesocket.c, aprx.h:
