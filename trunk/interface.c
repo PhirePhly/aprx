@@ -75,6 +75,37 @@ struct aprx_interface aprsis_interface = {
 	0, NULL
 };
 
+int interface_is_beaconable(const struct aprx_interface *aif)
+{
+	switch (aif->iftype) {
+	case IFTYPE_AX25:
+	case IFTYPE_SERIAL:
+	case IFTYPE_TCPIP:
+	  // case IFTYPE_AGWPE:
+	  // These are beaconable.
+	  return 1;
+
+	default:
+	  break;
+	}
+	return 0;
+}
+
+int interface_is_telemetrable(const struct aprx_interface *aif) {
+	switch (aif->iftype) {
+	case IFTYPE_AX25:
+	case IFTYPE_SERIAL:
+	case IFTYPE_TCPIP:
+	  // case IFTYPE_AGWPE:
+	  // These are real interfaces, and telemetry sources
+	  return 1;
+
+	default:
+	  break;
+	}
+	return 0;
+}
+
 #ifndef DISABLE_IGATE
 /*
  * A helper for interface_receive_ax25() - analyze 3rd-party packets received

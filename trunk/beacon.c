@@ -842,8 +842,11 @@ static void beacon_now(void)
 		const char *src;
 		int len;
 		char *destbuf;
-	
 		const char *callsign = aif->callsign;
+
+		if (!interface_is_beaconable(aif))
+		  continue; // it is not a beaconable interface
+
 		if (callsign == NULL) {
 		  // Probably KISS master interface, and subIF 0 has no definition.
 		  continue;
@@ -852,6 +855,7 @@ static void beacon_now(void)
 		src = (bm->src != NULL) ? bm->src : callsign;
 		len  = destlen + 2 + strlen(src); // destlen contains bm->via
 
+		// The interface type tests should block this ever matching..
 		if (strcmp(callsign,"APRSIS")==0) {
 		  // If we have no radio interfaces, we may still 
 		  // want to do beacons to APRSIS.  Ignore the

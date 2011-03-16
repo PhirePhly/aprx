@@ -662,6 +662,8 @@ extern void interface_init(void);
 extern int  interface_config(struct configfile *cf);
 extern struct aprx_interface *find_interface_by_callsign(const char *callsign);
 
+extern int interface_is_beaconable( const struct aprx_interface *iface );
+extern int interface_is_telemetrable(const struct aprx_interface *iface );
 
 extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int ui_pid, const uint8_t *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
 extern void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);

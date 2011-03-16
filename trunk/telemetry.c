@@ -114,6 +114,8 @@ static void telemetry_datatx()
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
+		if (!interface_is_telemetrable(sourceaif))
+		  continue;
 
 		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
 		// First two bytes of BUF are for AX.25 control+PID fields
@@ -316,6 +318,8 @@ static void telemetry_labeltx()
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
+		if (!interface_is_telemetrable(sourceaif))
+		  continue;
 
 		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
 		// First two bytes of BUF are for AX.25 control+PID fields
@@ -375,6 +379,8 @@ static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
 
 	if (rftelemetrycount == 0) return; // Nothing to do!
 	if (sourceaif == NULL) return; // Huh? Unknown source..
+
+	if (!interface_is_telemetrable(sourceaif)) return;
 
 	// The beaconaddr comes in as:
 	//    "interfacecall>RXTLM-n,TCPIP"
