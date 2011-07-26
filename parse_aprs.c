@@ -42,241 +42,6 @@ static int valid_sym_table_uncompressed(char c)
 		    || (c >= 0x48 && c <= 0x57)); /* [\/\\A-Z0-9] */
 }
 
-
-typedef struct gps2apr_syms {
-	const char gps[3];
-	const char aprs[3];
-	int  flags;
-} gps2aprs_syms_t;
-
-// FIXME: Some symbols have 3 characters,
-//        others take 3rd as overlay...
-//        Add control flags below!
-
-static const gps2aprs_syms_t gps2aprsSyms[] = {
-  { "A0", "\\0", 0 },
-  { "A1", "\\1", 0 },
-  { "A2", "\\2", 0 },
-  { "A3", "\\3", 0 },
-  { "A4", "\\4", 0 },
-  { "A5", "\\5", 0 },
-  { "A6", "\\6", 0 },
-  { "A7", "\\7", 0 },
-  { "A8", "\\8", 0 },
-  { "A9", "\\9", 0 },
-  { "AA", "\\A", 0 },
-  { "AB", "\\B", 0 },
-  { "AC", "\\C", 0 },
-  { "AD", "\\D", 0 },
-  { "AE", "\\E", 0 },
-  { "AF", "\\F", 0 },
-  { "AG", "\\G", 0 },
-  { "AH", "\\H", 0 },
-  { "AI", "\\I", 0 },
-  { "AJ", "\\J", 0 },
-  { "AK", "\\K", 0 },
-  { "AL", "\\L", 0 },
-  { "AM", "\\M", 0 },
-  { "AN", "\\N", 0 },
-  { "AO", "\\O", 0 },
-  { "AP", "\\P", 0 },
-  { "AQ", "\\Q", 0 },
-  { "AR", "\\R", 0 },
-  { "AS", "\\S", 0 },
-  { "AT", "\\T", 0 },
-  { "AU", "\\U", 0 },
-  { "AV", "\\V", 0 },
-  { "AW", "\\W", 0 },
-  { "AX", "\\X", 0 },
-  { "AY", "\\Y", 0 },
-  { "AZ", "\\Z", 0 },
-  { "BB", "/!",  0 },
-  { "BC", "/\"", 0 },
-  { "BD", "/#", 0 },
-  { "BE", "/$", 0 },
-  { "BF", "/%", 0 },
-  { "BG", "/&", 0 },
-  { "BH", "/'", 0 },
-  { "BI", "/(", 0 },
-  { "BJ", "/)", 0 },
-  { "BK", "/*", 0 },
-  { "BL", "/+", 0 },
-  { "BM", "/,", 0 },
-  { "BN", "/-", 0 },
-  { "BO", "/.", 0 },
-  { "BP", "//", 0 },
-  { "DS", "\\[", 0 },
-  { "DT", "\\\\", 0 },
-  { "DU", "\\]", 0 },
-  { "DV", "\\^", 0 },
-  { "DW", "\\_", 0 },
-  { "DX", "\\`", 0 },
-  { "HS", "/[", 0 },
-  { "HT", "/\\", 0 },
-  { "HU", "/]", 0 },
-  { "HV", "/^", 0 },
-  { "HW", "/_", 0 },
-  { "HX", "/`", 0 },
-  { "J1", "/{", 0 },
-  { "J2", "/|", 0 },
-  { "J3", "/}", 0 },
-  { "J4", "/~", 0 },
-  { "LA", "/a", 0 },
-  { "LB", "/b", 0 },
-  { "LC", "/c", 0 },
-  { "LD", "/d", 0 },
-  { "LE", "/e", 0 },
-  { "LF", "/f", 0 },
-  { "LG", "/g", 0 },
-  { "LH", "/h", 0 },
-  { "LI", "/i", 0 },
-  { "LJ", "/j", 0 },
-  { "LK", "/k", 0 },
-  { "LL", "/l", 0 },
-  { "LM", "/m", 0 },
-  { "LN", "/n", 0 },
-  { "LO", "/o", 0 },
-  { "LP", "/p", 0 },
-  { "LQ", "/q", 0 },
-  { "LR", "/r", 0 },
-  { "LS", "/s", 0 },
-  { "LT", "/t", 0 },
-  { "LU", "/u", 0 },
-  { "LV", "/v", 0 },
-  { "LW", "/w", 0 },
-  { "LX", "/x", 0 },
-  { "LY", "/y", 0 },
-  { "LZ", "/z", 0 },
-  { "MR", "/:", 0 },
-  { "MS", "/;", 0 },
-  { "MT", "/<", 0 },
-  { "MU", "/=", 0 },
-  { "MV", "/>", 0 },
-  { "MW", "/?", 0 },
-  { "MX", "/@", 0 },
-  { "NR", "\\:", 0 },
-  { "NS", "\\;", 0 },
-  { "NT", "\\<", 0 },
-  { "NU", "\\=", 0 },
-  { "NV", "\\>", 0 },
-  { "NW", "\\?", 0 },
-  { "NX", "\\@", 0 },
-  { "OB", "\\!", 0 },
-  { "OC", "\\\"", 0 },
-  { "OD", "\\#", 0 },
-  { "OE", "\\$", 0 },
-  { "OF", "\\%", 0 },
-  { "OG", "\\&", 0 },
-  { "OH", "\\'", 0 },
-  { "OI", "\\(", 0 },
-  { "OJ", "\\)", 0 },
-  { "OK", "\\*", 0 },
-  { "OL", "\\+", 0 },
-  { "OM", "\\,", 0 },
-  { "ON", "\\-", 0 },
-  { "OO", "\\.", 0 },
-  { "OP", "\\/", 0 },
-  { "P0", "/0", 0 },
-  { "P1", "/1", 0 },
-  { "P2", "/2", 0 },
-  { "P3", "/3", 0 },
-  { "P4", "/4", 0 },
-  { "P5", "/5", 0 },
-  { "P6", "/6", 0 },
-  { "P7", "/7", 0 },
-  { "P8", "/8", 0 },
-  { "P9", "/9", 0 },
-  { "PA", "/A", 0 },
-  { "PB", "/B", 0 },
-  { "PC", "/C", 0 },
-  { "PD", "/D", 0 },
-  { "PE", "/E", 0 },
-  { "PF", "/F", 0 },
-  { "PG", "/G", 0 },
-  { "PH", "/H", 0 },
-  { "PI", "/I", 0 },
-  { "PJ", "/J", 0 },
-  { "PK", "/K", 0 },
-  { "PL", "/L", 0 },
-  { "PM", "/M", 0 },
-  { "PN", "/N", 0 },
-  { "PO", "/O", 0 },
-  { "PP", "/P", 0 },
-  { "PQ", "/Q", 0 },
-  { "PR", "/R", 0 },
-  { "PS", "/S", 0 },
-  { "PT", "/T", 0 },
-  { "PU", "/U", 0 },
-  { "PV", "/V", 0 },
-  { "PW", "/W", 0 },
-  { "PX", "/X", 0 },
-  { "PY", "/Y", 0 },
-  { "PZ", "/Z", 0 },
-  { "Q1", "\\{", 0 },
-  { "Q2", "\\|", 0 },
-  { "Q3", "\\}", 0 },
-  { "Q4", "\\~", 0 },
-  { "SA", "\\a", 0 },
-  { "SB", "\\b", 0 },
-  { "SC", "\\c", 0 },
-  { "SD", "\\d", 0 },
-  { "SE", "\\e", 0 },
-  { "SF", "\\f", 0 },
-  { "SG", "\\g", 0 },
-  { "SH", "\\h", 0 },
-  { "SI", "\\i", 0 },
-  { "SJ", "\\j", 0 },
-  { "SK", "\\k", 0 },
-  { "SL", "\\l", 0 },
-  { "SM", "\\m", 0 },
-  { "SN", "\\n", 0 },
-  { "SO", "\\o", 0 },
-  { "SP", "\\p", 0 },
-  { "SQ", "\\q", 0 },
-  { "SR", "\\r", 0 },
-  { "SS", "\\s", 0 },
-  { "ST", "\\t", 0 },
-  { "SU", "\\u", 0 },
-  { "SV", "\\v", 0 },
-  { "SW", "\\w", 0 },
-  { "SX", "\\x", 0 },
-  { "SY", "\\y", 0 },
-  { "SZ", "\\z", 0 },
-};
-
-static int gps2aprs_syms_count = sizeof(gps2aprsSyms) / sizeof(gps2aprsSyms[0]);
-
-int parse_gps2aprs_symbol(const char *gpsxxx, char *aprssymbol) {
-	int i, mid, high, low;
-	char gps[3];
-	gps[0] = gpsxxx[0];
-	gps[1] = gpsxxx[1];
-	gps[2] = 0;
-	low = 0;
-	high = gps2aprs_syms_count-1;
-	while (low < high) {
-	  mid = (low + high) >> 1; // divide by 2
-	  i = strcmp(gps, gps2aprsSyms[mid].gps);
-	  // if (debug) printf("GPS2APRS: '%s' '%s', low=%d mid=%d high=%d\n",gps, gps2aprsSyms[mid].gps, low, mid, high);
-	  if (i == 0) {
-	    // Exact match
-	    char c3 = gpsxxx[2];
-	    strcpy(aprssymbol, gps2aprsSyms[mid].aprs);
-	    if (c3 != 0 && c3 != ' ' && aprssymbol[0] != '/') {
-	      // FIXME: overlay ???
-	      aprssymbol[0] = c3;
-	    }
-	    return 0;
-	  }
-	  if (i > 0) {
-	    low = mid+1;
-	  } else {
-	    high = mid-1;
-	  }
-	}
-	return i;
-}
-
 /*
  *	Fill the pbuf_t structure with a parsed position and
  *	symbol table & code. Also does range checking for lat/lng
@@ -327,6 +92,209 @@ static int pbuf_fill_pos(struct pbuf_t *pb, const float lat, const float lng, co
 	return 1;
 }
 
+/*
+ *	Parse symbol from destination callsign
+ */
+
+int get_symbol_from_dstcall_twochar(const char c1, const char c2, char *sym_table, char *sym_code)
+{
+	//hlog(LOG_DEBUG, "\ttwochar %c %c", c1, c2);
+	if (c1 == 'B') {
+		if (c2 >= 'B' && c2 <= 'P') {
+			*sym_table = '/';
+			*sym_code = c2 - 'B' + '!';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'P') {
+		if (c2 >= '0' && c2 <= 9) {
+			*sym_table = '/';
+			*sym_code = c2;
+			return 1;
+		}
+		if (c2 >= 'A' && c2 <= 'Z') {
+			*sym_table = '/';
+			*sym_code = c2;
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'M') {
+		if (c2 >= 'R' && c2 <= 'X') {
+			*sym_table = '/';
+			*sym_code = c2 - 'R' + ':';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'H') {
+		if (c2 >= 'S' && c2 <= 'X') {
+			*sym_table = '/';
+			*sym_code = c2 - 'S' + '[';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'L') {
+		if (c2 >= 'A' && c2 <= 'Z') {
+			*sym_table = '/';
+			*sym_code = c2 - 'A' + 'a';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'J') {
+		if (c2 >= '1' && c2 <= '4') {
+			*sym_table = '/';
+			*sym_code = c2 - '1' + '{';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'O') {
+		if (c2 >= 'B' && c2 <= 'P') {
+			*sym_table = '\\';
+			*sym_code = c2 - 'B' + '!';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'A') {
+		if (c2 >= '0' && c2 <= '9') {
+			*sym_table = '\\';
+			*sym_code = c2;
+			return 1;
+		}
+		if (c2 >= 'A' && c2 <= 'Z') {
+			*sym_table = '\\';
+			*sym_code = c2;
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'N') {
+		if (c2 >= 'R' && c2 <= 'X') {
+			*sym_table = '\\';
+			*sym_code = c2 - 'R' + ':';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'D') {
+		if (c2 >= 'S' && c2 <= 'X') {
+			*sym_table = '\\';
+			*sym_code = c2 - 'S' + '[';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'S') {
+		if (c2 >= 'A' && c2 <= 'Z') {
+			*sym_table = '\\';
+			*sym_code = c2 - 'A' + 'a';
+			return 1;
+		}
+		return 0;
+	}
+	
+	if (c1 == 'Q') {
+		if (c2 >= '1' && c2 <= '4') {
+			*sym_table = '\\';
+			*sym_code = c2 - '1' + '{';
+			return 1;
+		}
+		return 0;
+	}
+	
+	return 0;
+}
+
+int get_symbol_from_dstcall(struct pbuf_t *pb, char *sym_table, char *sym_code)
+{
+	const char *d_start;
+	char type;
+	char overlay;
+	int sublength;
+	int numberid;
+	
+	/* check that the destination call exists and is of the right size for symbol */
+	d_start = pb->srccall_end+1;
+	if (pb->dstcall_end - d_start < 5)
+		return 0; /* too short */
+	
+	/* length of the parsed string */
+	sublength = pb->dstcall_end - d_start - 3;
+	if (sublength > 3)
+		sublength = 3;
+	
+#ifdef DEBUG_PARSE_APRS
+	if (debug)
+	  printf("\tget_symbol_from_dstcall: %.*s (%d)", (int)(pb->dstcall_end - d_start), d_start, sublength);
+#endif
+	
+	if (strncmp(d_start, "GPS", 3) != 0 && strncmp(d_start, "SPC", 3) != 0 && strncmp(d_start, "SYM", 3) != 0)
+		return 0;
+	
+	// hlog(LOG_DEBUG, "\ttesting %c %c %c", d_start[3], d_start[4], d_start[5]);
+	if (!isalnum(d_start[3]) || !isalnum(d_start[4]))
+		return 0;
+	
+	if (sublength == 3 && !isalnum(d_start[5]))
+		return 0;
+	
+	type = d_start[3];
+	
+	if (sublength == 3) {
+		if (type == 'C' || type == 'E') {
+			if (!isdigit(d_start[4]))
+				return 0;
+			if (!isdigit(d_start[5]))
+				return 0;
+			numberid = (d_start[4] - 48) * 10 + (d_start[5] - 48);
+			
+			*sym_code = numberid + 32;
+			if (type == 'C')
+				*sym_table = '/';
+			else
+				*sym_table = '\\';
+		
+#ifdef DEBUG_PARSE_APRS
+			if (debug)
+			  printf("\tnumeric symbol id in dstcall: %.*s: table %c code %c",
+				(int)(pb->dstcall_end - d_start - 3), d_start + 3, *sym_table, *sym_code);
+#endif
+			return 1;
+		} else {
+			/* secondary symbol table, with overlay
+			 * Check first that we really are in the secondary symbol table
+			 */
+			overlay = d_start[5];
+			if ((type == 'O' || type == 'A' || type == 'N' ||
+				type == 'D' || type == 'S' || type == 'Q')
+				&& isalnum(overlay)) {
+				return get_symbol_from_dstcall_twochar(d_start[3], d_start[4], sym_table, sym_code);
+			}
+			return 0;
+		}
+	} else {
+		// primary or secondary table, no overlay
+		return get_symbol_from_dstcall_twochar(d_start[3], d_start[4], sym_table, sym_code);
+	}
+	
+	return 0;
+}
+
 
 /*
  *	Parse NMEA position packets.
@@ -338,6 +306,7 @@ static int parse_aprs_nmea(struct pbuf_t *pb, const char *body, const char *body
 	const char *latp, *lngp;
 	int i, la, lo;
 	char lac, loc;
+	char sym_table, sym_code;
 	
 	if (memcmp(body,"ULT",3) == 0) {
 		/* Ah..  "$ULT..." - that is, Ultimeter 2000 weather instrument */
@@ -566,11 +535,16 @@ static int parse_aprs_nmea(struct pbuf_t *pb, const char *body, const char *body
 	
 	pb->packettype |= T_POSITION;
 	
-	// FIXME: Symbol ???
-	// -- practically all SSIDs are used in source addresses,
-	//    including zero.
+	// Parse symbol from destination callsign
+	get_symbol_from_dstcall(pb, &sym_table, &sym_code);
+#ifdef DEBUG_PARSE_APRS
+	if (debug) {
+	  printf("\tget_symbol_from_dstcall: %.*s => %c%c",
+		 (int)(pb->dstcall_end - pb->srccall_end-1), pb->srccall_end+1, sym_table, sym_code);
+	}
+#endif
 
-	return pbuf_fill_pos(pb, lat, lng, 0, 0);
+	return pbuf_fill_pos(pb, lat, lng, sym_table, sym_code);
 }
 
 static int parse_aprs_telem(struct pbuf_t *pb, const char *body, const char *body_end)
@@ -617,7 +591,7 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	 * A-K characters are not used in the last 3 characters
 	 * and MNO are never used
 	 */
- 	if(debug)printf(" destcall='%6.6s'",d_start);
+ 	if (debug)printf(" destcall='%6.6s'",d_start);
 	for (i = 0; i < 3; i++)
 		if (!((d_start[i] >= '0' && d_start[i] <= '9')
 			|| (d_start[i] >= 'A' && d_start[i] <= 'L')

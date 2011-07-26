@@ -680,8 +680,6 @@ extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, cons
 
 /* parse_aprs.c */
 extern int parse_aprs(struct pbuf_t *pb, int look_into_3rd_party, historydb_t *historydb);
-extern int parse_gps2aprs_symbol(const char *gpsxxx, char *aprssymbol);
-
 
 
 /* filter.c */

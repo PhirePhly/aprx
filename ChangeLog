@@ -1,5 +1,12 @@
 2011-07-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, dprsgw.c, parse_aprs.c:
+	    Moved DPRS related APRS symbol translation from parse_aprs.c
+	    to dprsgw.c.
+
+	* parse_aprs.c:
+	    Introduced APRS symbol mapper/generator for GPS messages.
+
 	* parse_aprs.c:
 	    Rewrite of parse_aprs_mice() degrees parser inspired by F4FXL.
 
