@@ -1,5 +1,9 @@
 2011-07-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    If preceding address processing detects an error, do not call
+	    packet transmitter.
+
 	* aprx.h, dprsgw.c, parse_aprs.c:
 	    Moved DPRS related APRS symbol translation from parse_aprs.c
 	    to dprsgw.c.
