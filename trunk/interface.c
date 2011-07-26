@@ -1504,6 +1504,13 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	  }
 	}
 
+	if (have_fault) {
+	  if (debug) {
+	    printf("observed a fault in inputs of interface_transmit_beacon()\n");
+	  }
+	  return 1;
+	}
+
 	ax25addr[ax25addrlen-1] |= 0x01; // set address field end bit
 
 
