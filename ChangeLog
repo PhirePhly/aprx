@@ -1,3 +1,8 @@
+2011-07-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* parse_aprs.c:
+	    Rewrite of parse_aprs_mice() degrees parser inspired by F4FXL.
+
 2011-03-16  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* beacon.c, telemetry.c, aprx.h, interface.c:

@@ -699,7 +699,9 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	}
 	//fprintf(stderr, "\ttranslated dstcall: %s\n", dstcall);
 	
-	/* position ambiquity is going to get ignored now, it's not needed in this application. */
+	// position ambiquity is going to get ignored now,
+	// it's not needed in this application.
+
 	if (dstcall[5] == '_') { dstcall[5] = '5'; posambiguity = 1; }
 	if (dstcall[4] == '_') { dstcall[4] = '5'; posambiguity = 2; }
 	if (dstcall[3] == '_') { dstcall[3] = '5'; posambiguity = 3; }
@@ -707,31 +709,47 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	if (dstcall[1] == '_' || dstcall[0] == '_') {
 		DEBUG_LOG("..bad pos-ambiguity on destcall");
 		return 0;
-	} /* cannot use posamb here */
+	} // cannot use posamb here
 	
-	/* convert to degrees, minutes and decimal degrees, and then to a float lat */
+	// convert to degrees, minutes and decimal degrees,
+	//  and then to a float lat
+
 	if (sscanf(dstcall, "%2u%2u%2u",
 	    &lat_deg, &lat_min, &lat_min_frag) != 3) {
 		DEBUG_LOG("\tsscanf failed");
 		return 0;
 	}
-	lat = (float)lat_deg + (float)lat_min / 60.0 + (float)lat_min_frag / 100.0 / 60.0;
+	lat = (float)lat_deg + (float)lat_min / 60.0 + (float)lat_min_frag / 6000.0;
 	
-	/* check the north/south direction and correct the latitude if necessary */
+	// check the north/south direction and correct the latitude if necessary
 	if (d_start[3] <= 0x4c)
 		lat = 0 - lat;
 	
-	/* Decode the longitude, the first three bytes of the body after the data
-	 * type indicator. First longitude degrees, remember the longitude offset.
+	/* Decode the longitude, the first three bytes of the body
+	 * after the data type indicator. First longitude degrees,
+	 * remember the longitude offset.
 	 */
-	lng_deg = body[0] - 28;
-	if (body[4] >= 0x50)
-		lng_deg += 100;
-	if (lng_deg >= 180 && lng_deg <= 189)
-		lng_deg -= 80;
-	else if (lng_deg >= 190 && lng_deg <= 199)
-		lng_deg -= 190;
 	
+	/* F4FXL fixe starts here */
+
+	// sub 28 and offset
+	lng_deg = body[0] - 28;
+
+	// Degrees offset depending on encoded character
+	if ((118 <= body[0] && body[0] <= 127) ||
+	    (108 <= body[0] && body[0] <= 117) ||
+	    ( 38 <= body[0] && body[0] <= 107)) {
+
+		lng_deg += 100;
+	}
+
+	if (180 <= lng_deg && lng_deg <= 189) { // act like desscribed in the specs !
+		lng_deg -= 80;
+	} else if (190 <= lng_deg && lng_deg <= 199) {
+		lng_deg -= 190;
+	}
+	/* F4FXL fixe ends here */
+
 	/* Decode the longitude minutes */
 	lng_min = body[1] - 28;
 	if (lng_min >= 60)
@@ -745,12 +763,12 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	case 0:
 		/* use everything */
 		lng = (float)lng_deg + (float)lng_min / 60.0
-			+ (float)lng_min_frag / 100.0 / 60.0;
+			+ (float)lng_min_frag / 6000.0;
 		break;
 	case 1:
 		/* ignore last number of lng_min_frag */
 		lng = (float)lng_deg + (float)lng_min / 60.0
-			+ (float)(lng_min_frag - lng_min_frag % 10 + 5) / 100.0 / 60.0;
+			+ (float)(lng_min_frag - lng_min_frag % 10 + 5) / 6000.0;
 		break;
 	case 2:
 		/* ignore lng_min_frag */
@@ -914,8 +932,8 @@ static int parse_aprs_uncompressed(struct pbuf_t *pb, const char *body, const ch
 	if (lat_deg > 89 || lng_deg > 179)
 		return 0; /* too large values for lat/lng degrees */
 	
-	lat = (float)lat_deg + (float)lat_min / 60.0 + (float)lat_min_frag / 100.0 / 60.0;
-	lng = (float)lng_deg + (float)lng_min / 60.0 + (float)lng_min_frag / 100.0 / 60.0;
+	lat = (float)lat_deg + (float)lat_min / 60.0 + (float)lat_min_frag / 6000.0;
+	lng = (float)lng_deg + (float)lng_min / 60.0 + (float)lng_min_frag / 6000.0;
 	
 	/* Finally apply south/west indicators */
 	if (issouth)
