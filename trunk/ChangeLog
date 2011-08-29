@@ -1,3 +1,9 @@
+2011-08-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* parse_aprs.c:
+	    F4FXL found bug in position parser cos() pre-calculator.
+	    Input needs to be in radians, it was in degrees.
+
 2011-07-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c:
