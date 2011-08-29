@@ -84,7 +84,7 @@ static int pbuf_fill_pos(struct pbuf_t *pb, const float lat, const float lng, co
 
 	/* Pre-calculations for A/R/F/M-filter tests */
 	pb->lat     = filter_lat2rad(lat);  /* deg-to-radians */
-	pb->cos_lat = cosf(lat);            /* used in range filters */
+	pb->cos_lat = cosf(pb->lat);        /* used in range filters */
 	pb->lng     = filter_lon2rad(lng);  /* deg-to-radians */
 	
 	pb->flags |= F_HASPOS;	/* the packet has positional data */
