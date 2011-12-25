@@ -47,11 +47,13 @@ typedef struct dprs_gw {
 // The dprslog() logs ONLY when '-d' mode is running.
 // .. and it will be removed soon.
 
+const char *dprslogfile;
+
 void dprslog( const time_t stamp, const uint8_t *buf ) {
-  FILE *fp = fopen("/tmp/dprslog.txt","a");
+  if (dprslogfile == NULL) return; // Nothing to do
 
+  FILE *fp = fopen(dprslogfile,"a");
   fprintf(fp, "%ld\t%s\n", stamp, (const char *)buf);
-
   fclose(fp);
 }
 

@@ -85,17 +85,24 @@ pidfile @VARRUN@/aprx.pid
 
 
 # rflog defines a rotatable file into which all RF-received packets
-# are logged.  It can be rotated at any time without need to signal
-# the aprx that the file has been moved.
+# are logged.  The host system can rotate it at any time without
+# need to signal the aprx that the file has been moved.
 #
 rflog @VARLOG@/aprx-rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS-IS connection are logged, namely connects and
-# disconnects.  It can be rotated at any time without need to
-# signal the aprx that the file has been moved.
+# disconnects.  The host system can rotate it at any time without
+# need to signal the aprx that the file has been moved.
 #
 aprxlog @VARLOG@/aprx.log
+
+# dprslog defines a rotatable file into which most important 
+# events on DPRS receiver gateways are logged.
+# The host system can rotate it at any time without need to
+# signal the aprx that the file has been moved.
+#
+#dprslog @VARLOG@/dprs.log
 
 # erlangfile defines a mmap():able binary file, which stores
 # running sums of interfaces upon which the channel erlang
