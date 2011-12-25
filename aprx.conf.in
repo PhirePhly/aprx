@@ -45,9 +45,12 @@ mycall  N0CALL-1
 #          something else, and you allow that something
 #          else also affect your tx-igate behaviour!
 #
-#server	   igates.aprs.fi
-#server    finland.aprs2.net
-server    rotate.aprs.net
+server    rotate.aprs2.net
+#server   euro.aprs2.net
+#server   asia.aprs2.net
+#server   noam.aprs2.net
+#server   soam.aprs2.net
+#server   aunz.aprs2.net
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.

@@ -103,7 +103,7 @@ int kissencoder( void *kissbuf, int kissspace, LineType linetype,
 	*kb++ = cmdbyte;
 
 	for (i = 0; i < pktlen && kb < ke; ++i, ++pkt) {
-		/* Calc CRC16 (SMACK CRC) - while encoding data.. */
+		// Calc CRCs while encoding data..
 		int b = *pkt;
 		crc16 = ((crc16 >> 8) & 0xff) ^ crc16_table[(crc16 ^ b) & 0xFF];
 		crcflex = (crcflex << 8) ^ crc_flex_table[((crcflex >> 8) ^ b) & 0xff];
