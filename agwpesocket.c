@@ -183,7 +183,7 @@
 // Socket communication packet header
 struct agwpeheader {
 	uint32_t	radioPort;	// 0..3
-	uint32_t	dataType;	// 4..7
+	uint32_t	dataKind;	// 4..7
 	uint8_t		fromCall[10];	// 8..17
 	uint8_t		toCall[10];	// 18..27
 	uint32_t	dataLength;	// 28..31
@@ -401,7 +401,7 @@ void agwpe_sendto(const void *_ap, const uint8_t *axaddr, const int axaddrlen, c
 
 	memset(&hdr, 0, sizeof(hdr));
 	set_le32((uint8_t*)(&hdr.radioPort), agwpe->portnum);
-	set_le32((uint8_t*)(&hdr.dataType), 'K');
+	set_le32((uint8_t*)(&hdr.dataKind), 'K');
 	set_le32((uint8_t*)(&hdr.dataLength), axaddrlen + axdatalen);
 
 	memcpy(com->wrbuf + com->wrlen, &hdr, sizeof(hdr));
@@ -441,7 +441,11 @@ static int agwpe_controlwrite(struct agwpecom *com, const uint32_t oper) {
 	}
 
 	memset(&hdr, 0, sizeof(hdr));
-	set_le32((uint8_t*)(&hdr.dataType), oper);
+	set_le32((uint8_t*)(&hdr.dataKind), oper);
+
+	if (debug)
+	  hexdumpfp(stdout, (const uint8_t *)&hdr, sizeof(hdr), 0);
+
 	
 	memcpy(com->wrbuf + com->wrlen, &hdr, sizeof(hdr));
 	com->wrlen += sizeof(hdr);
@@ -462,15 +466,15 @@ static void agwpe_parsereceived(struct agwpecom *com,
 				struct agwpeheader *hdr, const uint8_t *rxbuf)
 {
 
-	uint8_t frameType = hdr->dataType;
+	uint8_t frameType = hdr->dataKind;
 
 	if (debug) {
 	  int i;
 	  int rcvlen = hdr->dataLength;
 
-	  printf("AGWPE hdr radioPort=%d dataType=0x%x fromcall='%s' tocall='%s'"
+	  printf("AGWPE hdr radioPort=%d dataKind=0x%x fromcall='%s' tocall='%s'"
 		 " datalen=%d userfield=%x\n",
-		 hdr->radioPort, hdr->dataType, hdr->fromCall, hdr->toCall,
+		 hdr->radioPort, hdr->dataKind, hdr->fromCall, hdr->toCall,
 		 rcvlen,  hdr->userField);
 
 	  if (rcvlen > 512) rcvlen=512;
@@ -541,7 +545,7 @@ static void agwpe_read(struct agwpecom *com) {
 	while (com->rdlen >= com->rdneed) {
 
 	  hdr.radioPort = fetch_le32(com->rdbuf + 0);
-	  hdr.dataType  = fetch_le32(com->rdbuf + 4);
+	  hdr.dataKind  = fetch_le32(com->rdbuf + 4);
 	  memcpy(hdr.fromCall, com->rdbuf + 8, 10);
 	  memcpy(hdr.toCall,   com->rdbuf + 18, 10);
 	  hdr.dataLength = fetch_le32(com->rdbuf + 28);

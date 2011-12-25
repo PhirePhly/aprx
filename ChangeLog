@@ -1,5 +1,12 @@
 2011-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION, aprx.c, TODO, INSTALL, doc/aprx-manual.*:
+	    Version 2.03
+
+	* aprx.h, config.c, dprsgw.c, logrotate.aprx.in,
+	  aprx.conf.in, aprx-complex.conf.in:
+	    Configurability of logging parameter "dprslog".
+
 	* aprx.h, aprsis.c, beacon.c, igate.c, telemetry.c:
 	    Supply qcode on outgoing packets depending it being
 	    locally generated (qAS) or rx-i-gated (qAR)
