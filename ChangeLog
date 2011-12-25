@@ -1,3 +1,19 @@
+2011-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, aprsis.c, beacon.c, igate.c, telemetry.c:
+	    Supply qcode on outgoing packets depending it being
+	    locally generated (qAS) or rx-i-gated (qAR)
+
+	* telemetry.c:
+	    Fix telemetry "tocall" to use software identifier,
+	    and to put "TCPIP*" on APRSIS beacon path.
+
+	* aprx.conf.in:
+	    Fix default server list
+
+	* crc.c, kiss.c:
+	    Document polynomes and fix comments
+
 2011-08-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* parse_aprs.c:
