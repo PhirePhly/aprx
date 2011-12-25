@@ -274,6 +274,20 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    break;
 		  }
 
+		  if (find_interface_by_callsign(callsign) != NULL) {
+		    // An interface with THIS callsign does exist already!
+		    printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
+			   cf->name, cf->linenum, callsign);
+		    fail = 1;
+		    continue;
+		  }
+
+		  if (aif->callsign != NULL)
+		    free(aif->callsign);
+		  aif->callsign = callsign;
+		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
+
+
 		} else if (strcmp(name, "initstring") == 0) {
 		  
 		  initlength = parlen;
@@ -323,7 +337,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		  break;
 		}
 	}
-	if (fail) return 1;
+	if (fail) return 1; // this leaks memory (but also diagnoses bad input)
 
 	if (callsign == NULL) {
 	  // FIXME: Must define at least a callsign!
@@ -730,6 +744,9 @@ int interface_config(struct configfile *cf)
 		      continue;
 		    }
 		  }
+
+		  if (aif->callsign != NULL)
+		    free(aif->callsign);
 		  aif->callsign = strdup(param1);
 		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
 		  if (aif->tty != NULL)
