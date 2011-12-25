@@ -284,9 +284,10 @@ extern int  aprsis_add_server(const char *server, const char *port);
 extern int  aprsis_set_heartbeat_timeout(const int tout);
 extern int  aprsis_set_filter(const char *filter);
 extern int  aprsis_set_login(const char *login);
-
+#define qTYPE_IGATED   'R'
+#define qTYPE_LOCALGEN 'S'
 extern int  aprsis_queue(const char *addr, int addrlen,
-			 const char *gwcall,
+			 const char qtype, const char *gwcall,
 			 const char *text, int textlen);
 extern int  aprsis_prepoll(struct aprxpolls *app);
 extern int  aprsis_postpoll(struct aprxpolls *app);

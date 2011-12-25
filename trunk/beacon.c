@@ -809,6 +809,7 @@ static void beacon_now(void)
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
 		  aprsis_queue(destbuf, strlen(destbuf),
+			       qTYPE_LOCALGEN,
 			       aprsis_login, txt, txtlen);
 		}
 #endif
@@ -902,6 +903,7 @@ static void beacon_now(void)
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
 		  aprsis_queue(destbuf, strlen(destbuf),
+			       qTYPE_LOCALGEN,
 			       aprsis_login, txt, txtlen);
 		}
 #endif

@@ -188,7 +188,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
  *  aprsis_queue_() - internal routine - queue data to specific APRS-IS instance
  */
 // APRS-IS communicator
-static int aprsis_queue_(struct aprsis *A, const char *addr,
+static int aprsis_queue_(struct aprsis *A, const char *addr, const char qtype,
 			 const char *gwcall, const char *text, int textlen)
 {
 	int i;
@@ -215,7 +215,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr,
 
 	addrlen = 0;
 	if (addr)
-		addrlen = sprintf(addrbuf, "%s,qAR,%s:", addr,
+		addrlen = sprintf(addrbuf, "%s,qA%c,%s:", addr, qtype,
 				  (gwcall
 				   && *gwcall) ? gwcall : A->H->login);
 	len = addrlen + textlen;
@@ -427,7 +427,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	A->last_read = now;
 
-	aprsis_queue_(A, NULL, "", aprsislogincmd, strlen(aprsislogincmd));
+	aprsis_queue_(A, NULL, qTYPE_LOCALGEN, "", aprsislogincmd, strlen(aprsislogincmd));
 
 	return;			/* just a place-holder */
 }
@@ -517,6 +517,7 @@ struct aprsis_tx_msg_head {
 	int addrlen;
 	int gwlen;
 	int textlen;
+	char qtype;
 };
 
 /*
@@ -534,6 +535,7 @@ static void aprsis_readup(void)
 	const char *text;
 	int textlen;
 	struct aprsis_tx_msg_head head;
+	char qtype;
 
 	i = recv(aprsis_up, buf, sizeof(buf), 0);
 	if (i == 0) {		/* EOF ! */
@@ -569,12 +571,12 @@ static void aprsis_readup(void)
 	/* Now queue the thing! */
 
 	if (AprsIS != NULL)
-		aprsis_queue_(AprsIS, addr, gwcall, text, textlen);
+		aprsis_queue_(AprsIS, addr, head.qtype, gwcall, text, textlen);
 }
 
 
 // main program side
-int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *text,  int textlen)
+int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gwcall, const char *text,  int textlen)
 {
 	static char *buf;	/* Dynamically allocated buffer... */
 	static int buflen;
@@ -608,6 +610,7 @@ int aprsis_queue(const char *addr, int addrlen, const char *gwcall, const char *
 	head.addrlen = addrlen;
 	head.gwlen   = gwlen;
 	head.textlen = textlen + 2;	/* We add line terminating \r\n  pair. */
+	head.qtype   = qtype;
 
 	memcpy(buf, &head, sizeof(head));
 	p = buf + sizeof(head);

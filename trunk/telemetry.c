@@ -117,7 +117,7 @@ static void telemetry_datatx()
 		if (!interface_is_telemetrable(sourceaif))
 		  continue;
 
-		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
+		beaconaddrlen = sprintf(beaconaddr, "%s>%s,TCPIP*", E->name, tocall);
 		// First two bytes of BUF are for AX.25 control+PID fields
 		s = buf+2;
 		s += sprintf(s, "T#%03d,", telemetry_seq);
@@ -287,7 +287,8 @@ static void telemetry_datatx()
 		/* Send those (net)beacons.. */
 		buflen = s - buf;
 #ifndef DISABLE_IGATE
-		aprsis_queue(beaconaddr, beaconaddrlen,  aprsis_login,
+		aprsis_queue(beaconaddr, beaconaddrlen, 
+			     qTYPE_LOCALGEN, aprsis_login,
 			     buf+2, buflen-2);
 #endif
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
@@ -321,7 +322,7 @@ static void telemetry_labeltx()
 		if (!interface_is_telemetrable(sourceaif))
 		  continue;
 
-		beaconaddrlen = sprintf(beaconaddr, "%s>RXTLM-%d,TCPIP", E->name, (i % 15) + 1);
+		beaconaddrlen = sprintf(beaconaddr, "%s>%s,TCPIP*", E->name, tocall);
 		// First two bytes of BUF are for AX.25 control+PID fields
 
 		/* Send every 5h20m or thereabouts. */
@@ -332,7 +333,8 @@ static void telemetry_labeltx()
 				      E->name);
 		  buflen = s - buf;
 #ifndef DISABLE_IGATE
-		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+		  aprsis_queue(beaconaddr, beaconaddrlen,
+			       qTYPE_LOCALGEN, aprsis_login,
 			       buf+2, buflen-2);
 #endif
 		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
@@ -344,7 +346,8 @@ static void telemetry_labeltx()
 				      E->name);
 		  buflen = s - buf;
 #ifndef DISABLE_IGATE
-		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+		  aprsis_queue(beaconaddr, beaconaddrlen,
+			       qTYPE_LOCALGEN, aprsis_login,
 			       buf+2, buflen-2);
 #endif
 		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
@@ -356,7 +359,8 @@ static void telemetry_labeltx()
 				      E->name);
 		  buflen = s - buf;
 #ifndef DISABLE_IGATE
-		  aprsis_queue(beaconaddr, beaconaddrlen, aprsis_login,
+		  aprsis_queue(beaconaddr, beaconaddrlen,
+			       qTYPE_LOCALGEN, aprsis_login,
 			       buf+2, buflen-2);
 #endif
 		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
@@ -383,7 +387,7 @@ static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
 	if (!interface_is_telemetrable(sourceaif)) return;
 
 	// The beaconaddr comes in as:
-	//    "interfacecall>RXTLM-n,TCPIP"
+	//    "interfacecall>APRXxx,TCPIP*"
 	dest = strchr(beaconaddr, ',');
 	if (dest != NULL) *dest = 0;
 	dest = strchr(beaconaddr, '>');

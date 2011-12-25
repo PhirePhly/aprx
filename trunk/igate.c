@@ -339,7 +339,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	/*
 	  printf("alen=%d  tlen=%d  tnc2buf=%s\n",t0-1-tnc2buf, e-t0, tnc2buf);
 	*/
-	discard = aprsis_queue(tp, tnc2addrlen, portname, t0, e - t0); /* Send it.. */
+	discard = aprsis_queue(tp, tnc2addrlen, qTYPE_IGATED, portname, t0, e - t0); /* Send it.. */
 	/* DEBUG OUTPUT TO STDOUT ! */
 	verblog(portname, 0, tp, tnc2len);
 
