@@ -1,4 +1,4 @@
-				 APRX   2.02
+				 APRX   2.03
 
 				TODO / Wishlist
 
@@ -28,6 +28,9 @@
 
 - "<interface> serial-device ... KISS .." to support more esoteric polling
   modes
+
+- KISS to define multiple KISS parameters, a sort of macro for defining
+  initstring by producing formatted KISS frames of parameter entries.
 
 - Windows port?
   - AGWPE interface for Windows ?
