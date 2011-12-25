@@ -1,5 +1,10 @@
 2011-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    At top-level of the <interface> the "callsign" parameter
+	    did not override device defined callsign and its AX.25
+	    parse result.
+
 	* VERSION, aprx.c, TODO, INSTALL, doc/aprx-manual.*:
 	    Version 2.03
 
