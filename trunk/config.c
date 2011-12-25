@@ -236,6 +236,13 @@ static int logging_config(struct configfile *cf)
 	
 			aprxlogfile = strdup(param1);
 	
+		} else if (strcmp(name, "dprslog") == 0) {
+			if (debug)
+				printf("%s:%d: INFO: DPRSLOG = '%s' '%s'\n",
+				       cf->name, cf->linenum, param1, str);
+	
+			dprslogfile = strdup(param1);
+	
 		} else if (strcmp(name, "rflog") == 0) {
 			if (debug)
 				printf("%s:%d: INFO: RFLOG = '%s' '%s'\n",

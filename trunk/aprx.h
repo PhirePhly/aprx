@@ -152,6 +152,7 @@ extern int verbout;
 extern int erlangout;
 extern const char *rflogfile;
 extern const char *aprxlogfile;
+extern const char *dprslogfile;
 extern const char *erlanglogfile;
 extern const char *pidfile;
 

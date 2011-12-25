@@ -31,16 +31,18 @@ mycall  N0CALL-1
 #login     $mycall	# login defaults to $mycall macro
 
 # APRS-IS server name and optional portnumber.
-# Every reconnect does re-resolve the name to IP address.
 #
 # WARNING: Do not change from default port number [14580]
 #          unless you are absolutely certain you want
 #          something else, and you allow that something
 #          else also affect your tx-igate behaviour!
 #
-#server	   igates.aprs.fi
-#server    finland.aprs2.net
-server    rotate.aprs.net
+server    rotate.aprs2.net
+#server   euro.aprs2.net
+#server   asia.aprs2.net
+#server   noam.aprs2.net
+#server   soam.aprs2.net
+#server   aunz.aprs2.net
 
 # Some APRS-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
@@ -76,15 +78,24 @@ pidfile @VARRUN@/aprx.pid
 
 
 # rflog defines a rotatable file into which all RF-received packets
-# are logged.
+# are logged.  The host system can rotate it at any time without
+# need to signal the aprx that the file has been moved.
 #
-#rflog @VARLOG@/aprx-rf.log
+rflog @VARLOG@/aprx-rf.log
 
 # aprxlog defines a rotatable file into which most important 
 # events on APRS-IS connection are logged, namely connects and
-# disconnects.
+# disconnects.  The host system can rotate it at any time without
+# need to signal the aprx that the file has been moved.
 #
-#aprxlog @VARLOG@/aprx.log
+aprxlog @VARLOG@/aprx.log
+
+# dprslog defines a rotatable file into which most important 
+# events on DPRS receiver gateways are logged.
+# The host system can rotate it at any time without need to
+# signal the aprx that the file has been moved.
+#
+#dprslog @VARLOG@/dprs.log
 
 # erlangfile defines a mmap():able binary file, which stores
 # running sums of interfaces upon which the channel erlang
@@ -460,7 +471,8 @@ pidfile @VARRUN@/aprx.pid
 #    #                              #          burst max 120 packets/minute
 #    #   relay-type   third-party  # Must define this for APRSIS source!
 #    #   viscous-delay 5      # recommendation: 5 seconds delay to give
-#    #                         # RF delivery time make itself known.
+#    #                        # RF delivery time make itself known.
+#    #   #via-path    WIDE2-2 # You can define a via-path for this source
 #    #</source>
 #
 #    #<source>              # DPRS source makes this DPRS->APRS RF gate
@@ -468,6 +480,9 @@ pidfile @VARRUN@/aprx.pid
 #    #   ratelimit    60 120       # default: average 60 packets/minute,
 #    #                             #          burst max 120 packets/minute
 #    #   relay-type   third-party  # Must define this for DPRS source!
+#    #   #viscous-delay 5     # recommendation: 5 seconds delay to give
+#    #                        # RF delivery time make itself known.
+#    #   #via-path    WIDE2-2 # You can define a via-path for this source
 #    #</source>
 #
 #</digipeater>
