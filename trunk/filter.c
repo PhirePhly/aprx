@@ -3,7 +3,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
  *                                                                  *
  ********************************************************************/
 /*
@@ -704,16 +704,21 @@ void filter_postprocess_dupefilter(struct pbuf_t *pbuf, historydb_t *historydb)
  *
  */
 
-static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int keylen, struct filter_t *f, MatchEnum wildok)
+static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int keylen, struct filter_t *f, const MatchEnum wildok)
 {
 	int i;
 	struct filter_refcallsign_t *r  = f->h.u5.refcallsigns;
 	const char                  *r1 = (const void*)ref->callsign;
 
+	if (debug) printf(" filter_match_on_callsignset(ref='%s', keylen=%d, filter='%s')\n", ref->callsign, keylen, f->h.text);
+
 	for (i = 0; i < f->h.u3.numnames; ++i) {
 		const int reflen = r[i].reflen;
 		const int len    = reflen & LengthMask;
 		const char   *r2 = (const void*)r[i].callsign;
+
+		if (debug)printf(" .. reflen=0x%02x r2='%s'\n", reflen & 0xFF, r2);
+
 
 		switch (wildok) {
 		case MatchExact:
@@ -1531,8 +1536,8 @@ static int filter_process_one_b(struct pbuf_t *pb, struct filter_t *f)
 	if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
 
 	/* source address  "addr">... */
+	memset( ref.callsign, 0, sizeof(ref.callsign));
 	memcpy( ref.callsign, pb->data, i);
-	memset( ref.callsign+i, 0, sizeof(ref)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
@@ -2144,6 +2149,8 @@ static int filter_process_one_u(struct pbuf_t *pb, struct filter_t *f)
 static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	int rc = 0;
+
+	if (debug>1) printf("filter_process_one() type=%c\n",f->h.type);
 
 	switch (f->h.type) {
 

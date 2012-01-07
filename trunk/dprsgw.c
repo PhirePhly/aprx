@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -961,7 +961,7 @@ int  dprsgw_postpoll(struct aprxpolls *app)
 
 #ifdef DPRSGW_DEBUG_MAIN
 
-int freadln(FILE *fp, char *p, int buflen)
+int freadln(FILE *fp, char *p, int buflen) // DPRSGW_DEBUG_MAIN
 {
   int n = 0;
   while (!feof(fp)) {
@@ -976,7 +976,7 @@ int freadln(FILE *fp, char *p, int buflen)
   return n;
 }
 
-int ttyreader_getc(struct serialport *S)
+int ttyreader_getc(struct serialport *S)  // DPRSGW_DEBUG_MAIN
 {
 	if (S->rdcursor >= S->rdlen) {	/* Out of data ? */
 		if (S->rdcursor)
@@ -989,12 +989,12 @@ int ttyreader_getc(struct serialport *S)
 
 	return (0xFF & S->rdbuf[S->rdcursor++]);
 }
-void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25_)
+void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25_) // DPRSGW_DEBUG_MAIN
 {
   printf("DPRS RX-IGATE: %s\n", tnc2buf);
 }
 
-void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen)
+void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen) // DPRSGW_DEBUG_MAIN
 {
   printf("DPRS 3RDPARTY RX: ....:}%s>%s,%s,GWCALLSIGN*:%s\n",
 	 fromcall, origtocall, gwtype, tnc2data);
