@@ -1158,12 +1158,15 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  int ax25len;
 	  char    *t;
 	  uint8_t *a;
+	  uint16_t filter_packettype = 0;
 
 	  // Accept/Reject the packet by digipeater rx filter?
 	  filter_discard = 0;
 	  if (digisrc->src_filters == NULL) {
 	    // No filters defined, default Tx-iGate rules apply
 	  } else {
+
+	    if (debug) printf("## process source filter\n");
 
 	    // We have a filter statements to process here,
 	    // we need to turn incoming APRSIS frame to something
@@ -1223,8 +1226,17 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 		     rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
 		     pb->info_start);
 
+	    filter_packettype = pb->packettype;
+
 	    filter_discard = filter_process(pb, digisrc->src_filters, historydb);
 	    pbuf_put(pb); // drop the temporary buffer
+
+	    if (debug) printf("filter says: %d (%s)\n", filter_discard, (filter_discard > 0 ? "accept" : (filter_discard == 0 ? "indifferent" : "reject")));
+
+	    if (filter_discard < 0) {
+	      if (debug) printf("REJECTED!\n");
+	      continue;
+	    }
 	  }
 	  // filter_discard > 0: accept
 	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
@@ -1232,6 +1244,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
 
+	  if (debug) printf("## produce 3rd-party frame for transmit:\n");
 	  // Parse the TNC2 format to AX.25 format
 	  // using ax25buf[] storage area.
 	  memcpy(ax25buf,    toaprs, 7);           // AX.25 DEST call
@@ -1339,18 +1352,20 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    // Sanity -- not a message..
 	    discard_this = 1;
 	  }
-	  if ((pb->packettype & T_MESSAGE) == 0) {
+	  if (filter_packettype == 0)
+	    filter_packettype = pb->packettype;
+	  if ((filter_packettype & T_MESSAGE) == 0) {
 	    // Not a message packet
 	    discard_this = 1;
 	  }
-	  if ((pb->packettype & (T_NWS)) != 0) {
+	  if ((filter_packettype & (T_NWS)) != 0) {
 	    // Not a weather alert packet
 	    discard_this = 1;
 	  }
 
 	  // Manual filter says: Accept!
 	  if (discard_this && filter_discard > 0) {
-	    if (debug) printf("filter says: send!\n");
+	    if (debug) printf("filters say: send!\n");
 	    discard_this = 0;
 	  }
 	  // Manual filter says: Discard!
@@ -1427,7 +1442,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  if (filter_discard > 0 || (filter_discard == 0 && !discard_this)) {
 	    // Not discarding - approved for transmission
 
-	    if ((pb->packettype & T_POSITION) == 0) {
+	    if ((filter_packettype & T_POSITION) == 0) {
 	      // TODO: For position-less packets send at first a position packet
 	      //       for same source call sign -- if available.
 	      
