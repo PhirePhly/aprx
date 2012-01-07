@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -60,20 +60,19 @@ static void pbuf_free(struct pbuf_t *pb)
 struct pbuf_t *pbuf_alloc( const int axlen,
 			   const int tnc2len )
 {
-#ifndef _FOR_VALGRIND_
+	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 
+#ifndef _FOR_VALGRIND_
 	// Picks suitably sized pbuf, and pre-cleans it
 	// before passing to user
 
 	struct pbuf_t *pb;
-	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 	if (pblen > 2150) {
 	  // Outch!
 	  return NULL;
 	}
 	pb = cellmalloc(pbuf_cells);
 #else
-	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 	// No size limits with valgrind..
 	struct pbuf_t *pb = malloc( pblen );
 #endif
@@ -121,4 +120,40 @@ struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int a
 	pb->t              = now;      // Arrival time
 
 	return pb;
+}
+
+// Do the pbuf filling in single location
+void pbuf_fill( struct pbuf_t *pb,
+		const int tnc2addrlen, const char *tnc2buf, const int tnc2len,
+		const int ax25addrlen, const void *ax25buf, const int ax25len )
+{
+	char *p;
+	int tnc2infolen;
+
+	memcpy((void*)(pb->data), tnc2buf, tnc2len);
+	pb->info_start = pb->data + tnc2addrlen + 1;
+	p = (char*)&pb->info_start[-1]; *p = 0;
+
+	tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
+	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
+
+	p = pb->data;
+	for ( p = pb->data; p < (pb->info_start); ++p ) {
+	  if (*p == '>') {
+	    pb->srccall_end = p;
+	    pb->destcall    = p+1;
+	    continue;
+	  }
+	  if (*p == ',' || *p == ':') {
+	    pb->dstcall_end = p;
+	    break;
+	  }
+	}
+	if (pb->dstcall_end == NULL)
+	  pb->dstcall_end = p;
+
+	memcpy(pb->ax25addr, ax25buf, ax25len);
+	pb->ax25addrlen = ax25addrlen;
+	pb->ax25data    = pb->ax25addr + ax25addrlen;
+	pb->ax25datalen = ax25len - ax25addrlen;
 }

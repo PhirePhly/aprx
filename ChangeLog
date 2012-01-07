@@ -1,3 +1,27 @@
+2012-91-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* pbuf.h, pbuf.c, aprx.h:
+	    New infrastructure function: pbuf_fill() that does
+	    former two (then 3) copies of same code in interface.c
+
+	* interface.c:
+	    Use new pbuf_fill().
+	    On 3rd-party receiver, parse original (sort of) TNC2 frame
+	    to temporary AX.25 frame for filter analysis.
+	    Rearranged filter running and reactioning.
+
+	* filter.c:
+	    Debug printouts
+
+	* All files...
+	    Copyright text update.
+
+2011-12-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c:
+	    3rd-party igate tx processing fixes, now it allows also
+	    other than messages
+
 2011-12-25  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION, aprx.c, TODO, INSTALL, doc/aprx-manual.*:

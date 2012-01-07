@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -678,6 +678,7 @@ extern void           pbuf_init(void);
 extern struct pbuf_t *pbuf_get(struct pbuf_t *pb);
 extern void           pbuf_put(struct pbuf_t *pb);
 extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axdatalen, const int tnc2len);
+extern void           pbuf_fill(struct pbuf_t *pb, const int tnc2addrlen, const char *tnc2buf, const int tnc2len, const int ax25addrlen, const void *ax25buf, const int ax25len );
 
 
 /* parse_aprs.c */

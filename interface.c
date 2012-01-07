@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2011                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -934,8 +934,6 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 #ifndef DISABLE_IGATE
 	    historydb_t *historydb = digisource->parent->historydb;
 #endif
-	    char *p;
-	    int tnc2infolen;
 
 	    // Allocate pbuf, it is born "gotten" (refcount == 1)
 	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
@@ -944,37 +942,9 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	      // Likely reason: axlen+tnc2len  > 2100 bytes!
 	      continue;
 	    }
+	    pbuf_fill(pb, tnc2addrlen, tnc2buf, tnc2len, axaddrlen, axbuf, axlen);
+
 	    pb->source_if_group = aif->ifgroup;
-
-	    memcpy((void*)(pb->data), tnc2buf, tnc2len);
-	    pb->data[tnc2len] = 0;
-
-	    pb->info_start = pb->data + tnc2addrlen + 1;
-	    p = (char*)&pb->info_start[-1]; *p = 0;
-
-	    p = pb->data;
-	    for ( p = pb->data; p < (pb->info_start); ++p ) {
-	      if (*p == '>') {
-		pb->srccall_end = p;
-		pb->destcall    = p+1;
-		continue;
-	      }
-	      if (*p == ',' || *p == ':') {
-		pb->dstcall_end = p;
-		break;
-	      }
-	    }
-	    if (pb->dstcall_end == NULL)
-	      pb->dstcall_end = p;
-
-	    tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
-	    p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
-
-	    // Copy incoming AX.25 frame into its place too.
-	    memcpy(pb->ax25addr, axbuf, axlen);
-	    pb->ax25addrlen = axaddrlen;
-	    pb->ax25data    = pb->ax25addr + axaddrlen;
-	    pb->ax25datalen = axlen - axaddrlen;
 
 	    // If APRS packet, then parse for APRS meaning ...
 	    if (is_aprs) {
@@ -987,8 +957,8 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 				    ); // don't look inside 3rd party
 		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
 		if (debug)
-		  printf(".. parse_aprs() rc=%s  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
-			 rc ? "OK":"FAIL", srcif, pb->data, pb->info_start);
+		  printf(".. parse_aprs() rc=%s  type=0x%02x  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
+			 rc ? "OK":"FAIL", pb->packettype, srcif, pb->data, pb->info_start);
 
 		// If there are no filters, permit all packets
 		if (digisource->src_filters != NULL) {
@@ -1085,7 +1055,9 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 #endif
 	case IFTYPE_NULL:
 		// Efficient transmitter :-)
-		
+		if (debug>1)
+			printf("tx null-device\n");
+
 		// Account the transmission anyway ;-)
 		erlang_add(aif->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);
 		break;
@@ -1145,26 +1117,20 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 
 static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,' '<<1,' '<<1,0x60 };
 
-void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen)
+void interface_receive_3rdparty( const struct aprx_interface *aif,
+				 const char *fromcall,
+				 const char *origtocall,
+				 const char *gwtype,
+				 const char *tnc2data,
+				 const int tnc2datalen )
 {
-	int d;
-	struct pbuf_t *pb;
-	const char *p;
+	int d; // digipeater index
 	int first = 1;
 
-	int tnc2addrlen;
-	int tnc2len;
-	char    *t;
-
-	int ax25addrlen;
-	int ax25len;
-	uint8_t *a;
-	
 	char     tnc2buf[2800];
 	uint8_t  ax25buf[2800];
 
 	time_t recent_time = now - 3600; // "recent" = 1 hour
-
 
 
 	if (debug)
@@ -1184,10 +1150,85 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  struct digipeater_source *digisrc = aif->digisources[d];
 	  struct digipeater        *digi    = digisrc->parent;
 	  struct aprx_interface    *tx_aif  = digi->transmitter;
-	  char *p2, *srcif;
-	  int tnc2infolen, rc, discard_this, filter_discard;
+	  historydb_t            *historydb = digi->historydb;
+	  struct pbuf_t *pb;
+	  char *srcif;
+	  int rc, discard_this, filter_discard, tnc2addrlen, tnc2len;
+	  int ax25addrlen;
+	  int ax25len;
+	  char    *t;
+	  uint8_t *a;
 
-	  historydb_t *historydb = digisrc->parent->historydb;
+	  // Accept/Reject the packet by digipeater rx filter?
+	  filter_discard = 0;
+	  if (digisrc->src_filters == NULL) {
+	    // No filters defined, default Tx-iGate rules apply
+	  } else {
+
+	    // We have a filter statements to process here,
+	    // we need to turn incoming APRSIS frame to something
+	    // that the filter can process:
+
+	    // Incoming:
+	    //   EI7IG-1>APRS,TCPIP*,qAC,T2IRELAND:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+	    // Filtered:
+	    //   EI7IG-1>APRS:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+
+	    a = ax25buf;
+	    parse_ax25addr( a, tocall, 0x60 );
+	    a += 7;
+	    parse_ax25addr( a, fromcall, 0x60 );
+	    a += 7;
+	    a[-1] |= 0x01; // end-of-address bit
+	    ax25addrlen = a - ax25buf;
+	    *a++ = 0x03;
+	    *a++ = 0xF0;
+	    if ((sizeof(ax25buf) - tnc2datalen) <= (a-ax25buf)) {
+	      if (debug) printf(" .. data does not fit on ax25buf");
+	      continue;
+	    }
+	    memcpy( a, tnc2data, tnc2datalen );
+	    a += tnc2datalen;
+	    ax25len = (a - ax25buf);
+
+	    t = tnc2buf;
+	    t += sprintf(t, "%s>%s:", fromcall, origtocall);
+	    tnc2addrlen = t - tnc2buf - 1;
+	    if ((sizeof(tnc2buf) - tnc2datalen) <= (t-tnc2buf)) {
+	      if (debug) printf(" .. data does not fit on tnc2buf");
+	      continue;
+	    }
+	    memcpy(t, tnc2data, tnc2datalen);
+	    t += tnc2datalen;
+	    tnc2len = (t - tnc2buf);
+
+	    // Allocate temporary pbuf for filter call use
+	    pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+	    if (pb == NULL) {
+	      // Urgh!  Can't do a thing to this!
+	      // Likely reason: ax25len+tnc2len  > 2100 bytes!
+	      if (debug) printf("pbuf_new() returned NULL! Discarding!\n");
+	      continue;
+	    }
+	    pbuf_fill( pb, tnc2addrlen, tnc2buf, tnc2len, ax25addrlen, ax25buf, ax25len);
+
+	    pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
+	    srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+
+
+	    // This is APRS packet, parse for APRS meaning ...
+	    rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
+	    if (debug)
+	      printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
+		     rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
+		     pb->info_start);
+
+	    filter_discard = filter_process(pb, digisrc->src_filters, historydb);
+	    pbuf_put(pb); // drop the temporary buffer
+	  }
+	  // filter_discard > 0: accept
+	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
+	  // filter_discard < 0: reject
 
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
 
@@ -1257,44 +1298,19 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  if (pb == NULL) {
 	    // Urgh!  Can't do a thing to this!
 	    // Likely reason: ax25len+tnc2len  > 2100 bytes!
+	    if (debug) printf("pbuf_new() returned NULL! Discarding!\n");
 	    continue;
 	  }
+	  pbuf_fill( pb, tnc2addrlen, tnc2buf, tnc2len, ax25addrlen, ax25buf, ax25len);
 
 	  pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
-
-	  memcpy((void*)(pb->data), tnc2buf, tnc2len);
-	  pb->info_start = pb->data + tnc2addrlen + 1;
-	  p2    = (char*)&pb->info_start[-1]; *p2 = 0;
 	  srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
-
-	  tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
-	  p2 = (char*)&pb->info_start[tnc2infolen]; *p2 = 0;
-
-	  p = pb->data;
-	  for ( p = pb->data; p < (pb->info_start); ++p ) {
-	    if (*p == '>') {
-	      pb->srccall_end = p;
-	      pb->destcall    = p+1;
-	      continue;
-	    }
-	    if (*p == ',' || *p == ':') {
-	      pb->dstcall_end = p;
-	      break;
-	    }
-	  }
-	  if (pb->dstcall_end == NULL)
-	    pb->dstcall_end = p;
-
-	  memcpy(pb->ax25addr, ax25buf, ax25len);
-	  pb->ax25addrlen = ax25addrlen;
-	  pb->ax25data    = pb->ax25addr + ax25addrlen;
-	  pb->ax25datalen = ax25len - ax25addrlen;
 
 	  // This is APRS packet, parse for APRS meaning ...
 	  rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
 	  if (debug)
-	    printf(".. parse_aprs() rc=%s  srcif=%s tnc2addr='%s'  info_start='%s'\n",
-		   rc ? "OK":"FAIL", srcif, pb->data,
+	    printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
+		   rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
 		   pb->info_start);
 
           // 1) - verify receiving station has been heard
@@ -1328,11 +1344,22 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    discard_this = 1;
 	  }
 	  if ((pb->packettype & (T_NWS)) != 0) {
-	    // Not a message packet
+	    // Not a weather alert packet
 	    discard_this = 1;
 	  }
 
-	  if (!discard_this) {
+	  // Manual filter says: Accept!
+	  if (discard_this && filter_discard > 0) {
+	    if (debug) printf("filter says: send!\n");
+	    discard_this = 0;
+	  }
+	  // Manual filter says: Discard!
+	  if (filter_discard < 0) {
+	    if (debug) printf("filter says: discard!\n");
+	    discard_this = 1;
+	  }
+
+	  if (!discard_this && pb->recipient != NULL) {
 	    // 1) - verify receiving station has been heard
 	    //      recently on radio
 	    int i;
@@ -1345,8 +1372,8 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 		recipient[i] = 0; // Zero-terminate
 	    }
 
-// FIXME?  Should test all SSIDs of this target callsign, not just this one target,
-//         if this is a T_MESSAGE!  (strange BoB rules...)
+	    // FIXME?  Should test all SSIDs of this target callsign, not just this one target,
+	    //         if this is a T_MESSAGE!  (strange BoB rules...)
 
 	    hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
 	    if (hist_rx == NULL) {
@@ -1390,24 +1417,6 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	    }
 	  }
 
-	  // Accept/Reject the packet by digipeater rx filter?
-	  filter_discard = 0;
-	  if (digisrc->src_filters == NULL) {
-	    // No filters defined, default Tx-iGate rules apply
-	  } else {
-	    filter_discard = filter_process(pb, digisrc->src_filters, digisrc->parent->historydb);
-	  }
-	  // filter_discard > 0: accept
-	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
-	  // filter_discard < 0: reject
-
-	  // Manual filter says: Accept!
-	  if (discard_this && filter_discard > 0)
-	    discard_this = 0;
-	  // Manual filter says: Discard!
-	  if (filter_discard < 0)
-	    discard_this = 1;
-
 	  if (first) {
 	    // Stores position, and message references
 	    historydb_insert_heard( digi->historydb, pb );
@@ -1415,7 +1424,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	  }
 	  first = 0;
 
-	  if (!discard_this) {
+	  if (filter_discard > 0 || (filter_discard == 0 && !discard_this)) {
 	    // Not discarding - approved for transmission
 
 	    if ((pb->packettype & T_POSITION) == 0) {
@@ -1424,7 +1433,10 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 	      
 	    }
 
+	    if (debug) printf("Send to digipeater\n");
 	    digipeater_receive( digisrc, pb);
+	  } else {
+	    if (debug) printf("DISCARDED! (filter_discard=%d, discard_this=%d)\n",filter_discard, discard_this);
 	  }
 
 	  // .. and finally free up the pbuf (if refcount goes to 0)
