@@ -553,7 +553,7 @@ void *readconfigline(struct configfile *cf)
 {
 	char *bufp = cf->buf;
 	int buflen = sizeof(cf->buf);
-	int llen;
+	//int llen;
 	cf->linenum = cf->linenum_i;
 	for (;;) {
 	  char *p = fgets(bufp, buflen, cf->fp);
@@ -574,7 +574,7 @@ void *readconfigline(struct configfile *cf)
 	    // Line ending whitespaces ?
 	    while (p > bufp && (*p == ' '||*p == '\t'))
 	      *p-- = 0;
-	    llen = p - bufp;
+	    //llen = p - bufp;
 	  }
 	  if (p == NULL) {
 	    p = bufp + strlen(bufp);

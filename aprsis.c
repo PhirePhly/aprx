@@ -133,8 +133,8 @@ va_dcl
 	  fprintf(stdout, "%s ", timebuf);
 	  vfprintf(stdout, fmt, ap);
 	  if (buf != NULL && buflen != 0) {
-	    fwrite(buf, buflen, 1, stdout);
-	    fprintf(stdout, "\n");
+	    (void)fwrite(buf, buflen, 1, stdout);
+	    (void)fprintf(stdout, "\n");
 	  }
 	}
 
@@ -149,8 +149,8 @@ va_dcl
 	  fprintf(fp, "%s ", timebuf);
 	  vfprintf(fp, fmt, ap);
 	  if (buf != NULL && buflen != 0) {
-	    fwrite(buf, buflen, 1, fp);
-	    fprintf(fp, "\n");
+	    (void)fwrite(buf, buflen, 1, fp);
+	    (void)fprintf(fp, "\n");
 	  }
 	  fclose(fp);
 	}
@@ -768,7 +768,6 @@ static void aprsis_cond_reconnect(void)
 // APRS-IS communicator
 static void aprsis_main(void)
 {
-	int i;
 #if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 	int ppid = getppid();
 #endif
@@ -783,6 +782,8 @@ static void aprsis_main(void)
 	/* The main loop */
 	while (!aprsis_die_now) {
 		struct pollfd *pfd;
+		int i;
+
 		now = time(NULL);
 
 		aprsis_cond_reconnect();

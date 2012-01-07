@@ -701,10 +701,8 @@ Leads with 00 byte, then AX.25 address..
 
 static void discard_read_fd( const int fd )
 {
-	int i;
 	char buf[2000];
-
-	i = read(fd, buf, sizeof(buf));
+	(void)read(fd, buf, sizeof(buf));
 }
 
 
