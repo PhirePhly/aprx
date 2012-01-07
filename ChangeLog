@@ -1,5 +1,7 @@
 2012-91-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* VERSION:  2.03test3
+
 	* pbuf.h, pbuf.c, aprx.h:
 	    New infrastructure function: pbuf_fill() that does
 	    former two (then 3) copies of same code in interface.c
