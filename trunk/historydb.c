@@ -114,12 +114,12 @@ void historydb_atend(void)
 void historydb_dump_entry(FILE *fp, const struct history_cell_t *hp)
 {
 	fprintf(fp, "%ld\t", hp->arrivaltime);
-	fwrite(hp->key, hp->keylen, 1, fp);
+	(void)fwrite(hp->key, hp->keylen, 1, fp);
 	fprintf(fp, "\t");
 	fprintf(fp, "%d\t%d\t", hp->packettype, hp->flags);
 	fprintf(fp, "%f\t%f\t", hp->lat, hp->lon);
 	fprintf(fp, "%d\t", hp->packetlen);
-	fwrite(hp->packet, hp->packetlen, 1, fp);
+	(void)fwrite(hp->packet, hp->packetlen, 1, fp);
 	fprintf(fp, "\n"); /* newline */
 }
 

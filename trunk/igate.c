@@ -613,33 +613,33 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len)
 {
-    if (rflogfile) {
-      FILE *fp = NULL;
-      if (strcmp("-",rflogfile)==0) {
-	if (debug < 2) return;
-	fp = stdout;
-      } else {
-	fp = fopen(rflogfile, "a");
-      }
-    
-	if (fp) {
-		char timebuf[60];
-		printtime(timebuf, sizeof(timebuf));
+	if (rflogfile) {
+		FILE *fp = NULL;
+		if (strcmp("-",rflogfile)==0) {
+		  if (debug < 2) return;
+		  fp = stdout;
+		} else {
+		  fp = fopen(rflogfile, "a");
+		}
+		
+		if (fp) {
+		  char timebuf[60];
+		  printtime(timebuf, sizeof(timebuf));
 	  
-		fprintf(fp, "%s %-9s ", timebuf, portname);
-		fprintf(fp, "%s ", istx ? "T":"R");
+		  (void)fprintf(fp, "%s %-9s ", timebuf, portname);
+		  (void)fprintf(fp, "%s ", istx ? "T":"R");
 
-		if (discard < 0) {
-			fprintf(fp, "*");
-		}
-		if (discard > 0) {
-			fprintf(fp, "#");
-		}
-		fwrite( tnc2buf, tnc2len, 1, fp);
-		fprintf( fp, "\n" );
+		  if (discard < 0) {
+		    fprintf(fp, "*");
+		  }
+		  if (discard > 0) {
+		    fprintf(fp, "#");
+		  }
+		  (void)fwrite( tnc2buf, tnc2len, 1, fp);
+		  (void)fprintf( fp, "\n" );
 
-		if (fp != stdout)
-		  fclose(fp);
+		  if (fp != stdout)
+		    fclose(fp);
+		}
 	}
-    }
 }

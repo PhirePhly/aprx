@@ -1254,8 +1254,8 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 				    & is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
 	  printf(" out-hdr: '%s' data='",tbuf);
-	  fwrite(pb->ax25data+2, pb->ax25datalen-2,  // without Control+PID
-		 1, stdout);
+	  (void)fwrite(pb->ax25data+2, pb->ax25datalen-2,  // without Control+PID
+		       1, stdout);
 	  printf("'\n");
 	}
 
