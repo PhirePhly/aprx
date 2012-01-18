@@ -1289,6 +1289,20 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	}
 	digi->tokenbucket -= 1;
 
+
+	// Feed to dupe-filter (transmitter specific)
+	// this means we have already seen it, and when 
+	// it comes back from somewhere, we do not digipeat
+	// it ourselves.
+
+	// This recording is needed at output side of digipeater
+	// for APRSIS and DPRS transmit gates.
+	dupecheck_aprs( digi->dupechecker,
+			(const char *)state.ax25addr,
+			state.ax25addrlen,
+			(const char *)pb->ax25data+2,
+			pb->ax25datalen-2 );  // ignore Ctrl+PID
+
 	// Feed to interface_transmit_ax25() with new header and body
 	interface_transmit_ax25( digi->transmitter,
 				 state.ax25addr, state.ax25addrlen,

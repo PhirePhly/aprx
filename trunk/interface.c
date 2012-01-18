@@ -1056,7 +1056,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 	case IFTYPE_NULL:
 		// Efficient transmitter :-)
 		if (debug>1)
-			printf("tx null-device\n");
+			printf("tx null-device: %d\n", aif->callsign);
 
 		// Account the transmission anyway ;-)
 		erlang_add(aif->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);
@@ -1125,7 +1125,6 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 				 const int tnc2datalen )
 {
 	int d; // digipeater index
-	int first = 1;
 
 	char     tnc2buf[2800];
 	uint8_t  ax25buf[2800];
@@ -1182,6 +1181,8 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    a += 7;
 	    parse_ax25addr( a, fromcall, 0x60 );
 	    a += 7;
+	    // No need to add generated VIA address component
+	    // to this filter input data
 	    a[-1] |= 0x01; // end-of-address bit
 	    ax25addrlen = a - ax25buf;
 	    *a++ = 0x03;
@@ -1228,6 +1229,12 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 
 	    filter_packettype = pb->packettype;
 
+	    {
+	      // Stores position, and message references
+	      void *v = historydb_insert_heard( historydb, pb );
+	      if (debug) printf("historydb_insert_heard(APRSIS) v=%p\n", v);
+	    }
+
 	    filter_discard = filter_process(pb, digisrc->src_filters, historydb);
 	    pbuf_put(pb); // drop the temporary buffer
 
@@ -1242,6 +1249,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
 	  // filter_discard < 0: reject
 
+	  // Produced 3rd-party packet:
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
 
 	  if (debug) printf("## produce 3rd-party frame for transmit:\n");
@@ -1387,7 +1395,8 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 		recipient[i] = 0; // Zero-terminate
 	    }
 
-	    // FIXME?  Should test all SSIDs of this target callsign, not just this one target,
+	    // FIXME?  Should test all SSIDs of this target callsign,
+	    //         not just this one target,
 	    //         if this is a T_MESSAGE!  (strange BoB rules...)
 
 	    hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
@@ -1432,12 +1441,11 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    }
 	  }
 
-	  if (first) {
+	  {
 	    // Stores position, and message references
-	    historydb_insert_heard( digi->historydb, pb );
-	    //if (debug) printf("historydb_insert_heard(APRSIS)\n");
+	    void *v = historydb_insert_heard( historydb, pb );
+	    if (debug) printf("historydb_insert_heard(APRSIS) v=%p\n",v);
 	  }
-	  first = 0;
 
 	  if (filter_discard > 0 || (filter_discard == 0 && !discard_this)) {
 	    // Not discarding - approved for transmission
