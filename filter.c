@@ -118,11 +118,11 @@ struct filter_head_t {
 	union {
 	  float   f_latS;   /* for A filter */
 	  float   f_coslat; /* for R filter */
-	} u1; /* ANONYMOUS UNION */
+	} u1;
 	union {
 	  float   f_lonW; /* for A filter */
 	  float   f_dist; /* for R filter */
-	} u2; /* ANONYMOUS UNION */
+	} u2;
 	time_t  hist_age;
 
 	char	type;	  /* 1 char			*/
@@ -130,18 +130,18 @@ struct filter_head_t {
 	union {
 	  int16_t numnames; /* used as named, and as cache validity flag */
 	  int16_t len1s;    /*  or len1 of s-filter */
-	} u3; /* ANONYMOUS UNION */
+	} u3;
 	union {
 	  int16_t bitflags; /* used as bit-set on T_*** enumerations */
 	  int16_t len1;     /*  or as len2 of s-filter */
-	} u4; /* ANONYMOUS UNION */
+	} u4;
 	union {
 		int16_t len2s, len2, len3s, len3; /* of s-filter */
 		/* for cases where there is only one.. */
 		struct filter_refcallsign_t  refcallsign;
 		/*  malloc()ed array, alignment important! */
 		struct filter_refcallsign_t *refcallsigns;
-	} u5; /* ANONYMOUS UNION */
+	} u5;
 };
 
 struct filter_t {
@@ -1652,20 +1652,28 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 	const char *callsign = f->h.u5.refcallsign.callsign;
 	int i                = f->h.u5.refcallsign.reflen;
 
-	if (!(pb->flags & F_HASPOS)) /* packet with a position.. (msgs with RECEIVER's position) */
+	if (!(pb->flags & F_HASPOS)) { /* packet with a position.. (msgs with RECEIVER's position) */
+	  if (debug) printf("f-filter: no position -> return 0\n");
 		return 0; /* No position data... */
+	}
 
 	/* find friend's last location packet */
 	if (f->h.hist_age < now) {
 		history = historydb_lookup( historydb, callsign, i );
 		f->h.hist_age = now + hist_lookup_interval;
-		if (!history) return 0; /* no lookup result.. */
+		if (!history) {
+		  if (debug) printf("f-filter: no history lookup result (%*s) -> return 0\n", i, callsign );
+		  return 0; /* no lookup result.. */
+		}
 		f->h.u3.numnames = 1;
 		f->h.f_latN   = history->lat;
 		f->h.f_lonE   = history->lon;
 		f->h.u1.f_coslat = history->coslat;
 	}
-	if (!f->h.u3.numnames) return 0; /* histdb lookup cache invalid */
+	if (!f->h.u3.numnames) {
+	  if (debug) printf("f-filter: no history lookup result (numnames == 0) -> return 0\n");
+	  return 0; /* histdb lookup cache invalid */
+	}
 
 	lat1    = f->h.f_latN;
 	lon1    = f->h.f_lonE;
@@ -1676,6 +1684,7 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 	coslat2 = pb->cos_lat;
 
 	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
+	if (debug) printf("f-filter: r=%.1f km\n", r);
 
 	if (f->h.u2.f_dist < 0.0) {
 		// Test for _outside_ the range
@@ -2149,7 +2158,7 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t
 {
 	int rc = 0;
 
-	if (debug>1) printf("filter_process_one() type=%c\n",f->h.type);
+	if (debug>1) printf("filter_process_one() type=%c  '%s'\n",f->h.type, f->h.text);
 
 	switch (f->h.type) {
 

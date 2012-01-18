@@ -1,4 +1,24 @@
-2012-91-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2012-01-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* VERSION: 2.03test4
+
+	* interface.c:
+	    Record outbound "history heard" per interface.
+
+	* historydb.c:
+	    Simple refactoring to use same hash function all the time.
+
+	* digipeater.c:
+	    Feed all transmitted packets to dupe-filter of that transmitter.
+	    This will handle cross-band digipeat + tx-gates so that
+	    an APRS packet transmitted to a channel won't be digipeated
+	    again by this transmitter.
+
+	* igate.c:
+	    When constructing APRSIS originated 3rd-party tx-igate
+	    packets, use correct version of "TCPIP" in the header.
+
+2012-01-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION:  2.03test3
 

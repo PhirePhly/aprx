@@ -603,7 +603,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	if (debug) printf(".. igate from aprsis\n");
 
 	interface_receive_3rdparty( &aprsis_interface,
-				    fromcall, origtocall, "TCPIP*",
+				    fromcall, origtocall, "TCPIP",
 				    b, ax25len - (b-ax25) );
 }
 

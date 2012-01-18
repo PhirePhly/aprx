@@ -138,12 +138,20 @@ void historydb_dump(const historydb_t *db, FILE *fp)
 	}
 }
 
+
+static int foldhash( const unsigned int h1 )
+{
+	unsigned int h2 = h1 ^ (h1 >> 7) ^ (h1 >> 14); /* fold hash bits.. */
+	return (h2 % HISTORYDB_HASH_MODULO);
+}
+
+
 /* insert... */
 
 history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 {
 	int i;
-	unsigned int h1, h2;
+	unsigned int h1;
 	int isdead = 0, keylen;
 	struct history_cell_t **hp, *cp, *cp1;
 
@@ -229,8 +237,7 @@ history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 	++db->historydb_inserts;
 
 	h1 = keyhash(keybuf, keylen, 0);
-	h2 = h1 ^ (h1 >> 7) ^ (h1 >> 14); /* fold hash bits.. */
-	i = h2 % HISTORYDB_HASH_MODULO;
+	i  = foldhash(h1);
 
 	cp = cp1 = NULL;
 	hp = &db->hash[i];
@@ -329,8 +336,8 @@ history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 {
 	int i;
-	unsigned int h1, h2;
-	int isdead = 0, keylen;
+	unsigned int h1;
+	int keylen;
 	struct history_cell_t **hp, *cp, *cp1;
 
 	time_t expirytime   = now - lastposition_storetime;
@@ -350,14 +357,16 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	**        but then we would not know if this is a "kill-item"
 	*/
 
-	keybuf[CALLSIGNLEN_MAX] = 0;
+	keybuf[CALLSIGNLEN_MAX+1] = 0;
 
 	if (pb->packettype & T_OBJECT) {
 	  historydb_nointerest(); // debug thing -- a profiling counter
+	  if (debug > 1) printf(" .. objects not interested\n");
 	  return NULL; // Not interested in ";objects :"
 
 	} else if (pb->packettype & T_ITEM) {
 	  historydb_nointerest(); // debug thing -- a profiling counter
+	  if (debug > 1) printf(" .. items not interested\n");
 	  return NULL; // Not interested in ")items..."
 
 	} else if (pb->packettype & T_MESSAGE) {
@@ -373,6 +382,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	  if (s) *s = 0;
 
 	} else {
+	  if (debug > 1) printf(" .. other not interested\n");
 	  historydb_nointerest(); // debug thing -- a profiling counter
 	  return NULL; // Not a packet with positional data, not interested in...
 	}
@@ -381,16 +391,17 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	++db->historydb_inserts;
 
 	h1 = keyhash(keybuf, keylen, 0);
-	h2 = h1 ^ (h1 >> 7) ^ (h1 >> 14); /* fold hash bits.. */
-	i = h2 % HISTORYDB_HASH_MODULO;
+	i  = foldhash(h1);
+	if (debug > 1) printf(" key='%*s' i=%d", keylen, keybuf, i);
 
-	cp = cp1 = NULL;
+	cp1 = NULL;
 	hp = &db->hash[i];
 
 	// scan the hash-bucket chain, and do incidential obsolete data discard
-	while (( cp = *hp )) {
+	while (( cp = *hp ) != NULL) {
 		if (cp->arrivaltime < expirytime) {
 			// OLD...
+			if (debug > 1) printf(" .. dropping old record\n");
 			*hp = cp->next;
 			cp->next = NULL;
 			historydb_free(cp);
@@ -400,58 +411,56 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 		       // Hash match, compare the key
 		    historydb_hashmatch(); // debug thing -- a profiling counter
 		    ++db->historydb_hashmatches;
+		    if (debug > 1) printf(" .. found matching hash");
 		    if ( cp->keylen == keylen &&
 			 (memcmp(cp->key, keybuf, keylen) == 0) ) {
 		  	// Key match!
+		        if (debug > 1) printf(" .. found matching key!\n");
+
 		    	historydb_keymatch(); // debug thing -- a profiling counter
 			++db->historydb_keymatches;
-			if (isdead) {
-				// Remove this key..
-				*hp = cp->next;
-				cp->next = NULL;
-				historydb_free(cp);
-				continue;
-			} else {
-				historydb_dataupdate(); // debug thing -- a profiling counter
-				// Update the data content
-				cp1 = cp;
-				if (pb->flags & F_HASPOS) {
-				  // Update coordinate, if available
-				  cp->lat         = pb->lat;
-				  cp->coslat      = pb->cos_lat;
-				  cp->lon         = pb->lng;
-				  cp->positiontime = pb->t;
-				  cp->arrivaltime  = pb->t;
-				}
-				cp->flags      |= pb->flags;
 
-				// Track packet source timestamps
-				cp->last_heard[pb->source_if_group] = pb->t;
+			historydb_dataupdate(); // debug thing -- a profiling counter
+			// Update the data content
+			cp1 = cp;
+			if (pb->flags & F_HASPOS) {
+			  // Update coordinate, if available
+			  cp->lat         = pb->lat;
+			  cp->coslat      = pb->cos_lat;
+			  cp->lon         = pb->lng;
+			  cp->positiontime = pb->t;
+			  cp->arrivaltime  = pb->t;
+			}
+			cp->flags      |= pb->flags;
 
-				// Don't save a message on top of positional packet
-				if (!(pb->packettype & T_MESSAGE)) {
-				  cp->packettype  = pb->packettype;
-				  cp->arrivaltime = pb->t;
-				  cp->flags       = pb->flags;
-				  cp->packetlen   = pb->packet_len;
-				  if ( cp->packet != cp->packetbuf )
-				    free( cp->packet );
+			// Track packet source timestamps
+			cp->last_heard[pb->source_if_group] = pb->t;
+
+			// Don't save a message on top of positional packet
+			if (!(pb->packettype & T_MESSAGE)) {
+			  cp->packettype  = pb->packettype;
+			  cp->arrivaltime = pb->t;
+			  cp->flags       = pb->flags;
+			  cp->packetlen   = pb->packet_len;
+			  if ( cp->packet != cp->packetbuf )
+			    free( cp->packet );
 				  
-				  cp->packet = cp->packetbuf; // default case
-				  if ( cp->packetlen > sizeof(cp->packetbuf) ) {
-				    // Needs bigger buffer than pre-allocated one,
-				    // thus it retrieves that one from heap.
-				    cp->packet = malloc( cp->packetlen );
-				  }
-				  memcpy( cp->packet, pb->data, cp->packetlen );
-				}
+			  cp->packet = cp->packetbuf; // default case
+			  if ( cp->packetlen > sizeof(cp->packetbuf) ) {
+			    // Needs bigger buffer than pre-allocated one,
+			    // thus it retrieves that one from heap.
+			    cp->packet = malloc( cp->packetlen );
+			  }
+			  memcpy( cp->packet, pb->data, cp->packetlen );
 			}
 		    }
 		} // .. else no match, advance hp..
 		hp = &(cp -> next);
 	}
 
-	if (!cp1 && !isdead) {
+	if (!cp1) {
+		if (debug > 1) printf(" .. inserting new history entry.\n");
+
 		// Not found on this chain, append it!
 		cp = historydb_alloc(db, pb->packet_len);
 		cp->next = NULL;
@@ -480,6 +489,8 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 
 		*hp = cp; 
 	}
+	else
+	  return cp1; // != NULL
 
 	return *hp;
 }
@@ -490,7 +501,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int keylen)
 {
 	int i;
-	unsigned int h1, h2;
+	unsigned int h1;
 	struct history_cell_t *cp;
 
 	// validity is 5 minutes shorter than expiration time..
@@ -499,28 +510,29 @@ history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int 
 	++db->historydb_lookups;
 
 	h1 = keyhash(keybuf, keylen, 0);
-	h2 = h1 ^ (h1 >> 7) ^ (h1 >> 14); /* fold hash bits.. */
-	i = h2 % HISTORYDB_HASH_MODULO;
+	i  = foldhash(h1);
 
 	cp = db->hash[i];
 
-	while ( cp ) {
-		if ( (cp->hash1 == h1) &&
-		     // Hash match, compare the key
-		     (cp->keylen == keylen) &&
-		     (memcmp(cp->key, keybuf, keylen) == 0)  &&
-		     // Key match!
-		     (cp->arrivaltime > validitytime)
-		     // NOT too old..
-		     ) {
-			break;
-		}
-		// Pick next possible item in hash chain
-		cp = cp->next;
-	}
+	if (debug > 1) printf("historydb_lookup(%*s) -> i=%d", keylen, keybuf, i);
 
-	// cp variable has the result
-	return cp;
+	for ( ; cp != NULL ; cp = cp->next ) {
+	  if ( (cp->hash1 == h1) &&
+	       // Hash match, compare the key
+	       (cp->keylen == keylen) ) {
+	    if (debug > 1) printf(" .. hash match");
+	    if (memcmp(cp->key, keybuf, keylen) == 0) {
+	      if (debug > 1) printf(" .. key match");
+	      // Key match!
+	      if (cp->arrivaltime > validitytime) {
+		if (debug > 1) printf(" .. and not too old\n");
+		return cp;
+	      }
+	    }
+	  }
+	}
+	if (debug > 1) printf(" .. no match\n");
+	return NULL;
 }
 
 
@@ -535,9 +547,9 @@ static void historydb_cleanup(historydb_t *db)
 	struct history_cell_t **hp, *cp;
 	int i, cleancount = 0;
 
-	// validity is 5 minutes shorter than expiration time..
-	time_t expirytime   = now - lastposition_storetime;
+	if (debug > 1) printf("historydb_cleanup() ");
 
+	time_t expirytime   = now - lastposition_storetime;
 
 	for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
 		hp = &db->hash[i];
@@ -551,12 +563,15 @@ static void historydb_cleanup(historydb_t *db)
 				cp->next = NULL;
 				historydb_free(cp);
 				++cleancount;
-				continue;
+				if (debug > 1) printf(" drop(%p) i=%d", cp, i);
+
+			} else {
+				/* No expiry, just advance the pointer */
+				hp = &(cp -> next);
 			}
-			/* No expiry, just advance the pointer */
-			hp = &(cp -> next);
 		}
 	}
+	if (debug > 1) printf(" .. done.\n");
 }
 
 
