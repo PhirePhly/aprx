@@ -205,11 +205,24 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 		}
 	}
 
+        // code to prevent segmentation fault
+        if (addrlen > 70) {
+          if (debug>1) printf("  addrlen=\"%d\" > 70, discard packet\n",addrlen);
+          return NULL;
+        }
+
 	// Canonic tail has no SPACEs in data portion!
 	// TODO: how to treat 0 bytes ???
 	datalen = dlen;
 	while (datalen > 0 && data[datalen-1] == ' ')
 		--datalen;
+
+        // code to prevent segmentation fault
+        if (datalen > 255) {
+          if (debug>1) printf(" datalen=%d > 255, discarding packet\n", datalen);
+          return NULL;
+        }
+
 
 	// there are no 3rd-party frames in APRS-IS ...
 

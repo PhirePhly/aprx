@@ -1082,29 +1082,29 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	if (pb->is_aprs) {
 
-		if (state.probably_heard_direct) {
-		  // Collect a decaying average of distances to stations?
-		  //  .. could auto-beacon an aloha-circle - maybe
-		  //  .. note: this does not get packets that have no VIA fields.
-		  // Score of direct DX:es?
-		  //  .. note: this does not get packets that have no VIA fields.
-		} else {
-		  if (src->src_relaytype == DIGIRELAY_DIGIPEAT_DIRECTONLY) {
-		    // Source relaytype is DIRECTONLY, and this was not
-		    // likely directly heard...
-		    if (debug>1) printf("DIRECTONLY -mode, and packet is probably not direct heard.");
-		    return;
-		  }
-		}
-		// Keep score of all DX packets?
+          if (state.probably_heard_direct) {
+            // Collect a decaying average of distances to stations?
+            //  .. could auto-beacon an aloha-circle - maybe
+            //  .. note: this does not get packets that have no VIA fields.
+            // Score of direct DX:es?
+            //  .. note: this does not get packets that have no VIA fields.
+          } else {
+            if (src->src_relaytype == DIGIRELAY_DIGIPEAT_DIRECTONLY) {
+              // Source relaytype is DIRECTONLY, and this was not
+              // likely directly heard...
+              if (debug>1) printf("DIRECTONLY -mode, and packet is probably not direct heard.");
+              return;
+            }
+          }
+          // Keep score of all DX packets?
 
-		if (try_reject_filters(3, pb->info_start, src)) {
-			if (debug>1)
-			  printf(" - Data body regexp filters reject\n");
-			return; // data body regexp reject filters
-		}
+          if (try_reject_filters(3, pb->info_start, src)) {
+            if (debug>1)
+              printf(" - Data body regexp filters reject\n");
+            return; // data body regexp reject filters
+          }
 
-// FIXME: 3) aprsc style filters checking in service area of the packet..
+          // FIXME: 3) aprsc style filters checking in service area of the packet..
 
 	}
 
@@ -1241,41 +1241,38 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	      axaddr[6] |= 0x80; // Set H-bit
 	  }
 	}
-	if (debug) {
+        {
 	  char tbuf[2800];
 	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0, t2l;
-	  uint8_t *u = state.ax25addr + state.ax25addrlen;
-	  *u++ = 0;
-	  *u++ = 0;
-	  *u++ = 0;
+	  // uint8_t *u = state.ax25addr + state.ax25addrlen;
+	  // *u++ = 0;
+	  // *u++ = 0;
+	  // *u++ = 0;
 	  t2l = ax25_format_to_tnc( state.ax25addr, state.ax25addrlen+6,
 				    tbuf, sizeof(tbuf),
 				    & frameaddrlen, &tnc2addrlen,
 				    & is_ui, &ui_pid );
 	  tbuf[t2l] = 0;
-	  printf(" out-hdr: '%s' data='",tbuf);
-	  (void)fwrite(pb->ax25data+2, pb->ax25datalen-2,  // without Control+PID
-		       1, stdout);
-	  printf("'\n");
-	}
+          if (debug) {
+            printf(" out-hdr: '%s' data='",tbuf);
+            (void)fwrite(pb->ax25data+2, pb->ax25datalen-2,  // without Control+PID
+                         1, stdout);
+            printf("'\n");
+          }
 
-	if (pb->is_aprs && rflogfile) {
-	  // Essentially Debug logging.. to file
-	  char tbuf[2800];
-	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0;
-	  int t2l = ax25_format_to_tnc( state.ax25addr, state.ax25addrlen+6,
-					tbuf, sizeof(tbuf),
-					& frameaddrlen, &tnc2addrlen,
-					& is_ui, &ui_pid );
-	  tbuf[t2l] = 0;
-	  if (sizeof(tbuf) - pb->ax25datalen > t2l && t2l > 0) {
-	    // Have space for body too, skip leading Ctrl+PID bytes
-	    memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skiped
-	    t2l += pb->ax25datalen-2; // tbuf size sans Ctrl+PID
+          if (pb->is_aprs && rflogfile) {
+            int t2l2;
+            // Essentially Debug logging.. to file
 
-	    rflog( digi->transmitter->callsign, 1, 0, tbuf, t2l );
-	  }
-	}
+            if (sizeof(tbuf) - pb->ax25datalen > t2l && t2l > 0) {
+              // Have space for body too, skip leading Ctrl+PID bytes
+              memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skiped
+              t2l2 = t2l + pb->ax25datalen-2; // tbuf size sans Ctrl+PID
+
+              rflog( digi->transmitter->callsign, 1, 0, tbuf, t2l2 );
+              tbuf[t2l]=0;
+            }
+          }
 
 #ifndef DISABLE_IGATE
 	// Insert into history database
@@ -1297,11 +1294,21 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	// This recording is needed at output side of digipeater
 	// for APRSIS and DPRS transmit gates.
-	dupecheck_aprs( digi->dupechecker,
-			(const char *)state.ax25addr,
-			state.ax25addrlen,
-			(const char *)pb->ax25data+2,
-			pb->ax25datalen-2 );  // ignore Ctrl+PID
+
+        if (t2l>0) {
+          dupecheck_aprs( digi->dupechecker,
+                          (const char *)tbuf,
+                          t2l,
+                          (const char *)pb->ax25data+2,
+                          pb->ax25datalen-2 );  // ignore Ctrl+PID
+        } else {
+          dupecheck_aprs( digi->dupechecker,
+                          (const char *)state.ax25addr,
+                          state.ax25addrlen,
+                          (const char *)pb->ax25data+2,
+                          pb->ax25datalen-2 );  // ignore Ctrl+PID
+        }
+        }
 
 	// Feed to interface_transmit_ax25() with new header and body
 	interface_transmit_ax25( digi->transmitter,

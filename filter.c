@@ -136,7 +136,7 @@ struct filter_head_t {
 	  int16_t len1;     /*  or as len2 of s-filter */
 	} u4;
 	union {
-		int16_t len2s, len2, len3s, len3; /* of s-filter */
+                struct { int16_t len2s, len2, len3s, len3; } lens; /* of s-filter */
 		/* for cases where there is only one.. */
 		struct filter_refcallsign_t  refcallsign;
 		/*  malloc()ed array, alignment important! */
@@ -900,7 +900,7 @@ int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *f
 
 		f0->h.u3.len1s = len1;
 		f0->h.u4.len1  = len2 - len1;
-		f0->h.u5.len2s = f0->h.u5.len2 = f0->h.u5.len3s = f0->h.u5.len3 = 0;
+		f0->h.u5.lens.len2s = f0->h.u5.lens.len2 = f0->h.u5.lens.len3s = f0->h.u5.lens.len3 = 0;
 
 		if (!*s) break;
 
@@ -909,8 +909,8 @@ int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *f
 		while (*s && *s != '/') ++s;
 		len4 = s - filt0;
 
-		f0->h.u5.len2s = len3;
-		f0->h.u5.len2  = len4 - len3;
+		f0->h.u5.lens.len2s = len3;
+		f0->h.u5.lens.len2  = len4 - len3;
 
 		if (!*s) break;
 
@@ -919,8 +919,8 @@ int filter_parse_one_s(struct filter_t *f0, struct filter_t **ffp, const char *f
 		while (*s) ++s;
 		len6 = s - filt0;
 
-		f0->h.u5.len3s = len5;
-		f0->h.u5.len3  = len6 - len5;
+		f0->h.u5.lens.len3s = len5;
+		f0->h.u5.lens.len3  = len6 - len5;
 
 		break;
 	}
@@ -1975,19 +1975,19 @@ static int filter_process_one_s(struct pbuf_t *pb, struct filter_t *f)
 			return f->h.negation ? 2 : 1;
 		// return 0;
 	}
-	if (f->h.u5.len3 != 0) {
+	if (f->h.u5.lens.len3 != 0) {
 		/* Secondary table with overlay */
-		if ( memchr(f->h.text+f->h.u5.len3s, symolay, f->h.u5.len3) == NULL )
+		if ( memchr(f->h.text+f->h.u5.lens.len3s, symolay, f->h.u5.lens.len3) == NULL )
 			return 0; // No match on overlay
-		if ( memchr(f->h.text+f->h.u5.len2s, symcode, f->h.u5.len2) == NULL )
+		if ( memchr(f->h.text+f->h.u5.lens.len2s, symcode, f->h.u5.lens.len2) == NULL )
 			return 0; // No match on overlay
 		return f->h.negation ? 2 : 1;
 	}
 	/* OK, no overlay... */
-	if (f->h.u5.len2 != 0) {
+	if (f->h.u5.lens.len2 != 0) {
 		/* Secondary table symbols */
 		if ( symtable != '\\' &&
-		     memchr(f->h.text+f->h.u5.len2s, symcode, f->h.u5.len2) != NULL )
+		     memchr(f->h.text+f->h.u5.lens.len2s, symcode, f->h.u5.lens.len2) != NULL )
 			return f->h.negation ? 2 : 1;
 	}
 	/* No match */
