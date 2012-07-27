@@ -483,9 +483,9 @@ typedef struct dupe_record_t {
 	int16_t	 alen;	// Address length
 	int16_t	 plen;	// Payload length
 
-	char	 addresses[20];
+	char	 addresses[72];
 	char	*packet;
-	char	 packetbuf[200]; /* 99.9+ % of time this is enough.. */
+	char	 packetbuf[256]; /* 99.9+ % of time this is enough.. */
 } dupe_record_t;
 
 #define DUPECHECK_DB_SIZE 16     /* Hash index table size - per dupechecker */
