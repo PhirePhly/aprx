@@ -32,11 +32,21 @@
 //  fixed shifts and additions.
 */
 
-#include "config.h"
 
-#ifdef HAVE_STDINT_H
+/*
+ * ON A HIGHLY OPTIMIZED CRC32 HASH CALCULATION PROCESSING ALONE
+ * THE SYSTEM IS PUSHING AROUND 8-12 % OF CPU TIME!
+ *
+ * ... but the previous top waster, the aprsc output filters, are optimized
+ * to the hilt...
+ *
+ * There exists alternate implementations of CRC32 which are 1.7 - 2.3 times
+ * faster than this one with an expense of using 4kB / 8 kB / 16 kB of tables,
+ * which of course fill caches...
+ *
+ */
+
 #include <stdint.h>
-#endif
 #include <sys/types.h>
 
 #include "keyhash.h"
@@ -57,12 +67,12 @@
 
 void keyhash_init(void) { }
 
-unsigned int keyhash(const void *p, int len, unsigned int hash)
+uint32_t __attribute__((pure)) keyhash(const void const *p, int len, uint32_t hash)
 {
 	const uint8_t *u = p;
 	int i;
-#define FNV_32_PRIME     16777619U
-#define FVN_32_OFFSET  2166136261U
+#define FNV_32_PRIME     16777619
+#define FVN_32_OFFSET  2166136261
 
 	if (hash == 0)
 		hash = FVN_32_OFFSET;
@@ -74,7 +84,38 @@ unsigned int keyhash(const void *p, int len, unsigned int hash)
 		hash += (hash<<1) + (hash<<4) + (hash<<7) +
 		        (hash<<8) + (hash<<24);
 #endif
-		hash ^= (unsigned int) *u;
+		hash ^= (uint32_t) *u;
+	}
+	return hash;
+}
+
+/* The data material is known to contain ASCII, and if any value in there
+ * is a lower case letter, it is first converted to upper case one.
+*/
+uint32_t __attribute__((pure)) keyhashuc(const void const *p, int len, uint32_t hash)
+{
+	const uint8_t *u = p;
+	int i;
+#define FNV_32_PRIME     16777619
+#define FVN_32_OFFSET  2166136261
+
+	if (hash == 0)
+		hash = FVN_32_OFFSET;
+
+	for (i = 0; i < len; ++i, ++u) {
+#if defined(NO_FNV_GCC_OPTIMIZATION)
+		hash *= FNV_32_PRIME;
+#else
+		hash += (hash<<1) + (hash<<4) + (hash<<7) +
+		        (hash<<8) + (hash<<24);
+#endif
+		uint32_t c = *u;
+		// Is it lower case ASCII letter ?
+		if ('a' <= c && c <= 'z') {
+			// convert to upper case.
+			c -= ('a' - 'A');
+		}
+		hash ^= c;
 	}
 	return hash;
 }
