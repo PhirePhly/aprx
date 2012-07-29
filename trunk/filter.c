@@ -308,21 +308,26 @@ int filter_entrycall_insert(struct pbuf_t *pb)
 	int idx, keylen;
 	const char qcons = pb->qconst_start[2];
 	const char *key = pb->qconst_start+4;
+        char uckey[CALLSIGNLEN_MAX+1];
 
 	for (keylen = 0; keylen <= CALLSIGNLEN_MAX; ++keylen) {
 		int c = key[keylen];
 		if (c == ',' || c == ':')
 			break;
+                if ('a' <= c && c <= 'z')
+                	c -= ('a' - 'A');
+                uckey[keylen] = c;
+                uckey[keylen+1] = 0;
 	}
 	if ((key[keylen] != ',' && key[keylen] != ':') || keylen < CALLSIGNLEN_MIN)
 		return 0; /* Bad entry-station callsign */
 
-pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
+        pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
 
 	/* We insert only those that have Q-Constructs of qAR or qAr */
 	if (qcons != 'r' && qcons != 'R') return 0;
 
-	hash = keyhash(key, keylen, 0);
+	hash = keyhash(uckey, keylen, 0);
 	idx = (hash ^ (hash >> 11) ^ (hash >> 22) ) % FILTER_ENTRYCALL_HASHSIZE; /* Fold the hashbits.. */
 
 
@@ -331,7 +336,7 @@ pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
 	while (( f = *fp )) {
 		if ( f->hash == hash ) {
 			if (f->len == keylen) {
-				int cmp = memcmp(f->callsign, key, keylen);
+				int cmp = strncasecmp(f->callsign, uckey, keylen);
 				if (cmp == 0) { /* Have key match */
 					f->expirytime = now + filter_entrycall_maxage;
 					f2 = f;
@@ -358,7 +363,7 @@ pb->entrycall_len = keylen; // FIXME: should be in incoming parser...
 			f->expirytime = now + filter_entrycall_maxage;
 			f->hash  = hash;
 			f->len   = keylen;
-			memcpy(f->callsign, key, keylen);
+			memcpy(f->callsign, uckey, keylen);
 			memset(f->callsign+keylen, 0, sizeof(f->callsign)-keylen);
 
 			*fp = f2 = f;
@@ -388,7 +393,7 @@ static int filter_entrycall_lookup(const struct pbuf_t *pb)
 	const char *key  = pb->qconst_start+4;
 	const int keylen = pb->entrycall_len;
 
-	uint32_t  hash   = keyhash(key, keylen, 0);
+	uint32_t  hash   = keyhashuc(key, keylen, 0);
 	int idx = ( hash ^ (hash >> 11) ^ (hash >> 22) ) % FILTER_ENTRYCALL_HASHSIZE;   /* fold the hashbits.. */
 
 	f2 = NULL;
@@ -397,7 +402,7 @@ static int filter_entrycall_lookup(const struct pbuf_t *pb)
 	while (( f = *fp )) {
 		if ( f->hash == hash ) {
 			if (f->len == keylen) {
-				int rc =  memcmp(f->callsign, key, keylen);
+				int rc =  strncasecmp(f->callsign, key, keylen);
 				if (rc == 0) { /* Have key match, see if it is
 						  still valid entry ? */
 					if (f->expirytime < now - 60) {
@@ -508,12 +513,23 @@ int filter_wx_insert(struct pbuf_t *pb)
 	const int keylen = pb->srccall_end - key;
 	uint32_t hash;
 	int idx;
+        char uckey[CALLSIGNLEN_MAX+1];
 
 	/* If it is not a WX packet without position, we are not intrerested */
 	if (!((pb->packettype & T_WX) && !(pb->flags & F_HASPOS)))
 		return 0;
 
-	hash = keyhash(key, keylen, 0);
+	for (idx = 0; idx <= keylen; ++idx) {
+		int c = key[idx];
+		if (c == ',' || c == ':')
+			break;
+                if ('a' <= c && c <= 'z')
+                  c -= ('a' - 'A');
+                uckey[idx] = c;
+                uckey[idx+1] = 0;
+	}
+
+	hash = keyhash(uckey, keylen, 0);
 	idx = ( hash ^ (hash >> 10) ^ (hash >> 20) ) % FILTER_WX_HASHSIZE; /* fold the hashbits.. */
 
 	fp = &filter_wx_hash[idx];
@@ -521,7 +537,7 @@ int filter_wx_insert(struct pbuf_t *pb)
 	while (( f = *fp )) {
 		if ( f->hash == hash ) {
 			if (f->len == keylen) {
-				int cmp = memcmp(f->callsign, key, keylen);
+				int cmp = memcmp(f->callsign, uckey, keylen);
 				if (cmp == 0) { /* Have key match */
 					f->expirytime = now + filter_wx_maxage;
 					f2 = f;
@@ -565,7 +581,7 @@ static int filter_wx_lookup(const struct pbuf_t *pb)
 	const char *key  = pb->data;
 	const int keylen = pb->srccall_end - key;
 
-	uint32_t  hash   = keyhash(key, keylen, 0);
+	uint32_t  hash   = keyhashuc(key, keylen, 0);
 	int idx = ( hash ^ (hash >> 10) ^ (hash >> 20) ) % FILTER_WX_HASHSIZE; /* fold the hashbits.. */
 
 	f2 = NULL;
@@ -574,7 +590,7 @@ static int filter_wx_lookup(const struct pbuf_t *pb)
 	while (( f = *fp )) {
 		if ( f->hash == hash ) {
 			if (f->len == keylen) {
-				int rc =  memcmp(f->callsign, key, keylen);
+				int rc = strncasecmp(f->callsign, key, keylen);
 				if (rc == 0) { /* Have key match, see if it is
 						  still valid entry ? */
 					if (f->expirytime < now - 60) {
@@ -725,7 +741,7 @@ static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int key
 			if (len != keylen)
 				continue; /* no match */
 			/* length OK, compare content */
-			if (memcmp( r1, r2, len ) != 0) continue;
+			if (strncasecmp( r1, r2, len ) != 0) continue;
 			/* So it was an exact match
 			** Precisely speaking..  we should check that there is
 			** no WildCard flag, or such.  But then this match
@@ -738,7 +754,7 @@ static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int key
 				/* reference string length is longer than our key */
 				continue;
 			}
-			if (memcmp( r1, r2, len ) != 0) continue;
+			if (strncasecmp( r1, r2, len ) != 0) continue;
 
 			return ( reflen & NegationFlag ? 2 : 1 );
 			break;
@@ -748,7 +764,7 @@ static int filter_match_on_callsignset(struct filter_refcallsign_t *ref, int key
 				continue;
 			}
 
-			if (memcmp( r1, r2, len ) != 0) continue;
+			if (strncasecmp( r1, r2, len ) != 0) continue;
 
 			if (reflen & WildCard)
 				return ( reflen & NegationFlag ? 2 : 1 );
