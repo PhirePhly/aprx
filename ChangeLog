@@ -1,5 +1,12 @@
 2012-07-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* keyhash.c, filter.c:
+	    Threw away the long unused CRC32 stuff, and added a hashkeyuc()
+	    function.  Fixed the way how  filter_entrycall_*() and
+	    filter_wx_*() functions processed the key. Now both of
+	    them store keys as converted to upper case, and lookup
+	    with mixed case.
+
 	* aprx-config.xsd:
 	    An attempt at writing a "formal" configuration file syntax
 	    description.  It is really not XML that config file, nor
