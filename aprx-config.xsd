@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?> <!-- -*- xml -*- -->
+<xs:schema targetNamespace="uri:aprx:config"
+           xmlns:ax="uri:aprx:config"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:ht="uri:apache:config"
+           elementFormDefault="qualified"> 
+
+  <xs:annotation>
+    <xs:documentation>
+
+       The Aprx uses following configuration schema, which took its model very much
+       from how Apache HTTPD configuration is done.
+
+       To denote elements without &lt; .. &gt; around them as Apache does, we use
+       "uri:apache:config" style bits, like:  &lt;ht:element&gt;
+
+       Because Apache's configuration predates XML and schemas, there has never been
+       proper XML-like schema for it or anything alike it, nor is this intended to be
+       validatable by XML tools.
+
+       The overall syntax is line oriented, along with \ -characters at the end of line
+       as continuation markers to append next line in place of that character plus the
+       end-of-line character(s).
+
+       Anywhere (except when previous line ends with \ -character) if the first non-white-space
+       character is '#' the whole line is comment, and is discarded.
+
+       Lines containing only white-space characters are also comments and are discarded.
+
+       Presence of non-quoted '#' at the tails of parameter lines should also behave as
+       comment, but it is not universal.
+
+       Presence of extra parameter values is not always flagged as an error.
+
+    </xs:documentation>
+  </xs:annotation>
+   
+
+  <xs:complexType name="AprxConfig">
+    <xs:annotation>
+      <xs:documentation>
+        The overall Aprx config contains parameter groups, and one top-level
+        parameter label.
+        
+        The "mycall" parameter label must be before anything else.
+        The &lt;interface> and &lt;aprsis> groups follow, and
+        the rest that use those interfaces then follow.
+        The &lt;logging> group can be anywhere.
+        Each group can occur multiple times.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <ht:element Name="mycall"     type="ax:Ax25CallsignType" />
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element Name="aprsis"     type="ax:AprsisGroupType"       />
+        <xs:element Name="interface"  type="ax:InterfaceGroupType"    />
+        <xs:element Name="logging"    type="ax:LoggingGroupType"      />
+      </xs:choice>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element Name="telemetry"  type="ax:TelemetryGroupType"    />
+        <xs:element Name="digipeater" type="ax:DigipeaterGroupType"   />
+        <xs:element Name="beacon"     type="ax:BeaconGroupType"       />
+        <xs:element Name="logging"    type="ax:LoggingGroupType"      />
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!--  
+       Primitive data types
+  -->
+
+
+  <xs:complexType name="Interval">
+    <xs:annotation>
+      <xs:documentation>
+        The Aprx configuration has flexible time interval definitions.
+        
+        A string of  decimal numbers followed by multiplier character:
+        
+             12 d 2 h 20 m 24 s
+             50 h 70 m 200 s
+             200 s 3 h
+        
+        Whatever notation is easiest to understand for the use.
+
+        The multipliers are single characters and case insensitive.
+        Embedding white-space is permitted for readability.
+        ("d" = days, "h" = hours, "m" = minutes, "s" = seconds)
+
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="Ax25CallsignType">
+    <xs:annotation>
+      <xs:documentation>
+        This is ASCII representation of AX.25 callsign.
+        Up to 6 upper-case letters (A-Z) and digits (0-9), then
+        possibly a minus ('-') and decimal number 0 to 15.
+        By convention a "-0" is never used.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+
+  <xs:complexType name="AprsisCallsignType">
+    <xs:annotation>
+      <xs:documentation>
+        This is more relaxed form of AX.25 callsign:
+        Regular expression:
+            [a-zA-Z0-9]{1,6}($|-[a-zA-Z0-9]{1,2})
+        Or verbally:
+            Up to 6 alphanumeric characters + optional
+            tail of a minus ('-') followed by one or two
+            alphanumeric characters. Also lowercase letters
+            are allowed in alphanumerics.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+
+  <!--  
+       Group types
+  -->
+
+  <xs:complexType name="AprsisGroupType">
+    <xs:annotation>
+      <xs:documentation>
+        The APRSIS group defines communication parameters to APRS-IS network.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <ht:element Name="login"   type="ax:AprsisCallsignType">
+          <xs:annotation>
+            <xs:documentation>
+              The Login parameter for APRS-IS network.
+
+              The Aprx will calculate correct authentication parameter
+              for that login value.
+            </xs:documentation>
+          </xs:annotation>
+        </ht:element>
+        <ht:element Name="server"  type="ax:AprsisServerParameterType">
+          <xs:annotation>
+            <xs:documentation>
+              Defines server to which the Aprx connects for the APRS-IS
+              service.
+
+                    serverhost [portnum]
+
+              Chosen servers should be regional round-robin ones, see
+              http://www.aprs2.net/
+                   noam.aprs2.net
+                   soam.aprs2.net
+                   euro.aprs2.net
+                   asia.aprs2.net
+                   aunz.aprs2.net
+              or the global pool:
+                   rotate.aprs2.net
+
+              You SHOULD NOT connect to any specific one, as none of
+              the servers are behind a load-balancing fail-over mechanisms.
+
+            </xs:documentation>
+          </xs:annotation>
+        </ht:element>
+        <ht:element Name="heartbeat-timeout" type="ax:IntervalType">
+          <!-- default value: 120 second -->
+        </ht:element>
+        <ht:element Name="filter"  type="ax:AprsisFilterParameterType">
+          <xs:annotation>
+            <xs:documentation>
+              One white-space terminated parameter that is fed to APRS-IS
+              server immediately after a login.
+
+              If multiple filters are needed, they are defined with
+              successive 'filter' parameter entries.
+            </xs:documentation>
+          </xs:annotation>
+        </ht:element>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="InterfaceGroupType">
+    <xs:annotation>
+      <xs:documentation>
+      </xs:documentation>
+    </xs:annotation>
+  </xs:complexType>
+
+  <xs:complexType name="TelemetryGroupType">
+    <xs:annotation>
+      <xs:documentation>
+      </xs:documentation>
+    </xs:annotation>
+  </xs:complexType>
+
+  <xs:complexType name="DigipeaterGroupType">
+    <xs:annotation>
+      <xs:documentation>
+      </xs:documentation>
+    </xs:annotation>
+  </xs:complexType>
+
+  <xs:complexType name="BeaconGroupType">
+    <xs:annotation>
+      <xs:documentation>
+      </xs:documentation>
+    </xs:annotation>
+  </xs:complexType>
+
+  <xs:complexType name="LoggingGroupType">
+    <xs:annotation>
+      <xs:documentation>
+        The Logging group defines how the Aprx does logs.
+        Without it, or any parameters inside it, no logging happens.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <ht:element Name="aprxlog"     type="ax:filename">
+        </ht:element>
+        <ht:element Name="dprslog"     type="ax:filename">
+        </ht:element>
+        <ht:element Name="rflog"       type="ax:filename">
+        </ht:element>
+        <ht:element Name="pidfile"     type="ax:filename">
+        </ht:element>
+        <ht:element Name="erlangfile"  type="ax:filename">
+        </ht:element>
+        <ht:element Name="erlang-loglevel"  type="ax:???">
+        </ht:element>
+        <ht:element Name="erlanglog"        type="ax:???">
+        </ht:element>
+        <ht:element Name="erlang-log1min"   type="ax:???">
+        </ht:element>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  
+
+  <!--
+      <xs:annotation>
+        <xs:documentation>
+        </xs:documentation>
+      </xs:annotation>
+  -->
+
+</xs:schema>

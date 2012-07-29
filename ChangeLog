@@ -1,3 +1,10 @@
+2012-07-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx-config.xsd:
+	    An attempt at writing a "formal" configuration file syntax
+	    description.  It is really not XML that config file, nor
+	    can XSD define it clearly, I think..
+
 2012-07-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* VERSION: 2.04
