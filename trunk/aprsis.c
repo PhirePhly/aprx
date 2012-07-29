@@ -1170,7 +1170,6 @@ int aprsis_config(struct configfile *cf)
 		    if (AIH->login) free(AIH->login);
 		    AIH->login = strdup(param1);
 		  }
-		    
 
 		} else if (strcmp(name, "server") == 0) {
 
