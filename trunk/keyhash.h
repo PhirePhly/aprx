@@ -12,5 +12,6 @@
 
 extern void         keyhash_init(void);
 extern unsigned int keyhash(const void *s, int slen, unsigned int hash0);
+extern unsigned int keyhashuc(const void *s, int slen, unsigned int hash0);
 
 #endif
