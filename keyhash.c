@@ -71,11 +71,11 @@ uint32_t __attribute__((pure)) keyhash(const void const *p, int len, uint32_t ha
 {
 	const uint8_t *u = p;
 	int i;
-#define FNV_32_PRIME     16777619
-#define FVN_32_OFFSET  2166136261
+#define FNV_32_PRIME     16777619U
+#define FVN_32_OFFSET  2166136261U
 
 	if (hash == 0)
-		hash = FVN_32_OFFSET;
+        	hash = (uint32_t)FVN_32_OFFSET;
 
 	for (i = 0; i < len; ++i, ++u) {
 #if defined(NO_FNV_GCC_OPTIMIZATION)
@@ -96,11 +96,9 @@ uint32_t __attribute__((pure)) keyhashuc(const void const *p, int len, uint32_t 
 {
 	const uint8_t *u = p;
 	int i;
-#define FNV_32_PRIME     16777619
-#define FVN_32_OFFSET  2166136261
 
 	if (hash == 0)
-		hash = FVN_32_OFFSET;
+        	hash = (uint32_t)FVN_32_OFFSET;
 
 	for (i = 0; i < len; ++i, ++u) {
 #if defined(NO_FNV_GCC_OPTIMIZATION)
