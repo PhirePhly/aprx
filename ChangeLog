@@ -1,3 +1,10 @@
+2012-07-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* keyhash.c, keyhash.h, netax25.c, netresolver.c, interface.c,
+	  cellmalloc.c, config.c, dprsgw.c, ax25.c:
+	    A compiler test with -Wall complained a bit around missing ANSI-C
+	    prototypes.
+
 2012-07-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* keyhash.c, filter.c:

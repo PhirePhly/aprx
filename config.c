@@ -465,9 +465,7 @@ static int cfgparam(struct configfile *cf)
  *  (c) Matti Aarnio, Rayan Zachariassen..
  */
 
-static int parse_interval(string, restp)
-	const char *string;
-	const char **restp;
+static int parse_interval(const char *string, const char **restp)
 {
 	int	intvl = 0;
 	int	val;

@@ -36,7 +36,7 @@ struct netresolver *netresolv_add(const char *hostname, const char *port) {
 }
 
 
-static void resolve_all() {
+static void resolve_all(void) {
 	int i;
 
 	if (debug>1)

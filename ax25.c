@@ -129,16 +129,6 @@ int parse_ax25addr(uint8_t ax25[7], const char *text, int ssidflags)
 	return 0;
 }
 
-/* Convert TNC2 monitor text format to binary AX.25 packet */
-
-void tnc2_to_ax25()
-{
-	// int i;
-
-	// TNC2 format:   src> dest, via1, via2, via3, ... via8
-	// AX25 format:   dest, src, via1, via2, via3, ... via8
-}
-
 int ax25_format_to_tnc(const uint8_t *frame, const int framelen,
 		       char *tnc2buf, const int tnc2buflen,
 		       int *frameaddrlen, int *tnc2addrlen,

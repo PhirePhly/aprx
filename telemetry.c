@@ -68,8 +68,8 @@ int telemetry_prepoll(struct aprxpolls *app)
 	return 0;
 }
 
-static void telemetry_datatx();
-static void telemetry_labeltx();
+static void telemetry_datatx(void);
+static void telemetry_labeltx(void);
 
 int telemetry_postpoll(struct aprxpolls *app)
 {
@@ -90,7 +90,7 @@ int telemetry_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-static void telemetry_datatx()
+static void telemetry_datatx(void)
 {
 	int  i, j, k, t;
 	char buf[200], *s;

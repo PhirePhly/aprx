@@ -1056,7 +1056,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 	case IFTYPE_NULL:
 		// Efficient transmitter :-)
 		if (debug>1)
-			printf("tx null-device: %d\n", aif->callsign);
+			printf("tx null-device: %s\n", aif->callsign);
 
 		// Account the transmission anyway ;-)
 		erlang_add(aif->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);
