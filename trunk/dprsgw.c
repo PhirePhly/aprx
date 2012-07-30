@@ -71,7 +71,7 @@ static void dprsgw_flush(dprsgw_t *dp) {
 	dp->rmcline[0] = 0;
 }
 
-static void *dprsgw_new() {
+static void *dprsgw_new(void) {
 	dprsgw_t *dp = malloc(sizeof(struct dprs_gw));
 	memset(dp, 0, sizeof(*dp));
 	dprsgw_flush(dp);

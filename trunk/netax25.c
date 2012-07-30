@@ -299,7 +299,7 @@ static int is_ax25ttyport(const char *callsign)
 }
 
 
-static int scan_linux_devices() {
+static int scan_linux_devices(void) {
 	FILE *fp;
 	struct ifreq ifr;
 	char buffer[512], *s;
