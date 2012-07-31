@@ -334,7 +334,7 @@ extern void igate_from_aprsis(const char *ax25, int ax25len);
 extern void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25);
 extern void enable_tx_igate(const char *, const char *);
 #endif
-extern void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len);
+extern void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len);
 extern const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e);
 
 /* netax25.c */
@@ -483,19 +483,20 @@ typedef struct dupe_record_t {
 	int16_t	 alen;	// Address length
 	int16_t	 plen;	// Payload length
 
-	char	 addresses[72];
+	char	 addresses[20];
 	char	*packet;
-	char	 packetbuf[256]; /* 99.9+ % of time this is enough.. */
+	char	 packetbuf[200]; /* 99.9+ % of time this is enough.. */
 } dupe_record_t;
 
 #define DUPECHECK_DB_SIZE 16     /* Hash index table size - per dupechecker */
 
 typedef struct dupecheck_t {
+	int	storetime;
 	struct dupe_record_t *dupecheck_db[DUPECHECK_DB_SIZE]; /* Hash index table */
 } dupecheck_t;
 
 extern void           dupecheck_init(void); /* Inits the dupechecker subsystem */
-extern dupecheck_t   *dupecheck_new(void);  /* Makes a new dupechecker  */
+extern dupecheck_t   *dupecheck_new(const int storetime);  /* Makes a new dupechecker  */
 extern dupe_record_t *dupecheck_get(dupe_record_t *dp); // increment refcount
 extern void           dupecheck_put(dupe_record_t *dp); // decrement refcount
 extern dupe_record_t *dupecheck_aprs(dupecheck_t *dp, const char *addr, const int alen, const char *data, const int dlen);     /* aprs checker */

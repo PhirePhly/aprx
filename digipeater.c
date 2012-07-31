@@ -380,7 +380,8 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	const char *p = pb->dstcall_end+1;
 	const char *s;
 	const struct digipeater *digi = src->parent;
-	char viafield[14];
+        const char *lastviastar;
+	char viafield[15]; // temp buffer for many uses
 	int have_fault = 0;
 	int viaindex = 1; // First via index will be 2..
 	int activeviacount = 0;
@@ -417,6 +418,9 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  return 1; // Dest reject filters
 	}
 
+        // Where is the last via-field with a start on it?
+        len = pb->info_start - p; if (len < 0) len=0;
+        lastviastar = memrchr(p, len, '*');
 
 	while (p < pb->info_start && !have_fault) {
 	  len = 0;
@@ -437,11 +441,16 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  ++viaindex;
 
 	  len = s-p;
-	  if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
+	  if (len >= sizeof(viafield)) len = sizeof(viafield)-2;
 	  memcpy(viafield, p, len);
 	  viafield[len] = 0;
 	  if (*s == ',') ++s;
 	  p = s;
+          if (strchr(viafield,'*') == NULL) {
+            if (lastviastar != NULL && p < lastviastar)
+              strcat(viafield,"*"); // we do know that there is space for this.
+          }
+
 	  if (debug>1) printf(" - ViaField[%d]: '%s'\n", viaindex, viafield);
 
 	  // VIA-field picked up, now analyze it..
@@ -844,6 +853,7 @@ int digipeater_config(struct configfile *cf)
 	float ratelimit = 60;
 	float rateincrement = 60;
 	int sourcecount = 0;
+        int dupestoretime = 30; // FIXME: parametrize! 30 is minimum..
 	struct digipeater_source **sources = NULL;
 	struct digipeater *digi = NULL;
 	struct tracewide *traceparam = NULL;
@@ -1004,7 +1014,7 @@ int digipeater_config(struct configfile *cf)
 		digi->tbf_increment = (rateincrement * TOKENBUCKET_INTERVAL)/60;
 		digi->tokenbucket   = digi->tbf_limit;
 
-		digi->dupechecker   = dupecheck_new();  // Dupecheck is per transmitter
+		digi->dupechecker   = dupecheck_new(dupestoretime);  // Dupecheck is per transmitter
 #ifndef DISABLE_IGATE
 		digi->historydb     = historydb_new();  // HistoryDB is per transmitter
 #endif
@@ -1269,7 +1279,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
               memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skiped
               t2l2 = t2l + pb->ax25datalen-2; // tbuf size sans Ctrl+PID
 
-              rflog( digi->transmitter->callsign, 1, 0, tbuf, t2l2 );
+              rflog( digi->transmitter->callsign, 'T', 0, tbuf, t2l2 );
               tbuf[t2l]=0;
             }
           }

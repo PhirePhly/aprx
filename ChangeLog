@@ -1,3 +1,21 @@
+2012-07-31  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c, igate.c, aprx.h:
+	    rflog() parameter set modification, show directly at calls if
+	    the logged item is 'R' or 'T'.
+
+	* dupecheck.c, aprsis.c, igate.c, aprx.h, digipeater.c:
+	    Prepare for the duplicate checker to be able to control the time
+	    window of the duplicate checks - minimum will be 30 seconds, maximum
+	    can be higher.
+
+	* digipeater.c:
+	    TNC2 format quirks in "VIA field" data caused missed identification
+	    of "ping pong relay" - where a packet contains this node's transmitter
+	    callsign, and this node has logged its address as "sent through me".
+	    Also known as TRACE mode:
+	        SRC>DEST,MYTRANS,OTHERTX*,WIDE3-1
+
 2012-07-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* keyhash.c, keyhash.h, netax25.c, netresolver.c, interface.c,
@@ -27,9 +45,9 @@
 	    Wrong way to put len* fields into an union vs. a few other things.
 
 	* dupecheck.c, digipeater.c:
-	    Fix from iw3ijq + k3pdk about AX25 duplicate tracking dropping null pointers.
-	    This has _not_ been validated for TNC mode frames yet, but now AX.25
-	    works properly.
+	    Fix from iw3ijq + k3pdk about AX25 duplicate tracking dropping null
+	    pointers.  This has _not_ been validated for TNC mode frames yet,
+	    but now AX.25 works properly.
 
 2012-01-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 

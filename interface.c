@@ -1595,7 +1595,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	  memcpy(a, txbuf+2, txlen-2); // forget control+pid bytes..
 	  a += txlen -2;   // final assembled message end pointer
 
-	  rflog(aif->callsign, 1, 0, axbuf, a - axbuf);
+	  rflog(aif->callsign, 'T', 0, axbuf, a - axbuf);
 	}
 
 	return 0;

@@ -76,7 +76,9 @@ static int aprsis_up = -1;	/* up & down talking socket(pair),
 				   uses this socket. */
 static int aprsis_down = -1;	/* down talking socket(pair),
 				   The aprx main loop uses this socket */
-static dupecheck_t *aprsis_rx_dupecheck;
+//static dupecheck_t *aprsis_rx_dupecheck;
+
+//int  aprsis_dupecheck_storetime = 30;
 
 
 extern int log_aprsis;
@@ -88,10 +90,9 @@ void aprsis_init(void)
 	aprsis_down = -1;
 }
 
-void enable_aprsis_rx_dupecheck(void) {
-	aprsis_rx_dupecheck = dupecheck_new();
-}
-
+//void enable_aprsis_rx_dupecheck(void) {
+//	aprsis_rx_dupecheck = dupecheck_new(aprsis_dupecheck_storetime);
+//}
 #if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 static void sig_handler(int sig)
 {
@@ -535,7 +536,6 @@ static void aprsis_readup(void)
 	const char *text;
 	int textlen;
 	struct aprsis_tx_msg_head head;
-	char qtype;
 
 	i = recv(aprsis_up, buf, sizeof(buf), 0);
 	if (i == 0) {		/* EOF ! */
@@ -584,19 +584,19 @@ int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gw
 	char *p;
 	struct aprsis_tx_msg_head head;
 	int newlen;
-	dupe_record_t *dp;
+//	dupe_record_t *dp;
 
 	if (aprsis_down < 0) return -1; // No socket!
 
 	if (addrlen == 0)      /* should never be... */
 		addrlen = strlen(addr);
 
-	if (aprsis_rx_dupecheck != NULL) {
-	  dp = dupecheck_aprs( aprsis_rx_dupecheck, 
-			       addr, addrlen,
-			       text, textlen );
-	  if (dp != NULL) return 1; // Bad either as dupe, or due to alloc failure
-	}
+//	if (aprsis_rx_dupecheck != NULL) {
+//	  dp = dupecheck_aprs( aprsis_rx_dupecheck, 
+//			       addr, addrlen,
+//			       text, textlen );
+//	  if (dp != NULL) return 1; // Bad either as dupe, or due to alloc failure
+//	}
 
 	newlen = sizeof(head) + addrlen + gwlen + textlen + 6;
 	if (newlen > buflen) {
