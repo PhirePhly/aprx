@@ -1,5 +1,8 @@
 2012-07-31  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* Makefile.in:
+	    Fixing details around how to run "make make-deb".
+
 	* interface.c, igate.c, aprx.h:
 	    rflog() parameter set modification, show directly at calls if
 	    the logged item is 'R' or 'T'.
