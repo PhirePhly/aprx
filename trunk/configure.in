@@ -39,6 +39,8 @@ AC_CHECK_FUNCS(atan2f,,
 	       AC_CHECK_LIB(m, atan2f,
 			    [LIBM="-lm"]))
 
+AC_CHECK_FUNCS(memchr memrchr)
+
 dnl Checks for library functions.
 AC_CHECK_FUNCS(openpty,,
 	       AC_CHECK_LIB(util, openpty,

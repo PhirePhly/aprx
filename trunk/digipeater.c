@@ -1602,3 +1602,17 @@ int  digipeater_postpoll(struct aprxpolls *app)
 
 	return 0;
 }
+
+// An utility function that exists at GNU Libc..
+
+#if !defined(HAVE_MEMRCHR) && !defined(_FOR_VALGRIND_)
+void   *memrchr(const void *s, int c, size_t n) {
+  const unsigned char *p = s;
+  c &= 0xFF;
+  for (p = s+n; n > 0; --n, --p) {
+    if (*p == c) return (void*)p;
+  }
+  return NULL;
+}
+#endif
+

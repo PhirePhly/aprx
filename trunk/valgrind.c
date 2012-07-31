@@ -82,6 +82,14 @@ void   *memchr(const void *s, int c, size_t n) {
   }
   return NULL;
 }
+void   *memrchr(const void *s, int c, size_t n) {
+  const unsigned char *p = s;
+  c &= 0xFF;
+  for (p = s+n; n > 0; --n, --p) {
+    if (*p == c) return (void*)p;
+  }
+  return NULL;
+}
 char  *strchr(const char *s, int c) {
   c &= 0xFF;
   for (; *s != 0; ++s) {

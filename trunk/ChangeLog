@@ -1,5 +1,9 @@
 2012-07-31  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, digipeater.c, aprx.h, valgrind.c:
+	    Supply implementation of memrchr() if the platform does not have it.
+	    (GNU Libc extension, not a standard POSIX thing.)
+
 	* Makefile.in:
 	    Fixing details around how to run "make make-deb".
 	    Fixing how SVNVERSION is determined.
