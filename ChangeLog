@@ -2,6 +2,7 @@
 
 	* Makefile.in:
 	    Fixing details around how to run "make make-deb".
+	    Fixing how SVNVERSION is determined.
 
 	* interface.c, igate.c, aprx.h:
 	    rflog() parameter set modification, show directly at calls if
