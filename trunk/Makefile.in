@@ -195,6 +195,16 @@ dist:
 .PHONY: make-deb make-rpm
 
 make-deb:
+	if [ -f debian/changelog.release ] ; then \
+	perl -ne "\$$ver = '$(DISTVERSION)'; 	\
+		  \$$ver =~ tr/0-9.//cd;	\
+		  \$$ver .= '-1';		\
+		  s{\@VERSION\@}{\$$ver}g;	\
+		  s{\@RFCDATE\@}{$(RFCDATE)}g;	\
+		  print;"			\
+		  < debian/changelog.release	\
+		  > debian/changelog ; \
+	fi
 	dpkg-buildpackage -b -us -uc -rfakeroot
 
 make-rpm: # actually just a reminder of how to do it..
