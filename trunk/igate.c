@@ -75,16 +75,15 @@ const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax2
 
 #ifndef DISABLE_IGATE
 
-static dupecheck_t *aprsisdupe; /* for messages being sent TO APRSIS */
-
 
 /*
  * igate start -- make TX-igate allocations and inits
  */
 void igate_start()
 {
-	aprsisdupe = dupecheck_new();
-
+	// Always relay all traffic from RF to APRSIS, other
+	// direction is handled per transmitter interface...
+	// enable_aprsis_rx_dupecheck();
 }
 
 static const char *tnc2_forbidden_source_stationid(const char *t, const int strictax25,const char *e)
@@ -186,7 +185,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
 	e  = tp + tnc2len;      // stays the same all the time
 
-	rflog(portname, 0, discard, tp, tnc2len);
+	rflog(portname, 'R', discard, tp, tnc2len);
 
       redo_frame_filter:;
 
@@ -345,7 +344,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 
 	// Log the innermost form of packet to be sent out..
 	if (tp != tnc2buf || discard != discard0)
-	  rflog(portname, 0, discard, tp, tnc2len);
+	  rflog(portname, 'R', discard, tp, tnc2len);
 
 	if (0) {
  discard:;
@@ -526,7 +525,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  return;
 	}
 
-	rflog("APRSIS",0,0,ax25, ax25len);
+	rflog("APRSIS",'R',0,ax25, ax25len);
 
 	headsbuf = alloca(colonidx+1);
 	memcpy(headsbuf, ax25, colonidx+1);
@@ -611,7 +610,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 
 /* ---------------------------------------------------------- */
 
-void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int tnc2len)
+void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len)
 {
 	if (rflogfile) {
 		FILE *fp = NULL;
@@ -627,7 +626,7 @@ void rflog(const char *portname, int istx, int discard, const char *tnc2buf, int
 		  printtime(timebuf, sizeof(timebuf));
 	  
 		  (void)fprintf(fp, "%s %-9s ", timebuf, portname);
-		  (void)fprintf(fp, "%s ", istx ? "T":"R");
+		  (void)fprintf(fp, "%c ", direction);
 
 		  if (discard < 0) {
 		    fprintf(fp, "*");

@@ -30,7 +30,6 @@
 static int           dupecheck_cellgauge;
 static int           dupecheckers_count;
 static dupecheck_t **dupecheckers;
-static int           dupefilter_storetime = 30; /* 30 seconds */
 
 
 #ifndef _FOR_VALGRIND_
@@ -60,7 +59,7 @@ void dupecheck_init(void)
  * dupecheck_new() creates a new instance of dupechecker
  *
  */
-dupecheck_t *dupecheck_new(void) {
+dupecheck_t *dupecheck_new(const int storetime) {
 	dupecheck_t *dp = malloc(sizeof(dupecheck_t));
 	memset(dp, 0, sizeof(*dp));
 
@@ -68,6 +67,8 @@ dupecheck_t *dupecheck_new(void) {
 	dupecheckers = realloc(dupecheckers,
 			       sizeof(dupecheck_t *) * dupecheckers_count);
 	dupecheckers[ dupecheckers_count -1 ] = dp;
+
+        dp->storetime = storetime;
 
 	return dp;
 }
@@ -193,7 +194,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	uint32_t hash, idx;
 	dupe_record_t **dpp, *dp;
 
-	// 1) collect canonic rep of the address
+	// 1) collect canonic rep of the address (SRC,DEST, no VIAs)
 	i = 1;
 	for (addrlen = 0; addrlen < alen; ++ addrlen) {
 		const char c = addr[addrlen];
@@ -206,8 +207,8 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	}
 
         // code to prevent segmentation fault
-        if (addrlen > 70) {
-          if (debug>1) printf("  addrlen=\"%d\" > 70, discard packet\n",addrlen);
+        if (addrlen > 18) {
+          if (debug>1) printf("  addrlen=\"%d\" > 18, discard packet\n",addrlen);
           return NULL;
         }
 
@@ -216,13 +217,6 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	datalen = dlen;
 	while (datalen > 0 && data[datalen-1] == ' ')
 		--datalen;
-
-        // code to prevent segmentation fault
-        if (datalen > 255) {
-          if (debug>1) printf(" datalen=%d > 255, discarding packet\n", datalen);
-          return NULL;
-        }
-
 
 	// there are no 3rd-party frames in APRS-IS ...
 
@@ -279,7 +273,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	dp->seen  = 1;  // First observation gets number 1
 	dp->hash  = hash;
 	dp->t     = now;
-	dp->t_exp = now + dupefilter_storetime;
+	dp->t_exp = now + dpc->storetime;
 	return NULL;
 }
 
@@ -446,7 +440,7 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 
 	dp->hash  = hash;
 	dp->t     = now;
-	dp->t_exp = now + dupefilter_storetime;
+	dp->t_exp = now + dpc->storetime;
 
 	return dp;
 }
