@@ -38,6 +38,7 @@
 #define memcmp  aprx_memcmp
 #define memcpy  aprx_memcpy
 #define memchr  aprx_memchr
+#define memrchr aprx_memrchr
 #define strlen  aprx_strlen
 #define strcpy  aprx_strcpy
 #define strncpy aprx_strncpy
@@ -70,6 +71,8 @@ extern int   strcasecmp(const char *s1, const char *s2);
 # include <strings.h>
 #endif
 #endif
+
+extern void   *memrchr(const void *s, int c, size_t n);
 
 #include <termios.h>
 #include <errno.h>
