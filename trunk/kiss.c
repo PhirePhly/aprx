@@ -222,7 +222,7 @@ static int kissprocess(struct serialport *S)
 	/* Are we expecting FLEXNET KISS ? */
 	if (S->linetype == LINETYPE_KISSFLEXNET && (cmdbyte & 0x20)) {
 	    int crc;
-	    tncid &= ~0x02; // FlexNet puts 0x20 as indication of CRC presense..
+	    tncid &= ~0x20; // FlexNet puts 0x20 as indication of CRC presence..
 
 	    if (S->ttycallsign[tncid] == NULL) {
 	      /* D'OH!  received packet on multiplexer tncid without
@@ -623,7 +623,7 @@ void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25ra
 	}
 
 	ssid = (tncid << 4) | ((S->linetype == LINETYPE_KISSSMACK) ? 0x80 : 0x00);
-	if (S->linetype == LINETYPE_KISSFLEXNET)  ssid |= 0x20; // CRC presense
+	if (S->linetype == LINETYPE_KISSFLEXNET)  ssid |= 0x20; // CRC presence
 
 	len = kissencoder( kissbuf, sizeof(kissbuf), S->linetype, ax25raw, ax25rawlen, ssid );
 
