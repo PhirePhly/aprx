@@ -282,12 +282,6 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		    continue;
 		  }
 
-		  if (aif->callsign != NULL)
-		    free(aif->callsign);
-		  aif->callsign = callsign;
-		  parse_ax25addr(aif->ax25call, aif->callsign, 0x60);
-
-
 		} else if (strcmp(name, "initstring") == 0) {
 		  
 		  initlength = parlen;
@@ -352,6 +346,11 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		 cf->name, cf->linenum, callsign);
 	  return 1;
 	}
+
+        if (debug)
+          printf(" Defining <kiss-subif %d>  callsign=%s txok=%s\n", subif, callsign, txok ? "true":"false");
+
+
 
 	*aifp = malloc(sizeof(*aif));
 	memcpy(*aifp, aif, sizeof(*aif));
@@ -846,8 +845,10 @@ int interface_config(struct configfile *cf)
 
 		if (aif->tty != NULL) {
 		  // Register all tty subinterfaces
+                  if (debug) printf(" .. store tty subinterfaces\n");
 		  for (i = 0; i < maxsubif; ++i) {
 		    if (aif->tty->interface[i] != NULL) {
+                      if (debug) printf(" .. store interface[%d] callsign='%s'\n",i, aif->tty->interface[i]->callsign);
 		      interface_store(aif->tty->interface[i]);
 		    }
 		  }
@@ -856,6 +857,8 @@ int interface_config(struct configfile *cf)
 		  // register just the primary.
 		  aif->ifgroup = ifgroup; // either user sets, or system sets at store time
 		  interface_store(aif);
+
+                  if (debug) printf(" .. store other interface\n");
 
 		}
 
