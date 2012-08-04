@@ -1,5 +1,9 @@
 2012-08-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c, kiss.c:
+	    Debug printout claimed reversed logical meaning in history-db
+	    lookup. Typo fixes at kiss processing comments.
+
 	* interface.c:
 	    Config parser bug in defining multiple <kiss-subif ..>.
 	    Thanks to N2PYI for report.
@@ -7,8 +11,8 @@
 2012-07-31  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* configure.in, digipeater.c, aprx.h, valgrind.c:
-	    Supply implementation of memrchr() if the platform does not have it.
-	    (GNU Libc extension, not a standard POSIX thing.)
+	    Supply implementation of memrchr() if the platform does not have
+	    it. (GNU Libc extension, not a standard POSIX thing.)
 
 	* Makefile.in:
 	    Fixing details around how to run "make make-deb".
@@ -25,9 +29,9 @@
 
 	* digipeater.c:
 	    TNC2 format quirks in "VIA field" data caused missed identification
-	    of "ping pong relay" - where a packet contains this node's transmitter
-	    callsign, and this node has logged its address as "sent through me".
-	    Also known as TRACE mode:
+	    of "ping pong relay" - where a packet contains this node's
+	    transmitter callsign, and this node has logged its address as
+	    "sent through me".  Also known as TRACE mode:
 	        SRC>DEST,MYTRANS,OTHERTX*,WIDE3-1
 
 2012-07-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>

@@ -1412,7 +1412,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	      if (hist_rx->last_heard[tx_aif->ifgroup] >= recent_time) {
 		// Heard recently enough
 		discard_this = 0;
-		if (debug) printf("History entry for receiving call '%s' from RADIO is not recent enough.  DISCARDING.\n", pb->recipient);
+		if (debug) printf("History entry for receiving call '%s' from RADIO is recent enough.  KEEPING.\n", pb->recipient);
 	      }
 	    }
 
