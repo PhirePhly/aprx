@@ -1,3 +1,8 @@
+2012-08-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* debian/aprx.init, rpm/aprx.init:
+	    Correct the package start dependency definitions.
+
 2012-08-04  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c, kiss.c:
