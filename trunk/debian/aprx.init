@@ -4,7 +4,7 @@
 
 ### BEGIN INIT INFO
 # Provides:       aprx
-# Required-Start: $syslog $local_fs ax25ifs
+# Required-Start: $syslog $local_fs
 # Required-Stop:  $syslog $local_fs
 # Should-Start:   ax25ifs
 # Default-Start:  2 3 4 5
