@@ -128,7 +128,7 @@ void historydb_dump(const historydb_t *db, FILE *fp)
 	/* Dump the historydb out on text format */
 	int i;
 	struct history_cell_t *hp;
-	time_t expirytime   = now - lastposition_storetime;
+	time_t expirytime   = now.tv_sec - lastposition_storetime;
 
 	for ( i = 0; i < HISTORYDB_HASH_MODULO; ++i ) {
 		hp = db->hash[i];
@@ -155,7 +155,7 @@ history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 	int isdead = 0, keylen;
 	struct history_cell_t **hp, *cp, *cp1;
 
-	time_t expirytime   = now - lastposition_storetime;
+	time_t expirytime   = now.tv_sec - lastposition_storetime;
 
 	char keybuf[CALLSIGNLEN_MAX+2];
 	char *s;
@@ -340,7 +340,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	int keylen;
 	struct history_cell_t **hp, *cp, *cp1;
 
-	time_t expirytime   = now - lastposition_storetime;
+	time_t expirytime   = now.tv_sec - lastposition_storetime;
 
 	char keybuf[CALLSIGNLEN_MAX+2];
 	char *s;
@@ -505,7 +505,7 @@ history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int 
 	struct history_cell_t *cp;
 
 	// validity is 5 minutes shorter than expiration time..
-	time_t validitytime   = now - lastposition_storetime + 5*60;
+	time_t validitytime   = now.tv_sec - lastposition_storetime + 5*60;
 
 	++db->historydb_lookups;
 
@@ -549,7 +549,7 @@ static void historydb_cleanup(historydb_t *db)
 
 	if (debug > 1) printf("historydb_cleanup() ");
 
-	time_t expirytime   = now - lastposition_storetime;
+	time_t expirytime   = now.tv_sec - lastposition_storetime;
 
 	for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
 		hp = &db->hash[i];
@@ -585,8 +585,8 @@ int  historydb_prepoll(struct aprxpolls *app)
 int  historydb_postpoll(struct aprxpolls *app)
 {
 	int i;
-	if (next_cleanup_time >= now) return 0;
-	next_cleanup_time = now + 60; // A minute from now..
+	if (next_cleanup_time >= now.tv_sec) return 0;
+	next_cleanup_time = now.tv_sec + 60; // A minute from now..
 
 	for (i = 0; i < _dbs_count; ++i) {
 	  historydb_cleanup(_dbs[i]);

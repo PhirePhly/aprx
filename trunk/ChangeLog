@@ -1,3 +1,17 @@
+2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* ttyreader.c, aprxpolls.c, aprx.c, aprx.h:
+	    Do millisecond timings, send KISS POLL (0x0E) code requests every
+	    configured number of milliseconds per serial-device:
+	       serial-device ... KISS pollmillis 100
+
+	* agwpesocket.c, aprsis.c, aprx.c, aprx.h, aprxpolls.c, aprx-stat.c,
+	  beacon.c, configure.in, digipeater.c, dprsgw.c, dupecheck.c,
+	  erlang.c, filter.c, historydb.c, igate.c, interface.c, kiss.c,
+	  netax25.c, netresolver.c, pbuf.c, telemetry.c, ttyreader.c:
+	    Changed "now" from type "time_t" to "struct timeval" enabling
+	    the ttyreader to do millisecond level timing operations.
+
 2012-08-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* debian/aprx.init, rpm/aprx.init:

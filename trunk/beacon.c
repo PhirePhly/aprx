@@ -111,7 +111,7 @@ static int validate_degmin_input(const char *s, int maxdeg)
 
 static void beacon_reset(void)
 {
-	beacon_nexttime = now + 30;	/* start 30 seconds from now */
+	beacon_nexttime = now.tv_sec + 30;	/* start 30 seconds from now */
 	beacon_msgs_cursor = 0;
 }
 
@@ -664,7 +664,7 @@ static void fix_beacon_time(char *txt, int txtlen)
 	int hour, min, sec;
 	char hms[8];
 
-	sec = now % (3600*24);
+	sec = now.tv_sec % (3600*24);
 	hour = sec / 3600;
 	min  = (sec / 60) % 60;
 	sec  = sec % 60;
@@ -712,9 +712,9 @@ static void beacon_now(void)
 	if (beacon_msgs_cursor == 0) {
 		float beacon_increment;
 		int   i;
-		time_t t = now;
+		time_t t = now.tv_sec;
 
-		srand(now);
+		srand((long)t);
 		beacon_increment = (beacon_cycle_size / beacon_msgs_count);
 
 		if (debug)
@@ -727,7 +727,7 @@ static void beacon_now(void)
 			if (interval < 3) interval = 3; // Minimum interval: 3 seconds
 			t += interval;
 			if (debug)
-				printf("beacons offset: %.2f minutes\n", (t-now)/60.0);
+				printf("beacons offset: %.2f minutes\n", (t-now.tv_sec)/60.0);
 			beacon_msgs[i]->nexttime = t;
 		}
 	}
@@ -740,7 +740,7 @@ static void beacon_now(void)
 
 	if (debug)
 	  printf("BEACON: idx=%d, nexttime= +%d sec\n",
-		 beacon_msgs_cursor-1, (int)(beacon_nexttime - now));
+		 beacon_msgs_cursor-1, (int)(beacon_nexttime - now.tv_sec));
 
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
@@ -800,9 +800,9 @@ static void beacon_now(void)
 
 		if (debug) {
 		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
-			 now, callsign, destbuf, txt);
+			 now.tv_sec, callsign, destbuf, txt);
 		  printf(" next beacon in %.2f minutes\n",
-			 ((beacon_nexttime - now)/60.0));
+			 ((beacon_nexttime - now.tv_sec)/60.0));
 		}
 
 #ifndef DISABLE_IGATE
@@ -894,9 +894,9 @@ static void beacon_now(void)
 		
 		if (debug) {
 		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
-			 now, callsign, destbuf, txt);
+			 now.tv_sec, callsign, destbuf, txt);
 		  printf(" next beacon in %.2f minutes\n",
-			 ((beacon_nexttime - now)/60.0));
+			 ((beacon_nexttime - now.tv_sec)/60.0));
 		}
 
 #ifndef DISABLE_IGATE
@@ -958,7 +958,7 @@ int beacon_postpoll(struct aprxpolls *app)
 #endif
 	if (!beacon_msgs)
 		return 0;	/* Nothing to do */
-	if (beacon_nexttime > now)
+	if (beacon_nexttime > now.tv_sec)
 		return 0;	/* Too early.. */
 
 	beacon_now();

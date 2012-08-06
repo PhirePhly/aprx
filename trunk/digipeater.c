@@ -1154,6 +1154,14 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  ax25_to_tnc2_fmtaddress(viafield, axaddr, 0);
 	  // if (debug>1) printf(" via: %s", viafield);
 
+          if (state.fixall && viaindex == 2) {
+	      // Treat it as a TRACE request.
+	      int acont = axaddr[6] & 0x01; // save old address continuation bit
+	      // Put the transmitter callsign in, and set the H-bit.
+	      memcpy(axaddr, digi->transmitter->ax25call, 7);
+	      axaddr[6] |= (0x80 | acont); // Set H-bit
+          }
+          
 	  // Initial parsing said that things are seriously wrong..
 	  // .. and we will digipeat the packet with all H-bits set.
 	  if (state.fixall) axaddr[6] |= 0x80;
@@ -1471,7 +1479,7 @@ void digipeater_receive( struct digipeater_source *src,
 				= dupecheck_get(dupe);
 			
 			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d pbuf=%p\n",
-					  now, src->viscous_queue_size, pb);
+					  now.tv_sec, src->viscous_queue_size, pb);
 			return; // Put on viscous queue
 
 		} 
@@ -1529,8 +1537,8 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	int d, s, i, donecount;
 	int do_tokenbuckets = 0;
 
-	if (tokenbucket_timer < now) {
-	  tokenbucket_timer = now + TOKENBUCKET_INTERVAL;
+	if (tokenbucket_timer < now.tv_sec) {
+	  tokenbucket_timer = now.tv_sec + TOKENBUCKET_INTERVAL;
 	  do_tokenbuckets = 1;
 	}
 
@@ -1565,9 +1573,9 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    for (i = 0; i < src->viscous_queue_size; ++i) {
 	      struct dupe_record_t *dupe = src->viscous_queue[i];
 	      time_t t = dupe->t + src->viscous_delay;
-	      if (t <= now) {
+	      if (t <= now.tv_sec) {
 		if (debug)printf("%ld LEAVE VISCOUS QUEUE: dupe=%p pbuf=%p\n",
-				 now, dupe, dupe->pbuf);
+				 now.tv_sec, dupe, dupe->pbuf);
 		if (dupe->pbuf != NULL) {
                   // We send the pbuf from viscous queue, if it still is
 		  // present in the dupe record.  (For example direct sourced

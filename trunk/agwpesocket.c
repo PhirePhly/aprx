@@ -264,7 +264,7 @@ static struct agwpecom *agwpe_find_or_add_com(const char *hostname, const char *
 	com->fd = -1;
 	com->netaddr = netresolv_add(hostname, hostport);
 	com->rdneed = sizeof(struct agwpeheader);
-	com->wait_until = now + 30; // redo in 30 seconds or so
+	com->wait_until = now.tv_sec + 30; // redo in 30 seconds or so
 
 	++pecomcount;
 	pecom = realloc(pecom, sizeof(void*)*pecomcount);
@@ -306,7 +306,7 @@ void *agwpe_addport(const char *hostname, const char *hostport, const char *agwp
 static void agwpe_reset(struct agwpecom *com, const char *why)
 {
 	com->wrlen = com->wrcursor = 0;
-	com->wait_until = now + 30;
+	com->wait_until = now.tv_sec + 30;
 
 	if (debug>1)
 	  printf("Resetting AGWPE socket; %s\n", why);

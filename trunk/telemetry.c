@@ -53,8 +53,8 @@ void telemetry_start()
 
 	// "now" is supposedly current time..
 
-	telemetry_time      = now + telemetry_interval;
-	telemetry_labeltime = now + 120; // first label 2 minutes from now
+	telemetry_time      = now.tv_sec + telemetry_interval;
+	telemetry_labeltime = now.tv_sec + 120; // first label 2 minutes from now
 }
 
 int telemetry_prepoll(struct aprxpolls *app)
@@ -73,17 +73,17 @@ static void telemetry_labeltx(void);
 
 int telemetry_postpoll(struct aprxpolls *app)
 {
-	if (telemetry_time <= now) {
+	if (telemetry_time <= now.tv_sec) {
 	  telemetry_time += telemetry_interval;
-	  if (telemetry_time <= now)
-	    telemetry_time = now + telemetry_interval;
+	  if (telemetry_time <= now.tv_sec)
+	    telemetry_time = now.tv_sec + telemetry_interval;
 	  telemetry_datatx();
 	}
 
-	if (telemetry_labeltime <= now) {
+	if (telemetry_labeltime <= now.tv_sec) {
 	  telemetry_labeltime += telemetry_labelinterval;
-	  if (telemetry_labeltime <= now)
-	    telemetry_labeltime = now + 120;
+	  if (telemetry_labeltime <= now.tv_sec)
+	    telemetry_labeltime = now.tv_sec + 120;
 	  telemetry_labeltx();
 	}
 

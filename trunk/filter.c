@@ -338,7 +338,7 @@ int filter_entrycall_insert(struct pbuf_t *pb)
 			if (f->len == keylen) {
 				int cmp = strncasecmp(f->callsign, uckey, keylen);
 				if (cmp == 0) { /* Have key match */
-					f->expirytime = now + filter_entrycall_maxage;
+					f->expirytime = now.tv_sec + filter_entrycall_maxage;
 					f2 = f;
 					break;
 				}
@@ -360,7 +360,7 @@ int filter_entrycall_insert(struct pbuf_t *pb)
 #endif
 		if (f) {
 			f->next  = *fp;
-			f->expirytime = now + filter_entrycall_maxage;
+			f->expirytime = now.tv_sec + filter_entrycall_maxage;
 			f->hash  = hash;
 			f->len   = keylen;
 			memcpy(f->callsign, uckey, keylen);
@@ -405,7 +405,7 @@ static int filter_entrycall_lookup(const struct pbuf_t *pb)
 				int rc =  strncasecmp(f->callsign, key, keylen);
 				if (rc == 0) { /* Have key match, see if it is
 						  still valid entry ? */
-					if (f->expirytime < now - 60) {
+					if (f->expirytime < now.tv_sec - 60) {
 						f2 = f;
 						break;
 					}
@@ -432,7 +432,7 @@ void filter_entrycall_cleanup(void)
 		fp = & filter_entrycall_hash[k];
 		while (( f = *fp )) {
 			/* Did it expire ? */
-			if (f->expirytime <= now) {
+			if (f->expirytime <= now.tv_sec) {
 				*fp = f->next;
 				f->next = NULL;
 				filter_entrycall_free(f);
@@ -539,7 +539,7 @@ int filter_wx_insert(struct pbuf_t *pb)
 			if (f->len == keylen) {
 				int cmp = memcmp(f->callsign, uckey, keylen);
 				if (cmp == 0) { /* Have key match */
-					f->expirytime = now + filter_wx_maxage;
+					f->expirytime = now.tv_sec + filter_wx_maxage;
 					f2 = f;
 					break;
 				}
@@ -562,7 +562,7 @@ int filter_wx_insert(struct pbuf_t *pb)
 		++filter_wx_cellgauge;
 		if (f) {
 			f->next  = *fp;
-			f->expirytime = now + filter_wx_maxage;
+			f->expirytime = now.tv_sec + filter_wx_maxage;
 			f->hash  = hash;
 			f->len   = keylen;
 			memcpy(f->callsign, key, keylen);
@@ -593,7 +593,7 @@ static int filter_wx_lookup(const struct pbuf_t *pb)
 				int rc = strncasecmp(f->callsign, key, keylen);
 				if (rc == 0) { /* Have key match, see if it is
 						  still valid entry ? */
-					if (f->expirytime < now - 60) {
+					if (f->expirytime < now.tv_sec - 60) {
 						f2 = f;
 						break;
 					}
@@ -621,7 +621,7 @@ void filter_wx_cleanup(void)
 		fp = & filter_wx_hash[k];
 		while (( f = *fp )) {
 			/* Did it expire ? */
-			if (f->expirytime <= now) {
+			if (f->expirytime <= now.tv_sec) {
 				*fp = f->next;
 				f->next = NULL;
 				filter_wx_free(f);
@@ -1674,9 +1674,9 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 	}
 
 	/* find friend's last location packet */
-	if (f->h.hist_age < now) {
+	if (f->h.hist_age < now.tv_sec) {
 		history = historydb_lookup( historydb, callsign, i );
-		f->h.hist_age = now + hist_lookup_interval;
+		f->h.hist_age = now.tv_sec + hist_lookup_interval;
 		if (!history) {
 		  if (debug) printf("f-filter: no history lookup result (%*s) -> return 0\n", i, callsign );
 		  return 0; /* no lookup result.. */
@@ -1748,9 +1748,9 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 	if (!c->username) /* Should not happen... */
 		return 0;
 
-	if (f->h.hist_age < now) {
+	if (f->h.hist_age < now.tv_sec) {
 		history = historydb_lookup( c->username, strlen(c->username) );
-		f->h.hist_age = now + hist_lookup_interval;
+		f->h.hist_age = now.tv_sec + hist_lookup_interval;
 		if (!history) return 0; /* no result */
 		f->h.u3.numnames = 1;
 		f->h.f_latN   = history->lat;
@@ -2096,7 +2096,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 		   .. 60-100 lookups per second. */
 
 #ifndef DISABLE_IGATE
-		if (f->h.hist_age < now) {
+		if (f->h.hist_age < now.tv_sec) {
 			history = historydb_lookup( historydb, callsign, callsignlen );
 
 			/* hlog( LOG_DEBUG, "Type filter with callsign range used! call='%s', range=%.1f position %sfound",
@@ -2106,7 +2106,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 
 			if (!history) return 0; /* no lookup result.. */
 			f->h.u3.numnames = 1;
-			f->h.hist_age = now + hist_lookup_interval;
+			f->h.hist_age = now.tv_sec + hist_lookup_interval;
 			f->h.f_latN   = history->lat;
 			f->h.f_lonE   = history->lon;
 			f->h.u1.f_coslat = history->coslat;

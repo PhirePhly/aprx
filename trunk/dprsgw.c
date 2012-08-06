@@ -82,7 +82,7 @@ static void *dprsgw_new(void) {
 static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
 	int i, n;
 	char callsign[10];
-	time_t expiry = now - 30; // FIXME: hard-coded 30 second delay for DPRS repeats
+	time_t expiry = now.tv_sec - 30; // FIXME: hard-coded 30 second delay for DPRS repeats
 
 	memcpy(callsign, tnc2buf, sizeof(callsign));
 	callsign[sizeof(callsign)-1] = 0;
@@ -109,7 +109,7 @@ static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
 	}
 	if (n >= 0) {
 	  memcpy(dp->history[n].callsign, callsign, sizeof(callsign));
-	  dp->history[n].gated = now;
+	  dp->history[n].gated = now.tv_sec;
 	}
 	return 0;
 }
@@ -839,12 +839,12 @@ int dprsgw_pulldprs( struct serialport *S )
 	if (S->dprsgw == NULL)
 	  S->dprsgw = dprsgw_new();
 
-	if (rdtime+2 < now) {
+	if (rdtime+2 < now.tv_sec) {
 		// A timeout has happen? Either data is added constantly,
 		// or nothing was received from DPRS datastream!
 
 		if (S->rdlinelen > 0)
-		  if (debug)printf("dprsgw: previous data is %d sec old, discarding its state: %s\n",((int)(now-rdtime)), S->rdline);
+		  if (debug)printf("dprsgw: previous data is %d sec old, discarding its state: %s\n",((int)(now.tv_sec-rdtime)), S->rdline);
 
 		S->rdline[S->rdlinelen] = 0;
 		if (S->rdlinelen > 0 && debug) dprslog(rdtime, S->rdline);
@@ -852,7 +852,7 @@ int dprsgw_pulldprs( struct serialport *S )
 
 		dprsgw_flush(S->dprsgw);  // timeout -> discard accumulated data
 	}
-	S->rdline_time = now;
+	S->rdline_time = now.tv_sec;
 
 	for (i=0 ; ; ++i) {
 
@@ -861,7 +861,7 @@ int dprsgw_pulldprs( struct serialport *S )
 		  // if (debug) printf("dprsgw_pulldprs: read %d chars\n", i);
 			return c;	/* Out of input.. */
 		}
-		if (debug>2) printf("DPRS %ld %3d %02X '%c'\n", now, S->rdlinelen, c, c);
+		if (debug>2) printf("DPRS %ld %3d %02X '%c'\n", now.tv_sec, S->rdlinelen, c, c);
 
 		/* S->dprsstate != 0: read data into S->rdline,
 		   == 0: discard data until CR|LF.
@@ -1001,7 +1001,7 @@ void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fr
 }
 
 int debug = 3;
-time_t now;
+struct timeval now;
 int main(int argc, char *argv[]) {
   struct serialport S;
   memset(&S, 0, sizeof(S));
@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[]) {
     int n = freadln(fp, buf1, sizeof(buf1));
     if (n == 0) break;
     char *ep;
-    now = strtol(buf1, &ep, 10);
+    now.tv_sec = strtol(buf1, &ep, 10);
     if (*ep == '\t') ++ep;
     int len = n - (ep - buf1);
     if (len > 0) {

@@ -173,8 +173,8 @@ static void aprsis_close(struct aprsis *A, const char *why)
 	A->server_socket = -1;
 
 	A->wrbuf_len = A->wrbuf_cur = 0;
-	A->next_reconnect = now + 60;
-	A->last_read = now;
+	A->next_reconnect = now.tv_sec + 60;
+	A->last_read = now.tv_sec;
 
 	if (!A->H)
 		return;		/* Not connected, nor defined.. */
@@ -411,7 +411,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	ai = NULL;
 
 
-	now = time(NULL);	/* unpredictable time since system did last poll.. */
+        gettimeofday(&now, NULL); /* unpredictable time since system did last poll.. */
 	aprxlog(NULL, 0, "CONNECT APRSIS %s:%s\n",
 		A->H->server_name, A->H->server_port);
 
@@ -426,7 +426,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		s += sprintf(s, " filter %s", A->H->filterparam);
 	strcpy(s, "\r\n");
 
-	A->last_read = now;
+	A->last_read = now.tv_sec;
 
 	aprsis_queue_(A, NULL, qTYPE_LOCALGEN, "", aprsislogincmd, strlen(aprsislogincmd));
 
@@ -449,7 +449,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 		if (A->rdlin_len > 0) {
 		    A->rdline[A->rdlin_len] = 0;
 		    /* */
-		    A->last_read = now;	/* Time stamp me ! */
+		    A->last_read = now.tv_sec;	/* Time stamp me ! */
 
 		    aprxlog(A->rdline, A->rdlin_len,
 			    ">> %s:%s >> ", A->H->server_name, A->H->server_port);
@@ -505,7 +505,7 @@ static int aprsis_sockread(struct aprsis *A)
 		A->rdbuf_len += i;
 
 		/* we just ignore the readback.. but do time-stamp the event */
-		A->last_read = now;
+		A->last_read = now.tv_sec;
 
 		aprsis_sockreadline(A);
 	}
@@ -549,7 +549,7 @@ static void aprsis_readup(void)
 	buf[i] = 0;		/* String Termination NUL byte */
 
 	memcpy(&head, buf, sizeof(head));
-	if (head.then + 10 < now)
+	if (head.then + 10 < now.tv_sec)
 		return;		/* Too old, discard */
 	addr = buf + sizeof(head);
 
@@ -606,7 +606,7 @@ int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gw
 	}
 
 	memset(&head, 0, sizeof(head));
-	head.then    = now;
+	head.then    = now.tv_sec;
 	head.addrlen = addrlen;
 	head.gwlen   = gwlen;
 	head.textlen = textlen + 2;	/* We add line terminating \r\n  pair. */
@@ -650,7 +650,7 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 	struct aprsis *A = AprsIS;
 
 	if (A->last_read == 0)
-		A->last_read = now;	/* mark it non-zero.. */
+		A->last_read = now.tv_sec;	/* mark it non-zero.. */
 
 	if (A->server_socket < 0)
 		return -1;	/* Not open, do nothing */
@@ -660,7 +660,7 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 
 	/* Not all aprs-is systems send "heartbeat", but when they do.. */
 	if ((A->H->heartbeat_monitor_timeout > 0) &&
-	    (A->last_read + A->H->heartbeat_monitor_timeout < now)) {
+	    (A->last_read + A->H->heartbeat_monitor_timeout < now.tv_sec)) {
 
 		/*
 		 * More than 120 seconds (2 minutes) since last time
@@ -753,7 +753,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 static void aprsis_cond_reconnect(void)
 {
 	if (AprsIS &&	/* First time around it may trip.. */
-	    AprsIS->server_socket < 0 && AprsIS->next_reconnect <= now) {
+	    AprsIS->server_socket < 0 && AprsIS->next_reconnect <= now.tv_sec) {
 		aprsis_reconnect(AprsIS);
 	}
 }
@@ -784,11 +784,11 @@ static void aprsis_main(void)
 		struct pollfd *pfd;
 		int i;
 
-		now = time(NULL);
+                gettimeofday(&now, NULL);
 
 		aprsis_cond_reconnect();
 
-		now = time(NULL);	/* may take unpredictable time.. */
+                gettimeofday(&now, NULL); /* may take unpredictable time.. */
 
 #if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 		// Parent-pid makes no sense in threaded setup
@@ -800,7 +800,7 @@ static void aprsis_main(void)
 #endif
 
 		aprxpolls_reset(&app);
-		app.next_timeout = now + 5;
+		app.next_timeout = now.tv_sec + 5;
 
 		if (aprsis_up >= 0) {
 			pfd = aprxpolls_new(&app);
@@ -812,12 +812,11 @@ static void aprsis_main(void)
 
 		i = aprsis_prepoll_(&app);
 
-		if (app.next_timeout <= now)
-			app.next_timeout = now + 1;	/* Just to be on safe side.. */
+		if (app.next_timeout <= now.tv_sec)
+			app.next_timeout = now.tv_sec + 1;	/* Just to be on safe side.. */
 
-		i = poll(app.polls, app.pollcount,
-			 (app.next_timeout - now) * 1000);
-		now = time(NULL);
+		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
+                gettimeofday(&now, NULL);
 
 		if (app.polls[0].
 		    revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)) {
@@ -860,7 +859,7 @@ int aprsis_add_server(const char *server, const char *port)
 	if (H->login == NULL) H->login = strdup(mycall);
 
 	AprsIS->server_socket = -1;
-	AprsIS->next_reconnect = now;	/* perhaps somewhen latter.. */
+	AprsIS->next_reconnect = now.tv_sec;	/* perhaps somewhen latter.. */
 
 	return 0;
 }
@@ -1254,7 +1253,7 @@ int aprsis_config(struct configfile *cf)
 			AprsIS = malloc(sizeof(*AprsIS));
 			memset(AprsIS, 0, sizeof(*AprsIS));
 			AprsIS->server_socket = -1;
-			AprsIS->next_reconnect = now;
+			AprsIS->next_reconnect = now.tv_sec;
 		}
 
 		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));

@@ -128,9 +128,11 @@ struct aprxpolls {
 	int pollcount;
 	int pollsize;
 	time_t next_timeout;
+	int    next_timeout_millisecs;
 };
 #define APRXPOLLS_INIT { NULL, 0, 0, 0 }
 
+extern int  aprxpolls_millis(struct aprxpolls *app);
 extern void aprxpolls_reset(struct aprxpolls *app);
 extern struct pollfd *aprxpolls_new(struct aprxpolls *app);
 extern void aprxpolls_free(struct aprxpolls *app);
@@ -149,7 +151,7 @@ extern int fd_nonblockingmode(int fd);
 extern const char *swname;
 extern const char *swversion;
 
-extern time_t now;
+extern struct timeval now;
 extern int debug;
 extern int verbout;
 extern int erlangout;
@@ -201,6 +203,7 @@ struct serialport {
 	time_t last_read_something;	/* Used by serial port functionality
 					   watchdog */
 	int read_timeout;	/* seconds                              */
+	int poll_millis;        /* milliseconds (0 = none.)             */
 
 	LineType linetype;
 

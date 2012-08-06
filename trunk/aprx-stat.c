@@ -12,16 +12,16 @@
 #include "aprx.h"
 
 #ifdef ERLANGSTORAGE
-time_t now;
 int debug; /* linkage dummy */
 int erlangout;
 int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
 const char *mycall;		/* linkage dummy */
+struct timeval now;
 
 void printtime(char *buf, int buflen)
 {
-	struct tm *t = gmtime(&now);
+	struct tm *t = gmtime(&now.tv_sec);
 	// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
 		t->tm_year+1900,t->tm_mon+1,t->tm_mday,
@@ -49,7 +49,7 @@ void erlang_snmp(void)
 		       E->SNMP.bytes_rx, E->SNMP.packets_rx,
 		       E->SNMP.bytes_rxdrop, E->SNMP.packets_rxdrop,
 		       E->SNMP.bytes_tx, E->SNMP.packets_tx,
-		       (int) (now - E->last_update));
+		       (int) (now.tv_sec - E->last_update));
 	}
 }
 
@@ -79,7 +79,7 @@ void erlang_xml(int topmode)
 		       E->SNMP.bytes_rx, E->SNMP.packets_rx,
 		       E->SNMP.bytes_rxdrop, E->SNMP.packets_rxdrop,
 		       E->SNMP.bytes_tx, E->SNMP.packets_tx,
-		       (int) (now - E->last_update));
+		       (int) (now.tv_sec - E->last_update));
 
 		printf("\n1min data\n");
 		k = E->e1_cursor;
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 	int mode_snmp = 0;
 	int mode_xml = 0;
 
-	now = time(NULL);
+        gettimeofday(&now, NULL);
 
 	while ((opt = getopt(argc, argv, "f:StxX?h")) != -1) {
 		switch (opt) {
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
 
 #else
 
-time_t now;
+struct timeval now;
 int debug;			/* linkage dummy */
 int erlangout;
 int epochtime;
