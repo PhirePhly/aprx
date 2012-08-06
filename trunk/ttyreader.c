@@ -525,10 +525,12 @@ int ttyreader_prepoll(struct aprxpolls *app)
 	struct serialport *S;
 	struct pollfd *pfd;
 
+        // if (debug) printf("ttyreader_prepoll() %d\n", poll_millis);
 	for (i = 0; i < ttycount; ++i) {
 		S = ttys[i];
 		if (!S->ttyname)
 			continue;	/* No name, no look... */
+
 		if (S->fd < 0) {
 			/* Not an open TTY, but perhaps waiting ? */
 			if ((S->wait_until != 0) && (S->wait_until > now.tv_sec)) {
@@ -563,10 +565,12 @@ int ttyreader_prepoll(struct aprxpolls *app)
 			continue;
 		}
 
+
                 if (poll_millis > 0) {
                 	app->next_timeout = now.tv_sec;
                         app->next_timeout_millisecs = poll_millis;
                         tv_timeradd_millis(&poll_millis_tv, &now, poll_millis);
+                        if (debug) printf("%d.%06d .. defining %d ms KISS POLL\n", now.tv_sec, now.tv_usec, poll_millis);
                 }
 
 		/* FD is open, lets mark it for poll read.. */
@@ -587,8 +591,10 @@ void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis)
 	*res = *a;
         int usec = (int)(res->tv_usec) + millis * 1000;
         if (usec >= 1000000) {
-          res->tv_sec += (usec / 1000000);
+          int dsec = (usec / 1000000);
+          res->tv_sec += dsec;
           usec %= 1000000;
+          if (debug>3) printf("tv_timeadd_millis() dsec=%d dusec=%d\n",dsec, usec);
         }
         res->tv_usec = usec;
 }
@@ -620,16 +626,19 @@ int ttyreader_postpoll(struct aprxpolls *app)
 
 	struct serialport *S;
 	struct pollfd *P;
+
+        // if (debug) printf("ttyreader_postpoll()\n");
+
 	for (idx = 0, P = app->polls; idx < app->pollcount; ++idx, ++P) {
 
         	// Are we operating in active KISS polling mode?
         	if (poll_millis > 0) {
 			for (i = 0; i < ttycount; ++i) {
                                	S = ttys[i];
-                                if (S->fd < 0)
-                                        continue;	/* Not this one ? */
                                 if (S->fd != P->fd)
-                                        continue;	/* Not this one ? */
+                                	continue;	/* Not this one ? */
+                                if (S->fd < 0)
+                                	continue;	/* Not this one ? */
                                 if (!(S->linetype == LINETYPE_KISS ||
                                       S->linetype == LINETYPE_KISSFLEXNET ||
                                       S->linetype == LINETYPE_KISSBPQCRC ||
@@ -881,6 +890,9 @@ int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, cha
                         if (poll_millis < 1 || poll_millis > 10000) {
                           has_fault = 1;
                           printf("%s:%d POLLMILLIS value not in sanity range of 1 to 10 000: '%s'", cf->name, cf->linenum, param1);
+                        } else {
+                          if (debug)
+                            printf(" .. pollmillis %d  -- polling interval\n", tty->poll_millis);
                         }
 
 #ifndef DISABLE_IGATE
