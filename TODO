@@ -1,4 +1,4 @@
-				 APRX   2.04
+				 APRX   2.05
 
 				TODO / Wishlist
 
@@ -34,7 +34,7 @@
   - Yes, on DIGIPEATER ONLY - what about WIDEn-N ? Y/N ?
 
 - "<interface> serial-device ... KISS .." to support more esoteric polling
-  modes
+  modes (being worked at 2.04/2.05)
 
 - KISS to define multiple KISS parameters, a sort of macro for defining
   initstring by producing formatted KISS frames of parameter entries.
