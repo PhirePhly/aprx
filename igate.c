@@ -159,7 +159,7 @@ static int tnc2_forbidden_data(const char *t)
 
 void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
     if (verbout) {
-        printf("%ld\t%-9s ", (long) now, portname);
+        printf("%ld\t%-9s ", (long) now.tv_sec, portname);
 	printf("%s \t", istx ? "T":"R");
 	fwrite(tnc2buf, tnc2len, 1, stdout);
 	printf("\n");

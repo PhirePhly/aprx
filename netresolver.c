@@ -47,13 +47,13 @@ static void resolve_all(void) {
 		struct addrinfo *ai, req;
 		int rc;
 
-		now = time(NULL);
+                gettimeofday(&now, NULL);
 
-		if (n->re_resolve_time > now) {
+		if (n->re_resolve_time > now.tv_sec) {
 		  // Not yet to re-resolve this one
 		  if (debug>1)
 		    printf("nr[%d] re_resolve_time in future (%d secs)\n",
-			   i, (int)(n->re_resolve_time - now));
+			   i, (int)(n->re_resolve_time - now.tv_sec));
 		  continue;
 		}
 
@@ -93,7 +93,7 @@ static void resolve_all(void) {
 		n->ai.ai_addrlen   = ai->ai_addrlen;
 
 		freeaddrinfo(ai);
-		n->re_resolve_time  = now + RE_RESOLVE_INTERVAL;
+		n->re_resolve_time  = now.tv_sec + RE_RESOLVE_INTERVAL;
 	}
 }
 

@@ -18,7 +18,7 @@
 # include <time.h>
 #endif
 
-time_t now;			/* this is globally used */
+struct timeval now;			/* this is globally used */
 int debug;
 int verbout;
 int erlangout;
@@ -26,8 +26,8 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 
-const char *tocall = "APRX24";
-const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'4'<<1,0x60};
+const char *tocall = "APRX25";
+const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'5'<<1,0x60};
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
@@ -87,7 +87,7 @@ int main(int argc, char *const argv[])
 	/* Init the poll(2) descriptor array */
 	struct aprxpolls app = APRXPOLLS_INIT;
 
-	now = time(NULL); // init global time reference
+        gettimeofday(&now, NULL); // init global time reference
 
 	setlinebuf(stdout);
 	setlinebuf(stderr);
@@ -282,10 +282,10 @@ int main(int argc, char *const argv[])
 
 	while (!die_now) {
 
-		now = time(NULL);
+                gettimeofday(&now, NULL);
 
 		aprxpolls_reset(&app);
-		app.next_timeout = now + 30;
+		app.next_timeout = now.tv_sec + 30;
 
 		i = ttyreader_prepoll(&app);
 #ifndef DISABLE_IGATE
@@ -307,12 +307,11 @@ int main(int argc, char *const argv[])
 		i = dprsgw_prepoll(&app);
 #endif
 
-		if (app.next_timeout <= now)
-		  app.next_timeout = now + 1;	// Just to be on safe side..
+		if (app.next_timeout <= now.tv_sec)
+		  app.next_timeout = now.tv_sec + 1;	// Just to be on safe side..
 
-		i = poll(app.polls, app.pollcount,
-			 (app.next_timeout - now) * 1000);
-		now = time(NULL);
+		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
+                gettimeofday(&now, NULL);
 
 
 		i = beacon_postpoll(&app);

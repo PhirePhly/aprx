@@ -1132,7 +1132,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	char     tnc2buf[2800];
 	uint8_t  ax25buf[2800];
 
-	time_t recent_time = now - 3600; // "recent" = 1 hour
+	time_t recent_time = now.tv_sec - 3600; // "recent" = 1 hour
 
 
 	if (debug)

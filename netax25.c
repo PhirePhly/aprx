@@ -530,8 +530,8 @@ int netax25_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 	int i;
 
-	if (next_scantime <= now) {
-	  next_scantime = now + 60; // 1 minute+ from now -- exact timing is not important
+	if (next_scantime <= now.tv_sec) {
+	  next_scantime = now.tv_sec + 60; // 1 minute+ from now -- exact timing is not important
 	  scan_linux_devices();
 	}
 

@@ -158,7 +158,7 @@ static void dupecheck_cleanup(void)
 	  for (i = 0; i < DUPECHECK_DB_SIZE; ++i) {
 	    dpp = & (dpc->dupecheck_db[i]);
 	    while (( dp = *dpp )) {
-	      if (dp->t_exp < now) {
+	      if (dp->t_exp < now.tv_sec) {
 		/* Old..  discard. */
 		*dpp = dp->next;
 		dp->next = NULL;
@@ -237,7 +237,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if (dp->t_exp < now) {
+		if (dp->t_exp < now.tv_sec) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
@@ -272,8 +272,8 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 
 	dp->seen  = 1;  // First observation gets number 1
 	dp->hash  = hash;
-	dp->t     = now;
-	dp->t_exp = now + dpc->storetime;
+	dp->t     = now.tv_sec;
+	dp->t_exp = now.tv_sec + dpc->storetime;
 	return NULL;
 }
 
@@ -390,7 +390,7 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if (dp->t_exp < now) {
+		if (dp->t_exp < now.tv_sec) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
@@ -439,8 +439,8 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	}
 
 	dp->hash  = hash;
-	dp->t     = now;
-	dp->t_exp = now + dpc->storetime;
+	dp->t     = now.tv_sec;
+	dp->t_exp = now.tv_sec + dpc->storetime;
 
 	return dp;
 }
@@ -463,10 +463,10 @@ int dupecheck_prepoll(struct aprxpolls *app)
 
 int dupecheck_postpoll(struct aprxpolls *app)
 {
-	if (dupecheck_cleanup_nexttime > now)
+	if (dupecheck_cleanup_nexttime > now.tv_sec)
 		return 0;	/* Too early.. */
 
-	dupecheck_cleanup_nexttime = now + 30; // tick every 30 second or so
+	dupecheck_cleanup_nexttime = now.tv_sec + 30; // tick every 30 second or so
 
 	dupecheck_cleanup();
 
