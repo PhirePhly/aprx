@@ -83,6 +83,7 @@ int main(int argc, char *const argv[])
 	const char *cfgfile = "/etc/aprx.conf";
 	const char *syslog_facility = "NONE";
 	int foreground = 0;
+        int millis;
 
 	/* Init the poll(2) descriptor array */
 	struct aprxpolls app = APRXPOLLS_INIT;
@@ -307,10 +308,13 @@ int main(int argc, char *const argv[])
 		i = dprsgw_prepoll(&app);
 #endif
 
-		if (app.next_timeout <= now.tv_sec)
-		  app.next_timeout = now.tv_sec + 1;	// Just to be on safe side..
+		// if (app.next_timeout <= now.tv_sec)
+                // app.next_timeout = now.tv_sec + 1;	// Just to be on safe side..
 
-		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
+                millis = aprxpolls_millis(&app);
+                if (millis < 10)
+                  millis = 10;
+		i = poll(app.polls, app.pollcount, millis);
                 gettimeofday(&now, NULL);
 
 
