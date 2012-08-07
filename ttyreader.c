@@ -16,7 +16,8 @@
 #include <netinet/in.h>
 
 extern void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis);
-extern int tv_timercmp(struct timeval *a, struct timeval *b);
+extern int  tv_timerdelta_millis(struct timeval *_now, struct timeval *_target);
+extern int  tv_timercmp(struct timeval *a, struct timeval *b);
 
 
 
@@ -531,6 +532,20 @@ int ttyreader_prepoll(struct aprxpolls *app)
 		if (!S->ttyname)
 			continue;	/* No name, no look... */
 
+
+#if 0 // occasional debug mode without real hardware at hand
+                if (poll_millis > 0) {
+			int deltams = tv_timerdelta_millis(&now, &poll_millis_tv);
+                	app->next_timeout = now.tv_sec;
+                        if (deltams > 0) {
+                          app->next_timeout_millisecs = deltams;
+                        } else {
+                          app->next_timeout_millisecs = 0;
+                        }
+                        if (debug) printf("%d.%06d .. defining %d ms KISS POLL\n", now.tv_sec, now.tv_usec, poll_millis);
+                }
+#endif
+
 		if (S->fd < 0) {
 			/* Not an open TTY, but perhaps waiting ? */
 			if ((S->wait_until != 0) && (S->wait_until > now.tv_sec)) {
@@ -567,9 +582,17 @@ int ttyreader_prepoll(struct aprxpolls *app)
 
 
                 if (poll_millis > 0) {
+			int deltams = tv_timerdelta_millis(&now, &poll_millis_tv);
                 	app->next_timeout = now.tv_sec;
-                        app->next_timeout_millisecs = poll_millis;
-                        tv_timeradd_millis(&poll_millis_tv, &now, poll_millis);
+                        if (deltams > 0) {
+                          app->next_timeout_millisecs = deltams;
+                        } else {
+                          app->next_timeout_millisecs = 0;
+                          if (poll_millis_tv.tv_sec == 0) {
+                            poll_millis_tv = now;
+                          }
+                          tv_timeradd_millis(&poll_millis_tv, &poll_millis_tv, poll_millis);
+                        }
                         if (debug) printf("%d.%06d .. defining %d ms KISS POLL\n", now.tv_sec, now.tv_usec, poll_millis);
                 }
 
@@ -584,6 +607,17 @@ int ttyreader_prepoll(struct aprxpolls *app)
 		++idx;
 	}
 	return idx;
+}
+
+int tv_timerdelta_millis(struct timeval *_now, struct timeval *_target)
+{
+	int deltasec  = _target->tv_sec  - _now->tv_sec;
+        int deltausec = _target->tv_usec - _now->tv_usec;
+        while (deltausec < 0) {
+        	deltausec += 1000000;
+                --deltasec;
+        }
+        return deltasec * 1000 + deltausec / 1000;
 }
 
 void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis)
@@ -635,10 +669,23 @@ int ttyreader_postpoll(struct aprxpolls *app)
         	if (poll_millis > 0) {
 			for (i = 0; i < ttycount; ++i) {
                                	S = ttys[i];
+
+#if 0  // occasional debug mode without real hardware at hand
+                                if (tv_timercmp(&poll_millis_tv, &now) <= 0) {
+	                                // Poll interval gone, time for next active POLL request!
+                                        kiss_poll(S);
+                                        if (poll_millis_tv.tv_sec == 0) {
+                                          poll_millis_tv = now;
+                                        }
+                                        tv_timeradd_millis(&poll_millis_tv, &poll_millis_tv, poll_millis);
+                                }
+#endif
+
                                 if (S->fd != P->fd)
                                 	continue;	/* Not this one ? */
                                 if (S->fd < 0)
                                 	continue;	/* Not this one ? */
+
                                 if (!(S->linetype == LINETYPE_KISS ||
                                       S->linetype == LINETYPE_KISSFLEXNET ||
                                       S->linetype == LINETYPE_KISSBPQCRC ||
@@ -648,7 +695,11 @@ int ttyreader_postpoll(struct aprxpolls *app)
                                 }
                                 if (tv_timercmp(&poll_millis_tv, &now) <= 0) {
 	                                // Poll interval gone, time for next active POLL request!
-                                        kiss_poll(S, i);
+                                        kiss_poll(S);
+                                        if (poll_millis_tv.tv_sec == 0) {
+                                          poll_millis_tv = now;
+                                        }
+                                        tv_timeradd_millis(&poll_millis_tv, &poll_millis_tv, poll_millis);
                                 }
                         }
                 }
@@ -875,8 +926,11 @@ int ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, cha
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 			tncid = atoi(param1);
-			if (tncid < 0 || tncid > 15)
+			if (tncid < 0 || tncid > 15) {
 				tncid = 0;
+                                printf("%s:%d TNCID value not in sanity range of 0 to 15: '%s'", cf->name, cf->linenum, param1);
+                                has_fault = 1;
+                        }
 
 		} else if (strcmp(param1, "pollmillis") == 0) {
 			param1 = str;

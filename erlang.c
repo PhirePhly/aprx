@@ -500,9 +500,9 @@ static void erlang_time_end(void)
 
 	printtime(logtime, sizeof(logtime));
 
-#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 	if (now.tv_sec >= erlang_time_end_1min) {
 		erlang_time_end_1min += 60;
+#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now.tv_sec;
@@ -546,12 +546,11 @@ static void erlang_time_end(void)
 			E->erl1m.update = now.tv_sec;
 		}
 		erlang_time_ival_1min = 1.0;
-	}
 #endif
-#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 0))
+	}
 	if (now.tv_sec >= erlang_time_end_10min) {
 		erlang_time_end_10min += 600;
-
+#if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 0))
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			E->last_update = now.tv_sec;
@@ -588,12 +587,11 @@ static void erlang_time_end(void)
 			E->erl10m.update = now.tv_sec;
 		}
 		erlang_time_ival_10min = 1.0;
-	}
 #endif
+	}
 #ifdef ERLANGSTORAGE
 	if (now.tv_sec >= erlang_time_end_60min) {
 		erlang_time_end_60min += 3600;
-
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			/* E->last_update = now.tv_sec; -- the 10 minute step does also this */

@@ -669,30 +669,38 @@ void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25ra
 }
 
 
-void kiss_poll(struct serialport *S, int tncid)
+void kiss_poll(struct serialport *S)
 {
 	uint8_t probe[1];
         uint8_t kissbuf[12];
         int kisslen;
+        int tncid;
 
-        probe[0] = 0x0E | (tncid << 4);
+        for (tncid = 0; tncid < 16; ++tncid) {
 
-        /* Convert the probe packet to KISS frame */
-        kisslen = kissencoder( kissbuf, sizeof(kissbuf), S->linetype,
-                               &(probe[0]), 0, probe[0] );
+		if (S->interface[tncid] == NULL) {
+			// No sub-interface here..
+			continue;
+                }
 
-        /* Send probe message..  */
-        if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
-          /* There is enough space in writebuf! */
+                probe[0] = 0x0E | (tncid << 4);
+
+                /* Convert the probe packet to KISS frame */
+                kisslen = kissencoder( kissbuf, sizeof(kissbuf), S->linetype,
+                                       &(probe[0]), 0, probe[0] );
+                
+                /* Send probe message..  */
+                if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
+                	/* There is enough space in writebuf! */
           
-          memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
-          S->wrlen += kisslen;
-          /* Flush it out..  and if not successfull,
-             poll(2) will take care of it soon enough.. */
-          ttyreader_linewrite(S);
+	        	memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
+                        S->wrlen += kisslen;
+                        /* Flush it out..  and if not successfull,
+                           poll(2) will take care of it soon enough.. */
+                        ttyreader_linewrite(S);
           
-          if (debug)
-            printf("%ld.%06d\tTTY %s tncid %d: Sending KISS POLL\n", now.tv_sec, now.tv_usec, S->ttyname, tncid);
-          
-        }
+                        if (debug)
+                          printf("%ld.%06d\tTTY %s tncid %d: Sending KISS POLL\n", now.tv_sec, now.tv_usec, S->ttyname, tncid);
+		}
+	}
 }

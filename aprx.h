@@ -533,8 +533,8 @@ extern int      check_crc_ccitt(const uint8_t *buf, int n);
 
 extern int  kissencoder(void *, int, LineType, const void *, int, int);
 extern void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25raw, const int ax25rawlen);
-extern int kiss_pullkiss(struct serialport *S);
-
+extern int  kiss_pullkiss(struct serialport *S);
+extern void kiss_poll(struct serialport *S);
 
 
 /* digipeater.c */

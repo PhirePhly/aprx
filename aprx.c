@@ -289,23 +289,34 @@ int main(int argc, char *const argv[])
 		app.next_timeout = now.tv_sec + 30;
 
 		i = ttyreader_prepoll(&app);
+                // if (debug>3)printf("after ttyreader prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #ifndef DISABLE_IGATE
 		i = aprsis_prepoll(&app);
+                // if (debug>3)printf("after aprsis prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #endif
 		i = beacon_prepoll(&app);
+                // if (debug>3)printf("after beacon prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #ifdef PF_AX25			/* PF_AX25 exists -- highly likely a Linux system ! */
 		i = netax25_prepoll(&app);
+                // if (debug>3)printf("after netax25 prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #endif
 #ifdef ENABLE_AGWPE
 		i = agwpe_prepoll(&app);
+                // if (debug>3)printf("after agwpe prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #endif
 		i = erlang_prepoll(&app);
+                // if (debug>3)printf("after erlang prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 		i = telemetry_prepoll(&app);
+                // if (debug>3)printf("after telemetry prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 		i = dupecheck_prepoll(&app);
+                // if (debug>3)printf("after dupecheck prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 		i = digipeater_prepoll(&app);
+                // if (debug>3)printf("after digipeater prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #ifndef DISABLE_IGATE
 		i = historydb_prepoll(&app);
+                // if (debug>3)printf("after historydb prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 		i = dprsgw_prepoll(&app);
+                // if (debug>3)printf("after dprsgw prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #endif
 
 		// if (app.next_timeout <= now.tv_sec)
