@@ -313,6 +313,12 @@ static void ttyreader_lineread(struct serialport *S)
 			return;
 
 		/* Some data has been accumulated ! */
+		if (debug > 2) {
+		  printf("%ld\tTTY %s: read() frame: ", now.tv_sec, S->ttyname);
+		  hexdumpfp(stdout, S->rdbuf+S->rdlen, i, 1);
+		  printf("\n");
+		}
+                
 		S->rdlen += i;
 		S->last_read_something = now.tv_sec;
 	}
