@@ -316,9 +316,12 @@ mycall  N0CALL-1
 # Every reconnect does re\-resolve the name to IP address.
 # Some alternates are shown below, choose something local to you.
 #
-server    rotate.aprs.net    14580
-#server    finland.aprs2.net  14580
-#server    igates.aprs.fi     14580
+server    rotate.aprs2.net    14580
+#server    noam.aprs2.net     14580
+#server    soam.aprs2.net     14580
+#server    euro.aprs2.net     14580
+#server    asia.aprs2.net     14580
+#server    aunz.aprs2.net     14580
 
 # Some APRS\-IS servers tell every about 20 seconds to all contact
 # ports that they are there and alive. Others are just silent.
