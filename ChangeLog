@@ -1,5 +1,11 @@
 2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* interface.c:
+	    Automatically create  igate-group N  values for radio interfaces
+	    start from 1, and go onwards. Manually defined values start from
+	    one, and it is up to the configuration writers to have a sane
+	    upper limit.
+
 	* aprx.c, aprx.h, ttyreader.c, erlang.c, kiss.c:
 	    Fixed a) poll of KISS subinterfaces, b) KISS polling time
 	    management issues.  The polling does not yet have serial-device

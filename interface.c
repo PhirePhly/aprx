@@ -168,8 +168,13 @@ static void interface_store(struct aprx_interface *aif)
 	all_interfaces[all_interfaces_count -1] = aif;
 	if (aif->ifindex < 0)
 	  aif->ifindex = all_interfaces_count -1;
-	if (aif->ifgroup < 0)
-	  aif->ifgroup = all_interfaces_count -1;
+	if (aif->ifgroup < 0) {
+          aif->ifgroup = all_interfaces_count; // starting at 1. the 0 is for APRSIS
+          /* -- no hard upper limit anymore
+          if (aif->ifgroup >= MAX_IF_GROUP)
+            aif->ifgroup = MAX_IF_GROUP -1;
+          */
+        }
 	if (top_interfaces_group <= aif->ifgroup)
 	  top_interfaces_group = aif->ifgroup +1;
 }
@@ -314,13 +319,13 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 			   cf->name, cf->linenum, param1);
 		    fail = 1;
 		    break;
-/*
+                    /* -- no hard upper limit anymore
 		  } else if (ifgroup >= MAX_IF_GROUP) {
 		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with maximum value of %d.\n",
 			   cf->name, cf->linenum, param1, MAX_IF_GROUP-1);
 		    fail = 1;
 		    break;
-*/
+                    */
 		  }
 #endif
 
@@ -786,13 +791,13 @@ int interface_config(struct configfile *cf)
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
-/*
+                    /* -- no hard upper limit anymore
 		  } else if (ifgroup >= MAX_IF_GROUP) {
 		    printf("%s:%d ERROR: interface 'igate-group' parameter value: '%s'  is an integer with maximum value of %d.\n",
 			   cf->name, cf->linenum, param1, MAX_IF_GROUP-1);
 		    have_fault = 1;
 		    continue;
-*/
+                    */
 		  }
 #endif
 
