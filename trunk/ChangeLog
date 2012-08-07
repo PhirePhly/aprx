@@ -1,5 +1,10 @@
 2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c, aprx.h, ttyreader.c, erlang.c, kiss.c:
+	    Fixed a) poll of KISS subinterfaces, b) KISS polling time
+	    management issues.  The polling does not yet have serial-device
+	    specific timing management, rather a global cadence.
+
 	* aprx.c:
 	    Version 2.05
 
