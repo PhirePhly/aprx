@@ -15,7 +15,7 @@ Version 2
 
 Version 2+
 
-    - Port to ucLinux	       				- Planned (pthreads OK)
+    - Port to ucLinux	       				- Planned (pthread OK)
 
     - Port to Windows
 
