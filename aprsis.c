@@ -981,7 +981,7 @@ void aprsis_stop(void)
 }
 
 
-#else  // No pthreads(3p)
+#else  // No pthread(3p)
 void aprsis_start(void)
 {
 	int i;

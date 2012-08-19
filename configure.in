@@ -60,6 +60,8 @@ AC_ARG_WITH(erlangstorage, [  --with-erlangstorage  When desiring a longer term 
 
 AC_ARG_WITH(pthread,  [  --with-pthread   When desiring use pthread subsystem],
 		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
+AC_ARG_WITH(pthreads, [  --with-pthreads  (mistyped pthread) When desiring use pthread subsystem],
+		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
 
 
 AC_SUBST(LIBPTHREAD)
@@ -67,8 +69,14 @@ if test "${ENABLE_PTHREAD}" = "1" ; then
 AC_CHECK_FUNCS(pthread_create,
 		AC_DEFINE(HAVE_PTHREAD_CREATE,1,[]),
 	       AC_CHECK_LIB(pthread, pthread_create,
-			    [LIBPTHREAD="-lpthread"]
+			    [LIBPTHREAD="-lpthread"],
 			    [AC_DEFINE(HAVE_PTHREAD_CREATE,1,[])]))
+else
+AC_CHECK_FUNCS(pthread_create,
+		AC_MSG_RESULT(["The system does have libs for --with-pthread support but you did not enable it"]),
+	       AC_CHECK_LIB(pthread, pthread_create,
+			    [],
+		            [AC_MSG_RESULT([The system does have libs for --with-pthread support but you did not enable it])],))
 fi
 
 

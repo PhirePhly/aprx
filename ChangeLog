@@ -1,5 +1,11 @@
 2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, aprsis.c, ROADMAP, doc/aprx-manual.odt:
+	    Fix the "pthreads" typo by using correct "pthread" spelling
+	    in the documents + "--with-pthreads" option alias in configure.
+
+2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* interface.c:
 	    Automatically create  igate-group N  values for radio interfaces
 	    start from 1, and go onwards. Manually defined values start from
