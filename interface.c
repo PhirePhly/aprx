@@ -1272,10 +1272,17 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 
 	  a = ax25buf + 2*7;
 
-	  if (digisrc->via_path != NULL) {
-	    memcpy(a, digisrc->ax25viapath, 7);    // AX.25 VIA call
-	    a += 7;
-	  }
+          if ((filter_packettype & T_MESSAGE) != 0 && digisrc->msg_path != NULL) {
+            if (digisrc->msg_path != NULL) {
+              memcpy(a, digisrc->msgviapath, 7);    // AX.25 VIA call for a Message
+              a += 7;
+            }
+          } else {
+            if (digisrc->via_path != NULL) {
+              memcpy(a, digisrc->ax25viapath, 7);    // AX.25 VIA call
+              a += 7;
+            }
+          }
 
 	  *(a-1) |= 0x01;                  // DEST,SRC(,VIA1) - end-of-address bit
 	  ax25addrlen = a - ax25buf;
@@ -1304,9 +1311,15 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  // AX.25 packet is built, now build TNC2 version of it
 	  t = tnc2buf;
 	  t += sprintf(t, "%s>%s", tx_aif->callsign, tocall);
-	  if (digisrc->via_path != NULL) {
-	    t += sprintf(t, ",%s", digisrc->via_path);
-	  }
+          if ((filter_packettype & T_MESSAGE) != 0 && digisrc->msg_path != NULL) {
+            if (digisrc->msg_path != NULL) {
+              t += sprintf(t, ",%s", digisrc->msg_path);
+            }
+          } else {
+            if (digisrc->via_path != NULL) {
+              t += sprintf(t, ",%s", digisrc->via_path);
+            }
+          }
 	  if (debug>1)printf(" tnc2addr = %s\n", tnc2buf);
 
 	  tnc2addrlen = t - tnc2buf;
