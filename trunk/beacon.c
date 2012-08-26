@@ -202,7 +202,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 			str = config_SKIPTEXT(str, NULL);
 			str = config_SKIPSPACE(str);
 
-			config_STRUPPER((void*)srcaddr);
+			if (strcasecmp(srcaddr,"$mycall") == 0) {
+				srcaddr = mycall;
+			} else {
+				config_STRUPPER((void*)srcaddr);
+			}
 
 			// What about ITEM and OBJECT ?
 
@@ -553,7 +557,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	  if (srcaddr == NULL)
 	    printf("***>%s", destaddr);
 	  else
-	    printf("%s>,%s",srcaddr,destaddr);
+	    printf("%s>%s",srcaddr,destaddr);
 	  if (via != NULL)
 	    printf(",%s", via);
 	  if (bm->filename)
@@ -771,32 +775,23 @@ static void beacon_now(void)
 		const char *callsign = bm->interface->callsign;
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
 		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
-		char *destbuf;
-		if (strcmp(src, callsign) != 0)
-		  len += strlen(callsign)+1;
-		destbuf = alloca(len);
+		char *destbuf = alloca(len);
+
+                // Now it is time to beacon something, lets make sure
+                // the source callsign is not APRSIS !
+                if (strcmp(src,"APRSIS") == 0) {
+                  if (debug)
+                    printf("CONFIGURATION ERROR: Beacon with source callsign APRSIS. Skipped!\n");
+                  return;
+                }
 
 		if (bm->timefix)
 		  fix_beacon_time(msg, msglen);
 
-#if 0
-		if (strcmp(src, callsign) != 0) {
-		  if (bm->via != NULL)
-		    sprintf( destbuf, "%s>%s,%s*,%s", src, bm->dest, callsign, bm->via );
-		  else
-		    sprintf( destbuf, "%s>%s,%s*", src, bm->dest, callsign );
-		} else {
-		  if (bm->via != NULL)
-		    sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
-		  else
-		    sprintf(destbuf,"%s>%s", src, bm->dest);
-		}
-#else
 		if (bm->via != NULL)
 		  sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
 		else
 		  sprintf(destbuf,"%s>%s", src, bm->dest);
-#endif
 
 		if (debug) {
 		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
@@ -840,54 +835,49 @@ static void beacon_now(void)
 	else {
 	    for ( i = 0; i < all_interfaces_count; ++i ) {
 		const struct aprx_interface *aif = all_interfaces[i];
-		const char *src;
-		int len;
-		char *destbuf;
 		const char *callsign = aif->callsign;
+		const char *src = (bm->src != NULL) ? bm->src : callsign;
+		int len = destlen + 2 + (src != NULL ? strlen(src) : 0); // destlen contains bm->via
+		char *destbuf = alloca(len);
 
-		if (!interface_is_beaconable(aif))
+		if (!interface_is_beaconable(aif)) {
+                  if (debug>1)
+                    printf("Not a beaconable interface, skipping\n");
 		  continue; // it is not a beaconable interface
+                }
 
 		if (callsign == NULL) {
 		  // Probably KISS master interface, and subIF 0 has no definition.
+                  if (debug>1)
+                    printf("No callsign on interface interface, skipping\n");
 		  continue;
 		}
 
-		src = (bm->src != NULL) ? bm->src : callsign;
-		len  = destlen + 2 + strlen(src); // destlen contains bm->via
-
-		// The interface type tests should block this ever matching..
-		if (strcmp(callsign,"APRSIS")==0) {
+		if (aif->iftype == IFTYPE_APRSIS) {
 		  // If we have no radio interfaces, we may still 
 		  // want to do beacons to APRSIS.  Ignore the
 		  // builtin APRSIS interface if there are more
 		  // interfaces available!
-		  if (all_interfaces_count > 1)
+		  if (all_interfaces_count > 1) {
+                    if (debug>2)
+                      printf("Beaconing to APRSIS interface ignored in presence of other interfaces. Skipping.\n");
 		    continue;  // Ignore the builtin APRSIS interface
+                  }
 		}
 
-		if (strcmp(src, callsign) != 0)
-		  len += strlen(callsign)+1;
-		destbuf = alloca(len);
+                // Now it is time to beacon something, lets make sure
+                // the source callsign is not APRSIS !
+                if (strcmp(src,"APRSIS") == 0) {
+                  if (debug)
+                    printf("CONFIGURATION ERROR: Beaconing with source callsign APRSIS!  Skipping.\n");
+                  continue;
+                }
+
 		
-#if 0
-		if (strcmp(src, callsign) != 0) {
-		  if (bm->via != NULL)
-		    sprintf( destbuf, "%s>%s*,%s,%s", src, callsign, bm->dest, bm->via );
-		  else
-		    sprintf( destbuf, "%s>%s*,%s", src, callsign, bm->dest );
-		} else {
-		  if (bm->via != NULL)
-		    sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
-		  else
-		    sprintf(destbuf,"%s>%s", src, bm->dest);
-		}
-#else
 		if (bm->via != NULL)
 		  sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
 		else
 		  sprintf(destbuf,"%s>%s", src, bm->dest);
-#endif
 
 		if (bm->timefix)
 		  fix_beacon_time((char*)msg, msglen);

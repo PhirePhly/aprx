@@ -1,3 +1,17 @@
+2012-08-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	VERSION:  2.05
+
+	beacon.c, interface.c:
+	  Support beaconin to APRSIS without having any radio interfaces.
+	  Make null-device interface and (in special conditions the internal
+	  APRSIS interface) beaconable.
+
+	doc/aprx-manual.*:
+	  Fixes on <beacon> explanations.
+	  Diagrams on subsystem configuration examples describing message
+	  flows.
+
 2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* configure.in, aprsis.c, ROADMAP, doc/aprx-manual.odt:
