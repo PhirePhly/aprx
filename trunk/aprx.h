@@ -567,7 +567,9 @@ struct digipeater_source {
 	struct tracewide      *src_wide;
 #ifndef DISABLE_IGATE
 	char		      *via_path; // for APRSIS only
+	char		      *msg_path; // for APRSIS only
 	uint8_t		       ax25viapath[7]; // APRSIS
+	uint8_t		       msgviapath[7];  // APRSIS
 #endif
 
 	float		       tokenbucket;

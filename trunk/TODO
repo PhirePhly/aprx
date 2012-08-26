@@ -6,9 +6,6 @@
   wrong kind of data (binary AX.25 instead of TNC2 text).
   (k3pdk + iw3ijq supplied a patch which needs further analysis.)
 
-- Separate paths for igated (to RF) 3rd-party frames vs.
-  igated message frames (oh3bk)
-
 - Tx-IGate filter rules (interface.c)
   Tx-IGate is lacking following things, but it is already doing most
   important ones ('recipient heard recently in my service area')

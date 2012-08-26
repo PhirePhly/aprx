@@ -642,12 +642,15 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 	struct digipeater_source regexsrc;
 #ifndef DISABLE_IGATE
 	char                    *via_path = NULL;
+	char                    *msg_path = NULL;
 	uint8_t               ax25viapath[7];
+	uint8_t                msgviapath[7];
 #endif
 
 	memset(&regexsrc, 0, sizeof(regexsrc));
 #ifndef DISABLE_IGATE
 	memset(ax25viapath, 0, sizeof(ax25viapath));
+	memset(msgviapath,  0, sizeof(msgviapath));
 #endif
 
 	while (readconfigline(cf) != NULL) {
@@ -755,6 +758,35 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 
 			if (debug)
 				printf("via-path '%s'\n", via_path);
+
+		} else if (strcmp(name, "msg-path") == 0) {
+
+			// Validate that source callsign is "APRSIS"
+			// or "DPRS" for this parameter
+
+			if (source_aif == NULL ||
+			    (strcmp(source_aif->callsign,"APRSIS") != 0 &&
+			     strcmp(source_aif->callsign,"DPRS") != 0)) {
+			  printf("%s:%d ERROR: msg-path parameter is available only on 'source APRSIS' and 'source DPRS' cases.\n",
+				 cf->name, cf->linenum);
+			  has_fault = 1;
+			  continue;
+			}
+
+			msg_path  = strdup(param1);
+			config_STRUPPER(msg_path);
+
+			if (parse_ax25addr(msgviapath, msg_path, 0x00)) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: msg-path parameter is not valid AX.25 callsign: '%s'\n",
+				 cf->name, cf->linenum, msg_path);
+			  free(msg_path);
+			  msg_path = NULL;
+			  continue;
+			}
+
+			if (debug)
+				printf("msg-path '%s'\n", msg_path);
 #endif
 		} else if (strcmp(name,"<trace>") == 0) {
 			source_trace = digipeater_config_tracewide(cf, 1);
@@ -810,7 +842,13 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		source->src_wide      = source_wide;
 #ifndef DISABLE_IGATE
 		source->via_path      = via_path;
+		source->msg_path      = msg_path;
 		memcpy(source->ax25viapath, ax25viapath, sizeof(ax25viapath));
+                memcpy(source->msgviapath,  msgviapath,  sizeof(msgviapath));
+                if (msg_path == NULL) { // default value of via-path !
+                  source->msg_path    = via_path;
+                  memcpy(source->msgviapath,  ax25viapath,  sizeof(ax25viapath));
+                }
 #endif
 
 		source->viscous_delay = viscous_delay;

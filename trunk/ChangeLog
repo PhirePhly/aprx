@@ -1,16 +1,22 @@
 2012-08-26  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	VERSION:  2.05
+	* digipeater.c, interface.c, aprx.h, TODO, aprx-manual.*:
+	    Add to APRSIS tx-gated packets optionally different via-path
+	    (parameter: msg-path) for message packets, than for any other
+	    type packets. For example:  via-path WIDE1-1,  msg-path WIDE2-2
+	    (By request of OH3BK.)
 
-	beacon.c, interface.c:
-	  Support beaconin to APRSIS without having any radio interfaces.
-	  Make null-device interface and (in special conditions the internal
-	  APRSIS interface) beaconable.
+	* VERSION:  2.05
 
-	doc/aprx-manual.*:
-	  Fixes on <beacon> explanations.
-	  Diagrams on subsystem configuration examples describing message
-	  flows.
+	* beacon.c, interface.c:
+	    Support beaconin to APRSIS without having any radio interfaces.
+	    Make null-device interface and (in special conditions the internal
+	    APRSIS interface) beaconable.
+
+	* doc/aprx-manual.*:
+	    Fixes on <beacon> explanations.
+	    Diagrams on subsystem configuration examples describing message
+	    flows.
 
 2012-08-07  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
