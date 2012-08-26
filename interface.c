@@ -81,6 +81,8 @@ int interface_is_beaconable(const struct aprx_interface *aif)
 	case IFTYPE_AX25:
 	case IFTYPE_SERIAL:
 	case IFTYPE_TCPIP:
+	case IFTYPE_NULL:
+	case IFTYPE_APRSIS:
 	  // case IFTYPE_AGWPE:
 	  // These are beaconable.
 	  return 1;
