@@ -291,7 +291,7 @@ aprxlog @VARLOG@/aprx.log
 #
 # Basic beaconed thing is positional message of type "!":
 #
-#beacon symbol "R&" lat "6016.35N" lon "02506.36E" comment "Rx-only iGate"
+#beacon symbol "R&" lat "0000.00N" lon "00000.00E" comment "Rx-only iGate"
 #
 # Following are basic options:
 #  'symbol'    no default, must be defined!
@@ -349,8 +349,8 @@ aprxlog @VARLOG@/aprx.log
 #
 #beacon                     file /tmp/wxbeacon.txt
 #beacon interface N0CALL-3 srccall N0CALL-3 \
-#                           raw "!6016.30NR02506.36E&aprx - an Rx-only iGate"
-#beacon interface $mycall   symbol "R&" lat "6016.30N" lon "02506.36E" \
+#                           raw "!0000.00NR00000.00E&aprx - an Rx-only iGate"
+#beacon interface $mycall   symbol "R&" lat "0000.00N" lon "00000.00E" \
 #                           comment "aprx - an Rx-only iGate"
 #
 </beacon>

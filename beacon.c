@@ -774,7 +774,7 @@ static void beacon_now(void)
 	if (bm->interface != NULL) {
 		const char *callsign = bm->interface->callsign;
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
-		int   len  = destlen + 2 + strlen(src); // destlen contains bm->via
+		int   len  = destlen + 12 + strlen(src); // destlen contains bm->via plus room for ",TCPIP*"
 		char *destbuf = alloca(len);
 
                 // Now it is time to beacon something, lets make sure
@@ -788,20 +788,21 @@ static void beacon_now(void)
 		if (bm->timefix)
 		  fix_beacon_time(msg, msglen);
 
-		if (bm->via != NULL)
-		  sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
-		else
-		  sprintf(destbuf,"%s>%s", src, bm->dest);
-
-		if (debug) {
-		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
-			 now.tv_sec, callsign, destbuf, txt);
-		  printf(" next beacon in %.2f minutes\n",
-			 ((beacon_nexttime - now.tv_sec)/60.0));
-		}
-
 #ifndef DISABLE_IGATE
 		if (bm->beaconmode <= 0) {
+
+                  if (bm->via != NULL)
+                    sprintf(destbuf,"%s>%s,%s,TCPIP*", src, bm->dest, bm->via);
+                  else
+                    sprintf(destbuf,"%s>%s,TCPIP*", src, bm->dest);
+
+                  if (debug) {
+                    printf("%ld\tNow beaconing to APRSIS %s '%s' -> '%s',",
+                           now.tv_sec, callsign, destbuf, txt);
+                    printf(" next beacon in %.2f minutes\n",
+                           ((beacon_nexttime - now.tv_sec)/60.0));
+                  }
+
 		  // Send them all also as netbeacons..
 		  aprsis_queue(destbuf, strlen(destbuf),
 			       qTYPE_LOCALGEN,
@@ -809,8 +810,15 @@ static void beacon_now(void)
 		}
 #endif
 
-		if (bm->beaconmode >= 0) {
+		if (bm->beaconmode >= 0 && bm->interface->txok) {
 		  // And to interfaces
+                  
+                  if (debug) {
+                    printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
+                           now.tv_sec, callsign, destbuf, txt);
+                    printf(" next beacon in %.2f minutes\n",
+                           ((beacon_nexttime - now.tv_sec)/60.0));
+                  }
 
 		  // The 'destbuf' has a plenty of room
 		  if (strcmp(src, callsign) != 0) {
@@ -837,7 +845,7 @@ static void beacon_now(void)
 		const struct aprx_interface *aif = all_interfaces[i];
 		const char *callsign = aif->callsign;
 		const char *src = (bm->src != NULL) ? bm->src : callsign;
-		int len = destlen + 2 + (src != NULL ? strlen(src) : 0); // destlen contains bm->via
+		int len = destlen + 12 + (src != NULL ? strlen(src) : 0); // destlen contains bm->via, plus room for ",TCPIP*"
 		char *destbuf = alloca(len);
 
 		if (!interface_is_beaconable(aif)) {
@@ -874,24 +882,25 @@ static void beacon_now(void)
                 }
 
 		
-		if (bm->via != NULL)
-		  sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
-		else
-		  sprintf(destbuf,"%s>%s", src, bm->dest);
-
 		if (bm->timefix)
 		  fix_beacon_time((char*)msg, msglen);
 		
-		if (debug) {
-		  printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
-			 now.tv_sec, callsign, destbuf, txt);
-		  printf(" next beacon in %.2f minutes\n",
-			 ((beacon_nexttime - now.tv_sec)/60.0));
-		}
-
 #ifndef DISABLE_IGATE
 		if (bm->beaconmode <= 0) {
 		  // Send them all also as netbeacons..
+
+                  if (bm->via != NULL)
+                    sprintf(destbuf,"%s>%s,%s,TCPIP*", src, bm->dest, bm->via);
+                  else
+                    sprintf(destbuf,"%s>%s,TCPIP*", src, bm->dest);
+                  
+                  if (debug) {
+                    printf("%ld\tNow beaconing to APRSIS %s '%s' -> '%s',",
+                           now.tv_sec, callsign, destbuf, txt);
+                    printf(" next beacon in %.2f minutes\n",
+                           ((beacon_nexttime - now.tv_sec)/60.0));
+                  }
+
 		  aprsis_queue(destbuf, strlen(destbuf),
 			       qTYPE_LOCALGEN,
 			       aprsis_login, txt, txtlen);
@@ -900,6 +909,19 @@ static void beacon_now(void)
 
 		if (bm->beaconmode >= 0 && aif->txok) {
 		  // And to transmit-capable interfaces
+
+                  if (bm->via != NULL)
+                    sprintf(destbuf,"%s>%s,%s", src, bm->dest, bm->via);
+                  else
+                    sprintf(destbuf,"%s>%s", src, bm->dest);
+                  
+                  if (debug) {
+                    printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
+                           now.tv_sec, callsign, destbuf, txt);
+                    printf(" next beacon in %.2f minutes\n",
+                           ((beacon_nexttime - now.tv_sec)/60.0));
+                  }
+
 		  
 		  // The 'destbuf' has a plenty of room
 		  if (strcmp(src, callsign) != 0) {
