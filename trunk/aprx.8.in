@@ -473,7 +473,7 @@ server    rotate.aprs2.net    14580
 #
 # Basic beaconed thing is positional message of type "!":
 #
-#beacon symbol "R&" lat "6016.35N" lon "02506.36E" comment "Rx-only iGate"
+#beacon symbol "R&" lat "0000.00N" lon "00000.00E" comment "Rx-only iGate"
 #
 # Following are basic options:
 #  'symbol'    no default, must be defined!
@@ -522,11 +522,11 @@ server    rotate.aprs2.net    14580
 # web service like  findu.com,  or  aprs.fi
 #
 #beacon                 file /tmp/wxbeacon.txt
-#beacon srccall N0CALL\-3 raw "!6016.30NR02506.36E&aprx \- an Rx\-only iGate"
-#beacon srccall N0CALL\-3 raw "!6016.30NI02506.36E&aprx \- an iGate"
-#beacon srccall $mycall symbol "R&" lat "6016.30N" lon "02506.36E"  \\
+#beacon srccall N0CALL\-3 raw "!0000.00NR00000.00E&aprx \- an Rx\-only iGate"
+#beacon srccall N0CALL\-3 raw "!0000.00NI00000.00E&aprx \- an iGate"
+#beacon srccall $mycall symbol "R&" lat "0000.00N" lon "00000.00E"  \\
                         comment "aprx \- an Rx\-only iGate"
-#beacon srccall $mycall symbol "I&" lat "6016.30N" lon "02506.36E"  \\
+#beacon srccall $mycall symbol "I&" lat "0000.00N" lon "00000.00E"  \\
                         comment "aprx iGate"
 </beacon>
 
@@ -825,13 +825,13 @@ has a new way to define them:
 .IP \(bu 2
 The new way to define beacons:
 .nf
-\fCbeacon symbol "R&" lat "6016.35N" lon "02506.36E"  \\\fR
+\fCbeacon symbol "R&" lat "0000.00N" lon "00000.00E"  \\\fR
 \fC       comment "aprx \- iGate" \fR
 .fi
 .IP \(bu 2
 Semi-clasical definition of raw APRS packet:
 .nf
-\fCbeacon raw "!6016.35NR02506.36E&aprx \- iGate"\fR
+\fCbeacon raw "!0000.00NR00000.00E&aprx \- iGate"\fR
 .fi
 .IP \(bu 2
 Load beacon text from a file, path data is configurable:
