@@ -15,7 +15,12 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
-	./configure --with-pthread --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=/usr/share/man  CC="gcc" CFLAGS="${CFLAGS}" AFLAGS="${CFLAGS} --noexecstack" LDFLAGS="${CFLAGS} -z noexecstack"
+	./configure --with-pthread --sbindir=/usr/sbin --sysconfdir=/etc \
+		--localstatedir=/var --mandir=/usr/share/man \
+		CC="gcc" \
+		CFLAGS="${CFLAGS}" \
+		AFLAGS="${CFLAGS} --noexecstack" \
+		LDFLAGS="${CFLAGS} -z noexecstack"
 	touch configure-stamp
 
 
@@ -50,6 +55,7 @@ install: build
 	# Add here commands to install the package into debian/aprx.
 	$(MAKE) DESTDIR=$(CURDIR)/debian/aprx logrotate.aprx install
 	cp logrotate.aprx debian/aprx.logrotate
+	install -m 644 apparmor.aprx $(CURDIR)/debian/aprx/etc/apparmor.d/sbin.aprx
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -59,7 +65,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs ChangeLog
+#	dh_installchangelogs ChangeLog
 	dh_installdocs
 	dh_installexamples
 #	dh_install
@@ -70,7 +76,7 @@ binary-arch: build install
 #	dh_installpam
 #	dh_installmime
 #	dh_python
-	dh_installinit
+	dh_installinit --restart-after-upgrade
 #	dh_installcron
 #	dh_installinfo
 	dh_installman

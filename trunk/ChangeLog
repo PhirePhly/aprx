@@ -1,3 +1,9 @@
+2012-09-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* apparmor.aprx, debian/rules, debian/dirs, debian/postint:
+	    Copied bits of Aprsc's debian packaging to Aprx.
+	    (Original packaging stuff was copied from Aprx to Aprsc.)
+
 2012-09-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.8.in, aprx.conf.in, aprx-complex.conf.in, aprx-rxigate.conf.in,

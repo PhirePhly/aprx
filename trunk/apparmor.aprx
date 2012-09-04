@@ -1,0 +1,17 @@
+#include <tunables/global>
+
+/sbin/aprx {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+
+  capability setgid,
+  capability setuid,
+  capability sys_chroot,
+
+
+  /etc/aprx.conf r,
+  owner /var/run/aprx.pid rwk,
+  owner /var/run/aprx.state rwk,
+  owner /var/log/aprx/* rwk,
+}
