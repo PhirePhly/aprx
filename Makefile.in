@@ -48,7 +48,7 @@ MANDIR:=$(strip $(MANDIR))
 # generate version strings
 VERSION:=$(shell cat VERSION)
 SVNVERSION_CMD:=$(shell which svnversion)
-SVNVERSION:=$(shell if test -x $(SVNVERSION_CMD) -a \( -d .svn -o -d ../.svn -o -d ../../.svn \)  ; then $(SVNVERSION_CMD) | sed -e 's/^.*://' | tee SVNVERSION ; else cat SVNVERSION; fi)
+SVNVERSION:=$(shell if test -x $(SVNVERSION_CMD) -a \( -d .svn -o -d ../.svn -o -d ../../.svn \)  && $(SVNVERSION_CMD) > /dev/null 2>&1 ; then $(SVNVERSION_CMD) | tee SVNVERSION ; else cat SVNVERSION; fi)
 DATE:=$(shell date +"%Y %B %d")
 RFCDATE:=$(shell date +"%a, %d %b %Y %H:%M:%S %z")
 
