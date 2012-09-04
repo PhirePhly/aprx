@@ -599,7 +599,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
                           }
                           tv_timeradd_millis(&poll_millis_tv, &poll_millis_tv, poll_millis);
                         }
-                        if (debug) printf("%d.%06d .. defining %d ms KISS POLL\n", now.tv_sec, now.tv_usec, poll_millis);
+                        if (debug) printf("%ld.%06d .. defining %d ms KISS POLL\n", (long)now.tv_sec, (int)now.tv_usec, poll_millis);
                 }
 
 		/* FD is open, lets mark it for poll read.. */

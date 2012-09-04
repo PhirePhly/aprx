@@ -700,7 +700,7 @@ void kiss_poll(struct serialport *S)
                         ttyreader_linewrite(S);
           
                         if (debug)
-                          printf("%ld.%06d\tTTY %s tncid %d: Sending KISS POLL\n", (int)now.tv_sec, (int)now.tv_usec, S->ttyname, tncid);
+                          printf("%ld.%06d\tTTY %s tncid %d: Sending KISS POLL\n", (long)now.tv_sec, (int)now.tv_usec, S->ttyname, tncid);
 		}
 	}
 }
