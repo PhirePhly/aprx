@@ -39,7 +39,7 @@ static int valid_sym_table_compressed(char c)
 static int valid_sym_table_uncompressed(char c)
 {
 	return (c == '/' || c == '\\' || (c >= 0x41 && c <= 0x5A)
-		    || (c >= 0x48 && c <= 0x57)); /* [\/\\A-Z0-9] */
+		    || (c >= 0x30 && c <= 0x39)); /* [\/\\A-Z0-9] */
 }
 
 /*
@@ -563,7 +563,7 @@ static int parse_aprs_telem(struct pbuf_t *pb, const char *body, const char *bod
  *	APRS PROTOCOL REFERENCE 1.0.1 Chapter 10, page 42 (52 in PDF)
  */
 
-static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body_end)
+static int parse_aprs_mice(struct pbuf_t *pb, const unsigned char *body, const unsigned char *body_end)
 {
 	float lat = 0.0, lng = 0.0;
 	unsigned int lat_deg = 0, lat_min = 0, lat_min_frag = 0, lng_deg = 0, lng_min = 0, lng_min_frag = 0;
@@ -616,32 +616,32 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	 *   0          1          23            4          5          6              7
 	 * /^[\x26-\x7f][\x26-\x61][\x1c-\x7f]{2}[\x1c-\x7d][\x1c-\x7f][\x21-\x7b\x7d][\/\\A-Z0-9]/
 	 */
-	if (body[0] < 0x26 || (uint8_t)body[0] > 0x7f) {
+	if (body[0] < 0x26 || body[0] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 1");
 		return 0;
 	}
-	if (body[1] < 0x26 || (uint8_t)body[1] > 0x61) {
+	if (body[1] < 0x26 || body[1] > 0x61) {
 		DEBUG_LOG("..bad infofield column 2");
 		return 0;
 	}
-	if (body[2] < 0x1c || (uint8_t)body[2] > 0x7f) {
+	if (body[2] < 0x1c || body[2] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 3");
 		return 0;
 	}
-	if (body[3] < 0x1c || (uint8_t)body[3] > 0x7f) {
+	if (body[3] < 0x1c || body[3] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 4");
 		return 0;
 	}
-	if (body[4] < 0x1c || (uint8_t)body[4] > 0x7d) {
+	if (body[4] < 0x1c || body[4] > 0x7d) {
 		DEBUG_LOG("..bad infofield column 5");
 		return 0;
 	}
-	if (body[5] < 0x1c || (uint8_t)body[5] > 0x7f) {
+	if (body[5] < 0x1c || body[5] > 0x7f) {
 		DEBUG_LOG("..bad infofield column 6");
 		return 0;
 	}
-	if ((body[6] < 0x21 || (uint8_t)body[6] > 0x7b)
-		&& (uint8_t)body[6] != 0x7d) {
+	if ((body[6] < 0x21 || body[6] > 0x7b)
+		&& body[6] != 0x7d) {
 		DEBUG_LOG("..bad infofield column 7");
 		return 0;
 	}
@@ -703,26 +703,13 @@ static int parse_aprs_mice(struct pbuf_t *pb, const char *body, const char *body
 	 * after the data type indicator. First longitude degrees,
 	 * remember the longitude offset.
 	 */
-	
-	/* F4FXL fixe starts here */
-
-	// sub 28 and offset
 	lng_deg = body[0] - 28;
-
-	// Degrees offset depending on encoded character
-	if ((118 <= body[0] && body[0] <= 127) ||
-	    (108 <= body[0] && body[0] <= 117) ||
-	    ( 38 <= body[0] && body[0] <= 107)) {
-
+	if (d_start[4] >= 0x50)
 		lng_deg += 100;
-	}
-
-	if (180 <= lng_deg && lng_deg <= 189) { // act like desscribed in the specs !
+	if (lng_deg >= 180 && lng_deg <= 189)
 		lng_deg -= 80;
-	} else if (190 <= lng_deg && lng_deg <= 199) {
+	else if (lng_deg >= 190 && lng_deg <= 199)
 		lng_deg -= 190;
-	}
-	/* F4FXL fixe ends here */
 
 	/* Decode the longitude minutes */
 	lng_min = body[1] - 28;
@@ -1158,7 +1145,9 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 		/* could be mic-e, minimum body length 9 chars */
 		if (paclen >= 9) {
 			pb->packettype |= T_POSITION;
-			rc = parse_aprs_mice(pb, body, body_end);
+			rc = parse_aprs_mice(pb,
+                                             (const unsigned char*)body,
+                                             (const unsigned char*)body_end);
 			DEBUG_LOG("\n");
 			return rc;
 		}

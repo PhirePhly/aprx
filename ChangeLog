@@ -1,3 +1,9 @@
+2012-09-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* parse_aprs.c:
+	    Corrected MICe longitude degrees parser. Again.
+	    (Sorry, F4FXL's parser fix was wrong.)
+
 2012-09-05  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* apparmor.aprx, debian/rules, debian/dirs, debian/postint:
