@@ -946,13 +946,14 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 #endif
 
 	    // Allocate pbuf, it is born "gotten" (refcount == 1)
-	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs, axlen, tnc2len);
+	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs,
+                                         tnc2addrlen, tnc2buf, tnc2len,
+                                         axaddrlen, axbuf, axlen);
 	    if (pb == NULL) {
 	      // Urgh!  Can't do a thing to this!
 	      // Likely reason: axlen+tnc2len  > 2100 bytes!
 	      continue;
 	    }
-	    pbuf_fill(pb, tnc2addrlen, tnc2buf, tnc2len, axaddrlen, axbuf, axlen);
 
 	    pb->source_if_group = aif->ifgroup;
 
@@ -1217,14 +1218,15 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    tnc2len = (t - tnc2buf);
 
 	    // Allocate temporary pbuf for filter call use
-	    pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+	    struct pbuf_t *pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, 
+                                         tnc2addrlen, tnc2buf, tnc2len,
+                                         ax25addrlen, ax25buf, ax25len);
 	    if (pb == NULL) {
 	      // Urgh!  Can't do a thing to this!
 	      // Likely reason: ax25len+tnc2len  > 2100 bytes!
 	      if (debug) printf("pbuf_new() returned NULL! Discarding!\n");
 	      continue;
 	    }
-	    pbuf_fill( pb, tnc2addrlen, tnc2buf, tnc2len, ax25addrlen, ax25buf, ax25len);
 
 	    pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
 	    srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
@@ -1338,14 +1340,15 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  tnc2len = (t - tnc2buf);
 
 	  // Allocate pbuf, it is born "gotten" (refcount == 1)
-	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, ax25len, tnc2len);
+	  pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */,
+                        tnc2addrlen, tnc2buf, tnc2len,
+                        ax25addrlen, ax25buf, ax25len);
 	  if (pb == NULL) {
 	    // Urgh!  Can't do a thing to this!
 	    // Likely reason: ax25len+tnc2len  > 2100 bytes!
 	    if (debug) printf("pbuf_new() returned NULL! Discarding!\n");
 	    continue;
 	  }
-	  pbuf_fill( pb, tnc2addrlen, tnc2buf, tnc2len, ax25addrlen, ax25buf, ax25len);
 
 	  pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
 	  srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
@@ -1379,7 +1382,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  // Message Tx-IGate rules..
 	  discard_this = 0;
 
-	  if (pb->recipient == NULL) {
+	  if (pb->dstname == NULL) {
 	    // Sanity -- not a message..
 	    discard_this = 1;
 	  }
@@ -1405,18 +1408,15 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    discard_this = 1;
 	  }
 
-	  if (!discard_this && pb->recipient != NULL) {
+	  if (!discard_this && pb->dstname != NULL) {
 	    // 1) - verify receiving station has been heard
 	    //      recently on radio
-	    int i;
 	    char recipient[10];
 	    history_cell_t *hist_rx;
-	    strncpy(recipient, pb->recipient, sizeof(recipient)-1);
-	    recipient[9] = 0; // Zero-terminate at 10 chars
-	    for (i = 0; i < 10; ++i) {
-	      if (recipient[i] == ' ')
-		recipient[i] = 0; // Zero-terminate
-	    }
+	    int i = pb->dstname_len;
+	    strncpy(recipient, pb->dstname, i);
+            if (i > 9) i = 9;
+	    recipient[i] = 0; // Zero-terminate at 10 chars or less..
 
 	    // FIXME?  Should test all SSIDs of this target callsign,
 	    //         not just this one target,
@@ -1424,7 +1424,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 
 	    hist_rx = historydb_lookup(historydb, recipient, strlen(recipient));
 	    if (hist_rx == NULL) {
-	      if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", pb->recipient);
+	      if (debug) printf("No history entry for receiving call: '%s'  DISCARDING.\n", recipient);
 	      discard_this = 1;
 	    }
 	    // See that it has 'heard on radio' flag on this tx interface
@@ -1432,7 +1432,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	      if (hist_rx->last_heard[tx_aif->ifgroup] >= recent_time) {
 		// Heard recently enough
 		discard_this = 0;
-		if (debug) printf("History entry for receiving call '%s' from RADIO is recent enough.  KEEPING.\n", pb->recipient);
+		if (debug) printf("History entry for receiving call '%s' from RADIO is recent enough.  KEEPING.\n", recipient);
 	      }
 	    }
 

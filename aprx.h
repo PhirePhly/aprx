@@ -686,8 +686,7 @@ extern int  interface_transmit_beacon(const struct aprx_interface *aif, const ch
 extern void           pbuf_init(void);
 extern struct pbuf_t *pbuf_get(struct pbuf_t *pb);
 extern void           pbuf_put(struct pbuf_t *pb);
-extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axdatalen, const int tnc2len);
-extern void           pbuf_fill(struct pbuf_t *pb, const int tnc2addrlen, const char *tnc2buf, const int tnc2len, const int ax25addrlen, const void *ax25buf, const int ax25len );
+extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int tnc2addrlen, const char *tnc2buf, const int tnc2len, const int ax25addrlen, const void *ax25buf, const int ax25len );
 
 
 /* parse_aprs.c */

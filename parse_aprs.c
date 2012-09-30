@@ -21,7 +21,8 @@
 #include "aprx.h"
 #include <math.h>
 
-#define DEBUG_LOG(fmt) if(debug)printf(fmt)
+#define DEBUG_LOG(...) if(debug)printf(__VA_ARGS__)
+
 
 /*
  *	Check if the given character is a valid symbol table identifier
@@ -45,7 +46,7 @@ static int valid_sym_table_uncompressed(char c)
 /*
  *	Fill the pbuf_t structure with a parsed position and
  *	symbol table & code. Also does range checking for lat/lng
- *	and pre-calculates cos(lat) for range filters.
+ *	and pre-calculates cosf(lat) for range filters.
  */
 
 static int pbuf_fill_pos(struct pbuf_t *pb, const float lat, const float lng, const char sym_table, const char sym_code)
@@ -96,7 +97,7 @@ static int pbuf_fill_pos(struct pbuf_t *pb, const float lat, const float lng, co
  *	Parse symbol from destination callsign
  */
 
-int get_symbol_from_dstcall_twochar(const char c1, const char c2, char *sym_table, char *sym_code)
+static int get_symbol_from_dstcall_twochar(const char c1, const char c2, char *sym_table, char *sym_code)
 {
 	//hlog(LOG_DEBUG, "\ttwochar %c %c", c1, c2);
 	if (c1 == 'B') {
@@ -220,7 +221,7 @@ int get_symbol_from_dstcall_twochar(const char c1, const char c2, char *sym_tabl
 	return 0;
 }
 
-int get_symbol_from_dstcall(struct pbuf_t *pb, char *sym_table, char *sym_code)
+static int get_symbol_from_dstcall(struct pbuf_t *pb, char *sym_table, char *sym_code)
 {
 	const char *d_start;
 	char type;
@@ -230,17 +231,17 @@ int get_symbol_from_dstcall(struct pbuf_t *pb, char *sym_table, char *sym_code)
 	
 	/* check that the destination call exists and is of the right size for symbol */
 	d_start = pb->srccall_end+1;
-	if (pb->dstcall_end - d_start < 5)
+	if (pb->dstcall_end_or_ssid - d_start < 5)
 		return 0; /* too short */
 	
 	/* length of the parsed string */
-	sublength = pb->dstcall_end - d_start - 3;
+	sublength = pb->dstcall_end_or_ssid - d_start - 3;
 	if (sublength > 3)
 		sublength = 3;
 	
 #ifdef DEBUG_PARSE_APRS
 	if (debug)
-	  printf("\tget_symbol_from_dstcall: %.*s (%d)", (int)(pb->dstcall_end - d_start), d_start, sublength);
+	  printf("\tget_symbol_from_dstcall: %.*s (%d)", (int)(pb->dstcall_end_or_ssid - d_start), d_start, sublength);
 #endif
 	
 	if (strncmp(d_start, "GPS", 3) != 0 && strncmp(d_start, "SPC", 3) != 0 && strncmp(d_start, "SYM", 3) != 0)
@@ -272,7 +273,7 @@ int get_symbol_from_dstcall(struct pbuf_t *pb, char *sym_table, char *sym_code)
 #ifdef DEBUG_PARSE_APRS
 			if (debug)
 			  printf("\tnumeric symbol id in dstcall: %.*s: table %c code %c",
-				(int)(pb->dstcall_end - d_start - 3), d_start + 3, *sym_table, *sym_code);
+				(int)(pb->dstcall_end_or_ssid - d_start - 3), d_start + 3, *sym_table, *sym_code);
 #endif
 			return 1;
 		} else {
@@ -540,7 +541,7 @@ static int parse_aprs_nmea(struct pbuf_t *pb, const char *body, const char *body
 #ifdef DEBUG_PARSE_APRS
 	if (debug) {
 	  printf("\tget_symbol_from_dstcall: %.*s => %c%c",
-		 (int)(pb->dstcall_end - pb->srccall_end-1), pb->srccall_end+1, sym_table, sym_code);
+		 (int)(pb->dstcall_end_or_ssid - pb->srccall_end-1), pb->srccall_end+1, sym_table, sym_code);
 	}
 #endif
 
@@ -554,13 +555,14 @@ static int parse_aprs_telem(struct pbuf_t *pb, const char *body, const char *bod
 	DEBUG_LOG("parse_aprs_telem");
 
 	//pbuf_fill_pos(pb, lat, lng, 0, 0);
-	return 1;
+	return 1; // okay
 }
 
 /*
  *	Parse a MIC-E position packet
  *
  *	APRS PROTOCOL REFERENCE 1.0.1 Chapter 10, page 42 (52 in PDF)
+ *
  */
 
 static int parse_aprs_mice(struct pbuf_t *pb, const unsigned char *body, const unsigned char *body_end)
@@ -574,7 +576,7 @@ static int parse_aprs_mice(struct pbuf_t *pb, const unsigned char *body, const u
 	int posambiguity = 0;
 	int i;
 	
-	DEBUG_LOG("parse_aprs_mice");
+        DEBUG_LOG("parse_aprs_mice: %.*s", pb->packet_len-2, pb->data);
 	
 	/* check packet length */
 	if (body_end - body < 8)
@@ -582,7 +584,7 @@ static int parse_aprs_mice(struct pbuf_t *pb, const unsigned char *body, const u
 	
 	/* check that the destination call exists and is of the right size for mic-e */
 	d_start = pb->srccall_end+1;
-	if (pb->dstcall_end - d_start != 6) {
+	if (pb->dstcall_end_or_ssid - d_start != 6) {
 		DEBUG_LOG(".. bad destcall length! ");
 		return 0; /* eh...? */
 	}
@@ -771,6 +773,7 @@ static int parse_aprs_mice(struct pbuf_t *pb, const unsigned char *body, const u
  *	Parse a compressed APRS position packet
  *
  *	APRS PROTOCOL REFERENCE 1.0.1 Chapter 9, page 36 (46 in PDF)
+ *
  */
 
 static int parse_aprs_compressed(struct pbuf_t *pb, const char *body, const char *body_end)
@@ -830,6 +833,7 @@ static int parse_aprs_compressed(struct pbuf_t *pb, const char *body, const char
  *	Parse an uncompressed "normal" APRS packet
  *
  *	APRS PROTOCOL REFERENCE 1.0.1 Chapter 8, page 32 (42 in PDF)
+ *
  */
 
 static int parse_aprs_uncompressed(struct pbuf_t *pb, const char *body, const char *body_end)
@@ -854,8 +858,8 @@ static int parse_aprs_uncompressed(struct pbuf_t *pb, const char *body, const ch
 	posbuf[19] = 0;
 	// fprintf(stderr, "\tposbuf: %s\n", posbuf);
 	
-	/* position ambiquity is going to get ignored now,
-	   it's not needed in this application. */
+	// position ambiquity is going to get ignored now,
+        // it's not needed in this application.
 
 	/* lat */
 	if (posbuf[2] == ' ') posbuf[2] = '3';
@@ -914,6 +918,7 @@ static int parse_aprs_uncompressed(struct pbuf_t *pb, const char *body, const ch
  *	Parse an APRS object 
  *
  *	APRS PROTOCOL REFERENCE 1.0.1 Chapter 11, page 58 (68 in PDF)
+ *
  */
 
 static int parse_aprs_object(struct pbuf_t *pb, const char *body, const char *body_end)
@@ -1151,19 +1156,19 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 			DEBUG_LOG("\n");
 			return rc;
 		}
-		return 0;
+		return 0; // bad
 
 	case '!':
 		if (*body == '!') { /* Ultimeter 2000 - "tnc2addr:!!" */
 			pb->packettype |= T_WX;
-			return 0;
+			return 1; // Known Ultimeter format
 		}
 	case '=':
 	case '/':
 	case '@':
 		/* check that we won't run over right away */
 		if (body_end - body < 10)
-			return 0;
+			return 0; // bad
 		/* Normal or compressed location packet, with or without
 		 * timestamp, with or without messaging capability
 		 *
@@ -1237,24 +1242,22 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 		// them the same way in filters as we do those with real
 		// positions..
 		{
-			char keybuf[CALLSIGNLEN_MAX+1];
 			const char *p;
 			int i;
 #ifndef DISABLE_IGATE
 			history_cell_t *history;
 #endif
+			pb->dstname = body;
 			p = body;
-			pb->recipient = p;
 			for (i = 0; i < CALLSIGNLEN_MAX; ++i) {
-				keybuf[i] = *p;
 				// the recipient address is space padded
 				// to 9 chars, while our historydb is not.
 				if (*p == 0 || *p == ' ' || *p == ':')
 					break;
 			}
-			keybuf[i] = 0;
+			pb->dstname_len = p - body;
 #ifndef DISABLE_IGATE
-			history = historydb_lookup( historydb, keybuf, i );
+			history = historydb_lookup( historydb, pb->dstname, i );
 			if (history != NULL) {
 				pb->lat     = history->lat;
 				pb->lng     = history->lon;
@@ -1272,19 +1275,19 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 		  DEBUG_LOG("\n");
 		  return rc;
 		}
-		return 0;
+		return 0; // too short
 
 	case '>':
 		pb->packettype |= T_STATUS;
-		return 1;
+		return 1; // ok
 
 	case '<':
 		pb->packettype |= T_STATCAPA;
-		return 1;
+		return 1; // ok
 
 	case '?':
 		pb->packettype |= T_QUERY;
-		return 1;
+		return 1; // ok at igate/digi
 
 	case ')':
 		if (body_end - body > 18) {
@@ -1292,6 +1295,7 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 		  DEBUG_LOG("\n");
 		  return rc;
 		}
+                return 0; // too short
 
 
 	case 'T':
@@ -1301,21 +1305,21 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 			DEBUG_LOG("\n");
 			return rc;
 		}
-		return 0;
+		return 0; // too short
 
 	case '#': /* Peet Bros U-II Weather Station */
 	case '*': /* Peet Bros U-I  Weather Station */
 	case '_': /* Weather report without position */
 		pb->packettype |= T_WX;
-		return 1;
+		return 1; // good
 
 	case '{':
 		pb->packettype |= T_USERDEF;
-		return 1;
+		return 1; // okay at digi?
 
 	case '}':
 		pb->packettype |= T_THIRDPARTY;
-		return 1;
+		return 1; // 3rd-party is okay at digi
 
 	default:
 		break;
@@ -1345,5 +1349,5 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 		}
 	}
 	
-	return 0;
+	return 0; // bad
 }

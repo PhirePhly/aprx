@@ -84,10 +84,8 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 	pb->packet_len = tnc2len;
 	pb->buf_len    = tnc2len;
 	pb->data[tnc2len] = 0;
+        pb->ax25addr = (uint8_t*)pb->data + tnc2len + 1;
 
-	// pb->destcall = pb->data + axlen;
-	if (axlen > 0)
-		pb->ax25addr = (uint8_t*)pb->data + tnc2len+1;
 
 	return pb;
 }
@@ -108,7 +106,8 @@ void pbuf_put( struct pbuf_t *pb )
 }
 
 
-struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int axlen, const int tnc2len)
+static struct pbuf_t *_pbuf_new(const int is_aprs, const int digi_like_aprs, const int axlen, const int tnc2len);
+static struct pbuf_t *_pbuf_new(const int is_aprs, const int digi_like_aprs, const int axlen, const int tnc2len)
 {
 	struct pbuf_t *pb = pbuf_alloc( axlen, tnc2len );
 	if (pb == NULL) return NULL;
@@ -122,38 +121,119 @@ struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, const int a
 	return pb;
 }
 
-// Do the pbuf filling in single location
-void pbuf_fill( struct pbuf_t *pb,
-		const int tnc2addrlen, const char *tnc2buf, const int tnc2len,
-		const int ax25addrlen, const void *ax25buf, const int ax25len )
+
+// Do the pbuf filling in single location, processes the TNC2 header data
+struct pbuf_t * pbuf_new( const int is_aprs, const int digi_like_aprs,
+                          const int tnc2addrlen, const char *tnc2buf, const int tnc2len,
+                          const int ax25addrlen, const void *ax25buf, const int ax25len )
 {
 	char *p;
-	int tnc2infolen;
 
-	memcpy((void*)(pb->data), tnc2buf, tnc2len);
-	pb->info_start = pb->data + tnc2addrlen + 1;
-	p = (char*)&pb->info_start[-1]; *p = 0;
+	char *src_end; /* pointer to the > after srccall */
+	char *path_start; /* pointer to the start of the path */
+	const char *path_end; /* pointer to the : after the path */
+	const char *packet_end; /* pointer to the end of the packet */
+	const char *info_start; /* pointer to the beginning of the info */
+	const char *info_end; /* end of the info */
+	char *dstcall_end_or_ssid; /* end of dstcall, before SSID ([-:,]) */
+	char *dstcall_end; /* end of dstcall including SSID ([:,]) */
+	char *via_start; /* start of the digipeater path (after dstcall,) */
+	const char *data;	  /* points to original incoming path/payload separating ':' character */
+	int datalen;		  /* length of the data block excluding tail \r\n */
+	int pathlen;		  /* length of the path  ==  data-s  */
+	int rc;
+        struct pbuf_t *pb;
 
-	tnc2infolen = tnc2len - tnc2addrlen -1; /* ":" */
-	p = (char*)&pb->info_start[tnc2infolen]; *p = 0;
+	/* a packet looks like:
+	 * SRCCALL>DSTCALL,PATH,PATH:INFO\r\n
+	 * (we have normalized the \r\n by now)
+         *
+         * The tnc2addrlen is index of the first ':'.
+	 */
 
-	p = pb->data;
-	for ( p = pb->data; p < (pb->info_start); ++p ) {
-	  if (*p == '>') {
-	    pb->srccall_end = p;
-	    pb->destcall    = p+1;
-	    continue;
-	  }
-	  if (*p == ',' || *p == ':') {
-	    pb->dstcall_end = p;
-	    break;
-	  }
+        path_end = tnc2buf + tnc2addrlen;
+        pathlen  = tnc2addrlen;
+	data     = path_end;            // Begins with ":"
+	datalen  = tnc2len - pathlen;   // Not including line end \r\n
+
+	packet_end = tnc2buf + tnc2len; // Just to compare against far end..
+
+	/* look for the '>' */
+	src_end = memchr(tnc2buf, '>', pathlen < CALLSIGNLEN_MAX+1 ? pathlen : CALLSIGNLEN_MAX+1);
+	if (!src_end) {
+		return NULL;	// No ">" in packet start..
+        }
+	
+	path_start = src_end+1;
+	if (path_start >= packet_end) {	// We're already at the path end
+		return NULL;
+        }
+	
+	if (src_end - tnc2buf > CALLSIGNLEN_MAX || src_end - tnc2buf < CALLSIGNLEN_MIN) {
+		return NULL; /* too long source callsign */
+        }
+	
+	info_start = path_end+1;	// @":"+1 - first char of the payload
+	if (info_start >= packet_end) {
+		return NULL;
+        }
+	
+	/* see that there is at least some data in the packet */
+	info_end = packet_end;
+	if (info_end <= info_start) {
+		return NULL;
+        }
+	
+	/* look up end of dstcall (excluding SSID - this is the way dupecheck and
+	 * mic-e parser wants it)
+	 */
+
+	dstcall_end = path_start;
+	while (dstcall_end < path_end && *dstcall_end != '-' && *dstcall_end != ',' && *dstcall_end != ':')
+		dstcall_end++;
+	dstcall_end_or_ssid = dstcall_end; // OK, SSID is here (or the dstcall end), go for the real end
+	while (dstcall_end < path_end && *dstcall_end != ',' && *dstcall_end != ':')
+		dstcall_end++;
+	
+	if (dstcall_end - path_start > CALLSIGNLEN_MAX) {
+		return NULL; /* too long for destination callsign */
+        }
+	
+	/* where does the digipeater path start? */
+	via_start = dstcall_end;
+	while (via_start < path_end && (*via_start != ',' && *via_start != ':')) {
+		via_start++;
+        }
+	
+        pb = _pbuf_new( is_aprs, digi_like_aprs, ax25len, tnc2len );
+	if (!pb) {
+          // This should never happen...
+          return NULL;
 	}
-	if (pb->dstcall_end == NULL)
-	  pb->dstcall_end = p;
+	
+        // copy TNC2 data to its area
+        p = pb->data;
+        memcpy(p, tnc2buf, tnc2len);
+        p += tnc2len;
 
+        // Copy AX.25 data to its area..
 	memcpy(pb->ax25addr, ax25buf, ax25len);
 	pb->ax25addrlen = ax25addrlen;
 	pb->ax25data    = pb->ax25addr + ax25addrlen;
 	pb->ax25datalen = ax25len - ax25addrlen;
+	
+	// How much there really is data?
+	pb->packet_len = p - pb->data;
+	
+	packet_end = p; /* for easier overflow checking expressions */
+	/* fill necessary info for parsing and dupe checking in the packet buffer */
+	pb->srcname = pb->data;
+	pb->srcname_len = src_end - tnc2buf;
+	pb->srccall_end = pb->data + (src_end - tnc2buf); // "srccall>.." <-- @'>'
+	pb->dstcall_end_or_ssid = pb->data + (dstcall_end_or_ssid - tnc2buf);
+	pb->dstcall_end = pb->data + (dstcall_end - tnc2buf);
+	pb->dstcall_len = via_start - src_end - 1;
+	pb->info_start  = info_start;
+
+        return pb;
 }

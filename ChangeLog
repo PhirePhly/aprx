@@ -1,3 +1,10 @@
+2012-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, digipeater.c, interface.c, pbuf.h, pbuf.c, parse_aprs.c:
+	    Sync pbuf_new() implementation with aprsc's approach, and
+	    sync parse_aprs() with aprsc's code.  This should fix some
+	    strange MICe bugs, among others.
+
 2012-09-18  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* parse_aprs.c:
