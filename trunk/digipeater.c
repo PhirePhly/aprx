@@ -408,9 +408,10 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  return 1; // Src reject filters
 	}
 
-	len = pb->dstcall_end - pb->destcall;
+        // Copy the DSTCALL part of  SRCALL>DSTCALL  to viafield[] buffer
+	len = pb->dstcall_end - pb->srccall_end -1;
 	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
-	memcpy(viafield, pb->destcall, len);
+	memcpy(viafield, pb->srccall_end+1, len);
 	viafield[len] = 0;
 	// if (debug>2)printf(" destcall='%s'",viafield);
 	if (try_reject_filters(1, viafield, src)) {
