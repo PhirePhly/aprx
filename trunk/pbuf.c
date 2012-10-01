@@ -138,10 +138,9 @@ struct pbuf_t * pbuf_new( const int is_aprs, const int digi_like_aprs,
 	char *dstcall_end_or_ssid; /* end of dstcall, before SSID ([-:,]) */
 	char *dstcall_end; /* end of dstcall including SSID ([:,]) */
 	char *via_start; /* start of the digipeater path (after dstcall,) */
-	const char *data;	  /* points to original incoming path/payload separating ':' character */
-	int datalen;		  /* length of the data block excluding tail \r\n */
+	// const char *data;	  /* points to original incoming path/payload separating ':' character */
+	// int datalen;		  /* length of the data block excluding tail \r\n */
 	int pathlen;		  /* length of the path  ==  data-s  */
-	int rc;
         struct pbuf_t *pb;
 
 	/* a packet looks like:
@@ -153,8 +152,8 @@ struct pbuf_t * pbuf_new( const int is_aprs, const int digi_like_aprs,
 
         path_end = tnc2buf + tnc2addrlen;
         pathlen  = tnc2addrlen;
-	data     = path_end;            // Begins with ":"
-	datalen  = tnc2len - pathlen;   // Not including line end \r\n
+	// data     = path_end;            // Begins with ":"
+	// datalen  = tnc2len - pathlen;   // Not including line end \r\n
 
 	packet_end = tnc2buf + tnc2len; // Just to compare against far end..
 
@@ -223,7 +222,7 @@ struct pbuf_t * pbuf_new( const int is_aprs, const int digi_like_aprs,
 	pb->ax25datalen = ax25len - ax25addrlen;
 	
 	// How much there really is data?
-	pb->packet_len = p - pb->data;
+	pb->packet_len = tnc2len;
 	
 	packet_end = p; /* for easier overflow checking expressions */
 	/* fill necessary info for parsing and dupe checking in the packet buffer */
@@ -233,7 +232,7 @@ struct pbuf_t * pbuf_new( const int is_aprs, const int digi_like_aprs,
 	pb->dstcall_end_or_ssid = pb->data + (dstcall_end_or_ssid - tnc2buf);
 	pb->dstcall_end = pb->data + (dstcall_end - tnc2buf);
 	pb->dstcall_len = via_start - src_end - 1;
-	pb->info_start  = info_start;
+	pb->info_start  = pb->data + tnc2addrlen + 1;
 
         return pb;
 }
