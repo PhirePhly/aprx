@@ -22,6 +22,7 @@ setup_aprx_user() {
 }
 
 fix_permissions() {
+        :
 	# chown aprx:aprx /opt/aprsc/logs /opt/aprsc/data
 }
 
@@ -37,8 +38,7 @@ apparmor_config() {
 # main
 
 # setup_aprx_user
-
-fix_permissions
+# fix_permissions
 apparmor_config
 
 # dh_installdeb will replace this with shell code automatically
