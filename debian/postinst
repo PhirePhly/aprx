@@ -22,7 +22,7 @@ setup_aprx_user() {
 }
 
 fix_permissions() {
-        DUMMY=x
+        :
 	# chown aprx:aprx /opt/aprsc/logs /opt/aprsc/data
 }
 
