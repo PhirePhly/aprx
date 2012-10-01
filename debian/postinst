@@ -21,10 +21,9 @@ setup_aprx_user() {
         fi
 }
 
-fix_permissions() {
-        :
-	# chown aprx:aprx /opt/aprsc/logs /opt/aprsc/data
-}
+# fix_permissions() {
+# 	# chown aprx:aprx /opt/aprsc/logs /opt/aprsc/data
+# }
 
 apparmor_config() {
 	# Reload AppArmor profile
