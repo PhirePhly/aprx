@@ -798,13 +798,14 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 	
 	p = filt0;
 	if (*p == '-') ++p;
+        // Skip the first '/'
 	while (*p && *p != '/') ++p;
 	if (*p == '/') ++p;
 	/* count the number of prefixes in there.. */
 	while (*p) {
 		if (*p) ++refmax;
-		while (*p && *p != '/') ++p;
-		if (*p == '/') ++p;
+		while (*p && *p != '/' && *p != ',') ++p;
+		if (*p == '/' || *p == ',') ++p;
 	}
 	if (refmax == 0) return -1; /* No prefixes ?? */
 
@@ -813,6 +814,7 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 
 	p = filt0;
 	if (*p == '-') ++p;
+        // Skip the first '/'
 	while (*p && *p != '/') ++p;
 	if (*p == '/') ++p;
 
@@ -822,18 +824,19 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		memset(prefixbuf, 0, sizeof(prefixbuf));
 		i = 0;
 		wildcard = 0;
-		while (*p != 0 && *p != '/' && *p != ',' && i < (CALLSIGNLEN_MAX)) {
-			if (*p == '*') {
+		while (*p != 0 && *p != '/' && *p != ',') {
+                 	int c = *p++;
+			if (c == '*') {
 				wildcard = 1;
-				++p;
 				if (wildok != MatchWild)
 					return -1;
 				continue;
 			}
-                        if ((k - prefixbuf) < CALLSIGNLEN_MAX)
-                        	*k = *p;
-			++p;
-			++k;
+                        ++i;
+                        if (i < (CALLSIGNLEN_MAX)) {
+                        	*k = c;
+                                ++k;
+                        }
 		}
 		*k = 0;
 		/* OK, we have one prefix part collected, scan source until next '/' */
