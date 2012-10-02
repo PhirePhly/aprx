@@ -398,6 +398,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	  return 0;
 	}
 
+        // Copy the SRCCALL part of  SRCALL>DSTCALL  to viafield[] buffer
 	len = pb->srccall_end - pb->data;
 	if (len >= sizeof(viafield)) len = sizeof(viafield)-1;
 	memcpy(viafield, pb->data, len);
@@ -426,13 +427,17 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 	while (p < pb->info_start && !have_fault) {
 	  len = 0;
 
+          if (*p == ':') {
+            // a round may stop at ':' found at the end of the processed field
+            break;
+          }
+
 	  for (s = p; s < pb->info_start; ++s) {
 	    if (*s == ',' || *s == ':') {
 	      break;
 	    }
 	  }
-	  if (*s == ':') break; // End of scannable area
-	  // [p..s] is now one VIA field.
+	  // [p..s) is now one VIA field.
 	  if (s == p && *p != ':') {  // BAD!
 	    have_fault = 1;
 	    if (debug>1) printf(" S==P ");

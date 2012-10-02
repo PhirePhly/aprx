@@ -1,3 +1,16 @@
+2012-10-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* digipeater.c:
+	    Correct analysis of first "via" field, bail out of the loop
+	    only after it has been parsed.
+
+2012-10-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* debian/postinst, debian/aprx.init:
+	    Removed postinst from debian installations.  That script is
+	    bad and causes install/upgrade to stall.  Modernized the
+	    aprx init-script.
+
 2012-09-30  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, digipeater.c, interface.c, pbuf.h, pbuf.c, parse_aprs.c:
