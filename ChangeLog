@@ -1,5 +1,10 @@
 2012-10-02  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* filter.c:
+	    Parse filters with callsign sets without overflowing buffer.
+	    Officially syntax is:   OP/callsign1/callsign2   but support
+	    also:  OP/callsign1,callsign2
+
 	* digipeater.c:
 	    Correct analysis of first "via" field, bail out of the loop
 	    only after it has been parsed.
