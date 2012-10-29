@@ -1,0 +1,11 @@
+[Unit]
+Description=Amateur Radio APRS Gateway & Digipeater
+Documentation=man:aprx(8)
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/aprx
+# doesn't do any internal reload
+
+[Install]
+WantedBy=multi-user.target
