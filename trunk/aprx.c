@@ -17,6 +17,7 @@
 #ifdef HAVE_TIME_H
 # include <time.h>
 #endif
+#include <fcntl.h>
 
 struct timeval now;			/* this is globally used */
 int debug;
@@ -228,7 +229,19 @@ int main(int argc, char *const argv[])
 				pidfile);
 			pidfile = NULL;
 		} else {
+			int f = fileno(pf);
+			if (flock(f, LOCK_EX|LOCK_NB) < 0) {
+				if (errno == EWOULDBLOCK) {
+					printf("Could not lock pid file file %s, another process has a lock on it. Another process running - bailing out.\n", pidfile);
+				} else {
+					printf("Failed to lock pid file %s: %s\n", pidfile, strerror(errno));
+				}
+				exit(1);
+			}
+			
 			fprintf(pf, "%ld\n", (long) getpid());
+			// Leave it open - flock will prevent double-activation
+			dup(f); // don't care what the fd number is
 			fclose(pf);
 		}
 	}

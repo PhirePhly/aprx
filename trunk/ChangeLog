@@ -1,3 +1,8 @@
+2012-10-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c:
+	    Acquire a lock on pid-file, and keep the file open.
+
 2012-10-29  JG2RZF <toyokun@gmail.com>
 
 	* dprsgw.c:
