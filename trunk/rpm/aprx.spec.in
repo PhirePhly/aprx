@@ -78,7 +78,7 @@ install -m 644 rpm/aprx.default $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/aprx
 
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 16
 mkdir -p $RPM_BUILD_ROOT%{_unitdir}
-install -m 644 aprx.service     $RPM_BUILD_ROOT%{_unitdir}/%{name}.service
+install -m 644 rpm/aprx.service $RPM_BUILD_ROOT%{_unitdir}/%{name}.service
 %else
 mkdir -p $RPM_BUILD_ROOT%{_initddir}
 install -m 755 rpm/aprx.init    $RPM_BUILD_ROOT%{_initddir}/aprx
