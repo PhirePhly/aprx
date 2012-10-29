@@ -1,69 +1,118 @@
-Summary: Hamradio APRS iGate / Digipeater
-Name: aprx
-Version: @VERSION@
-Release: 1
-License: BSD
-Group: Hamradio
-URL: http://ham.zmailer.org/oh2mqk/aprx/
-Source0: %{name}-%{version}.tar.gz
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+Name:           aprx
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Hamradio APRS iGate / Digipeater
+License:        BSD
+URL:            http://ham.zmailer.org/oh2mqk/aprx/
+Source0:        http://ham.zmailer.org/oh2mqk/aprx/%{name}-%{version}.tar.gz
+
+
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 16
+BuildRequires:  systemd-units
+%endif
+
+%if 0%{?fedora} >= 18
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
+
+%post
+%systemd_post %{name}.service
+
+%preun
+%systemd_preun %{name}.service
+
+%postun
+%systemd_postun_with_restart %{name}.service 
+
+%else 0%{?fedora} = 17
+Requires(post): systemd-units
+Requires(preun): systemd-units
+Requires(postun): systemd-units
+
+%post
+if [ $1 -eq 1 ] ; then 
+    # Initial installation 
+    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+
+%preun
+if [ $1 -eq 0 ] ; then
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable aprx.service > /dev/null 2>&1 || :
+    /bin/systemctl stop aprx.service > /dev/null 2>&1 || :
+fi
+
+%postun
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart aprx.service >/dev/null 2>&1 || :
+fi
+
+%endif
 
 %description
+Aprx is an APRS iGate that has minimal system requirements. It can handle
+an arbitrary number of radio modems, optionally relay APRS packets from radio
+to the APRS-IS network, optionally digipeat AX25 with or without NEWn-N
+rules, optionally relay APRS packets from APRS-IS to radio (TX-iGate)
 
 %prep
-echo begin prep
 %setup -q
-echo end prep
 
 %build
-#aclocal
-#autoheader
-#autoconf
-HARDWARE=`uname -m`
-./configure --with-pthread --sbindir=/usr/sbin --sysconfdir=/etc --localstatedir=/var --mandir=%{_mandir}  CC="gcc" CFLAGS="-g $RPM_OPT_FLAGS" AFLAGS="-g $RPM_OPT_FLAGS" LDFLAGS="-g $RPM_OPT_FLAGS"
-
-make
+%configure --with-erlangstorage
+make %{?_smp_mflags}
+make logrotate.aprx
 
 %install
-rm -rf $RPM_BUILD_ROOT
-
-mkdir -p $RPM_BUILD_ROOT/usr/sbin
-mkdir -p $RPM_BUILD_ROOT/etc/init.d
-mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
 mkdir -p $RPM_BUILD_ROOT/etc/sysconfig
+mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
 mkdir -p $RPM_BUILD_ROOT/var/log/aprx
-mkdir -p $RPM_BUILD_ROOT%{_mandir}/man8
 
 make install DESTDIR=$RPM_BUILD_ROOT
 
-make logrotate.aprx
-install -m 644 logrotate.aprx   $RPM_BUILD_ROOT/etc/logrotate.d/aprx
-install -m 755 rpm/aprx.init    $RPM_BUILD_ROOT/etc/init.d/aprx
-install -m 755 rpm/aprx.default $RPM_BUILD_ROOT/etc/sysconfig/aprx
+install -m 644 logrotate.aprx   $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/aprx
+install -m 644 rpm/aprx.default $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/aprx
 
-gzip -9 $RPM_BUILD_ROOT/%{_mandir}/man8/*
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 16
+mkdir -p $RPM_BUILD_ROOT%{_unitdir}
+install -m 644 aprx.service     $RPM_BUILD_ROOT%{_unitdir}/%{name}.service
+%else
+mkdir -p $RPM_BUILD_ROOT%{_initddir}
+install -m 755 rpm/aprx.init    $RPM_BUILD_ROOT%{_initddir}/aprx
+%endif
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-
 %files
 %defattr(-,root,root,-)
-%doc LICENSE README INSTALL TODO
+# INSTALL not bundled
+%doc LICENSE README TODO PROTOCOLS
 %doc ChangeLog
 %doc aprx.conf aprx-complex.conf
 %doc doc/aprx-manual.pdf
+%doc ViscousDigipeater.README ViscousDigipeaterTxEffect.png
 %dir /var/log/aprx
-%config(noreplace) /etc/aprx.conf
-%config(noreplace) /etc/init.d/aprx
-%config(noreplace) /etc/sysconfig/aprx
-%config(noreplace) /etc/logrotate.d/aprx
-/usr/sbin/aprx
-/usr/sbin/aprx-stat
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 16
+%{_unitdir}/%{name}.service
+%else
+%{_initddir}/%{name}
+%endif
+%config(noreplace) %{_sysconfdir}/aprx.conf
+%config(noreplace) %{_sysconfdir}/sysconfig/aprx
+%config(noreplace) %{_sysconfdir}/logrotate.d/aprx
+%{_sbindir}/aprx
+%{_sbindir}/aprx-stat
 %doc %{_mandir}/man8/aprx.8.gz
 %doc %{_mandir}/man8/aprx-stat.8.gz
 
 
 %changelog
+* Thu Oct 11 2012 Andrew Elwell <Andrew.Elwell@gmail.com> - @VERSION@
+- Packaging for Fedora
+
 * Sat Jan 12 2008 Matti Aarnio - OH2MQK - KP20NG <oh2mqk@sral.fi> - 
 - RPM framework added
