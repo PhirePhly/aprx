@@ -668,7 +668,7 @@ static void fix_beacon_time(char *txt, int txtlen)
 	int hour, min, sec;
 	char hms[8];
 
-	sec = now.tv_sec % (3600*24);
+	sec = now.tv_sec % (3600*24); // UNIX time is UTC -> no need to play with fancy timezone conversions and summer times...
 	hour = sec / 3600;
 	min  = (sec / 60) % 60;
 	sec  = sec % 60;
