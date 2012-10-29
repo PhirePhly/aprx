@@ -547,6 +547,8 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  *p++ = ident[i];
 	}
 
+        if (p > tnc2buf && p[-1] == '-') --p;
+
 	p += sprintf(p, ">APDPRS,DSTAR*");
 
 

@@ -1,3 +1,20 @@
+2012-10-29  JG2RZF <toyokun@gmail.com>
+
+	* dprsgw.c:
+	    D-STAR callsign formatting for suffixless ones:
+	      * "JG2RZF A" -> "JG2RZF-A"
+	      * "JG2RZF  " -> "JG2RZF-"  Oops!
+
+2012-10-12  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* rpm/aprx.spec.in, rpm/aprx.service:
+	    Andrew Elwell <Andrew.Elwell@gmail.com>  supplied better
+	    version of Fedora, and rhel.
+
+	* filter.c:
+	    Leave the "over-long parameters are rejected" logic, but don't
+	    support alternate group field splitter input.
+
 2012-10-03  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* TODO, INSTALL, aprx.c, aprx-manual.odt, aprx-manual.pdf,
