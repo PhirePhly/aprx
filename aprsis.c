@@ -731,9 +731,17 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 						  A->wrbuf_cur,
 						  A->wrbuf_len -
 						  A->wrbuf_cur);
+                                        if (debug>2)
+                                          printf("%ld << %s:%s << write() rc= %d\n",
+                                                 now.tv_sec, A->H->server_name, A->H->server_port, i);
+
 					if (i < 0)
 						continue;	/* Argh.. nothing */
 					if (i == 0);	/* What ? */
+
+                                        aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur) -1,
+                                                "<< %s:%s << ", A->H->server_name, A->H->server_port);
+
 					A->wrbuf_cur += i;
 					if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all! */
 						A->wrbuf_len = A->wrbuf_cur = 0;
