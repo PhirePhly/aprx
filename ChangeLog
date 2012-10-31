@@ -1,3 +1,8 @@
+2012-10-31  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c:
+	    Use thread-safe gmtime_r() instead of gmtime() for time printout.
+
 2012-10-29  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* Makefile.in:
