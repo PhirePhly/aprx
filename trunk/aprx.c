@@ -381,13 +381,13 @@ int main(int argc, char *const argv[])
 void printtime(char *buf, int buflen)
 {
 	struct timeval tv;
-	struct tm *t;
+	struct tm t;
 
 	gettimeofday(&tv, NULL);
-	t = gmtime(&tv.tv_sec);
+        gmtime_r(&tv.tv_sec, &t);
 	// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
 	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
-		t->tm_year+1900,t->tm_mon+1,t->tm_mday,
-		t->tm_hour,t->tm_min,t->tm_sec,
+		t.tm_year+1900,t.tm_mon+1,t.tm_mday,
+		t.tm_hour,t.tm_min,t.tm_sec,
 		(int)(tv.tv_usec / 1000));
 }
