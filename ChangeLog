@@ -1,3 +1,8 @@
+2012-11-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprsis.c:
+	    Move CRLF appending later into APRSIS transmission.
+
 2012-10-31  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c:

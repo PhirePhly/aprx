@@ -129,8 +129,8 @@ va_dcl
 	fmt    = va_arg(ap, const char *);
 #endif
 
+        printtime(timebuf, sizeof(timebuf));
 	if (verbout) {
-	  printtime(timebuf, sizeof(timebuf));
 	  fprintf(stdout, "%s ", timebuf);
 	  vfprintf(stdout, fmt, ap);
 	  if (buf != NULL && buflen != 0) {
@@ -146,7 +146,6 @@ va_dcl
 #endif
 	fp = fopen(aprxlogfile, "a");
 	if (fp != NULL) {
-	  printtime(timebuf, sizeof(timebuf));
 	  fprintf(fp, "%s ", timebuf);
 	  vfprintf(fp, fmt, ap);
 	  if (buf != NULL && buflen != 0) {
@@ -195,6 +194,7 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char qtype,
 	int i;
 	char addrbuf[1000];
 	int addrlen, len;
+        char *p;
 
 	/* Queue for sending to APRS-IS only when the socket is operational */
 	if (A->server_socket < 0)
@@ -247,6 +247,22 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char qtype,
 		memcpy(A->wrbuf + A->wrbuf_len, addrbuf, addrlen);
 		A->wrbuf_len += addrlen;
 	}
+
+        /* If there is CR or LF within the packet, terminate packet at it.. */
+        p = memchr(text, '\r', textlen);
+        if (p != NULL) {
+          textlen = p - text;
+        }
+        p = memchr(text, '\n', textlen);
+        if (p != NULL) {
+          textlen = p - text;
+        }
+
+        /* Append CR+LF at the end of the packet */
+        p = text + textlen;
+	*p++ = '\r';
+	*p++ = '\n';
+        textlen += 2;
 
 	memcpy(A->wrbuf + A->wrbuf_len, text, textlen);
 	A->wrbuf_len += textlen;	/* Always supplied with tail newline.. */
@@ -424,7 +440,6 @@ static void aprsis_reconnect(struct aprsis *A)
 		     aprspass(A->H->login), swname, swversion);
 	if (A->H->filterparam)
 		s += sprintf(s, " filter %s", A->H->filterparam);
-	strcpy(s, "\r\n");
 
 	A->last_read = now.tv_sec;
 
@@ -623,8 +638,6 @@ int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gw
 	*p++ = 0;		/* string terminating 0 byte */
 	memcpy(p, text, textlen);
 	p += textlen;
-	*p++ = '\r';
-	*p++ = '\n';
 	len = p - buf;
 	*p++ = 0;
 
