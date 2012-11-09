@@ -670,6 +670,8 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  char *b;
 
 	  igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2buf, tnc2addrlen, tnc2buflen, 0, 0);
+          // Bytes have been counted previously, now count meaningful packet
+          erlang_add(aif ? aif->callsign : NULL, ERLANG_RX, 0, 1);
 
 	  fromcall = tnc2buf;
 	  p = fromcall;
@@ -726,6 +728,8 @@ static void dprsgw_rxigate( struct serialport *S )
 
 	    // Acceptable packet, Rx-iGate it!
 	    igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0, 0);
+          // Bytes have been counted previously, now count meaningful packet
+            erlang_add(aif ? aif->callsign : NULL, ERLANG_RX, 0, 1);
 
 	    fromcall = (char*)tnc2addr;
 	    s = fromcall;
@@ -834,9 +838,14 @@ static void dprsgw_receive( struct serialport *S )
  */
 int dprsgw_pulldprs( struct serialport *S )
 {
+	const time_t rdtime = S->rdline_time;
+	const struct aprx_interface *aif = S->interface[0];
 	int c;
 	int i;
-	time_t rdtime = S->rdline_time;
+
+        // Account all received bytes, this may or may not be a packet
+        erlang_add(aif ? aif->callsign : NULL, ERLANG_RX, S->rdlinelen, 0);
+
 
 	if (S->dprsgw == NULL)
 	  S->dprsgw = dprsgw_new();
