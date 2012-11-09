@@ -624,7 +624,7 @@ int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gw
 	head.then    = now.tv_sec;
 	head.addrlen = addrlen;
 	head.gwlen   = gwlen;
-	head.textlen = textlen + 2;	/* We add line terminating \r\n  pair. */
+	head.textlen = textlen;
 	head.qtype   = qtype;
 
 	memcpy(buf, &head, sizeof(head));
