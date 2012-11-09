@@ -1,3 +1,14 @@
+2012-11-09 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* dprsgw.c:
+	    Better accounting on DPRS side-channel data occupancy,
+	    assuming the DPRS gw does send bytes all the time.
+
+2012-11-09 FUJIURA Toyonori JG2RZF <toyokun@gmail.com>
+
+	* dprsgw.c:
+	    Add receiver Erlang estimators to received packets.
+
 2012-11-01  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprsis.c:
@@ -22,8 +33,8 @@
 	* aprx.c:
 	    Acquire a lock on pid-file, and keep the file open.
 
-2012-10-29  JG2RZF <toyokun@gmail.com>
-
+2012-10-29 FUJIURA Toyonori JG2RZF <toyokun@gmail.com>
+		
 	* dprsgw.c:
 	    D-STAR callsign formatting for suffixless ones:
 	      * "JG2RZF A" -> "JG2RZF-A"
