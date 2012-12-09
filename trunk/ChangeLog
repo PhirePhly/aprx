@@ -1,3 +1,10 @@
+2012-12-09 Matt Maguire VK2RQ <matt.vk2rq@gmail.com>
+
+	* telemetry.c:
+	    Sometimes the Erlang registery contains interface
+	    entries that are no longer actually in the system.
+	    Avoid NULL referral at such situations.
+
 2012-11-09 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* dprsgw.c:
@@ -34,7 +41,7 @@
 	    Acquire a lock on pid-file, and keep the file open.
 
 2012-10-29 FUJIURA Toyonori JG2RZF <toyokun@gmail.com>
-		
+
 	* dprsgw.c:
 	    D-STAR callsign formatting for suffixless ones:
 	      * "JG2RZF A" -> "JG2RZF-A"
