@@ -1,3 +1,17 @@
+2012-11-09 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* digipeater.c, aprx.h, historydb.h:
+	    Track digipeated messages by source callsign.
+
+	* aprsis.c:
+	    Use A->rdlin_len  instead of strlen(A->rdline)
+
+	* aprx-stat.c, aprx.c, aprx.h, erlang.c:
+	    Moved syslog init from erlang to aprx core.
+
+	* parse_aprs.c, aprx.h:
+	    Function parse_aprs_message() for planned future use.
+
 2012-12-09 Matt Maguire VK2RQ <matt.vk2rq@gmail.com>
 
 	* telemetry.c:

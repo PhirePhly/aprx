@@ -487,6 +487,10 @@ static void pick_heads(char *ax25, int headlen,
 	// if (debug)printf("\n");
 }
 
+static void aprsis_commentframe(const char *tnc2buf, int tnc2len) {
+  // TODO .. #TICK -> #TOCK  ??
+}
+
 void igate_from_aprsis(const char *ax25, int ax25len)
 {
 	// const char *p = ax25;
@@ -503,8 +507,10 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	char  *fromcall  = NULL;
 	char  *origtocall = NULL;
 
-	if (ax25[0] == '#')
-	  return; // Comment line, timer tick, something such spurious..
+	if (ax25[0] == '#') {  // Comment line, timer tick, something such...
+          aprsis_commentframe(ax25, ax25len);
+	  return;
+        }
 
 	if (ax25len > 520) {
 	  /* Way too large a frame... */
@@ -541,7 +547,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  return;
 	}
 
-	if (strncmp(heads[1],"RXTLM-",6)==0) {
+	if (memcmp(heads[1],"RXTLM-",6)==0) {
 	  if (debug)
 	    printf("Not relayable packet! [2]\n");
 	  return;

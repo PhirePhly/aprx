@@ -67,6 +67,7 @@ struct aprsis {
 	char rdline[500];
 };
 
+char * const aprsis_loginid;
 static struct aprsis *AprsIS;
 static struct aprsis_host **AISh;
 static int AIShcount;
@@ -188,13 +189,13 @@ static void aprsis_close(struct aprsis *A, const char *why)
  *  aprsis_queue_() - internal routine - queue data to specific APRS-IS instance
  */
 // APRS-IS communicator
-static int aprsis_queue_(struct aprsis *A, const char *addr, const char qtype,
-			 const char *gwcall, const char *text, int textlen)
+static int aprsis_queue_(struct aprsis *A, const char * const addr, const char qtype,
+			 const char *gwcall, const char * const text, int textlen)
 {
 	int i;
 	char addrbuf[1000];
 	int addrlen, len;
-        char *p;
+        char * p;
 
 	/* Queue for sending to APRS-IS only when the socket is operational */
 	if (A->server_socket < 0)
@@ -219,6 +220,8 @@ static int aprsis_queue_(struct aprsis *A, const char *addr, const char qtype,
 		addrlen = sprintf(addrbuf, "%s,qA%c,%s:", addr, qtype,
 				  (gwcall
 				   && *gwcall) ? gwcall : A->H->login);
+        aprsis_login = A->H->login;
+
 	len = addrlen + textlen;
 
 
@@ -348,6 +351,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 		return;		/* Will try to reconnect in about 60 seconds.. */
 	}
+        aprsis_login = A->H->login;
 
 	memset(&req, 0, sizeof(req));
 	req.ai_socktype = SOCK_STREAM;
@@ -470,7 +474,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 			    ">> %s:%s >> ", A->H->server_name, A->H->server_port);
 
 		    /* Send the A->rdline content to main program */
-		    c = send(aprsis_up, A->rdline, strlen(A->rdline), 0);
+		    c = send(aprsis_up, A->rdline, A->rdlin_len, 0);
 		    /* This may fail with SIGPIPE.. */
 		    if (c < 0 && (errno == EPIPE ||
 				  errno == ECONNRESET ||

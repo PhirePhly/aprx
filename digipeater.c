@@ -896,6 +896,8 @@ int digipeater_config(struct configfile *cf)
 	struct aprx_interface *aif = NULL;
 	float ratelimit = 60;
 	float rateincrement = 60;
+	float srcratelimit = 60;
+	float srcrateincrement = 60;
 	int sourcecount = 0;
         int dupestoretime = 30; // FIXME: parametrize! 30 is minimum..
 	struct digipeater_source **sources = NULL;
@@ -956,10 +958,27 @@ int digipeater_config(struct configfile *cf)
 			if (ratelimit < 0.01 || ratelimit > ratelimitmax)
 				ratelimit = 60;
 			if (ratelimit < rateincrement)
-			  rateincrement = ratelimit;
+				rateincrement = ratelimit;
 			if (debug)
-			  printf("  .. ratelimit %f %f\n",
-				 rateincrement, ratelimit);
+				printf("  .. ratelimit %f %f\n",
+                                       rateincrement, ratelimit);
+
+		} else if (strcmp(name, "srcratelimit") == 0) {
+			char *param2 = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			srcrateincrement = (float)atof(param1);
+			srcratelimit     = (float)atof(param2);
+			if (srcrateincrement < 0.01 || srcrateincrement > rateincrementmax)
+				srcrateincrement = 60;
+			if (srcratelimit < 0.01 || srcratelimit > ratelimitmax)
+				srcratelimit = 60;
+			if (srcratelimit < srcrateincrement)
+				srcrateincrement = srcratelimit;
+			if (debug)
+				printf("  .. srcratelimit %f %f\n",
+                                       srcrateincrement, srcratelimit);
 
 		} else if (strcmp(name, "<trace>") == 0) {
 			traceparam = digipeater_config_tracewide(cf, 1);
@@ -1056,6 +1075,8 @@ int digipeater_config(struct configfile *cf)
 		digi->transmitter   = aif;
 		digi->tbf_limit     = (ratelimit * TOKENBUCKET_INTERVAL)/60;
 		digi->tbf_increment = (rateincrement * TOKENBUCKET_INTERVAL)/60;
+                digi->src_tbf_limit = (srcratelimit * TOKENBUCKET_INTERVAL)/60;
+		digi->src_tbf_increment = (srcrateincrement * TOKENBUCKET_INTERVAL)/60;
 		digi->tokenbucket   = digi->tbf_limit;
 
 		digi->dupechecker   = dupecheck_new(dupestoretime);  // Dupecheck is per transmitter
@@ -1304,6 +1325,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 	  }
 	}
         {
+          history_cell_t *hcell;
 	  char tbuf[2800];
 	  int is_ui = 0, ui_pid = -1, frameaddrlen = 0, tnc2addrlen = 0, t2l;
 	  // uint8_t *u = state.ax25addr + state.ax25addrlen;
@@ -1337,16 +1359,24 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
           }
 
 #ifndef DISABLE_IGATE
-	// Insert into history database
-	historydb_insert( digi->historydb, pb );
+          // Insert into history database - track every packet
+          hcell = historydb_insert_( digi->historydb, pb, 1 );
+
+          if (hcell != NULL) {
+            if (hcell->tokenbucket < 1.0) {
+              if (debug>1) printf("TRANSMITTER SOURCE CALLSIGN RATELIMIT DISCARD.\n");
+              return;
+            }
+            hcell->tokenbucket -= 1.0;
+          }
 #endif
 
-	// Now we do token bucket filtering -- rate limiting
-	if (digi->tokenbucket < 1) {
-	  if (debug>1) printf("TRANSMITTER RATELIMIT DISCARD.\n");
-	  return;
-	}
-	digi->tokenbucket -= 1;
+          // Now we do token bucket filtering -- rate limiting
+          if (digi->tokenbucket < 1.0) {
+            if (debug>1) printf("TRANSMITTER RATELIMIT DISCARD.\n");
+            return;
+          }
+          digi->tokenbucket -= 1.0;
 
 
 	// Feed to dupe-filter (transmitter specific)
@@ -1393,11 +1423,11 @@ void digipeater_receive( struct digipeater_source *src,
 	  printf("digipeater_receive() from %s, is_aprs=%d viscous_delay=%d\n",
 		 src->src_if->callsign, pb->is_aprs, src->viscous_delay);
 
-	if (src->tokenbucket < 1) {
+	if (src->tokenbucket < 1.0) {
 	  if (debug) printf("SOURCE RATELIMIT DISCARD\n");
 	  return;
 	}
-	src->tokenbucket -= 1;
+	src->tokenbucket -= 1.0;
 
 
 	if (pb->is_aprs) {
@@ -1576,6 +1606,8 @@ int  digipeater_prepoll(struct aprxpolls *app)
 	return 0;
 }
 
+static void sourcecalltick(struct digipeater *digi);
+
 int  digipeater_postpoll(struct aprxpolls *app)
 {
 	int d, s, i, donecount;
@@ -1594,6 +1626,8 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    digi->tokenbucket += digi->tbf_increment;
 	    if (digi->tokenbucket > digi->tbf_limit)
 	      digi->tokenbucket = digi->tbf_limit;
+
+            sourcecalltick(digi);
 	  }
 
 	  // Over all sources in those digipeaters
@@ -1654,6 +1688,23 @@ int  digipeater_postpoll(struct aprxpolls *app)
 
 	return 0;
 }
+
+static void sourcecalltick(struct digipeater *digi)
+{
+	int i;
+	historydb_t *db = digi->historydb;
+	if (db == NULL) return; // Should never happen..
+
+        for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
+          history_cell_t *c = db->hash[i];
+          for ( ; c != NULL; c = c->next ) {
+            c->tokenbucket += digi->src_tbf_increment;
+            if (c->tokenbucket > digi->src_tbf_limit)
+              c->tokenbucket = digi->src_tbf_limit;
+          }
+        }
+}
+
 
 // An utility function that exists at GNU Libc..
 
