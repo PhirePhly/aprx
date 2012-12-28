@@ -1,4 +1,4 @@
-2012-11-09 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2012-12-29 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* digipeater.c, aprx.h, historydb.h:
 	    Track digipeated messages by source callsign.
