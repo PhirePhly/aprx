@@ -1064,7 +1064,7 @@ int parse_aprs_txgate(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t 
  *	Return 0 for parse failures, 1 for OK.
  */
 
-int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *historydb)
+int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*const historydb)
 {
 	char packettype, poschar;
 	int paclen;
@@ -1350,4 +1350,61 @@ int parse_aprs(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t *histor
 	}
 	
 	return 0; // bad
+}
+
+/*
+ *      Parse an aprs text message (optional, only done to messages addressed to
+ *      SERVER
+ */
+
+int parse_aprs_message(const struct pbuf_t *pb, struct aprs_message_t * const am)
+{
+        const char *p;
+        
+        memset(am, 0, sizeof(*am));
+        
+        if (!(pb->packettype & T_MESSAGE))
+                return -1;
+                
+        if (pb->info_start[10] != ':')
+                return -2;
+        
+        am->body = pb->info_start + 11;
+        /* -2 for the CRLF already in place */
+        am->body_len = pb->packet_len - 2 - (pb->info_start - pb->data);
+        
+        /* search for { looking backwards from the end of the packet,
+         * it separates the msgid
+         */
+        p = am->body + am->body_len - 1;
+        while (p > am->body && *p != '{')
+                p--;
+        
+        if (*p == '{') {
+                am->msgid = p+1;
+                am->msgid_len = pb->packet_len - 2 - (am->msgid - pb->data);
+                am->body_len = p - am->body;
+        }
+        
+        /* check if this is an ACK */
+        if ((!am->msgid_len) && am->body_len > 3
+            && am->body[0] == 'a' && am->body[1] == 'c' && am->body[2] == 'k') {
+                am->is_ack = 1;
+                am->msgid = am->body + 3;
+                am->msgid_len = am->body_len - 3;
+                am->body_len = 0;
+                return 0;
+        }
+
+        /* check if this is an REJ */
+        if ((!am->msgid_len) && am->body_len > 3
+            && am->body[0] == 'r' && am->body[1] == 'e' && am->body[2] == 'j') {
+                am->is_rej = 1;
+                am->msgid = am->body + 3;
+                am->msgid_len = am->body_len - 3;
+                am->body_len = 0;
+                return 0;
+        }
+        
+        return 0;
 }

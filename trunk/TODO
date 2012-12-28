@@ -2,6 +2,15 @@
 
 				TODO / Wishlist
 
+- Embedded Perl and/or Python?
+
+- Socket API to send/receive/monitor packets?
+  To get Protocol Buffer or JSON/BSON wrapped datasets of parsed frame
+  including lat/lon of the packet, type info, etc. ?
+
+- Message destined to $MYCALL to be logged at at syslog INFO level,
+  and acknowledged(?)
+
 - digipeater.c: around line 1300 the call of  dupecheck_aprs() is getting
   wrong kind of data (binary AX.25 instead of TNC2 text).
   (k3pdk + iw3ijq supplied a patch which needs further analysis.)

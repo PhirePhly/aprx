@@ -51,6 +51,9 @@ typedef struct history_cell_t {
 	time_t       *last_heard;  // Usually points to last_heard_buf[]
 	time_t	     last_heard_buf[MAX_IF_GROUP];
 
+	float	     tokenbucket; // Source callsign specific TokenBucket filter
+                                  // Digi allocates HistoryDb per transmitter.
+
 	uint16_t     packettype;
 	uint16_t     flags;
 	uint16_t     packetlen;
@@ -91,6 +94,7 @@ extern int  historydb_postpoll(struct aprxpolls *app);
 
 /* insert and lookup... */
 extern history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t*);
+extern history_cell_t *historydb_insert_(historydb_t *, const struct pbuf_t *, const int);
 extern history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t*);
 extern history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int keylen);
 

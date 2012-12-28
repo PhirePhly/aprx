@@ -162,6 +162,7 @@ extern const char *erlanglogfile;
 extern const char *pidfile;
 
 extern void printtime(char *buf, int buflen);
+extern void aprx_syslog_init(const char *syslog_fac);
 
 /* netresolver.c */
 extern void netresolv_start(void); // separate thread working on this!
@@ -302,6 +303,7 @@ extern void aprsis_init(void);
 extern void aprsis_start(void);
 extern void aprsis_stop(void);
 extern int  aprsis_config(struct configfile *cf);
+extern char * const aprsis_loginid;
 #endif
 
 /* beacon.c */
@@ -599,13 +601,15 @@ struct digipeater_source {
 
 struct digipeater {
 	struct aprx_interface *transmitter;
-	float		       tokenbucket;
+	float		       tokenbucket;  // Per transmitter TokenBucket filter
 	float		       tbf_increment;
 	float		       tbf_limit;
+	float		       src_tbf_increment; // Source call specific TokenBucket rules
+        float                  src_tbf_limit;
 
-	dupecheck_t           *dupechecker;
+	dupecheck_t           *dupechecker; // Per transmitter dupecheck
 #ifndef DISABLE_IGATE
-	historydb_t	      *historydb;
+	historydb_t	      *historydb;   // Per transmitter HistoryDB
 #endif
 
 	const struct tracewide *trace;
@@ -680,6 +684,7 @@ extern void interface_receive_ax25( const struct aprx_interface *aif, const char
 extern void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
 extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen);
 extern int  interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *tncbuf, const int tnclen);
+extern int process_message_to_myself(const struct aprx_interface*const srcif, const struct pbuf_t*const pb);
 
 
 /* pbuf.c */
@@ -690,7 +695,19 @@ extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, cons
 
 
 /* parse_aprs.c */
-extern int parse_aprs(struct pbuf_t *pb, int look_into_3rd_party, historydb_t *historydb);
+extern int parse_aprs(struct pbuf_t*const pb, int look_into_3rd_party, historydb_t*const historydb);
+
+struct aprs_message_t {
+        const char *body;          /* message body */
+        const char *msgid;
+        
+        int body_len;
+        int msgid_len;
+        int is_ack;
+        int is_rej;
+};
+
+extern int parse_aprs_message(const struct pbuf_t*const pb, struct aprs_message_t*const am);
 
 
 /* filter.c */

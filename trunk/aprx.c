@@ -391,3 +391,79 @@ void printtime(char *buf, int buflen)
 		t.tm_hour,t.tm_min,t.tm_sec,
 		(int)(tv.tv_usec / 1000));
 }
+
+static struct syslog_facs {
+	const char *name;
+	int fac_code;
+} syslog_facs[] = {
+	{
+	"NONE", -1}, {
+	"LOG_DAEMON", LOG_DAEMON},
+#ifdef LOG_FTP
+	{
+	"LOG_FTP", LOG_FTP},
+#endif
+#ifdef LOG_LPR
+	{
+	"LOG_LPR", LOG_LPR},
+#endif
+#ifdef LOG_MAIL
+	{
+	"LOG_MAIL", LOG_MAIL},
+#endif
+#ifdef LOG_USER
+	{
+	"LOG_USER", LOG_USER},
+#endif
+#ifdef LOG_UUCP
+	{
+	"LOG_UUCP", LOG_UUCP},
+#endif
+	{
+	"LOG_LOCAL0", LOG_LOCAL0}, {
+	"LOG_LOCAL1", LOG_LOCAL1}, {
+	"LOG_LOCAL2", LOG_LOCAL2}, {
+	"LOG_LOCAL3", LOG_LOCAL3}, {
+	"LOG_LOCAL4", LOG_LOCAL4}, {
+	"LOG_LOCAL5", LOG_LOCAL5}, {
+	"LOG_LOCAL6", LOG_LOCAL6}, {
+	"LOG_LOCAL7", LOG_LOCAL7}, {
+	NULL, 0}
+};
+
+void aprx_syslog_init(const char *syslog_facility_name)
+{
+	static int done_once = 0;
+	int syslog_fac = LOG_DAEMON, i;
+
+	if (done_once) {
+		closelog();	/* We reconfigure from config file! */
+	} else
+		++done_once;
+	for (i = 0;; ++i) {
+		if (syslog_facs[i].name == NULL) {
+			fprintf(stderr,
+				"Sorry, unknown erlang syslog facility code name: %s, not supported in this system.\n",
+				syslog_facility_name);
+			fprintf(stderr, "Accepted list is:");
+			for (i = 0;; ++i) {
+				if (syslog_facs[i].name == NULL)
+					break;
+				fprintf(stderr, " %s",
+					syslog_facs[i].name);
+			}
+			fprintf(stderr, "\n");
+			break;
+		}
+		if (strcasecmp(syslog_facs[i].name, syslog_facility_name)
+		    == 0) {
+			syslog_fac = syslog_facs[i].fac_code;
+			break;
+		}
+	}
+
+	if (syslog_fac >= 0) {
+		erlangsyslog = 1;
+		openlog("aprx", LOG_NDELAY | LOG_PID, syslog_fac);
+	}
+}

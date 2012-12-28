@@ -253,6 +253,7 @@ const char *aprxlogfile;	/* linkage dummy */
 const char *mycall;		/* linkage dummy */
 
 void printtime(char *buf, int buflen) {} /* linkage dummy */
+void aprx_syslog_init(const char *p) {}
 
 int main(int argc, char **argv)
 {

@@ -662,56 +662,12 @@ int erlang_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-static struct syslog_facs {
-	const char *name;
-	int fac_code;
-} syslog_facs[] = {
-	{
-	"NONE", -1}, {
-	"LOG_DAEMON", LOG_DAEMON},
-#ifdef LOG_FTP
-	{
-	"LOG_FTP", LOG_FTP},
-#endif
-#ifdef LOG_LPR
-	{
-	"LOG_LPR", LOG_LPR},
-#endif
-#ifdef LOG_MAIL
-	{
-	"LOG_MAIL", LOG_MAIL},
-#endif
-#ifdef LOG_USER
-	{
-	"LOG_USER", LOG_USER},
-#endif
-#ifdef LOG_UUCP
-	{
-	"LOG_UUCP", LOG_UUCP},
-#endif
-	{
-	"LOG_LOCAL0", LOG_LOCAL0}, {
-	"LOG_LOCAL1", LOG_LOCAL1}, {
-	"LOG_LOCAL2", LOG_LOCAL2}, {
-	"LOG_LOCAL3", LOG_LOCAL3}, {
-	"LOG_LOCAL4", LOG_LOCAL4}, {
-	"LOG_LOCAL5", LOG_LOCAL5}, {
-	"LOG_LOCAL6", LOG_LOCAL6}, {
-	"LOG_LOCAL7", LOG_LOCAL7}, {
-	NULL, 0}
-};
 
 void erlang_init(const char *syslog_facility_name)
 {
-	int syslog_fac = LOG_DAEMON, i;
-	static int done_once = 0;
+	aprx_syslog_init(syslog_facility_name);
 
 	now.tv_sec = time(NULL);
-
-	if (done_once) {
-		closelog();	/* We reconfigure from config file! */
-	} else
-		++done_once;
 
 	/* Time intervals will end at next even
 	   1 minute/10 minutes/60 minutes,
@@ -728,33 +684,6 @@ void erlang_init(const char *syslog_facility_name)
 	erlang_time_end_60min = now.tv_sec + 3600 - (now.tv_sec % 3600);
 	erlang_time_ival_60min = (float) (3600 - now.tv_sec % 3600) / 3600.0;
 #endif
-
-	for (i = 0;; ++i) {
-		if (syslog_facs[i].name == NULL) {
-			fprintf(stderr,
-				"Sorry, unknown erlang syslog facility code name: %s, not supported in this system.\n",
-				syslog_facility_name);
-			fprintf(stderr, "Accepted list is:");
-			for (i = 0;; ++i) {
-				if (syslog_facs[i].name == NULL)
-					break;
-				fprintf(stderr, " %s",
-					syslog_facs[i].name);
-			}
-			fprintf(stderr, "\n");
-			break;
-		}
-		if (strcasecmp(syslog_facs[i].name, syslog_facility_name)
-		    == 0) {
-			syslog_fac = syslog_facs[i].fac_code;
-			break;
-		}
-	}
-
-	if (syslog_fac >= 0) {
-		erlangsyslog = 1;
-		openlog("aprx", LOG_NDELAY | LOG_PID, syslog_fac);
-	}
 }
 
 void erlang_start(int do_create)

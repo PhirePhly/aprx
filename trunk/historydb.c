@@ -150,6 +150,11 @@ static int foldhash( const unsigned int h1 )
 
 history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 {
+	return historydb_insert_(db, pb, 0);
+}
+
+history_cell_t *historydb_insert_(historydb_t *db, const struct pbuf_t *pb, const int insertall)
+{
 	int i;
 	unsigned int h1;
 	int isdead = 0, keylen;
@@ -165,7 +170,7 @@ history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 	//                            a position information was supplemented
 	//                            to it via historydb lookup
 
-	if (!(pb->packettype & T_POSITION)) {  // <-- packet has position data
+	if (!insertall && !(pb->packettype & T_POSITION)) {  // <-- packet has position data
 		++db->historydb_noposcount;
 		historydb_nopos(); /* debug thing -- profiling counter */
 		return NULL; /* No positional data... */
@@ -229,8 +234,17 @@ history_cell_t *historydb_insert(historydb_t *db, const struct pbuf_t *pb)
 		if (s) *s = 0;
 
 	} else {
-		historydb_nointerest(); // debug thing -- a profiling counter
-		return NULL; // Not a packet with positional data, not interested in...
+        	if (insertall) {
+                	// Pick originator callsign
+                	memcpy( keybuf, pb->data, CALLSIGNLEN_MAX) ;
+                        s = strchr(keybuf, '>');
+                        if (s) *s = 0;
+
+                } else {
+
+                	historydb_nointerest(); // debug thing -- a profiling counter
+                        return NULL; // Not a packet with positional data, not interested in...
+                }
 	}
 	keylen = strlen(keybuf);
 
