@@ -311,6 +311,9 @@ aprxlog @VARLOG@/aprx.log
 #    transmitter     $mycall
 #    #ratelimit      60 120      # default: average 60 packets/minute,
 #    #                           #          burst max 120 packets/minute
+#    #srcratelimit   10 20       # Example: by sourcecall:
+#                                #          average 10 packets/minute,
+#                                #          burst max 20 packets/minute
 #
 #    <source>
 #        source         $mycall
