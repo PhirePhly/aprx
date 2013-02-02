@@ -810,6 +810,7 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 	if (refmax == 0) return -1; /* No prefixes ?? */
 
 	refbuf = malloc(sizeof(*refbuf)*refmax);
+	f0->h.u5.refcallsigns = refbuf;
 	refcount = 0;
 
 	p = filt0;
@@ -857,7 +858,6 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		++refcount;
 	}
 
-	f0->h.u5.refcallsigns = refbuf;
 	f0->h.u3.numnames     = refcount;
 	if (extend) {
 		char *s;
@@ -1599,7 +1599,7 @@ static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 
 		/* digipeater address  ",addr," */
 		memcpy( ref.callsign, d, i);
-		memset( ref.callsign+i, 0, sizeof(ref)-i );
+		memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 		if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
 
@@ -1636,7 +1636,7 @@ static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 
 	/* entry station address  "qA*,addr," */
 	memcpy( ref.callsign, e, i);
-	memset( ref.callsign+i, 0, sizeof(ref)-i );
+	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
@@ -1813,7 +1813,7 @@ static int filter_process_one_o(struct pbuf_t *pb, struct filter_t *f)
 
 	/* object name */
 	memcpy( ref.callsign, pb->info_start+1, i);
-	memset( ref.callsign+i, 0, sizeof(ref)-i );
+	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
@@ -1837,7 +1837,7 @@ static int filter_process_one_p(struct pbuf_t *pb, struct filter_t *f)
 
 	/* source address  "addr">... */
 	memcpy( ref.callsign, pb->data, i);
-	memset( ref.callsign+i, 0, sizeof(ref)-i );
+	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchPrefix);
 }
@@ -2171,7 +2171,7 @@ static int filter_process_one_u(struct pbuf_t *pb, struct filter_t *f)
 
 	/* destination address  ">addr," */
 	memcpy( ref.callsign,   d, i);
-	memset( ref.callsign+i, 0, sizeof(ref)-i );
+	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
