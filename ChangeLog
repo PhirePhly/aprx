@@ -1,5 +1,8 @@
 2013-02-02 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* ttyreader.c:
+	    Improve the error report, when serial port opening failed.
+
 	* filter.c:
 	    Coverity reports over aprsc reflect directly to aprx too.
 	    We use same code in parts...
