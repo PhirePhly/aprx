@@ -385,9 +385,13 @@ static void ttyreader_linesetup(struct serialport *S)
 
 		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY, 0);
 
-		if (debug)
-			printf("%ld\tTTY %s OPEN - fd=%d - ",
-			       now.tv_sec, S->ttyname, S->fd);
+		if (debug) {
+                	printf("%ld\tTTY %s OPEN - fd=%d - ",
+                               now.tv_sec, S->ttyname, S->fd);
+                        if (S->fd < 0) {
+                          printf("errno=%d (%s) - ", errno, strerror(errno));
+                        }
+                }
 		if (S->fd < 0) {	/* Urgh.. an error.. */
 			S->wait_until = now.tv_sec + TTY_OPEN_RETRY_DELAY_SECS;
 			if (debug)
