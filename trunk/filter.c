@@ -1135,10 +1135,20 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		*/
 
 		break;
-#if 0
+
 	case 'm':
 	case 'M':
 		/*  m/dist            My range filter  */
+
+        	if (myloc_latstr == NULL) {
+                  printf("The M/radius_km  filter requires top-level  myloc  definition. It doesn't exist.");
+                  return -1;
+                }
+                
+                f0.h.type = 'r'; // internal implementation at Aprx is a RANGE filter.
+                f0.h.f_latN = myloc_lat; // radians
+                f0.h.f_lonE = myloc_lon; // radians
+
 
 		i = sscanf(filt+1, "/%f", &f0.h.u2.f_dist);
 		if (i != 1 || f0.h.u2.f_dist < 0.1) {
@@ -1151,7 +1161,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 
 		// hlog(LOG_DEBUG, "Filter: %s -> M %.3f", filt0, f0.h.u2.f_dist);
 		break;
-#endif
+
 	case 'o':
 	case 'O':
 		/* o/obje1/obj2...  	Object filter (*)	*/

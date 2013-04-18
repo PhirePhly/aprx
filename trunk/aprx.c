@@ -26,9 +26,13 @@ int erlangout;
 const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
+float myloc_lat;
+float myloc_lon;
+const char *myloc_latstr;
+const char *myloc_lonstr;
 
-const char *tocall = "APRX26";
-const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'6'<<1,0x60};
+const char *tocall = "APRX27";
+const uint8_t tocall25[7] = {'A'<<1,'P'<<1,'R'<<1,'X'<<1,'2'<<1,'7'<<1,0x60};
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"

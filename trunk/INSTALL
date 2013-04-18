@@ -1,5 +1,5 @@
 
-          INSTALL of  APRX 2.06
+          INSTALL of  APRX 2.07
 
 
 Pre-made binary package building system exists for Debian and
@@ -50,11 +50,11 @@ precompiled binaries:
 
      $ make make-deb
 
-     # dpkg -i aprx_2.04-....deb
+     # dpkg -i aprx_2.07-....deb
 
 
 For RedHat/Fedora users:
 
     $ make make-rpm
 
-    # rpm -Uvh aprx-2.04.svn###-1.i386.rpm
+    # rpm -Uvh aprx-2.07.svn###-1.i386.rpm

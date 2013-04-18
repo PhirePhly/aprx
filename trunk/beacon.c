@@ -31,84 +31,6 @@ static int beacon_msgs_cursor;
 static time_t beacon_nexttime;
 static float  beacon_cycle_size = 20.0*60.0; // 20 minutes
 
-
-
-static const char* scan_int(const char *p, int len, int *val, int *seen_space) {
-	int i;
-	char c;
-	*val = 0;
-	for (i = 0; i < len; ++i, ++p) {
-		c = *p;
-		if (('0' <= c && c <= '9') && !(*seen_space)) {
-			*val = (*val) * 10 + (c - '0');
-		} else if (c == ' ') {
-			*val = (*val) * 10;
-			*seen_space = 1;
-		} else {
-			return NULL;
-		}
-	}
-	return p;
-}
-
-static int validate_degmin_input(const char *s, int maxdeg)
-{
-	int deg;
-	int m1, m2;
-	char c;
-	const char *t;
-	int seen_space = 0;
-	if (maxdeg > 90) {
-		t = scan_int(s, 3, &deg, &seen_space);
-		if (t != s+3) return 1; // scan failure
-		if (deg > 179) return 1; // too large value
-		s = t;
-		t = scan_int(s, 2, &m1, &seen_space);
-		if (t != s+2) return 1;
-		if (m1 > 59) return 1;
-		s = t;
-		c = *s;
-		if (!seen_space && c == '.') {
-			// OK
-		} else if (!seen_space && c == ' ') {
-			seen_space = 1;
-		} else {
-			return 1; // Bad char..
-		}
-		++s;
-		t = scan_int(s, 2, &m2, &seen_space);
-		if (t != s+2) return 1;
-		s = t;
-		c = *s;
-		if (c != 'E' && c != 'e' && c != 'W' && c != 'w') return 1;
-	} else {
-		t = scan_int(s, 2, &deg, &seen_space);
-		if (t != s+2) return 1; // scan failure
-		if (deg > 89) return 1; // too large value
-		s = t;
-		t = scan_int(s, 2, &m1, &seen_space);
-		if (t != s+2) return 1;
-		if (m1 > 59) return 1;
-		s = t;
-		c = *s;
-		if (!seen_space && c == '.') {
-			// OK
-		} else if (!seen_space && c == ' ') {
-			seen_space = 1;
-		} else {
-			return 1; // Bad char..
-		}
-		++s;
-		t = scan_int(s, 2, &m2, &seen_space);
-		if (t != s+2) return 1;
-		s = t;
-		c = *s;
-		if (c != 'N' && c != 'n' && c != 'S' && c != 's') return 1;
-	}
-	return 0;		/* zero for OK */
-}
-
-
 static void beacon_reset(void)
 {
 	beacon_nexttime = now.tv_sec + 30;	/* start 30 seconds from now */
@@ -125,8 +47,8 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	char *buf  = alloca(buflen);
 	const char *to   = NULL;
 	char *code = NULL;
-	char *lat  = NULL;
-	char *lon  = NULL;
+	const char *lat  = NULL;
+	const char *lon  = NULL;
 	char *comment = NULL;
 	char *type    = NULL;
 	const struct aprx_interface *aif = NULL;
@@ -330,6 +252,16 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 				 cf->name, cf->linenum);
 			}
 
+		} else if (strcmp(p1, "$myloc") == 0) {
+                	if (myloc_latstr != NULL) {
+                          lat = myloc_latstr;
+                          lon = myloc_lonstr;
+                        } else {
+                          has_fault = 1;
+			  printf("%s:%d ERROR: $myloc has not been defined.\n",
+				 cf->name, cf->linenum);
+
+                        }
 		} else if (strcmp(p1, "lat") == 0) {
 			/*  ddmm.mmN   */
 
@@ -481,7 +413,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 	if (aif == NULL && beaconmode >= 0) {
 		if (debug)
-			printf("%s:%d Lacking 'interface' keyword for this beacon definition. Beaconing to all Tx capable interfaces + APRSIS (mode depending)\n",
+			printf("%s:%d Note: Lacking 'interface' keyword for this beacon definition. Beaconing to all Tx capable interfaces + APRSIS (mode depending)\n",
 			       cf->name, cf->linenum);
 	}
 
@@ -491,7 +423,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 
 	if (srcaddr == NULL) {
 		if (debug)
-			printf("%s:%d Lacking the 'for' keyword for this beacon definition.\n", cf->name, cf->linenum);
+			printf("%s:%d Note: Lacking the 'for' keyword for this beacon definition.\n", cf->name, cf->linenum);
 		has_fault = 1;
 		goto discard_bm;
 	}

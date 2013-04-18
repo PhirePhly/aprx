@@ -145,6 +145,10 @@ extern int die_now;
 extern const char *mycall;
 extern const char *tocall;
 extern const uint8_t tocall25[7];
+extern float myloc_lat;
+extern float myloc_lon;
+extern const char *myloc_latstr;
+extern const char *myloc_lonstr;
 
 extern int fd_nonblockingmode(int fd);
 
@@ -322,6 +326,9 @@ extern void  config_STRUPPER(char *Y);
 extern int   validate_callsign_input(char *callsign, int strict); // this modifies callsign string!
 extern int   config_parse_interval(const char *par, int *resultp);
 extern int   config_parse_boolean(const char *par, int *resultp);
+extern const char *scan_int(const char *p, int len, int*val, int*seen_space);
+extern int   validate_degmin_input(const char *s, int maxdeg);
+
 
 /* dprsgw.c */
 extern int  dprsgw_pulldprs(struct serialport *S);

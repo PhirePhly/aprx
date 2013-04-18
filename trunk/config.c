@@ -355,6 +355,80 @@ static int cfgparam(struct configfile *cf)
 		  }
 		}
 
+        } else if (strcmp(name, "myloc") == 0) {
+        	// lat xx lon yy
+		char *latp;
+                char *lonp;
+                float lat, lng;
+                int i, la, lo;
+                char lac, loc;
+
+                const char *const errmsg = "%s:%d: myloc parameters wrong, expected format:  'myloc' 'lat' 'ddmm.mmN' 'lon' 'dddmm.mmE'\n";
+
+                if (strcmp(param1, "lat") != 0) {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1;
+                }
+
+                latp = str;
+                str = config_SKIPTEXT(str, NULL);
+                str = config_SKIPSPACE(str);
+
+                param1 = str;
+                str = config_SKIPTEXT(str, NULL);
+                str = config_SKIPSPACE(str);
+
+                if (strcmp(param1, "lon") != 0) {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1;
+                }
+
+                lonp = str;
+                str = config_SKIPTEXT(str, NULL);
+                str = config_SKIPSPACE(str);
+
+                if (validate_degmin_input(lonp, 90) ||
+                    validate_degmin_input(latp, 180)) {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1;
+                }
+
+                i = sscanf(latp, "%2d%f,%c,", &la, &lat, &lac);
+                if (i != 3) {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1; // parse failure
+                }
+                i = sscanf(lonp, "%3d%f,%c,", &lo, &lng, &loc);
+                if (i != 3) {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1; // parse failure
+                }
+
+                if (lac != 'N' && lac != 'S' && lac != 'n' && lac != 's') {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1; // bad indicator value
+                }
+                if (loc != 'E' && loc != 'W' && loc != 'e' && loc != 'w') {
+                  printf(errmsg, cf->name, cf->linenum);
+                  return 1; // bad indicator value
+                }
+
+                myloc_latstr = strdup(latp);
+                myloc_lonstr = strdup(lonp);
+
+                myloc_lat = filter_lat2rad((float)la + lat/60.0);
+                myloc_lon = filter_lon2rad((float)lo + lng/60.0);
+	
+                if (lac == 'S' || lac == 's')
+                  myloc_lat = -myloc_lat;
+                if (loc == 'W' || loc == 'w')
+                  myloc_lon = -myloc_lon;
+
+                if (debug)
+                  printf("%s:%d: MYLOC LAT %8.5f degrees  LON %8.5f degrees\n",
+                         cf->name, cf->linenum, myloc_lat, myloc_lon);
+
+
 #ifndef DISABLE_IGATE
 	} else if (strcmp(name, "aprsis-login") == 0) {
 
@@ -458,6 +532,84 @@ static int cfgparam(struct configfile *cf)
 	}
 	return 0;
 }
+
+
+const char* scan_int(const char *p, int len, int *val, int *seen_space)
+{
+	int i;
+	char c;
+	*val = 0;
+	for (i = 0; i < len; ++i, ++p) {
+		c = *p;
+		if (('0' <= c && c <= '9') && !(*seen_space)) {
+			*val = (*val) * 10 + (c - '0');
+		} else if (c == ' ') {
+			*val = (*val) * 10;
+			*seen_space = 1;
+		} else {
+			return NULL;
+		}
+	}
+	return p;
+}
+
+int validate_degmin_input(const char *s, int maxdeg)
+{
+	int deg;
+	int m1, m2;
+	char c;
+	const char *t;
+	int seen_space = 0;
+	if (maxdeg > 90) {
+		t = scan_int(s, 3, &deg, &seen_space);
+		if (t != s+3) return 1; // scan failure
+		if (deg > 179) return 1; // too large value
+		s = t;
+		t = scan_int(s, 2, &m1, &seen_space);
+		if (t != s+2) return 1;
+		if (m1 > 59) return 1;
+		s = t;
+		c = *s;
+		if (!seen_space && c == '.') {
+			// OK
+		} else if (!seen_space && c == ' ') {
+			seen_space = 1;
+		} else {
+			return 1; // Bad char..
+		}
+		++s;
+		t = scan_int(s, 2, &m2, &seen_space);
+		if (t != s+2) return 1;
+		s = t;
+		c = *s;
+		if (c != 'E' && c != 'e' && c != 'W' && c != 'w') return 1;
+	} else {
+		t = scan_int(s, 2, &deg, &seen_space);
+		if (t != s+2) return 1; // scan failure
+		if (deg > 89) return 1; // too large value
+		s = t;
+		t = scan_int(s, 2, &m1, &seen_space);
+		if (t != s+2) return 1;
+		if (m1 > 59) return 1;
+		s = t;
+		c = *s;
+		if (!seen_space && c == '.') {
+			// OK
+		} else if (!seen_space && c == ' ') {
+			seen_space = 1;
+		} else {
+			return 1; // Bad char..
+		}
+		++s;
+		t = scan_int(s, 2, &m2, &seen_space);
+		if (t != s+2) return 1;
+		s = t;
+		c = *s;
+		if (c != 'N' && c != 'n' && c != 'S' && c != 's') return 1;
+	}
+	return 0;		/* zero for OK */
+}
+
 
 /*
  *  This interval parser is originally from ZMailer MTA.
