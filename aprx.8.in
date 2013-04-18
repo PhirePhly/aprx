@@ -18,6 +18,7 @@ program is a special purpose Ham-radio application supplying
 infrastructure services for APRS protocol use.
 .PP
 A more detailed manual is available at:
+.br
 http://ham.zmailer.org/oh2mqk/aprx/aprx-manual.pdf
 .PP
 .SH FEATURES
@@ -305,6 +306,13 @@ A configuration token without surrounding quotes does not understand the backsla
 
 mycall  N0CALL-1
 
+#
+# Global macro for simplified "my location" definition in
+# place of explicit "lat nn lon mm" at beacons. Will also
+# give "my location" reference for "filter m/100".
+#
+#myloc lat ddmm.mmN lon dddmm.mmE
+
 <aprsis>
 # The  login  parameter: 
 # Station call\-id used for relaying APRS frames into APRS\-IS.
@@ -474,18 +482,21 @@ server    rotate.aprs2.net    14580
 # Basic beaconed thing is positional message of type "!":
 #
 #beacon symbol "R&" lat "0000.00N" lon "00000.00E" comment "Rx-only iGate"
+#beacon symbol "R&" $myloc comment "Rx-only iGate"
 #
 # Following are basic options:
 #  'symbol'    no default, must be defined!
 #  'lat'       coordinate latitude:   ddmm.mmN  (no default!)
 #  'lon'       coordinate longitude: dddmm.mmE  (no default!)
+#  '$myloc'    coordinate values taken from global 'myloc' entry,
+#              and usable in place of explicit 'lat'+'lon'.
 #  'comment'   optional tail part of the item, default is nothing
 #
 # Sample symbols:
 #   R&   is for "Rx-only iGate"
 #   I&   is for "Tx-iGate"
 #   /#   is for "Digipeater"
-#   I#   is for "Tx-iGate + Digipeater""
+#   I#   is for "Tx-iGate + Digipeater"
 #
 # Additional options are:
 # 'srccall'   parameter sets claimed origination address.
@@ -599,6 +610,14 @@ configuration option, and latter referred to in configurations as
 .B $mycall
 parameter in place of callsigns.
 .PP
+.SH GLOBAL MYLOC PARAMETER
+Usually multiple beacons, and simple filter rules are wanted to be using
+same reference coordinate for this system.
+This is set by using the
+.B myloc
+configuration option, and latter referred to in configurations as
+.B $myloc
+parameter in place of "lat nn lon mm" coordinate pair of beacons.
 .SH APRSIS SECTION FOR APRSIS CONNECTIVITY
 Settings in the
 .B <aprsis>
@@ -1157,11 +1176,25 @@ Latitude and longitude are entered as degrees and decimals.
 .B B/call1/call2...
 Budlist filter.  Supports *-wildcards.
 .TP 8em
+.B D/digi1/digi2...
+.I Not supported at APRX internal filters
+.TP 8em
+.B E/call1/call2/...
+.I Not supported at APRX internal filters
+.TP 8em
 .B F/call/dist_km
 Great-circle distance in kilometers from friend's coordinates.
 No wildcarding.
 .br
 .I (TODO: check that it really works!)
+.TP 8em
+.B M/dist
+The
+.I "range around my location"
+filter requires that you have defined also the "myloc" configuration entry.
+It defines acceptance of positions and messages with senders within
+.I dist
+kilometers of the "myloc" position.
 .TP 8em
 .B O/object1/obj2...
 Object name filter.  Supports *-wildcards.
@@ -1169,9 +1202,14 @@ Object name filter.  Supports *-wildcards.
 .B P/aa/bb/cc...
 Prefix filter.
 .TP 8em
+.B Q/con/ana
+.I The Q-construct filter is not supported.
+.TP 8em
 .B R/lat/lon/dist
-Range filter.  Latitude and longitude are in degrees and decimals.
-Distance is in kilometers.  No wildcards.
+Range filter.
+Latitude and longitude are in degrees and decimals.
+Distance is in kilometers.
+No wildcards.
 .TP 8em
 .B S/pri/alt/over
 Symbol filter
@@ -1303,9 +1341,13 @@ On the other hand, there really is no sensible usage for anything but 8n1...
 
 .SH SEE ALSO
 Couple web sites:
-.IR "http://www.aprs-is.net/" ,
+.br
 .IR "http://www.aprs2.net/" ,
+.br
+.IR "http://www.aprs-is.net/" ,
+.br
 .IR "http://wiki.ham.fi/Aprx.en" ,
+.br
 .I "http://ham.zmailer.org/oh2mqk/aprx/aprx-manual.pdf"
 .PP
 .BR aprx-stat (8)

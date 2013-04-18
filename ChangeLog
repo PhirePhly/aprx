@@ -1,3 +1,33 @@
+2013-04-18 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.c, VERSION:
+	   Version 2.07 (APRX27)
+
+	* aprx.8.in:
+	   Document "myloc" and "$myloc", "filter m/100", etc.
+
+	* aprx.c, aprx.h:
+	    Variables for myloc_lat, myloc_lon, and string forms.
+
+	* config.c:
+	    Parse "myloc lat xx long yy" entry.
+	    Moved couple tool functions here from beacon.c.
+
+	* filter.c:
+	    Support "m/100", if top-level configuration has
+	    "myloc lat xx lon yy" entry.
+
+	* beacon.c:
+	    new "macro" definition of "$myloc", which takes
+	    lat+lon of top-level configuration "myloc.." entry.
+
+	* interface.c:
+	    Recognizing incoming messages targeted to this server
+	    (by $mycall, and transmit interface callsigns.)
+	    Processing them by rudimentary acknowledgement, and
+	    optional place to actually process them.
+	    Actual processing is still not written.
+
 2013-02-02 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* ttyreader.c:

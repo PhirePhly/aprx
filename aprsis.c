@@ -262,7 +262,7 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
         }
 
         /* Append CR+LF at the end of the packet */
-        p = text + textlen;
+        p = (char*)(text + textlen);
 	*p++ = '\r';
 	*p++ = '\n';
         textlen += 2;

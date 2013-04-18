@@ -942,6 +942,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	for (i = 0; i < aif->digisourcecount; ++i) {
 	    struct digipeater_source *digisource = aif->digisources[i];
 #ifndef DISABLE_IGATE
+            // Transmitter's HistoryDB
 	    historydb_t *historydb = digisource->parent->historydb;
 #endif
 
@@ -977,7 +978,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		    filter_process(pb,
 				   digisource->src_filters,
 #ifndef DISABLE_IGATE
-				   historydb
+				   historydb // Transmitter HistoryDB
 #else
 				   NULL
 #endif
@@ -997,7 +998,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 		}
 
 #ifndef DISABLE_IGATE
-		// Find out IGATE callsign (if any), and record it on historydb.
+		// Find out IGATE callsign (if any), and record it on transmitter's historydb.
 		if (pb->packettype & T_THIRDPARTY) {
 		  rx_analyze_3rdparty( historydb, pb );
 		} else {
@@ -1137,10 +1138,17 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 {
 	int d; // digipeater index
 
-	char     tnc2buf[2800];
-	uint8_t  ax25buf[2800];
+	char     tnc2buf1[2800];
+	uint8_t  ax25buf1[2800];
 
 	time_t recent_time = now.tv_sec - 3600; // "recent" = 1 hour
+        uint16_t filter_packettype = 0;
+        int ax25addrlen1;
+        int ax25len1;
+        int rc, tnc2addrlen1, tnc2len1;
+        uint8_t *a;
+        char    *t;
+        struct pbuf_t *pb;
 
 
 	if (debug)
@@ -1151,6 +1159,85 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	if (aif == NULL) {
 	  return;         // Not a real interface for digi use
 	}
+
+
+        // We have to recognize incoming messages targeted to
+        // this server.  For this we need to parse the TNC2 frame.
+        // 
+        // We have a also filter statements to process here,
+        // we need to turn incoming APRSIS frame to something
+        // that the filter can process:
+        
+        // Incoming:
+        //   EI7IG-1>APRS,TCPIP*,qAC,T2IRELAND:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+        // Filtered:
+        //   EI7IG-1>APRS:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+
+        a = ax25buf1;
+        parse_ax25addr( a, tocall, 0x60 );
+        a += 7;
+        parse_ax25addr( a, fromcall, 0x60 );
+        a += 7;
+        // No need to add generated VIA address component
+        // to this filter input data
+        a[-1] |= 0x01; // end-of-address bit
+        ax25addrlen1 = a - ax25buf1;
+        *a++ = 0x03;
+        *a++ = 0xF0;
+        if ((sizeof(ax25buf1) - tnc2datalen) <= (a-ax25buf1)) {
+          if (debug) printf(" .. data does not fit on ax25buf");
+          return;
+        }
+
+        memcpy( a, tnc2data, tnc2datalen );
+        a += tnc2datalen;
+        ax25len1 = (a - ax25buf1);
+
+        t = tnc2buf1;
+        t += sprintf(t, "%s>%s:", fromcall, origtocall);
+        tnc2addrlen1 = t - tnc2buf1 - 1;
+        if ((sizeof(tnc2buf1) - tnc2datalen) <= (t-tnc2buf1)) {
+          if (debug) printf(" .. data does not fit on tnc2buf");
+          return;
+        }
+        memcpy(t, tnc2data, tnc2datalen);
+        t += tnc2datalen;
+        tnc2len1 = (t - tnc2buf1);
+
+        // Allocate temporary pbuf for filter call use
+        pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, 
+                      tnc2addrlen1, tnc2buf1, tnc2len1,
+                      ax25addrlen1, ax25buf1, ax25len1);
+        if (pb == NULL) {
+          // Urgh!  Can't do a thing to this!
+          // Likely reason: ax25len+tnc2len  > 2100 bytes!
+          if (debug) printf("pbuf_new() returned NULL! Discarding!\n");
+          return;
+        }
+
+        pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
+
+        // This is APRS packet, parse for APRS meaning ...
+        rc = parse_aprs(pb, 1, NULL); // look inside 3rd party -- TODO: but what HISTORYDB ?
+        if (debug) {
+          const char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+          printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
+                 rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
+                 pb->info_start);
+        }
+
+        filter_packettype = pb->packettype;
+
+        // Check if it is a message destined to myself, and process if so.
+        rc = process_message_to_myself(aif, pb);
+
+        // Drop the temporary pbuf..
+        pbuf_put(pb);
+
+        if (rc != 0) {
+          return; // Processed as message-to-myself
+        }
+
 	if (aif->digisourcecount == 0) {
 	  return; // No receivers for this source
 	}
@@ -1161,105 +1248,12 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  struct digipeater        *digi    = digisrc->parent;
 	  struct aprx_interface    *tx_aif  = digi->transmitter;
 	  historydb_t            *historydb = digi->historydb;
-	  struct pbuf_t *pb;
 	  char *srcif;
-	  int rc, discard_this, filter_discard, tnc2addrlen, tnc2len;
-	  int ax25addrlen;
-	  int ax25len;
-	  char    *t;
-	  uint8_t *a;
-	  uint16_t filter_packettype = 0;
-
-	  // Accept/Reject the packet by digipeater rx filter?
-	  filter_discard = 0;
-	  if (digisrc->src_filters == NULL) {
-	    // No filters defined, default Tx-iGate rules apply
-	  } else {
-
-	    if (debug) printf("## process source filter\n");
-
-	    // We have a filter statements to process here,
-	    // we need to turn incoming APRSIS frame to something
-	    // that the filter can process:
-
-	    // Incoming:
-	    //   EI7IG-1>APRS,TCPIP*,qAC,T2IRELAND:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
-	    // Filtered:
-	    //   EI7IG-1>APRS:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
-
-	    a = ax25buf;
-	    parse_ax25addr( a, tocall, 0x60 );
-	    a += 7;
-	    parse_ax25addr( a, fromcall, 0x60 );
-	    a += 7;
-	    // No need to add generated VIA address component
-	    // to this filter input data
-	    a[-1] |= 0x01; // end-of-address bit
-	    ax25addrlen = a - ax25buf;
-	    *a++ = 0x03;
-	    *a++ = 0xF0;
-	    if ((sizeof(ax25buf) - tnc2datalen) <= (a-ax25buf)) {
-	      if (debug) printf(" .. data does not fit on ax25buf");
-	      continue;
-	    }
-	    memcpy( a, tnc2data, tnc2datalen );
-	    a += tnc2datalen;
-	    ax25len = (a - ax25buf);
-
-	    t = tnc2buf;
-	    t += sprintf(t, "%s>%s:", fromcall, origtocall);
-	    tnc2addrlen = t - tnc2buf - 1;
-	    if ((sizeof(tnc2buf) - tnc2datalen) <= (t-tnc2buf)) {
-	      if (debug) printf(" .. data does not fit on tnc2buf");
-	      continue;
-	    }
-	    memcpy(t, tnc2data, tnc2datalen);
-	    t += tnc2datalen;
-	    tnc2len = (t - tnc2buf);
-
-	    // Allocate temporary pbuf for filter call use
-	    struct pbuf_t *pb = pbuf_new(1 /*is_aprs*/, 1 /* digi_like_aprs */, 
-                                         tnc2addrlen, tnc2buf, tnc2len,
-                                         ax25addrlen, ax25buf, ax25len);
-	    if (pb == NULL) {
-	      // Urgh!  Can't do a thing to this!
-	      // Likely reason: ax25len+tnc2len  > 2100 bytes!
-	      if (debug) printf("pbuf_new() returned NULL! Discarding!\n");
-	      continue;
-	    }
-
-	    pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
-	    srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
-
-
-	    // This is APRS packet, parse for APRS meaning ...
-	    rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
-	    if (debug)
-	      printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
-		     rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
-		     pb->info_start);
-
-	    filter_packettype = pb->packettype;
-
-	    {
-	      // Stores position, and message references
-	      void *v = historydb_insert_heard( historydb, pb );
-	      if (debug) printf("historydb_insert_heard(APRSIS) v=%p\n", v);
-	    }
-
-	    filter_discard = filter_process(pb, digisrc->src_filters, historydb);
-	    pbuf_put(pb); // drop the temporary buffer
-
-	    if (debug) printf("filter says: %d (%s)\n", filter_discard, (filter_discard > 0 ? "accept" : (filter_discard == 0 ? "indifferent" : "reject")));
-
-	    if (filter_discard < 0) {
-	      if (debug) printf("REJECTED!\n");
-	      continue;
-	    }
-	  }
-	  // filter_discard > 0: accept
-	  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
-	  // filter_discard < 0: reject
+	  int  discard_this, filter_discard;
+          char     tnc2buf[2800];
+          uint8_t  ax25buf[2800];
+          int ax25addrlen, ax25len;
+          int tnc2addrlen, tnc2len;
 
 	  // Produced 3rd-party packet:
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
@@ -1397,16 +1391,40 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    discard_this = 1;
 	  }
 
-	  // Manual filter says: Accept!
-	  if (discard_this && filter_discard > 0) {
-	    if (debug) printf("filters say: send!\n");
+	  // Accept/Reject the packet by digipeater rx filter?
+	  filter_discard = 0;
+	  if (digisrc->src_filters == NULL) {
+	    // No filters defined, default Tx-iGate rules apply
+	  } else {
+
+	    if (debug) printf("## process source filter\n");
+
+	    {
+	      // Stores position, and message references
+	      void *v = historydb_insert_heard( historydb, pb );
+	      if (debug) printf("historydb_insert_heard(APRSIS) v=%p\n", v);
+	    }
+
+	    filter_discard = filter_process(pb, digisrc->src_filters, historydb);
+
+	    if (debug) printf("filter says: %d (%s)\n", filter_discard, (filter_discard > 0 ? "accept" : (filter_discard == 0 ? "indifferent" : "reject")));
+
+            // filter_discard > 0: accept
+            // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
+            // filter_discard < 0: reject
+
+            // Manual filter says: Reject!
+	    if (filter_discard < 0) {
+	      if (debug) printf("REJECTED!\n");
+              discard_this = 1;
+	    }
+            // Manual filter says: Accept!
+            if (discard_this && filter_discard > 0) {
+              if (debug) printf("filters say: send!\n");
 	    discard_this = 0;
+            }
 	  }
-	  // Manual filter says: Discard!
-	  if (filter_discard < 0) {
-	    if (debug) printf("filter says: discard!\n");
-	    discard_this = 1;
-	  }
+
 
 	  if (!discard_this && pb->dstname != NULL) {
 	    // 1) - verify receiving station has been heard
@@ -1488,6 +1506,107 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  // .. and finally free up the pbuf (if refcount goes to 0)
 	  pbuf_put(pb);
 	}
+}
+
+/*
+ * See if this is a message that is destined to myself
+ */
+
+#define DSTNAMELEN 16  /* 8+1+2+1 = 12, use 16 for stack align */
+
+static int dstname_is_myself(const struct pbuf_t*const pb, char *dstname, const struct aprx_interface**aifp)
+{
+	struct aprx_interface *aif;
+
+	// Copy message destination, if available.
+        *dstname = 0; // always clear first..
+        if (pb->dstname != NULL) {
+          strncpy(dstname, pb->dstname, DSTNAMELEN-1);
+          dstname[DSTNAMELEN-1] = 0;
+        }
+
+        if (strcmp(dstname, mycall) == 0) {
+          // To MYCALL account
+          return 1;
+        }
+        if (aprsis_loginid != NULL && strcmp(dstname, aprsis_loginid) == 0) {
+          // To APRSIS login account
+          return 1;
+        }
+
+        // Maybe one of my transmitters?
+        aif = find_interface_by_callsign(dstname);
+        if (aif != NULL && aif->txok) {
+          // To one of my transmitter interfaces
+          *aifp = aif;
+          return 1;
+        }
+        // None of my identities
+        return 0;
+}
+
+/*
+ * Ack the message 
+ */
+static void ack_message(const struct aprx_interface *const srcif, const struct aprx_interface *const aif, const struct pbuf_t*const pb, const struct aprs_message_t*const am, const char*const dstname)
+{
+	// ACK message to APRSIS is simple(ish), routing it is another thing..
+	if (srcif == &aprsis_interface) {
+          char destbuf[50];
+          char txt[50];
+          int destlen = sprintf(destbuf, "%s>APRS,TCPIP*", dstname);
+          int txtlen = sprintf(txt, ":%*-9s:ack%*s", pb->srcname_len, pb->srcname, am->msgid_len, am->msgid);
+          aprsis_queue(destbuf, destlen,
+                       qTYPE_LOCALGEN,
+                       aprsis_login, txt, txtlen);
+          return;
+        }
+        // TODO: ACK things sent via radio interfaces?
+}
+
+/*
+ * A message is destined to myself, lets look closer..
+ * Return non-zero if it was recognized as targeted to this node.
+ */
+int process_message_to_myself(const struct aprx_interface*const srcif, const struct pbuf_t*const pb)
+{
+	struct aprs_message_t am;
+        int rc;
+        const struct aprx_interface*aif = srcif;
+	char dstname[DSTNAMELEN];
+
+        if ((pb->packettype & T_MESSAGE) == 0) {
+          return 0; // Not a message!
+        }
+
+        if (!dstname_is_myself(pb, dstname, &aif)) {
+          // Not destined to me
+          // This will also reject bulletins, which one is not supposed to ACK anyway..
+          return 0;
+        }
+
+        rc = parse_aprs_message(pb, &am);
+        if (rc != 0) {
+          // Not acceptable parse result
+          return 0;
+        }
+
+        // Whatever message, syslog it.
+        syslog(LOG_INFO, "%*s", pb->packet_len, pb->data);
+
+        if (am.is_rej || am.is_ack) {
+          // A REJect or ACKnowledge received, drop.
+          return 1;
+        }
+
+        // If there is msgid in the message -> I need to ACK it.
+        if (am.msgid != NULL) {
+          ack_message(srcif, aif, pb, &am, dstname);
+        }
+
+        // TODO: Process the message ?
+
+        return 1;
 }
 #endif
 
