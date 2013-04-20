@@ -39,6 +39,8 @@ struct pollfd *aprxpolls_new(struct aprxpolls *app)
 		memset(p, 0, sizeof(struct pollfd) * 8);
 	}
 	
+        assert(app->polls);
+
 	p = &(app->polls[app->pollcount - 1]);
 	memset(p, 0, sizeof(struct pollfd));
 	return p;

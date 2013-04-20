@@ -809,9 +809,19 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 	}
 	if (refmax == 0) return -1; /* No prefixes ?? */
 
-	refbuf = malloc(sizeof(*refbuf)*refmax);
-	f0->h.u5.refcallsigns = refbuf;
-	refcount = 0;
+	if (ff && ff->h.type == f0->h.type) { /* SAME TYPE,
+						 extend previous record! */
+		extend = 1;
+		refcount = ff->h.u3.numnames + refmax;
+		refbuf   = realloc(ff->h.u5.refcallsigns, sizeof(*refbuf) * refcount);
+		ff->h.u5.refcallsigns = refbuf;
+		refcount = ff->h.u3.numnames;
+	} else {
+		refbuf = malloc(sizeof(*refbuf)*refmax);
+		refcount = 0;
+		f0->h.u5.refcallsigns = refbuf;
+		f0->h.u3.numnames  = 0;
+	}
 
 	p = filt0;
 	if (*p == '-') ++p;
@@ -858,10 +868,10 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		++refcount;
 	}
 
-	f0->h.u3.numnames     = refcount;
+	f0->h.u3.numnames = refcount;
 	if (extend) {
 		char *s;
-		ff->h.u3.numnames     = refcount;
+		ff->h.u3.numnames = refcount;
 		i = strlen(ff->h.text) + strlen(filt0)+2;
 		if (i <= FILT_TEXTBUFSIZE) {
 			/* Fits in our built-in buffer block - like previous..

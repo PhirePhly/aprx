@@ -13,8 +13,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <assert.h>
 #ifdef HAVE_SYS_TIME_H
 # include <sys/time.h>
 #endif
@@ -150,7 +152,7 @@ extern float myloc_lon;
 extern const char *myloc_latstr;
 extern const char *myloc_lonstr;
 
-extern int fd_nonblockingmode(int fd);
+extern void fd_nonblockingmode(int fd);
 
 extern const char *swname;
 extern const char *swversion;

@@ -166,7 +166,7 @@ static void interface_store(struct aprx_interface *aif)
 
 	all_interfaces_count += 1;
 	all_interfaces = realloc(all_interfaces,
-				 sizeof(all_interfaces) * all_interfaces_count);
+				 sizeof(*all_interfaces) * all_interfaces_count);
 	all_interfaces[all_interfaces_count -1] = aif;
 	if (aif->ifindex < 0)
 	  aif->ifindex = all_interfaces_count -1;
@@ -203,8 +203,9 @@ struct aprx_interface *find_interface_by_index(const int index)
 	}
 }
 
-static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, struct aprx_interface **aifp, char *param1, char *str, int maxsubif)
+static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aifp, char *param1, char *str, int maxsubif)
 {
+	struct aprx_interface *aif;
 	int   fail = 0;
 
 	char *name;
@@ -221,6 +222,13 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 
 	const char *p = param1;
 	int c;
+
+        if (aifp == NULL || aifp->tty == NULL) {
+          printf("%s:%d ERROR: <kiss-subif> on bad type of <interface> entry.\n",
+                 cf->name, cf->linenum);
+          return 1;
+
+        }
 
 	for ( ; *p; ++p ) {
 		c = *p;
@@ -290,10 +298,17 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		  }
 
 		} else if (strcmp(name, "initstring") == 0) {
-		  
-		  initlength = parlen;
-		  initstring = malloc(parlen);
-		  memcpy(initstring, param1, parlen);
+
+                  if (initstring == NULL) {
+                    initlength = parlen;
+                    initstring = malloc(parlen);
+                    memcpy(initstring, param1, parlen);
+                  } else {
+		    printf("%s:%d ERROR: Double-definition of initstring parameter.\n",
+			   cf->name, cf->linenum);
+		    fail = 1;
+                    break;
+                  }
 
 		} else if (strcmp(name, "tx-ok") == 0) {
 		  if (!config_parse_boolean(param1, &txok)) {
@@ -338,54 +353,57 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aif, 
 		  break;
 		}
 	}
-	if (fail) return 1; // this leaks memory (but also diagnoses bad input)
+	if (fail) {
+        ERRORMEMFREE:
+          if (aliases != NULL) free(aliases);
+          if (initstring != NULL) free(initstring);
+          return 1; // this leaks memory (but also diagnoses bad input)
+        }
 
 	if (callsign == NULL) {
 	  // FIXME: Must define at least a callsign!
 	  printf("%s:%d ERROR: <kiss-subif ..> MUST define CALLSIGN parameter!\n",
 		 cf->name, cf->linenum);
-	  return 1;
+          goto ERRORMEMFREE;
 	}
 
 	if (find_interface_by_callsign(callsign) != NULL) {
 	  // An interface with THIS callsign does exist already!
 	  printf("%s:%d ERROR: Same callsign (%s) exists already on another interface.\n",
 		 cf->name, cf->linenum, callsign);
-	  return 1;
+          goto ERRORMEMFREE;
 	}
 
         if (debug)
           printf(" Defining <kiss-subif %d>  callsign=%s txok=%s\n", subif, callsign, txok ? "true":"false");
 
 
+	aif = malloc(sizeof(*aif));
+	memcpy(aif, aifp, sizeof(*aif));
 
-	*aifp = malloc(sizeof(*aif));
-	memcpy(*aifp, aif, sizeof(*aif));
+	aif->callsign = callsign;
+	parse_ax25addr(aif->ax25call, callsign, 0x60);
+	aif->subif    = subif;
+	aif->txok     = txok;
+	aif->ifindex  = -1; // system sets automatically at store time
+	aif->ifgroup  = ifgroup; // either user sets, or system sets at store time
 
-	(*aifp)->callsign = callsign;
-	parse_ax25addr((*aifp)->ax25call, callsign, 0x60);
-	(*aifp)->subif    = subif;
-	(*aifp)->txok     = txok;
-	(*aifp)->ifindex  = -1; // system sets automatically at store time
-	(*aifp)->ifgroup  = ifgroup; // either user sets, or system sets at store time
-
-	aif->tty->interface  [subif] = *aifp;
-	aif->tty->ttycallsign[subif] = callsign;
+        aifp->tty->interface  [subif] = aif;
+        aifp->tty->ttycallsign[subif] = callsign;
 #ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
-	aif->tty->netax25    [subif] = netax25_open(callsign);
+        aifp->tty->netax25    [subif] = netax25_open(callsign);
 #endif
+        if (initstring != NULL) {
+          aifp->tty->initlen[subif]    = initlength;
+          aifp->tty->initstring[subif] = initstring;
+        }
 
-	if (aliascount == 0) {
-	  (*aifp)->aliascount = 3;
-	  (*aifp)->aliases    = interface_default_aliases;
+	if (aliascount == 0 || aliases == NULL) {
+	  aif->aliascount = 3;
+	  aif->aliases    = interface_default_aliases;
 	} else {
-	  (*aifp)->aliascount = aliascount;
-	  (*aifp)->aliases    = aliases;
-	}
-
-	if (initstring != NULL) {
-	  aif->tty->initlen[subif]    = initlength;
-	  aif->tty->initstring[subif] = initstring;
+	  aif->aliascount = aliascount;
+	  aif->aliases    = aliases;
 	}
 
 	return 0;
@@ -399,7 +417,6 @@ void interface_init()
 int interface_config(struct configfile *cf)
 {
 	struct aprx_interface *aif = calloc(1, sizeof(*aif));
-	struct aprx_interface *aif2 = NULL; // subif copies here..
 
 	char  *name, *param1;
 	char  *str = cf->buf;
@@ -439,8 +456,7 @@ int interface_config(struct configfile *cf)
 		  break;
 		}
 		if (strcmp(name, "<kiss-subif") == 0) {
-		  aif2 = NULL;
-		  if (config_kiss_subif(cf, aif, &aif2, param1, str, maxsubif)) {
+		  if (config_kiss_subif(cf, aif, param1, str, maxsubif)) {
 		    // Bad inputs.. complained already
 		    have_fault = 1;
 		  }
@@ -874,8 +890,17 @@ int interface_config(struct configfile *cf)
 
 		if (aif->iftype == IFTYPE_TCPIP)
 		  ttyreader_register(aif->tty);
-	}
 
+	} else {
+        	if (aif->callsign) free(aif->callsign);
+                if (aif->tty) {
+                  if (aif->tty->ttyname) free((void*)(aif->tty->ttyname));
+                }
+                
+                free(aif);
+        }
+
+        // coverity[leaked_storage]
 	return have_fault;
 }
 
@@ -967,7 +992,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 				    NULL
 #endif
 				    ); // don't look inside 3rd party
-		char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+		char *srcif = aif->callsign;
 		if (debug)
 		  printf(".. parse_aprs() rc=%s  type=0x%02x  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
 			 rc ? "OK":"FAIL", pb->packettype, srcif, pb->data, pb->info_start);
@@ -1220,7 +1245,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
         // This is APRS packet, parse for APRS meaning ...
         rc = parse_aprs(pb, 1, NULL); // look inside 3rd party -- TODO: but what HISTORYDB ?
         if (debug) {
-          const char *srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+          const char *srcif = aif->callsign ? aif->callsign : "??";
           printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
                  rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
                  pb->info_start);
@@ -1345,7 +1370,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  }
 
 	  pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
-	  srcif = aif ? (aif->callsign ? aif->callsign : "??") : "?";
+	  srcif = aif->callsign ? aif->callsign : "??";
 
 	  // This is APRS packet, parse for APRS meaning ...
 	  rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
@@ -1553,9 +1578,28 @@ static void ack_message(const struct aprx_interface *const srcif, const struct a
 	// ACK message to APRSIS is simple(ish), routing it is another thing..
 	if (srcif == &aprsis_interface) {
           char destbuf[50];
-          char txt[50];
           int destlen = sprintf(destbuf, "%s>APRS,TCPIP*", dstname);
-          int txtlen = sprintf(txt, ":%*-9s:ack%*s", pb->srcname_len, pb->srcname, am->msgid_len, am->msgid);
+          char txt[50];
+          int txtlen;
+          char *t = txt;
+          const char *s = pb->srcname;
+          int i;
+          *t++ = ':';
+          for (i = 0; i < 9 && i < pb->srcname_len; ++i) {
+            *t++ = *s++;
+          }
+          for ( ; i < 9 ; ++i) {
+            *t++ = ' ';
+          }
+          *t++ = ':';
+          *t++ = 'a';
+          *t++ = 'c';
+          *t++ = 'k';
+          for (i = 0, s = am->msgid; i < am->msgid_len; ++i) {
+            *t++ = *s++;
+          }
+          txtlen = t - txt;
+
           aprsis_queue(destbuf, destlen,
                        qTYPE_LOCALGEN,
                        aprsis_login, txt, txtlen);

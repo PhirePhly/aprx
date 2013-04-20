@@ -26,6 +26,7 @@
 #include "cellmalloc.h"
 
 #define NO_MMAP_ON_CELLMALLOC
+#define MEMDEBUG
 
 /*
  *   cellmalloc() -- manages arrays of cells of data 
@@ -99,7 +100,8 @@ int new_cellblock(cellarena_t *ca)
 	}
 
 	cb = mmap( NULL, ca->createsize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-	close(fd);
+        if (fd >= 0)
+          close(fd);
 #else
 
 #ifndef MAP_ANON
@@ -267,11 +269,10 @@ int   cellmallocmany(cellarena_t *ca, void **array, int numcells)
 		// hlog( LOG_DEBUG, "cellmallocmany(%d of %d); freecount %d; %p at %p",
 		//       count, numcells, ca->freecount, cellhead_to_clientptr(ch), ca );
 
-		// if (!ch)
-		// 	break;	// Should not happen...
-
-		ca->free_head = ch->next;
-		ch->next = NULL;
+                if (ch != NULL) { // should always be...
+                  ca->free_head = ch->next;
+                  ch->next = NULL;
+                }
 
 		if (ca->free_head == NULL)
 			ca->free_tail = NULL;
