@@ -110,7 +110,7 @@ static int get_symbol_from_dstcall_twochar(const char c1, const char c2, char *s
 	}
 	
 	if (c1 == 'P') {
-		if (c2 >= '0' && c2 <= 9) {
+		if (c2 >= '0' && c2 <= '9') {
 			*sym_table = '/';
 			*sym_code = c2;
 			return 1;
@@ -1317,9 +1317,10 @@ int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*co
 		pb->packettype |= T_USERDEF;
 		return 1; // okay at digi?
 
-	case '}':
-		pb->packettype |= T_THIRDPARTY;
-		return 1; // 3rd-party is okay at digi
+        // the packettype is never '}'
+        // case '}':
+                // pb->packettype |= T_THIRDPARTY;
+		// return 1; // 3rd-party is okay at digi
 
 	default:
 		break;

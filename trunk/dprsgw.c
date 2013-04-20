@@ -53,8 +53,10 @@ void dprslog( const time_t stamp, const uint8_t *buf ) {
   if (dprslogfile == NULL) return; // Nothing to do
 
   FILE *fp = fopen(dprslogfile,"a");
-  fprintf(fp, "%ld\t%s\n", stamp, (const char *)buf);
-  fclose(fp);
+  if (fp != NULL) {
+    fprintf(fp, "%ld\t%s\n", stamp, (const char *)buf);
+    fclose(fp);
+  }
 }
 
 
@@ -669,9 +671,11 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  char *fromcall, *origtocall;
 	  char *b;
 
-	  igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2buf, tnc2addrlen, tnc2buflen, 0, 0);
+          if (aif != NULL) {
+            igate_to_aprsis( aif->callsign, 0, (const char *)tnc2buf, tnc2addrlen, tnc2buflen, 0, 0);
           // Bytes have been counted previously, now count meaningful packet
-          erlang_add(aif ? aif->callsign : NULL, ERLANG_RX, 0, 1);
+            erlang_add(aif->callsign, ERLANG_RX, 0, 1);
+          }
 
 	  fromcall = tnc2buf;
 	  p = fromcall;
@@ -727,9 +731,9 @@ static void dprsgw_rxigate( struct serialport *S )
 	    }
 
 	    // Acceptable packet, Rx-iGate it!
-	    igate_to_aprsis( aif ? aif->callsign : NULL, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0, 0);
+	    igate_to_aprsis( aif->callsign, 0, (const char *)tnc2addr, tnc2addrlen, tnc2bodylen, 0, 0);
           // Bytes have been counted previously, now count meaningful packet
-            erlang_add(aif ? aif->callsign : NULL, ERLANG_RX, 0, 1);
+            erlang_add( aif->callsign, ERLANG_RX, 0, 1 );
 
 	    fromcall = (char*)tnc2addr;
 	    s = fromcall;
@@ -844,7 +848,7 @@ int dprsgw_pulldprs( struct serialport *S )
 	int i;
 
         // Account all received bytes, this may or may not be a packet
-        erlang_add(aif ? aif->callsign : NULL, ERLANG_RX, S->rdlinelen, 0);
+        erlang_add(aif->callsign, ERLANG_RX, S->rdlinelen, 0);
 
 
 	if (S->dprsgw == NULL)

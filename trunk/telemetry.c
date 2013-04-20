@@ -528,7 +528,7 @@ int telemetry_config(struct configfile *cf)
 	  rftelemetry = realloc(rftelemetry, sizeof(void*)*(rftelemetrycount+2));
 	  rftelemetry[rftelemetrycount++] = newrf;
 
-	  if (debug) printf("Defined <telemetry> to transmitter %s\n", aif->callsign);
+	  if (debug) printf("Defined <telemetry> to transmitter %s\n", aif ? aif->callsign : "ALL");
 	}
 	return has_fault;
 }

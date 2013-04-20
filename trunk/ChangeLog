@@ -1,5 +1,24 @@
 2013-04-20 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprsis.c:
+	    Preparing for new communication modes
+
+	* parse_aprs.c:
+	    Two condition expression goofups that were always
+	    "false"
+
+	* filter.c:
+	    Match filter parsing with aprsc (issue found with
+	    Covarity testing)
+
+	* aprsis.c, aprx.c, aprx.h, aprxpolls.c, cellmalloc.c,
+	  config.c, digipeater.c, dprsgw.c, filter.c, interface.c,
+	  kiss.c, netax25.c, telemetry.c, ttyreader.c:
+	   Covarity testing revealed unclear error cases, unnecessary
+	   comparisons against NULL, and other mostly harmless things.
+	   There is still a memory leak in interface.c configuration
+	   parsing in error path -- but that is not a big deal.
+
 	* digipeater.c:
 	   Modified "fixall" processing to put transmitter
 	   callsign into first VIA field in every case,

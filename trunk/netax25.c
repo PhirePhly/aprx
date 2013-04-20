@@ -119,7 +119,7 @@ static const void* netax25_openpty(const char *mycall)
 	uint8_t ax25call[64]; // overlarge for AX.25 - which needs only 7 bytes, but valgrind whines..
 	struct ifreq ifr;
 	int fd = -1;
-	struct netax25_pty *nax25;
+	struct netax25_pty *nax25 = NULL;
 	int pty_master, pty_slave;
 
 	if (!mycall)
@@ -152,6 +152,10 @@ static const void* netax25_openpty(const char *mycall)
 			close(fd);
 		if (debug)
 		  printf("netax25_openpty() error exit.\n");
+
+
+                if (nax25 != NULL) free(nax25);
+
 		return NULL;		/* D'uh.. */
 	}
 
@@ -199,11 +203,12 @@ static const void* netax25_openpty(const char *mycall)
 
 	/* Then final tricks to start the interface... */
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (rc < 0)
+	if (fd < 0)
 		goto error_exit;
 
 	memset(&ifr, 0, sizeof(ifr)); // please valgrind
-	strcpy(ifr.ifr_name, devname);
+	strncpy(ifr.ifr_name, devname, sizeof(ifr.ifr_name));
+        ifr.ifr_name[sizeof(ifr.ifr_name)-1] = 0;
 
 	ifr.ifr_mtu = 512;
 	rc = ioctl(fd, SIOCSIFMTU, &ifr);
@@ -438,6 +443,7 @@ void *netax25_addrxport(const char *callsign, const struct aprx_interface *inter
 	if (interface == NULL) {  // Old config style
 	  if (parse_ax25addr((uint8_t*)&nax25p->ax25addr.sax25_call, callsign, 0x60)) {
 	    // Not valid per AX.25 rules
+            free(nax25p);
 	    return NULL;
 	  }
 	  nax25p->callsign  = strdup(callsign);
@@ -709,8 +715,12 @@ static void discard_read_fd( const int fd )
 int netax25_postpoll(struct aprxpolls *app)
 {
 	int i, j;
-	struct pollfd *pfd = app->polls;
+	struct pollfd *pfd;
 	// char ifaddress[10];
+
+        assert(app->polls != NULL);
+
+	pfd = app->polls;
 
 	if (rx_socket < 0)
 		return 0;

@@ -804,12 +804,24 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 				printf("msg-path '%s'\n", msg_path);
 #endif
 		} else if (strcmp(name,"<trace>") == 0) {
-			source_trace = digipeater_config_tracewide(cf, 1);
-			// prints errors internally
+                	if (source_trace == NULL) {
+                          source_trace = digipeater_config_tracewide(cf, 1);
+                          // prints errors internally
+                        } else {
+                          has_fault = 1;
+			  printf("%s:%d ERROR: double definition of <trace> block.\n",
+				 cf->name, cf->linenum);
+                        }
 
 		} else if (strcmp(name,"<wide>") == 0) {
-			source_wide  = digipeater_config_tracewide(cf, 0);
-			// prints errors internally
+                	if (source_wide == NULL) {
+                          source_wide  = digipeater_config_tracewide(cf, 0);
+                          // prints errors internally
+                        } else {
+                          has_fault = 1;
+			  printf("%s:%d ERROR: double definition of <wide> block.\n",
+				 cf->name, cf->linenum);
+                        }
 
 		} else if (strcmp(name,"filter") == 0) {
 			if (filter_parse(&filters, param1)) {
@@ -990,18 +1002,32 @@ int digipeater_config(struct configfile *cf)
                                        srcrateincrement, srcratelimit);
 
 		} else if (strcmp(name, "<trace>") == 0) {
-			traceparam = digipeater_config_tracewide(cf, 1);
-			if (traceparam == NULL) {
-			  printf("ERROR: <trace> definition failed!\n");
-				has_fault = 1;
-			}
+                	if (traceparam == NULL) {
+                          traceparam = digipeater_config_tracewide(cf, 1);
+                          if (traceparam == NULL) {
+                            printf("%s:%d ERROR: <trace> definition failed!\n",
+				 cf->name, cf->linenum);
+                            has_fault = 1;
+                          }
+                        } else {
+                          printf("%s:%d ERROR: Double definition of <trace> !\n",
+				 cf->name, cf->linenum);
+                          has_fault = 1;
+                        }
 
 		} else if (strcmp(name, "<wide>") == 0) {
-			wideparam = digipeater_config_tracewide(cf, 0);
-			if (wideparam == NULL) {
-			  printf("ERROR: <wide> definition failed!\n");
-				has_fault = 1;
-			}
+                	if (wideparam == NULL) {
+                          wideparam = digipeater_config_tracewide(cf, 0);
+                          if (wideparam == NULL) {
+                            printf("%s:%d ERROR: <wide> definition failed!\n",
+				 cf->name, cf->linenum);
+                            has_fault = 1;
+                          }
+                        } else {
+                          printf("%s:%d ERROR: Double definition of <wide> !\n",
+				 cf->name, cf->linenum);
+                          has_fault = 1;
+                        }
 
 		} else if (strcmp(name, "<source>") == 0) {
 			struct digipeater_source *src =

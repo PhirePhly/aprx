@@ -42,6 +42,10 @@ pthread_attr_t pthr_attrs;
  *
  */
 
+#define MODE_TCP   0
+#define MODE_SSL   1
+#define MODE_SCTP  2
+#define MODE_DTLS  3
 
 struct aprsis_host {
 	char *server_name;
@@ -49,6 +53,7 @@ struct aprsis_host {
 	char *login;
 	char *filterparam;
 	int heartbeat_monitor_timeout;
+	int mode;
 };
 
 struct aprsis {
@@ -115,7 +120,6 @@ va_dcl
 #endif
 {
 	va_list ap;
-	FILE *fp;
 	char timebuf[60];
 
 #ifdef 	HAVE_STDARG_H
@@ -140,23 +144,30 @@ va_dcl
 	  }
 	}
 
-	if (!aprxlogfile || !log_aprsis) return; // Do nothing
+        if (aprxlogfile && log_aprsis) {
+          FILE *fp;
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+          pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 #endif
-	fp = fopen(aprxlogfile, "a");
-	if (fp != NULL) {
-	  fprintf(fp, "%s ", timebuf);
-	  vfprintf(fp, fmt, ap);
-	  if (buf != NULL && buflen != 0) {
-	    (void)fwrite(buf, buflen, 1, fp);
-	    (void)fprintf(fp, "\n");
-	  }
-	  fclose(fp);
-	}
+          fp = fopen(aprxlogfile, "a");
+          if (fp != NULL) {
+            fprintf(fp, "%s ", timebuf);
+            vfprintf(fp, fmt, ap);
+            if (buf != NULL && buflen != 0) {
+              (void)fwrite(buf, buflen, 1, fp);
+              (void)fprintf(fp, "\n");
+            }
+            fclose(fp);
+          }
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+          pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#endif
+
+        }
+
+#ifdef 	HAVE_STDARG_H
+        va_end(ap);
 #endif
 }
 
@@ -578,7 +589,10 @@ static void aprsis_readup(void)
 
 	textlen = head.textlen;
 	if (textlen <= 2)
-		return;		/* BAD! */
+          return;		// BAD!
+        if ((text + textlen) > (buf + i)) {
+          return;		// BAD!
+        }
 
 	/*
 	  printf("addrlen=%d addr=%s\n",head.addrlen, addr);
@@ -754,7 +768,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 
 					if (i < 0)
 						continue;	/* Argh.. nothing */
-					if (i == 0);	/* What ? */
+					// if (i == 0);	/* What ? */
 
                                         aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur) -1,
                                                 "<< %s:%s << ", A->H->server_name, A->H->server_port);
@@ -843,6 +857,7 @@ static void aprsis_main(void)
 		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
                 gettimeofday(&now, NULL);
 
+                assert(app.polls != NULL);
 		if (app.polls[0].
 		    revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)) {
 			/* messaging channel has something for us, if
@@ -1180,6 +1195,7 @@ int aprsis_config(struct configfile *cf)
 		// server
 		// filter
 		// heartbeat-timeout
+                // mode
 
 		if (strcmp(name, "login") == 0) {
 		  if (strcasecmp("$mycall",param1) != 0) {
@@ -1202,9 +1218,16 @@ int aprsis_config(struct configfile *cf)
 
 		  param1 = str;
 		  str = config_SKIPTEXT(str, NULL);
+                  // coverity[returned_pointer]
 		  str = config_SKIPSPACE(str);
 		  if ('1' <= *param1 && *param1 <= '9') {
 		    // fixme: more input analysis?
+                    int port = atoi(param1);
+                    if (port < 1 || port > 65535) {
+                      printf("%s:%d INFO: SERVER = '%s' port='%s' is not supplying valid TCP port number, defaulting to '14580'\n",
+                             cf->name, cf->linenum, AIH->server_name, param1);
+                      param1 = "14580";
+                    }
 		    AIH->server_port = strdup(param1);
 		  } else if (*param1 == 0) {
 		    // Default silently!
@@ -1256,9 +1279,25 @@ int aprsis_config(struct configfile *cf)
 		    printf("%s:%d: INFO: FILTER = '%s' -->  '%s'\n",
 			   cf->name, cf->linenum, param1, AIH->filterparam);
 
+		} else if (strcmp(name, "mode") == 0) {
+                  if (strcmp(param1,"tcp") == 0) {
+                    AIH->mode = MODE_TCP;
+                  } else if (strcmp(param1,"ssl") == 0) {
+                    AIH->mode = MODE_SSL;
+                  } else if (strcmp(param1,"sctp") == 0) {
+                    AIH->mode = MODE_SCTP;
+                  } else if (strcmp(param1,"dtls") == 0) {
+                    AIH->mode = MODE_DTLS;
+                  } else {
+                    printf("%s:%d: ERROR: Unknown mode keyword in <aprsis> block: '%s'\n",
+			 cf->name, cf->linenum, param1);
+                    has_fault = 1;
+                  }
+
 		} else  {
 		  printf("%s:%d: ERROR: Unknown configuration keyword in <aprsis> block: '%s'\n",
-			 cf->name, cf->linenum, param1);
+			 cf->name, cf->linenum, name);
+                  has_fault = 1;
 		}
 	}
 	if (AIH->server_name == NULL) {

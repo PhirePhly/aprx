@@ -128,8 +128,7 @@ int kissencoder( void *kissbuf, int kissspace, LineType linetype,
 		  crc = crc16;
 		} else if (linetype == LINETYPE_KISSFLEXNET) {
 		  crc = crcflex;
-		} else
-		  crc = 0; // no really possible..
+		}
 
 		b = crc & 0xFF;		/* low crc byte */
 		if (b == KISS_FEND) {

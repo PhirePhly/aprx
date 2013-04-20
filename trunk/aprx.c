@@ -71,7 +71,7 @@ static void usage(void)
 	exit(64);		/* EX_USAGE */
 }
 
-int fd_nonblockingmode(int fd)
+void fd_nonblockingmode(int fd)
 {
 	int __i = fcntl(fd, F_GETFL, 0);
 	if (__i >= 0) {
@@ -79,7 +79,7 @@ int fd_nonblockingmode(int fd)
 		__i |= O_NONBLOCK;
 		__i = fcntl(fd, F_SETFL, __i);
 	}
-	return __i;
+	// return __i;
 }
 
 int main(int argc, char *const argv[])
@@ -258,7 +258,7 @@ int main(int argc, char *const argv[])
 	// In all cases we close STDIN/FD=0..
 	// .. and replace it with reading from /dev/null..
 	i = open("/dev/null", O_RDONLY, 0);
-	if (i != 0) { dup2(i, 0); close(i); }
+	if (i >= 0) { dup2(i, 0); close(i); }
 	
 	// Leave STDOUT and STDERR open
 

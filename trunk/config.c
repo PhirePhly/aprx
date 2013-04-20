@@ -17,24 +17,18 @@ const char *aprsis_login;
 
 char *config_SKIPSPACE(char *Y)
 {
-	if (!Y)
-		return Y;
-
+	assert(Y != NULL);
 	while (*Y == ' ' || *Y == '\t')
 		++Y;
-
 	return Y;
 }
 
 #if 0
 char *config_SKIPDIGIT(char *Y)
 {
-	if (!Y)
-		return Y;
-
+	assert(Y != NULL);
 	while ('0' <= *Y && *Y <= '9')
 		++Y;
-
 	return Y;
 }
 #endif
@@ -116,11 +110,15 @@ int validate_callsign_input(char *callsign, int strict)
 
 char *config_SKIPTEXT(char *Y, int *lenp)
 {
-	char *O = Y;
-	char endc = *Y;
-	int  len = 0;
-	if (!Y)
-		return Y;
+	char *O;
+	char endc;
+	int  len;
+
+	assert(Y != NULL);
+
+	O = Y;
+        endc = *Y;
+        len = 0;
 
 	if (*Y == '"' || *Y == '\'') {
 		++Y;
@@ -185,6 +183,7 @@ char *config_SKIPTEXT(char *Y, int *lenp)
 void config_STRLOWER(char *s)
 {
 	int c;
+	assert(s != NULL);
 	for (; *s; ++s) {
 		c = *s;
 		if ('A' <= c && c <= 'Z') {
@@ -196,6 +195,7 @@ void config_STRLOWER(char *s)
 void config_STRUPPER(char *s)
 {
 	int c;
+	assert(s != NULL);
 	for (; *s; ++s) {
 		c = *s;
 		if ('a' <= c && c <= 'z') {
@@ -635,19 +635,21 @@ static int parse_interval(const char *string, const char **restp)
 	  switch (c) {
 	  case 'd':		/* days */
 	  case 'D':		/* days */
-	    val *= 24;
+	    val *= (24*60*60);
+            break;
 	  case 'h':		/* hours */
 	  case 'H':		/* hours */
-	    val *= 60;
+	    val *= 60*60;
+            break;
 	  case 'm':		/* minutes */
 	  case 'M':		/* minutes */
 	    val *= 60;
+            break;
 	  case 's':		/* seconds */
 	  case 'S':		/* seconds */
 	    /* val *= 1; */
 	  case '\t':            /* just whitespace */
 	  case ' ':             /* just whitespace */
-	    ++string;
 	    break;
 	  default: /* Not of: "dhms" - maybe string end, maybe junk ? */
 	    if (restp) *restp = string;

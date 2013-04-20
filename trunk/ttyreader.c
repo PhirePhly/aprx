@@ -447,7 +447,7 @@ static void ttyreader_linesetup(struct serialport *S)
 		if (debug)
 			printf("socket connect() preparing: %s\n", par);
 
-		for (;;) {
+                while (1) {
 			host = strchr(par, '!');
 			if (host)
 				++host;
