@@ -1,3 +1,13 @@
+2013-04-20 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* digipeater.c:
+	   Modified "fixall" processing to put transmitter
+	   callsign into first VIA field in every case,
+	   possibly truncating the VIA list in order to make
+	   room for the callsign in the incoming request.
+	   Replacing numeric literals with #define constants
+	   to inline document of what is going on at places.
+
 2013-04-18 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c, VERSION:
