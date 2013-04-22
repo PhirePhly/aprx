@@ -31,6 +31,13 @@
 
 mycall  N0CALL-1
 
+#
+# Global macro for simplified "my location" definition in
+# place of explicit "lat nn lon mm" at beacons. Will also
+# give "my location" reference for "filter m/100".
+#
+#myloc lat ddmm.mmN lon dddmm.mmE
+
 <aprsis>
 # The  aprsis login  parameter: 
 # Station callsignSSID used for relaying APRS frames into APRS-IS.
@@ -179,7 +186,7 @@ aprxlog @VARLOG@/aprx.log
 <beacon>
 #
 #  Beacons are sent out to radio transmitters AND/OR APRSIS.
-#  Default if "both", other modes are settable.
+#  Default is "both", other modes are settable.
 #
 #beaconmode { aprsis | both | radio }
 #
@@ -195,11 +202,14 @@ aprxlog @VARLOG@/aprx.log
 # Basic beaconed thing is positional message of type "!":
 #
 #beacon symbol "R&" lat "0000.00N" lon "00000.00E" comment "Rx-only iGate"
+#beacon symbol "R&" $myloc comment "Rx-only iGate"
 #
 #Following are basic options:
 # 'symbol'    no default, must be defined!
 # 'lat'       coordinate latitude:   ddmm.mmN  (no default!)
 # 'lon'       coordinate longitude: dddmm.mmE  (no default!)
+# '$myloc'    coordinate values taken from global 'myloc' entry,
+#             and usable in place of explicit 'lat'+'lon'.
 # 'comment'   optional tail part of the item, default is nothing
 #
 # Sample symbols:
@@ -226,11 +236,12 @@ aprxlog @VARLOG@/aprx.log
 #        expected to be found as first line of text. Line ending newline
 #        is removed, and no escapes are supported.  The timefix is
 #        available, though probably should not be used.
-#         No \-processing is done on read text line.
+#        No \-processing is done on read text line.
 #
 # The parameter sets can vary:
 #  a) 'srccall nnn-n dstcall "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
-#  b) 'srccall nnn-n dstcall "string" raw "string"'
+#  b) 'srccall nnn-n dstcall "string" symbol "R&" $myloc [comment "any text"]
+#  c) 'srccall nnn-n dstcall "string" raw "string"'
 #
 # The a) form flags on some of possible syntax errors in parameters.
 # It will also create only "!" type messages.  The dest parameter
@@ -254,9 +265,9 @@ aprxlog @VARLOG@/aprx.log
 #                           raw "!0000.00NR00000.00E&Rx-only iGate"
 #beacon interface N0CALL-3 srccall N0CALL-3 \
 #                           raw "!0000.00NI00000.00E&Tx-iGate"
-#beacon interface $mycall   symbol "R&" lat "0000.00N" lon "00000.00E" \
+#beacon interface $mycall   symbol "R&" $myloc \
 #                           comment "Rx-only iGate"
-#beacon interface $mycall   symbol "I&" lat "0000.00N" lon "00000.00E" \
+#beacon interface $mycall   symbol "I&" $myloc \
 #                           comment "Tx-iGate"
 #
 </beacon>

@@ -1,5 +1,9 @@
 2013-04-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.8.in, aprx-complex.conf.in, aprx.conf.in,
+	  doc/aprx-manual.odt, doc/aprx-manual.pdf:
+	    Change documentation wording around <beacon>.
+
 	* config.c:
 	    Fix myloc config parameter parsing.
 

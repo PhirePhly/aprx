@@ -465,7 +465,7 @@ server    rotate.aprs2.net    14580
 <beacon>
 #
 #  Beacons are sent out to radio transmitters AND/OR APRSIS.
-#  Default if "both", other modes are settable.
+#  Default is "both", other modes are settable.
 #
 #beaconmode { aprsis | both | radio }
 #
