@@ -1,3 +1,10 @@
+2013-04-20 Geoffrey F4FXL <max@planetemax.com>
+
+	* digipeater.c:
+	    Recent rewrite of viafield tracking code forgot
+	    to initialize it in many cases -- and Covarity
+	    tool did not notice that :-(
+
 2013-04-20 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprsis.c:
@@ -14,26 +21,26 @@
 	* aprsis.c, aprx.c, aprx.h, aprxpolls.c, cellmalloc.c,
 	  config.c, digipeater.c, dprsgw.c, filter.c, interface.c,
 	  kiss.c, netax25.c, telemetry.c, ttyreader.c:
-	   Covarity testing revealed unclear error cases, unnecessary
-	   comparisons against NULL, and other mostly harmless things.
-	   There is still a memory leak in interface.c configuration
-	   parsing in error path -- but that is not a big deal.
+	    Covarity testing revealed unclear error cases, unnecessary
+	    comparisons against NULL, and other mostly harmless things.
+	    There is still a memory leak in interface.c configuration
+	    parsing in error path -- but that is not a big deal.
 
 	* digipeater.c:
-	   Modified "fixall" processing to put transmitter
-	   callsign into first VIA field in every case,
-	   possibly truncating the VIA list in order to make
-	   room for the callsign in the incoming request.
-	   Replacing numeric literals with #define constants
-	   to inline document of what is going on at places.
+	    Modified "fixall" processing to put transmitter
+	    callsign into first VIA field in every case,
+	    possibly truncating the VIA list in order to make
+	    room for the callsign in the incoming request.
+	    Replacing numeric literals with #define constants
+	    to inline document of what is going on at places.
 
 2013-04-18 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c, VERSION:
-	   Version 2.07 (APRX27)
+	    Version 2.07 (APRX27)
 
 	* aprx.8.in:
-	   Document "myloc" and "$myloc", "filter m/100", etc.
+	    Document "myloc" and "$myloc", "filter m/100", etc.
 
 	* aprx.c, aprx.h:
 	    Variables for myloc_lat, myloc_lon, and string forms.
