@@ -121,7 +121,7 @@ static int regex_filter_add(struct configfile *cf,
 
 	/* param1 and str were processed successfully ... */
 
-	rep = malloc(sizeof(*rep));
+	rep = calloc(1,sizeof(*rep));
 	*rep = re;
 
 	switch (groupcode) {
@@ -626,8 +626,7 @@ static struct tracewide *digipeater_config_tracewide(struct configfile *cf, int 
 	  return NULL;
 	}
 
-	tw = malloc(sizeof(*tw));
-	memset(tw, 0, sizeof(*tw));
+	tw = calloc(1,sizeof(*tw));
 
 	tw->maxreq   = maxreq;
 	tw->maxdone  = maxdone;
@@ -826,7 +825,10 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		} else if (strcmp(name,"filter") == 0) {
 			if (filter_parse(&filters, param1)) {
 			  // prints errors internally
+                          
 			  has_fault = 1;
+			  printf("%s:%d ERROR: Error at filter parser.\n",
+				 cf->name, cf->linenum);
 			} else {
 			  if (debug)
 			    printf(" .. OK filter %s\n", param1);
@@ -858,9 +860,14 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		}
 	}
 
+        if (source_aif == NULL) {
+                has_fault = 1;
+                printf("%s:%d ERROR: Missing or bad 'source =' definition at this <source> group.\n",
+                       cf->name, cf->linenum);
+        }
+
 	if (!has_fault && (source_aif != NULL)) {
-		source = malloc(sizeof(*source));
-		memset(source, 0, sizeof(*source));
+                source = calloc(1,sizeof(*source));
 		
 		source->src_if        = source_aif;
 		source->src_relaytype = relaytype;
@@ -900,6 +907,8 @@ static struct digipeater_source *digipeater_config_source(struct configfile *cf)
 		free_tracewide(source_wide);
 		// filters_free(filters);
 		// free regexsrc's allocations
+                if (debug)
+                  printf("Seen errors at <digipeater><source> definition.\n");
 	}
 
 	if (debug>1)printf(" .. <source> definition returning %p\n",source);
@@ -1088,7 +1097,7 @@ int digipeater_config(struct configfile *cf)
 	} else {
 		// Construct the digipeater
 
-		digi = malloc(sizeof(*digi));
+                digi = calloc(1,sizeof(*digi));
 
 		if (debug>1)printf("<digipeater> sourcecount=%d\n",sourcecount);
 
