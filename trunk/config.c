@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -367,6 +367,7 @@ static int cfgparam(struct configfile *cf)
 
                 if (strcmp(param1, "lat") != 0) {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" .. 'lat' missing, got: '%s'\n", param1);
                   return 1;
                 }
 
@@ -380,6 +381,7 @@ static int cfgparam(struct configfile *cf)
 
                 if (strcmp(param1, "lon") != 0) {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" .. 'lon' missing, got: '%s'\n", param1);
                   return 1;
                 }
 
@@ -387,29 +389,38 @@ static int cfgparam(struct configfile *cf)
                 str = config_SKIPTEXT(str, NULL);
                 str = config_SKIPSPACE(str);
 
-                if (validate_degmin_input(lonp, 90) ||
-                    validate_degmin_input(latp, 180)) {
+                if (validate_degmin_input(latp, 90)) {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" got lat: '%s'\n", latp);
+                  return 1;
+                }
+                if (validate_degmin_input(lonp, 180)) {
+                  printf(errmsg, cf->name, cf->linenum);
+                  printf(" got lon: '%s'\n", lonp);
                   return 1;
                 }
 
-                i = sscanf(latp, "%2d%f,%c,", &la, &lat, &lac);
+                i = sscanf(latp, "%2d%5f%c,", &la, &lat, &lac);
                 if (i != 3) {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" got parse-field-count: %d on '%s'\n", i, latp);
                   return 1; // parse failure
                 }
-                i = sscanf(lonp, "%3d%f,%c,", &lo, &lng, &loc);
+                i = sscanf(lonp, "%3d%5f%c,", &lo, &lng, &loc);
                 if (i != 3) {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" got parse-field-count: %d on '%s'\n", i, lonp);
                   return 1; // parse failure
                 }
 
                 if (lac != 'N' && lac != 'S' && lac != 'n' && lac != 's') {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" .. lat expected N/S tail, got: '%c'\n", lac);
                   return 1; // bad indicator value
                 }
                 if (loc != 'E' && loc != 'W' && loc != 'e' && loc != 'w') {
                   printf(errmsg, cf->name, cf->linenum);
+                  printf(" .. lon expected E/W tail, got: '%c'\n", loc);
                   return 1; // bad indicator value
                 }
 
@@ -773,8 +784,8 @@ int readconfig(const char *name)
 	int has_fault = 0;
 	int i;
 
-	cf.linenum_i = 0;
-	cf.linenum   = 0;
+	cf.linenum_i = 1;
+	cf.linenum   = 1;
 	cf.name      = name;
 
 	if ((cf.fp = fopen(name, "r")) == NULL) {

@@ -1,4 +1,22 @@
-2013-04-20 Geoffrey F4FXL <max@planetemax.com>
+2013-04-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* config.c:
+	    Fix myloc config parameter parsing.
+
+	* beacon.c:
+	    Every <beacon> group is now independent from each other.
+	    If you define multiple <beacon> groups, they will be
+	    running in parallel with their own scheduling.
+	    Meaning that you can have different cycles, and defaults
+	    at each.
+
+	* all source files:
+	    Change Copyright claim years to  2007-2013.
+
+	* configure.in:
+	    Auto-test for <netinet/sctp.h> header file.
+
+2013-04-22 Geoffrey F4FXL <max@planetemax.com>
 
 	* digipeater.c:
 	    Recent rewrite of viafield tracking code forgot

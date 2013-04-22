@@ -3,7 +3,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
  *                                                                  *
  ********************************************************************/
 /*
@@ -1151,7 +1151,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 		/*  m/dist            My range filter  */
 
         	if (myloc_latstr == NULL) {
-                  printf("The M/radius_km  filter requires top-level  myloc  definition. It doesn't exist.");
+                  printf("The M/radius_km  filter requires top-level  myloc  definition. It doesn't exist.\n");
                   return -1;
                 }
                 
