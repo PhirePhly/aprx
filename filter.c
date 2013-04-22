@@ -807,7 +807,10 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		while (*p && *p != '/') ++p;
 		if (*p == '/') ++p;
 	}
-	if (refmax == 0) return -1; /* No prefixes ?? */
+	if (refmax == 0) {
+          printf("Filter definition of '%s' has no prefixes defined.\n", filt0);
+          return -1; /* No prefixes ?? */
+        }
 
 	if (ff && ff->h.type == f0->h.type) { /* SAME TYPE,
 						 extend previous record! */
@@ -838,17 +841,19 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		while (*p != 0 && *p != '/') {
                  	int c = *p++;
 			if (c == '*') {
-				wildcard = 1;
-				if (wildok != MatchWild)
-					return -1;
-				continue;
+                          wildcard = 1;
+                          if (wildok != MatchWild) {
+                            printf("Wild-card matching not permitted, yet filter definition says: '%s'\n", filt0);
+                            return -1;
+                          }
+                          continue;
 			}
-                        ++i;
-                        if (i < (CALLSIGNLEN_MAX)) {
-                        	*k = c;
-                                ++k;
+                        if (i < CALLSIGNLEN_MAX) {
+                          *k++ = c;
+                          ++i;
                         } else {
-				return -1; // invalid input
+                          printf("Too long callsign string: '%s' input: '%s'\n", prefixbuf, filt0);
+                          return -1; // invalid input
                         }
 		}
 		*k = 0;

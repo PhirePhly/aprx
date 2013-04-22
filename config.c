@@ -427,8 +427,8 @@ static int cfgparam(struct configfile *cf)
                 myloc_latstr = strdup(latp);
                 myloc_lonstr = strdup(lonp);
 
-                myloc_lat = filter_lat2rad((float)la + lat/60.0);
-                myloc_lon = filter_lon2rad((float)lo + lng/60.0);
+                myloc_lat = (float)la + lat/60.0;
+                myloc_lon = (float)lo + lng/60.0;
 	
                 if (lac == 'S' || lac == 's')
                   myloc_lat = -myloc_lat;
@@ -438,6 +438,9 @@ static int cfgparam(struct configfile *cf)
                 if (debug)
                   printf("%s:%d: MYLOC LAT %8.5f degrees  LON %8.5f degrees\n",
                          cf->name, cf->linenum, myloc_lat, myloc_lon);
+
+                myloc_lat = filter_lat2rad(myloc_lat);
+                myloc_lon = filter_lon2rad(myloc_lon);
 
 
 #ifndef DISABLE_IGATE

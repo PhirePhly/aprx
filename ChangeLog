@@ -1,3 +1,15 @@
+2013-04-23 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* config.c:
+	    Show 'myloc' lat/lon in degrees instead of radians.
+
+	* digipeater.c:
+	    debugging..
+
+	* filter.c:
+	    A fence-post error while parsing o/A8CDEF-12 -- accepted
+	    only A8CDEF-1.
+
 2013-04-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.8.in, aprx-complex.conf.in, aprx.conf.in,
