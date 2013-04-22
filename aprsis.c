@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -18,6 +18,10 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+
+#ifdef HAVE_NETINET_SCTP_H
+#include <netinet/sctp.h>
+#endif
 
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>

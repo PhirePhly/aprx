@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2012                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -23,21 +23,30 @@ struct beaconmsg {
 	int8_t	    timefix;
 };
 
-static struct beaconmsg **beacon_msgs;
+struct beaconset {
+	struct beaconmsg **beacon_msgs;
 
-static int beacon_msgs_count;
-static int beacon_msgs_cursor;
+	int beacon_msgs_count;
+	int beacon_msgs_cursor;
 
-static time_t beacon_nexttime;
-static float  beacon_cycle_size = 20.0*60.0; // 20 minutes
+  	time_t beacon_nexttime;
+	float  beacon_cycle_size;
+};
 
-static void beacon_reset(void)
+static struct beaconset **bsets;
+static int bsets_count;
+
+static void beacon_reset(struct beaconset *bset)
 {
-	beacon_nexttime = now.tv_sec + 30;	/* start 30 seconds from now */
-	beacon_msgs_cursor = 0;
+	bset->beacon_nexttime = now.tv_sec + 30;	/* start 30 seconds from now */
+	bset->beacon_msgs_cursor = 0;
 }
 
-static void beacon_set(struct configfile *cf, const char *p1, char *str, const int beaconmode)
+static void beacon_set(struct configfile *cf,
+                       const char *p1,
+                       char *str,
+                       const int beaconmode,
+                       struct beaconset *bset)
 {
 	const char *srcaddr  = NULL;
 	const char *destaddr = NULL;
@@ -499,11 +508,11 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	}
 
 	/* realloc() works also when old ptr is NULL */
-	beacon_msgs = realloc(beacon_msgs,
-			      sizeof(bm) * (beacon_msgs_count + 3));
+	bset->beacon_msgs = realloc(bset->beacon_msgs,
+                                    sizeof(bm) * (bset->beacon_msgs_count + 3));
 
-	beacon_msgs[beacon_msgs_count++] = bm;
-	beacon_msgs[beacon_msgs_count] = NULL;
+	bset->beacon_msgs[bset->beacon_msgs_count++] = bm;
+	bset->beacon_msgs[bset->beacon_msgs_count] = NULL;
 	
 	if (bm->msg != NULL) {  // Make this into AX.25 UI frame
 	                        // with leading control byte..
@@ -515,7 +524,7 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	  bm->msg = msg;
 	}
 
-	beacon_reset();
+	beacon_reset(bset);
 
 	if (0) {
 	discard_bm:
@@ -526,12 +535,35 @@ static void beacon_set(struct configfile *cf, const char *p1, char *str, const i
 	return;
 }
 
+static void free_beaconmsg(struct beaconmsg *bmsg) {
+	if (bmsg == NULL) return;
+        if (bmsg->src)  free((void*)bmsg->src);
+        if (bmsg->dest) free((void*)bmsg->dest);
+        if (bmsg->via)  free((void*)bmsg->via);
+        if (bmsg->msg)  free((void*)bmsg->msg);
+        if (bmsg->filename) free((void*)bmsg->filename);
+        free(bmsg);
+}
+
+static void free_beaconset(struct beaconset *bset) {
+        int i;
+	if (bset == NULL) return;
+        for (i = 0; i < bset->beacon_msgs_count; ++i) {
+          free_beaconmsg(bset->beacon_msgs[i]);
+        }
+        free(bset);
+}
+
 int beacon_config(struct configfile *cf)
 {
 	char *name, *param1;
 	char *str = cf->buf;
 	int   beaconmode = 0;
 	int   has_fault  = 0;
+
+
+        struct beaconset *bset = calloc(1, sizeof(*bset));
+        bset->beacon_cycle_size = 20.0*60.0; // 20 minutes is the default
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -559,15 +591,15 @@ int beacon_config(struct configfile *cf)
 		    has_fault = 1;
 		    continue;
 		  }
-		  beacon_cycle_size = (float)v;
+		  bset->beacon_cycle_size = (float)v;
 		  if (debug)
 		    printf("Beacon cycle size: %.2f\n",
-			   beacon_cycle_size/60.0);
+			   bset->beacon_cycle_size/60.0);
 		  continue;
 		}
 
 		if (strcmp(name, "beacon") == 0) {
-		  beacon_set(cf, param1, str, beaconmode);
+		  beacon_set(cf, param1, str, beaconmode, bset);
 
 		} else if (strcmp(name, "beaconmode") == 0) {
 		  if (strcasecmp(param1, "both") == 0) {
@@ -592,6 +624,16 @@ int beacon_config(struct configfile *cf)
 		  continue;
 		}
 	}
+        if (has_fault) {
+          // discard it..
+          free_beaconset(bset);
+        } else {
+          // save it..
+          ++bsets_count;
+          bsets = realloc( bsets,sizeof(*bsets)*bsets_count );
+          bsets[bsets_count-1] = bset;
+        }
+
 	return has_fault;
 }
 
@@ -633,7 +675,7 @@ static char *msg_read_file(const char *filename, char *buf, int buflen)
 	return buf;
 }
 
-static void beacon_now(void) 
+static void beacon_now(struct beaconset *bset) 
 {
 	int  destlen;
 	int  txtlen, msglen;
@@ -642,41 +684,41 @@ static void beacon_now(void)
 	char const *txt;
 	char *msg;
 
-	if (beacon_msgs_cursor >= beacon_msgs_count) // Last done..
-		beacon_msgs_cursor = 0;
+	if (bset->beacon_msgs_cursor >= bset->beacon_msgs_count) // Last done..
+		bset->beacon_msgs_cursor = 0;
 
-	if (beacon_msgs_cursor == 0) {
+	if (bset->beacon_msgs_cursor == 0) {
 		float beacon_increment;
 		int   i;
 		time_t t = now.tv_sec;
 
 		srand((long)t);
-		beacon_increment = (beacon_cycle_size / beacon_msgs_count);
+		beacon_increment = (bset->beacon_cycle_size / bset->beacon_msgs_count);
 
 		if (debug)
 			printf("beacons cycle: %.2f minutes, increment: %.2f minutes\n",
-			       beacon_cycle_size/60.0, beacon_increment/60.0);
+			       bset->beacon_cycle_size/60.0, beacon_increment/60.0);
 
-		for (i = 0; i < beacon_msgs_count; ++i) {
+		for (i = 0; i < bset->beacon_msgs_count; ++i) {
 			int r = rand() % 1024;
 			int interval = (int)(beacon_increment - 0.2*beacon_increment * (r*0.001));
 			if (interval < 3) interval = 3; // Minimum interval: 3 seconds
 			t += interval;
 			if (debug)
 				printf("beacons offset: %.2f minutes\n", (t-now.tv_sec)/60.0);
-			beacon_msgs[i]->nexttime = t;
+			bset->beacon_msgs[i]->nexttime = t;
 		}
 	}
 
 	/* --- now the business of sending ... */
 
-	bm = beacon_msgs[beacon_msgs_cursor++];
+	bm = bset->beacon_msgs[bset->beacon_msgs_cursor++];
 
-	beacon_nexttime = bm->nexttime;
+	bset->beacon_nexttime = bm->nexttime;
 
 	if (debug)
 	  printf("BEACON: idx=%d, nexttime= +%d sec\n",
-		 beacon_msgs_cursor-1, (int)(beacon_nexttime - now.tv_sec));
+		 bset->beacon_msgs_cursor-1, (int)(bset->beacon_nexttime - now.tv_sec));
 
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
@@ -732,7 +774,7 @@ static void beacon_now(void)
                     printf("%ld\tNow beaconing to APRSIS %s '%s' -> '%s',",
                            now.tv_sec, callsign, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
                   }
 
 		  // Send them all also as netbeacons..
@@ -749,7 +791,7 @@ static void beacon_now(void)
                     printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
                            now.tv_sec, callsign, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
                   }
 
 		  // The 'destbuf' has a plenty of room
@@ -830,7 +872,7 @@ static void beacon_now(void)
                     printf("%ld\tNow beaconing to APRSIS %s '%s' -> '%s',",
                            now.tv_sec, callsign, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
                   }
 
 		  aprsis_queue(destbuf, strlen(destbuf),
@@ -851,7 +893,7 @@ static void beacon_now(void)
                     printf("%ld\tNow beaconing to interface %s '%s' -> '%s',",
                            now.tv_sec, callsign, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
                   }
 
 		  
@@ -880,15 +922,17 @@ static void beacon_now(void)
 
 int beacon_prepoll(struct aprxpolls *app)
 {
+	int i;
 #ifndef DISABLE_IGATE
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
 #endif
-	if (!beacon_msgs)
-		return 0;	/* Nothing to do */
-
-	if (beacon_nexttime < app->next_timeout)
-		app->next_timeout = beacon_nexttime;
+        for (i = 0; i < bsets_count; ++i) {
+          struct beaconset *bset = bsets[i];
+          if (bset->beacon_msgs == NULL) continue; // nothing here
+          if (bset->beacon_nexttime < app->next_timeout)
+		app->next_timeout = bset->beacon_nexttime;
+        }
 
 	return 0;		/* No poll descriptors, only time.. */
 }
@@ -896,16 +940,17 @@ int beacon_prepoll(struct aprxpolls *app)
 
 int beacon_postpoll(struct aprxpolls *app)
 {
+	int i;
 #ifndef DISABLE_IGATE
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
 #endif
-	if (!beacon_msgs)
-		return 0;	/* Nothing to do */
-	if (beacon_nexttime > now.tv_sec)
-		return 0;	/* Too early.. */
-
-	beacon_now();
+        for (i = 0; i < bsets_count; ++i) {
+          struct beaconset *bset = bsets[i];
+          if (bset->beacon_msgs == NULL) continue; // nothing..
+          if (bset->beacon_nexttime > now.tv_sec) continue; // not yet
+          beacon_now(bset);
+        }
 
 	return 0;
 }
