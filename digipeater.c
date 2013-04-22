@@ -1275,9 +1275,10 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 	// Search for first AX.25 VIA field that does not have H-bit set:
 	viaindex = 1; // First via field is number 2
+        *viafield = 0; // clear that buffer for starters
 	for (; axaddr < e; axaddr += AX25ADDRLEN, ++viaindex) {
+          ax25_to_tnc2_fmtaddress(viafield, axaddr, 0);
           // if (debug>1) {
-          //   ax25_to_tnc2_fmtaddress(viafield, axaddr, 0);
           //   printf(" via: %s", viafield);
           // }
 
