@@ -1,3 +1,18 @@
+2013-04-25 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* telemetry.c:
+	    Pointer writing to beyond end of buffer (one last time)
+
+	* ttyreader.c:
+	    hexdumpfp() text dump fix
+
+	* beacon.c:
+	    Restructured the beacon data preparation for transmit.
+	    Lots of mistakes had crept in recently (2.06?)
+
+	* interface.c, netax25.c:
+	    Debug printouts of processing errors, and transmissions.
+
 2013-04-23 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* config.c:

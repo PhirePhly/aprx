@@ -50,10 +50,12 @@ void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr)
 	fprintf(fp, " = ");
 	for (i = 0, j = 1; i < len; ++i,++j) {
 	  int c = buf[i] & 0xFF;
+          /*
 	  if ((c & 0x81) == 0x80 && (i < 8)) {
 	    // Auto-trigger AX.25 address plaintext converting
 	    axaddr = 1;
 	  }
+          */
 	  if (axaddr && ((c & 0x01) == 1) && i > 3) {
 	    // Definitely not AX.25 address anymore..
 	    axaddr = 0;
