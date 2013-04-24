@@ -763,7 +763,7 @@ void netax25_sendto(const void *nax25p, const uint8_t *axaddr, const int axaddrl
 	}
 
 	if (debug>2) {
-	  printf("netax25_sendto() len=%d,%d",axaddrlen,axdatalen);
+	  printf("netax25_sendto() len=%d,%d ",axaddrlen,axdatalen);
 	  hexdumpfp(stdout, axaddr, axaddrlen, 1);
 	  printf(" // ");
 	  hexdumpfp(stdout, (uint8_t*)axdata, axdatalen, 0);

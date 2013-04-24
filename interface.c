@@ -1070,6 +1070,14 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 	case IFTYPE_TCPIP:
 		// If there is linetype error, kisswrite detects it.
 		// Make it into single buffer to give to KISS sender
+                if (debug>2) {
+                  printf("serial_sendto() len=%d,%d ",axaddrlen,axdatalen);
+                  hexdumpfp(stdout, axaddr, axaddrlen, 1);
+                  printf(" // ");
+                  hexdumpfp(stdout, (uint8_t*)axdata, axdatalen, 0);
+                  printf("\n");
+                }
+
 		axbuf = alloca(axlen);
 		memcpy(axbuf, axaddr, axaddrlen);
 		memcpy(axbuf + axaddrlen, axdata, axdatalen);
@@ -1094,6 +1102,14 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		// Efficient transmitter :-)
 		if (debug>1)
 			printf("tx null-device: %s\n", aif->callsign);
+
+                if (debug>2) {
+                  printf("null_sendto() len=%d,%d ",axaddrlen,axdatalen);
+                  hexdumpfp(stdout, axaddr, axaddrlen, 1);
+                  printf(" // ");
+                  hexdumpfp(stdout, (uint8_t*)axdata, axdatalen, 0);
+                  printf("\n");
+                }
 
 		// Account the transmission anyway ;-)
 		erlang_add(aif->callsign, ERLANG_TX, axaddrlen+axdatalen + 10, 1);
@@ -1669,6 +1685,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	char    axaddrbuf[128];
 	char    *a = axaddrbuf;
 	dupecheck_t *dupechecker;
+        int     axlen;
 
 	if (debug)
 	  printf("interface_transmit_beacon() aif=%p, aif->txok=%d aif->callsign='%s'\n",
@@ -1684,26 +1701,35 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	memset(axaddrbuf, 0, sizeof(axaddrbuf));
 	
 	if (parse_ax25addr(ax25addr +  7, src,  0x60)) {
-	  if (debug) printf("parse_ax25addr('%s') failed.\n", src);
+	  if (debug) printf("parse_ax25addr('%s') failed. [1]\n", src);
 	  return -1;
 	}
 	if (parse_ax25addr(ax25addr +  0, dest, 0x60)) {
-	  if (debug) printf("parse_ax25addr('%s') failed.\n", dest);
+	  if (debug) printf("parse_ax25addr('%s') failed. [2]\n", dest);
 	  return -1;
 	}
 	ax25addrlen = 14; // Initial Src+Dest without any Via.
 
 	a += sprintf(axaddrbuf, "%s>%s", src, dest);
 	*a = 0;
+        axlen = a - axaddrbuf;
 
 	if (via != NULL) {
-	  char    viafield[12];
+	  char viafield[12];
+          int  vialen = strlen(via);
 	  const char *s, *p = via;
-	  const char *ve = via + strlen(via);
+	  const char *ve = via + vialen;
 
 	  *a++ = ',';
-	  strncpy(a, via, sizeof(axaddrbuf)-(a-axaddrbuf)-3);
-	  axaddrbuf[sizeof(axaddrbuf)-3] = 0; // just in case do zero-terminate..
+          axlen = a - axaddrbuf;
+          if (vialen > (sizeof(axaddrbuf)-axlen-3))
+            vialen = (sizeof(axaddrbuf)-axlen-3);
+          if (vialen > 0) {
+            memcpy(a, via, vialen);
+            a += vialen;
+          }
+          *a = 0;
+          axlen = a - axaddrbuf;
 
 	  while (p < ve) {
 	    int len;
@@ -1735,7 +1761,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 	    if (parse_ax25addr(ax25addr + viaindex * 7, viafield, 0x60)) {
 	      // Error on VIA field value
-	      if (debug) printf("parse_ax25addr('%s') failed.\n", viafield);
+	      if (debug) printf("parse_ax25addr('%s') failed. [3]\n", viafield);
 	      return -1;
 	    }
 	    ax25addrlen += 7;
@@ -1770,13 +1796,11 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 
 	if (rflogfile) {
-	  int     axlen;
 	  char    *axbuf;
 
-	  axlen = txlen + strlen(axaddrbuf);
-	  axbuf = alloca(axlen+3);
-	  strcpy( axbuf, axaddrbuf );
-	  a = axbuf + strlen(axbuf);
+	  axbuf = alloca(axlen+txlen+3);
+          memcpy( axbuf, axaddrbuf, axlen );
+	  a = axbuf + axlen;
 	  *a++ = ':';
 	  memcpy(a, txbuf+2, txlen-2); // forget control+pid bytes..
 	  a += txlen -2;   // final assembled message end pointer

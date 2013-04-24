@@ -500,7 +500,7 @@ int telemetry_config(struct configfile *cf)
 				 cf->name, cf->linenum, param1);
 			} else {
 			  // Collect them all...
-			  sources = realloc(sources, sizeof(void*)*(source_count+2));
+			  sources = realloc(sources, sizeof(void*)*(source_count+3));
 			  sources[source_count++] = source_aif;
 			  sources[source_count+1] = NULL;
 			}
