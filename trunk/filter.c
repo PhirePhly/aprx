@@ -1780,7 +1780,7 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 		return 0;
 
 	if (f->h.hist_age < now.tv_sec) {
-		history = historydb_lookup( c->username, strlen(c->username) );
+                history = historydb_lookup( historydb, c->username, strlen(c->username) );
 		f->h.hist_age = now.tv_sec + hist_lookup_interval;
 		if (!history) return 0; /* no result */
 		f->h.u3.numnames = 1;
