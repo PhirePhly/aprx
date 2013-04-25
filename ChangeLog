@@ -1,5 +1,13 @@
 2013-04-25 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* filter.c:
+	    Commented out code, but make it conform with API
+	    of historydb.
+
+	* parse_aprs.c:
+	    The call parameter 'historydb' can be NULL,
+	    don't SEGV on it.
+
 	* telemetry.c:
 	    Pointer writing to beyond end of buffer (one last time)
 

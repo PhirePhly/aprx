@@ -1257,14 +1257,16 @@ int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*co
 			}
 			pb->dstname_len = p - body;
 #ifndef DISABLE_IGATE
-			history = historydb_lookup( historydb, pb->dstname, i );
-			if (history != NULL) {
-				pb->lat     = history->lat;
-				pb->lng     = history->lon;
-				pb->cos_lat = history->coslat;
+                        if (historydb != NULL) {
+                        	history = historydb_lookup( historydb, pb->dstname, i );
+                                if (history != NULL) {
+					pb->lat     = history->lat;
+                                        pb->lng     = history->lon;
+                                        pb->cos_lat = history->coslat;
 			    
-				pb->flags  |= F_HASPOS;
-			}
+                                        pb->flags  |= F_HASPOS;
+                                }
+                        }
 #endif
 		}
 		return 1;
