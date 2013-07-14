@@ -432,8 +432,7 @@ static int scan_linux_devices(void) {
 /* config interface:  ax25-rxport: callsign */
 void *netax25_addrxport(const char *callsign, const struct aprx_interface *interface)
 {
-	struct netax25_pty *nax25p = malloc(sizeof(*nax25p));
-	memset(nax25p, 0, sizeof(*nax25p));
+	struct netax25_pty *nax25p = calloc(1, sizeof(*nax25p));
 
 	nax25p->fd        = -1;
 	nax25p->interface = interface;
@@ -656,6 +655,10 @@ Leads with 00 byte, then AX.25 address..
 	  if (debug>1) printf(".. not from known AX.25 device\n");
 	  return 1;
 	}
+        if (netdev->interface == NULL) {
+	  if (debug>1) printf(".. not from AX.25 device configured for receiving.\n");
+          return 1;
+        }
 
 	if (debug) printf("Received frame of %d bytes from %s: %s\n",
 			  rcvlen, netdev->devname, netdev->callsign);
