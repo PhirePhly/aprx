@@ -1,5 +1,12 @@
 2013-04-25 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* netax25.c:
+	    Receive from AX.25 interface only if it has associated
+	    an Aprx interface configuration object with it.
+	    Less noise on logs that way.
+
+2013-04-25 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* filter.c:
 	    Commented out code, but make it conform with API
 	    of historydb.
