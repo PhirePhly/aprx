@@ -38,6 +38,11 @@ mycall  N0CALL-1
 #
 #login     $mycall	# login defaults to $mycall macro
 
+#
+# Passcode for your callsign
+#
+passcode -1
+
 # APRS-IS server name and optional portnumber.
 #
 # WARNING: Do not change from default port number [14580]

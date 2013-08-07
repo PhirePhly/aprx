@@ -320,6 +320,15 @@ mycall  N0CALL-1
 #
 #login      OTHERCALL-7  # login defaults to $mycall
 
+#
+# The passcode parameter:
+# Unique code for your callsign to allow transmitting packets
+# into the APRS-IS.
+#
+passcode -1
+
+
+
 # APRS-IS server name and portnumber.
 # Every reconnect does re\-resolve the name to IP address.
 # Some alternates are shown below, choose something local to you.

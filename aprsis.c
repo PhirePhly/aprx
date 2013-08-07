@@ -53,10 +53,13 @@ enum aprsis_mode {
         MODE_DTLS
 };
 
+static char default_passcode[] = "-1";
+
 struct aprsis_host {
 	char *server_name;
 	char *server_port;
 	char *login;
+	char *pass;
 	char *filterparam;
 	int heartbeat_monitor_timeout;
 	enum aprsis_mode mode;
@@ -312,29 +315,6 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 
 
 /*
- * APRSpass requires that input callsign is in uppercase ASCII
- * characters (A-Z), or decimal digits.  Characters outside those
- * will terminate the calculation.
- */
-
-static int aprspass(const char *login)
-{
-	int a = 0, h = 29666, c;
-
-	for (; *login; ++login) {
-		c = 0xFF & *login;
-		if ('a' <= c && c <= 'z')
-			c = c - ('a' - 'A');
-		if (!(('0' <= c && c <= '9') || ('A' <= c && c <= 'Z')))
-			break;
-		h ^= ((0xFF & *login) * (a ? 1 : 256));
-		a = !a;
-	}
-	return h;
-}
-
-
-/*
  *  THIS CONNECT ROUTINE WILL BLOCK  (At DNS resolving)
  *  
  *  This is why APRSIS communication is run at either
@@ -457,8 +437,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	/* We do at first sync writing of login, and such.. */
 	s = aprsislogincmd;
-	s += sprintf(s, "user %s pass %d vers %s %s", A->H->login,
-		     aprspass(A->H->login), swname, swversion);
+	s += sprintf(s, "user %s pass %s vers %s %s", A->H->login,
+		    A->H->pass, swname, swversion);
 	if (A->H->filterparam)
 		s += sprintf(s, " filter %s", A->H->filterparam);
 
@@ -902,6 +882,7 @@ int aprsis_add_server(const char *server, const char *port)
 	H->server_port = strdup(port);
 	H->heartbeat_monitor_timeout = 120; // Default timeout 120 seconds
 	H->login       = strdup(aprsis_login);	// global aprsis_login
+	H->pass        = default_passcode;
 	if (H->login == NULL) H->login = strdup(mycall);
 
 	AprsIS->server_socket = -1;
@@ -1171,6 +1152,7 @@ int aprsis_config(struct configfile *cf)
 
 	struct aprsis_host *AIH = calloc(1,sizeof(*AIH));
 	AIH->login              = strdup(mycall);
+        AIH->pass               = default_passcode;
 	AIH->heartbeat_monitor_timeout = 120;
         AIH->mode = MODE_TCP; // default mode
 
@@ -1216,6 +1198,12 @@ int aprsis_config(struct configfile *cf)
 		    if (AIH->login) free(AIH->login);
 		    AIH->login = strdup(param1);
 		  }
+
+		} else if (strcmp(name, "passcode") == 0) {
+		    if (debug)
+		      printf("%s:%d: INFO: PASSCODE = '%s' '%s'\n",
+			     cf->name, cf->linenum, param1, str);
+		    AIH->pass = strdup(param1);
 
 		} else if (strcmp(name, "server") == 0) {
 

@@ -8,6 +8,7 @@
 #
 # For simple case, you need to adjust 4 things:
 #   - Mycall parameter
+#   - passcode parameter in APRS-IS configuration
 #   - Select correct type of interface (ax25-device or serial-device)
 #   - Optionally set a beacon telling where this system is
 #   - Optionally enable digipeater with or without tx-igate
@@ -44,6 +45,13 @@ mycall  N0CALL-1
 # Use this only to define other callsign for APRS\-IS login.
 #
 #login     OTHERCALL-7	# login defaults to $mycall
+
+#
+# Passcode for your callsign:
+# Unique code for your callsign to allow transmitting packets
+# into the APRS-IS.
+#
+passcode -1
 
 # APRS-IS server name and optional portnumber.
 #
