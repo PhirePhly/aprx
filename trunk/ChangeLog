@@ -1,4 +1,10 @@
-2013-04-25 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+2013-08-03 Heikki Hannikainen  <oh7lzb@sral.fi>
+
+	* aprsis.c, aprs-complex.conf.in, aprx.8.in, aprx.conf.in,
+	  doc/aprx-manual.odt:
+	    Require manually configured APRS-IS passcode.
+
+2013-08-03 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* agwpesocket.c, aprsis.c, beacon.c, cellmalloc.c, dprsgw.c,
 	  dupecheck.c, filter.c, historydb.c, keyhash.c, pbuf.c,
