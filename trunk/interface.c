@@ -1472,10 +1472,14 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    //      recently on radio
 	    char recipient[10];
 	    history_cell_t *hist_rx;
-	    int i = pb->dstname_len;
-	    strncpy(recipient, pb->dstname, i);
-            if (i > 9) i = 9;
-	    recipient[i] = 0; // Zero-terminate at 10 chars or less..
+            int i = 0;
+            while ( i < 9 && pb->dstname[i] != 0 && pb->dstname[i] != ' ' ) {
+              recipient[i] = pb->dstname[i];
+              ++i;
+            }
+            recipient[i] = 0;
+
+            pb->dstname_len = strlen(recipient);
 
 	    // FIXME?  Should test all SSIDs of this target callsign,
 	    //         not just this one target,
