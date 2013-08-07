@@ -63,8 +63,7 @@ static void beacon_set(struct configfile *cf,
 	const struct aprx_interface *aif = NULL;
 	int has_fault = 0;
 
-	struct beaconmsg *bm = malloc(sizeof(*bm));
-	memset(bm, 0, sizeof(*bm));
+	struct beaconmsg *bm = calloc(1, sizeof(*bm));
 
 	*buf = 0;
 

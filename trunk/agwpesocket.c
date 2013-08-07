@@ -259,8 +259,7 @@ static struct agwpecom *agwpe_find_or_add_com(const char *hostname, const char *
 
 	// Did not find it, create it..
 
-	com = malloc(sizeof(*com));
-	memset(com, 0, sizeof(*com));
+	com = calloc(1, sizeof(*com));
 	com->fd = -1;
 	com->netaddr = netresolv_add(hostname, hostport);
 	com->rdneed = sizeof(struct agwpeheader);
@@ -285,8 +284,7 @@ void *agwpe_addport(const char *hostname, const char *hostport, const char *agwp
 	  return NULL;
 	}
 
-	S = malloc(sizeof(*S));
-	memset(S, 0, sizeof(*S));
+	S = calloc(1, sizeof(*S));
 
 	com = agwpe_find_or_add_com(hostname, hostport);
 

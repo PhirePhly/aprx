@@ -150,10 +150,8 @@ int new_cellblock(cellarena_t *ca)
 
 cellarena_t *cellinit( const char *arenaname, const int cellsize, const int alignment, const int policy, const int createkb, const int minfree )
 {
-	cellarena_t *ca = malloc(sizeof(*ca));
+	cellarena_t *ca = calloc(1, sizeof(*ca));
 	// int n;
-
-	memset(ca, 0, sizeof(*ca));
 
 	ca->arenaname = arenaname;
 

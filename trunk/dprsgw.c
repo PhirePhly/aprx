@@ -74,9 +74,8 @@ static void dprsgw_flush(dprsgw_t *dp) {
 }
 
 static void *dprsgw_new(void) {
-	dprsgw_t *dp = malloc(sizeof(struct dprs_gw));
-	memset(dp, 0, sizeof(*dp));
-	dprsgw_flush(dp);
+	dprsgw_t *dp = calloc(1, sizeof(struct dprs_gw));
+	dprsgw_flush(dp); // init buffers
 	return dp;
 }
 

@@ -60,8 +60,7 @@ void dupecheck_init(void)
  *
  */
 dupecheck_t *dupecheck_new(const int storetime) {
-	dupecheck_t *dp = malloc(sizeof(dupecheck_t));
-	memset(dp, 0, sizeof(*dp));
+	dupecheck_t *dp = calloc(1, sizeof(dupecheck_t));
 
 	++dupecheckers_count;
 	dupecheckers = realloc(dupecheckers,
@@ -92,8 +91,7 @@ static dupe_record_t *dupecheck_db_alloc(int alen, int pktlen)
 		dp->packet = malloc(pktlen+1);
 #else
 	// directly malloced block is fine as is
-	dp = malloc(pktlen + sizeof(*dp));
-	memset(dp, 0, sizeof(*dp));
+	dp = calloc(1, pktlen + sizeof(*dp));
 	dp->packet = dp->packetbuf; // always suitable size
 #endif
 	dp->alen = alen;

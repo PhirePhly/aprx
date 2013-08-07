@@ -72,14 +72,13 @@ struct pbuf_t *pbuf_alloc( const int axlen,
 	  return NULL;
 	}
 	pb = cellmalloc(pbuf_cells);
+	memset(pb, 0, pblen );
 #else
 	// No size limits with valgrind..
-	struct pbuf_t *pb = malloc( pblen );
+	struct pbuf_t *pb = calloc( 1, pblen );
 #endif
 
 	if (debug > 1) printf("pbuf_alloc(%d,%d) -> %p\n",axlen,tnc2len,pb);
-
-	memset(pb, 0, pblen );
 
 	pb->packet_len = tnc2len;
 	pb->buf_len    = tnc2len;

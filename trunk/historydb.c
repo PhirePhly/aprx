@@ -52,8 +52,7 @@ void historydb_init(void)
 /* new instance - for new digipeater tx */
 historydb_t *historydb_new(void)
 {
-	historydb_t *db = malloc(sizeof(*db));
-	memset(db, 0, sizeof(*db));
+	historydb_t *db = calloc(1, sizeof(*db));
 
 	++_dbs_count;
 	_dbs = realloc(_dbs, sizeof(void*)*_dbs_count);

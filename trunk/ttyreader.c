@@ -763,10 +763,8 @@ aprx_cfmakeraw(t, f)
 
 struct serialport *ttyreader_new(void)
 {
-	struct serialport *tty = malloc(sizeof(*tty));
+	struct serialport *tty = calloc(1, sizeof(*tty));
 	int baud = B1200;
-
-	memset(tty, 0, sizeof(*tty));
 
 	tty->fd = -1;
 	tty->wait_until = now.tv_sec - 1;	/* begin opening immediately */
