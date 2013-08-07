@@ -46,10 +46,12 @@ pthread_attr_t pthr_attrs;
  *
  */
 
-#define MODE_TCP   0
-#define MODE_SSL   1
-#define MODE_SCTP  2
-#define MODE_DTLS  3
+enum aprsis_mode {
+	MODE_TCP,
+        MODE_SSL,
+        MODE_SCTP,
+        MODE_DTLS
+};
 
 struct aprsis_host {
 	char *server_name;
@@ -57,7 +59,7 @@ struct aprsis_host {
 	char *login;
 	char *filterparam;
 	int heartbeat_monitor_timeout;
-	int mode;
+	enum aprsis_mode mode;
 };
 
 struct aprsis {
@@ -1167,10 +1169,10 @@ int aprsis_config(struct configfile *cf)
 	int has_fault = 0;
 	int line0 = cf->linenum;
 
-	struct aprsis_host *AIH = malloc(sizeof(*AIH));
-	memset(AIH, 0, sizeof(*AIH));
-	AIH->login                     = strdup(mycall);
+	struct aprsis_host *AIH = calloc(1,sizeof(*AIH));
+	AIH->login              = strdup(mycall);
 	AIH->heartbeat_monitor_timeout = 120;
+        AIH->mode = MODE_TCP; // default mode
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -1318,8 +1320,7 @@ int aprsis_config(struct configfile *cf)
 
 	} else {
 		if (AprsIS == NULL) {
-			AprsIS = malloc(sizeof(*AprsIS));
-			memset(AprsIS, 0, sizeof(*AprsIS));
+			AprsIS = calloc(1, sizeof(*AprsIS));
 			AprsIS->server_socket = -1;
 			AprsIS->next_reconnect = now.tv_sec;
 		}

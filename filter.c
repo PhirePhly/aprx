@@ -356,7 +356,7 @@ int filter_entrycall_insert(struct pbuf_t *pb)
 #ifndef _FOR_VALGRIND_
 		f = cellmalloc(filter_entrycall_cells);
 #else
-		f = malloc(sizeof(*f));
+		f = calloc(1, sizeof(*f));
 #endif
 		if (f) {
 			f->next  = *fp;
@@ -557,7 +557,7 @@ int filter_wx_insert(struct pbuf_t *pb)
 #ifndef _FOR_VALGRIND_
 		f = cellmalloc(filter_wx_cells);
 #else
-		f = malloc(sizeof(*f));
+		f = calloc(1, sizeof(*f));
 #endif
 		++filter_wx_cellgauge;
 		if (f) {
@@ -820,7 +820,7 @@ static int filter_parse_one_callsignset(struct filter_t **ffp, struct filter_t *
 		ff->h.u5.refcallsigns = refbuf;
 		refcount = ff->h.u3.numnames;
 	} else {
-		refbuf = malloc(sizeof(*refbuf)*refmax);
+		refbuf = calloc(1, sizeof(*refbuf)*refmax);
 		refcount = 0;
 		f0->h.u5.refcallsigns = refbuf;
 		f0->h.u3.numnames  = 0;
@@ -1436,7 +1436,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 	} else
 		f->h.text = strdup(filt0); /* and copy of filter text */
 #else
-	f = malloc(sizeof(*f) + strlen(filt0));
+	f = calloc(1, sizeof(*f) + strlen(filt0));
 	*f = f0; /* store pre-parsed values */
 	f->h.text = f->textbuf;
 	strcpy(f->textbuf, filt); /* and copy of filter text */

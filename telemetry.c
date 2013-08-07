@@ -520,7 +520,7 @@ int telemetry_config(struct configfile *cf)
 	  printf("ERROR: Failures on defining <telemetry> block parameters\n");
 	  printf("       APRS RF-Telemetry will not be activated.\n");
 	} else {
-	  struct rftelemetry *newrf = malloc(sizeof(*newrf));
+	  struct rftelemetry *newrf = calloc(1, sizeof(*newrf));
 	  newrf->transmitter = aif;
 	  newrf->viapath     = viapath;
 	  newrf->sources     = sources;
