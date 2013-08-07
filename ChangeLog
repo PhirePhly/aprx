@@ -1,3 +1,9 @@
+2013-08-03 Frank Knobbe <frank@knobbe.us>
+
+	* interface.c:
+	    Correct the way how messages are passed from APRS-IS to RF.
+	    There was a parse bug around pb->dstname field.
+
 2013-04-25 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* netax25.c:
