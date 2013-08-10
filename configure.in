@@ -22,12 +22,38 @@ if test -z "$LD" ; then
 fi
 AC_SUBST(LD,"$LD")
 
+dnl If on i686, we'll need -march=i686 to get the atomic instructions
+dnl On FreeBSD, the architecture is i386.
+MACHINE="`uname -m`"
+if test "$MACHINE" == "i686" -o "$MACHINE" == "i386"; then
+  CFLAGS_ARCH="-march=i686"
+fi
+OS="`uname`"
+if test "$OS" == "Darwin"; then
+  CFLAGS_ARCH=""
+fi
+AC_SUBST(CFLAGS_ARCH)
+
+dnl Check for GNU make
+AX_CHECK_GNU_MAKE()
+
 
 dnl Check for headers.
-AC_CHECK_HEADERS(time.h sys/time.h stdlib.h stddef.h stdint.h alloca.h)
+AC_CHECK_HEADERS(time.h sys/time.h stdlib.h stddef.h stdint.h)
 AC_CHECK_HEADERS(string.h strings.h)
 AC_CHECK_HEADERS(pty.h)
 AC_CHECK_HEADERS(pthread.h)
+
+dnl Checks for system headers
+AC_CHECK_HEADERS([alloca.h],    AC_DEFINE([HAVE_ALLOCA_H]))
+AC_CHECK_HEADERS([poll.h],      AC_DEFINE([HAVE_POLL_H]))
+dnl AC_CHECK_FUNC(ppoll,,[Probably have ppoll of Linux])
+AC_CHECK_HEADERS([sys/epoll.h], AC_DEFINE([HAVE_SYS_EPOLL_H]))
+
+dnl SCTP checks
+AC_CHECK_HEADERS([netinet/sctp.h], AC_DEFINE([HAVE_NETINET_SCTP_H]))
+
+
 
 dnl Check for varargs
 AC_CHECK_HEADERS(stdarg.h varargs.h)
@@ -195,7 +221,22 @@ if test "$ac_cv_func_socketpair" = no -a "$LIBSOCKET" != ""; then
   LIBS="$t_oldLibs"
 fi
 
-AC_CHECK_HEADERS(netinet/sctp.h)
+dnl Check for openssl
+AC_ARG_WITH(openssl, [  --with-openssl[=DIR]    Include OpenSSL support (requires OpenSSL >= 0.9.7)], [with_openssl=$withval], [with_openssl=no])
+AC_SUBST(LIBSSL)
+AC_SUBST(LIBCRYPTO)
+if test "$with_openssl" != "no" ; then
+  AC_CHECK_HEADERS([openssl/ssl.h])
+  AC_SEARCH_LIBS(TLSv1_server_method, ssl, AC_DEFINE(HAVE_TLSV1_SERVER_METHOD, 1, [OpenSSL 0.9.7 or later]))
+  AC_SEARCH_LIBS(X509_free, crypto, AC_DEFINE(HAVE_X509_FREE, 1, [OpenSSL 0.9.7 or later]))
+  
+  if test "$ac_cv_search_TLSv1_server_method" = "-lssl"; then
+    LIBSSL="-lssl"
+  fi
+  if test "$ac_cv_search_X509_free" = "-lcrypto"; then
+    LIBCRYPTO="-lcrypto"
+  fi
+fi
 
 dnl Output files
 AC_CONFIG_FILES([Makefile])

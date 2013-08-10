@@ -1,3 +1,8 @@
+2013-08-10 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* configure.in:
+	    Look for OpenSSL library, SCTP network protocol.
+
 2013-08-03 Heikki Hannikainen  <oh7lzb@sral.fi>
 
 	* aprsis.c, aprs-complex.conf.in, aprx.8.in, aprx.conf.in,
