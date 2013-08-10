@@ -621,11 +621,14 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+LIBCRYPTO
+LIBSSL
 LIBRESOLV
 LIBSOCKET
 LIBGETADDRINFO
 LIBPTHREAD
 LIBM
+CFLAGS_ARCH
 LD
 EGREP
 GREP
@@ -685,6 +688,7 @@ with_pthread
 with_pthreads
 enable_igate
 enable_agwpe
+with_openssl
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1312,6 +1316,7 @@ Optional Packages:
   --with-erlangstorage  When desiring a longer term backing storage on erlang datasets.  NOT compatible with EMBEDDED, REQUIRES FILESYSTEM!
   --with-pthread   When desiring use pthread subsystem
   --with-pthreads  (mistyped pthread) When desiring use pthread subsystem
+  --with-openssl=DIR    Include OpenSSL support (requires OpenSSL >= 0.9.7)
 
 Some influential environment variables:
   CC          C compiler command
@@ -3250,6 +3255,18 @@ fi
 LD="$LD"
 
 
+MACHINE="`uname -m`"
+if test "$MACHINE" == "i686" -o "$MACHINE" == "i386"; then
+  CFLAGS_ARCH="-march=i686"
+fi
+OS="`uname`"
+if test "$OS" == "Darwin"; then
+  CFLAGS_ARCH=""
+fi
+
+
+AX_CHECK_GNU_MAKE()
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
 $as_echo_n "checking for ANSI C header files... " >&6; }
@@ -3380,7 +3397,7 @@ fi
 done
 
 
-for ac_header in time.h sys/time.h stdlib.h stddef.h stdint.h alloca.h
+for ac_header in time.h sys/time.h stdlib.h stddef.h stdint.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -3429,6 +3446,62 @@ _ACEOF
 fi
 
 done
+
+
+for ac_header in alloca.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "alloca.h" "ac_cv_header_alloca_h" "$ac_includes_default"
+if test "x$ac_cv_header_alloca_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ALLOCA_H 1
+_ACEOF
+ $as_echo "#define HAVE_ALLOCA_H 1" >>confdefs.h
+
+fi
+
+done
+
+for ac_header in poll.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "poll.h" "ac_cv_header_poll_h" "$ac_includes_default"
+if test "x$ac_cv_header_poll_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_POLL_H 1
+_ACEOF
+ $as_echo "#define HAVE_POLL_H 1" >>confdefs.h
+
+fi
+
+done
+
+for ac_header in sys/epoll.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "sys/epoll.h" "ac_cv_header_sys_epoll_h" "$ac_includes_default"
+if test "x$ac_cv_header_sys_epoll_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SYS_EPOLL_H 1
+_ACEOF
+ $as_echo "#define HAVE_SYS_EPOLL_H 1" >>confdefs.h
+
+fi
+
+done
+
+
+for ac_header in netinet/sctp.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "netinet/sctp.h" "ac_cv_header_netinet_sctp_h" "$ac_includes_default"
+if test "x$ac_cv_header_netinet_sctp_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NETINET_SCTP_H 1
+_ACEOF
+ $as_echo "#define HAVE_NETINET_SCTP_H 1" >>confdefs.h
+
+fi
+
+done
+
+
 
 
 for ac_header in stdarg.h varargs.h
@@ -4109,19 +4182,153 @@ $as_echo "Has  socketpair()  when using  $LIBSOCKET" >&6; }
   LIBS="$t_oldLibs"
 fi
 
-for ac_header in netinet/sctp.h
+
+# Check whether --with-openssl was given.
+if test "${with_openssl+set}" = set; then :
+  withval=$with_openssl; with_openssl=$withval
+else
+  with_openssl=no
+fi
+
+
+
+if test "$with_openssl" != "no" ; then
+  for ac_header in openssl/ssl.h
 do :
-  ac_fn_c_check_header_mongrel "$LINENO" "netinet/sctp.h" "ac_cv_header_netinet_sctp_h" "$ac_includes_default"
-if test "x$ac_cv_header_netinet_sctp_h" = xyes; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_NETINET_SCTP_H 1
+#define HAVE_OPENSSL_SSL_H 1
 _ACEOF
 
 fi
 
 done
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing TLSv1_server_method" >&5
+$as_echo_n "checking for library containing TLSv1_server_method... " >&6; }
+if ${ac_cv_search_TLSv1_server_method+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
 
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char TLSv1_server_method ();
+int
+main ()
+{
+return TLSv1_server_method ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' ssl; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_TLSv1_server_method=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_TLSv1_server_method+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_TLSv1_server_method+:} false; then :
+
+else
+  ac_cv_search_TLSv1_server_method=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_TLSv1_server_method" >&5
+$as_echo "$ac_cv_search_TLSv1_server_method" >&6; }
+ac_res=$ac_cv_search_TLSv1_server_method
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+$as_echo "#define HAVE_TLSV1_SERVER_METHOD 1" >>confdefs.h
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing X509_free" >&5
+$as_echo_n "checking for library containing X509_free... " >&6; }
+if ${ac_cv_search_X509_free+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char X509_free ();
+int
+main ()
+{
+return X509_free ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' crypto; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_X509_free=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_X509_free+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_X509_free+:} false; then :
+
+else
+  ac_cv_search_X509_free=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_X509_free" >&5
+$as_echo "$ac_cv_search_X509_free" >&6; }
+ac_res=$ac_cv_search_X509_free
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+$as_echo "#define HAVE_X509_FREE 1" >>confdefs.h
+
+fi
+
+
+  if test "$ac_cv_search_TLSv1_server_method" = "-lssl"; then
+    LIBSSL="-lssl"
+  fi
+  if test "$ac_cv_search_X509_free" = "-lcrypto"; then
+    LIBCRYPTO="-lcrypto"
+  fi
+fi
 
 ac_config_files="$ac_config_files Makefile"
 
