@@ -320,7 +320,7 @@ static int match_transmitter(const char *viafield, const struct digipeater_sourc
 }
 
 static int try_reject_filters(const int  fieldtype,
-			      const char *viafield,
+			      const char *field,
 			      struct digipeater_source *src)
 {
 	int i;
@@ -329,43 +329,43 @@ static int try_reject_filters(const int  fieldtype,
 	case 0: // Source
 		for (i = 0; i < src->sourceregscount; ++i) {
 			stat = regexec(src->sourceregs[i],
-				       viafield, 0, NULL, 0);
+				       field, 0, NULL, 0);
 			if (stat == 0)
 				return 1;	/* MATCH! */
 		}
-		if (memcmp("MYCALL",viafield,6)==0) return 1;
-		if (memcmp("N0CALL",viafield,6)==0) return 1;
-		if (memcmp("NOCALL",viafield,6)==0) return 1;
+		if (memcmp("MYCALL",field,6)==0) return 1;
+		if (memcmp("N0CALL",field,6)==0) return 1;
+		if (memcmp("NOCALL",field,6)==0) return 1;
 		break;
 	case 1: // Destination
 
 		for (i = 0; i < src->destinationregscount; ++i) {
 			int stat = regexec(src->destinationregs[i],
-					   viafield, 0, NULL, 0);
+					   field, 0, NULL, 0);
 			if (stat == 0)
 				return 1;	/* MATCH! */
 		}
-		if (memcmp("MYCALL",viafield,6)==0) return 1;
-		if (memcmp("N0CALL",viafield,6)==0) return 1;
-		if (memcmp("NOCALL",viafield,6)==0) return 1;
+		if (memcmp("MYCALL",field,6)==0) return 1;
+		if (memcmp("N0CALL",field,6)==0) return 1;
+		if (memcmp("NOCALL",field,6)==0) return 1;
 		break;
 	case 2: // Via
 
 		for (i = 0; i < src->viaregscount; ++i) {
 			int stat = regexec(src->viaregs[i],
-					   viafield, 0, NULL, 0);
+					   field, 0, NULL, 0);
 			if (stat == 0)
 				return 1;	/* MATCH! */
 		}
-		if (memcmp("MYCALL",viafield,6)==0) return 1;
-		if (memcmp("N0CALL",viafield,6)==0) return 1;
-		if (memcmp("NOCALL",viafield,6)==0) return 1;
+		if (memcmp("MYCALL",field,6)==0) return 1;
+		if (memcmp("N0CALL",field,6)==0) return 1;
+		if (memcmp("NOCALL",field,6)==0) return 1;
 		break;
 	case 3: // Data
 
 		for (i = 0; i < src->dataregscount; ++i) {
 			int stat = regexec(src->dataregs[i],
-					   viafield, 0, NULL, 0);
+					   field, 0, NULL, 0);
 			if (stat == 0)
 				return 1;	/* MATCH! */
 		}
@@ -1273,13 +1273,14 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
           if (taillen > 0)
             memmove(axaddr+AX25ADDRLEN, axaddr, taillen);
           state.ax25addrlen += AX25ADDRLEN;
+          e = state.ax25addr + state.ax25addrlen; // recalculate!
 
           // Put the transmitter callsign in
           memcpy(axaddr, digi->transmitter->ax25call, AX25ADDRLEN);
 
           // Set Address Termination bit at the last VIA field
           // (possibly ours, or maybe the previous one was truncated..)
-          axaddr[taillen-1] |= AX25ATERM;
+          axaddr[state.ax25addrlen-1] |= AX25ATERM;
         }
 
 	// Search for first AX.25 VIA field that does not have H-bit set:

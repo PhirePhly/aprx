@@ -71,6 +71,12 @@ static void usage(void)
 	exit(64);		/* EX_USAGE */
 }
 
+static void versionprint()
+{
+	printf("aprx: %s\n", swversion);
+        exit(1);
+}
+
 void fd_nonblockingmode(int fd)
 {
 	int __i = fcntl(fd, F_GETFL, 0);
@@ -98,7 +104,7 @@ int main(int argc, char *const argv[])
 	setlinebuf(stdout);
 	setlinebuf(stderr);
 
-	while ((i = getopt(argc, argv, "def:hiLl:v?")) != -1) {
+	while ((i = getopt(argc, argv, "def:hiLl:vV?")) != -1) {
 		switch (i) {
 		case '?':
 		case 'h':
@@ -128,6 +134,9 @@ int main(int argc, char *const argv[])
 		case 'f':
 			cfgfile = optarg;
 			break;
+                case 'V':
+                	versionprint();
+                	break;
 		default:
 			break;
 		}

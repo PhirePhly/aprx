@@ -329,6 +329,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	char *s;
 	char aprsislogincmd[3000];
 	const char *errstr;
+        int errcode;
 
 	memset(aprsislogincmd, 0, sizeof(aprsislogincmd)); // please valgrind
 
@@ -364,6 +365,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	i = getaddrinfo(A->H->server_name, A->H->server_port, &req, &ai);
 	errstr = "address resolution failure";
+        errcode = errno;
 
 	if (i != 0) {
 
@@ -375,8 +377,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 		aprsis_close(A, "fail on connect");
 
-		aprxlog(NULL, 0, "FAIL - Connect to %s:%s failed: %s\n",
-			A->H->server_name, A->H->server_port, errstr);
+		aprxlog(NULL, 0, "FAIL - Connect to %s:%s failed: %s - errno=%d - %s\n",
+			A->H->server_name, A->H->server_port, errstr, errno, strerror(errcode));
 		return;
 	}
 
@@ -402,16 +404,19 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	for (n = 0; (a = ap[n]) && A->server_socket < 0; ++n) {
 
+		errstr = "socket formation failed";
+
 		A->server_socket =
 			socket(a->ai_family, a->ai_socktype,
 			       a->ai_protocol);
+                errcode = errno;
 
-		errstr = "socket formation failed";
 		if (A->server_socket < 0)
 			continue;
 
 		errstr = "connection failed";
 		i = connect(A->server_socket, a->ai_addr, a->ai_addrlen);
+                errcode = errno;
 
 		if (i < 0) {
 			/* If connection fails, try next possible address */

@@ -631,6 +631,11 @@ int beacon_config(struct configfile *cf)
           ++bsets_count;
           bsets = realloc( bsets,sizeof(*bsets)*bsets_count );
           bsets[bsets_count-1] = bset;
+
+          if (debug > 0) {
+            printf("<beacon> set %d defined with %d entries\n",
+                   bsets_count, bset->beacon_msgs_count);
+          }
         }
 
 	return has_fault;

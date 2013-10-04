@@ -1,3 +1,26 @@
+2013-10-05 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* configure.in, Makefile.in, aprx.c, aprx.8.in:
+	    Support integrated binary version printout:
+	         aprx -V
+
+	* configure.in, Makefile.in:
+	     Preparing for new code features, picking up more
+	     library locations.
+
+	* aprsis.c:
+	     Improve the error diagnostics on upstream socket
+	     connection error situations.
+
+	* beacon.c:
+	     Debug report number of parsed beacons.
+
+2013-10-03 Geoffrey F4FXL <max@planetemax.com>
+
+	* digipeater.c:
+	    Fixed badly formatted AX.25 after insertion of MYCALL
+	    value on VIA path. The end-pointer was mis-managed.
+
 2013-08-10 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* configure.in:
