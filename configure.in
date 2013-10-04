@@ -238,6 +238,12 @@ if test "$with_openssl" != "no" ; then
   fi
 fi
 
+dnl Define compilation variables supplying version information
+t_vers="`cat VERSION`"
+AC_SUBST(VERSION_STRING, "`cat VERSION`")
+t_vers="`cat SVNVERSION`"
+AC_SUBST(SVNVERSION_STRING, "$t_vers")
+
 dnl Output files
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

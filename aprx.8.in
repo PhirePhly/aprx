@@ -9,6 +9,7 @@
 .RB [ \-e ]
 .RB [ \-i ]
 .RB [ \-v ]
+.RB [ \-V ]
 .RB [ \-l " \fIsyslogfacilityname\fR]"
 .RB [ \-f " \fI@CFGFILE@\fR]"
 .SH DESCRIPTION
@@ -166,6 +167,9 @@ Verbose logging of received traffic to STDOUT.
 Lines begin with reception timestamp (UNIX time_t seconds), then TAB,
 and either data as is, or with prefix byte: "*" for "discarded due to data content",
 or possibly "#" for "discarded due to APRS-IS being unreachable".
+.TP
+.B "\-V"
+Print source version compiled to this binary, and exit.
 .PP
 .SS DEBUGGING SYSTEM
 Use parameter set 
