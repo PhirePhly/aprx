@@ -1,6 +1,9 @@
 2013-10-06 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* filter.c:
+	    Code cleaning around reference definitions.
+
+	* filter.c:
 	    * Add feature to recognize 3rd-party frames by type (t/3)
 	    * Enable support of D filter (they are meaningful at RF too)
 

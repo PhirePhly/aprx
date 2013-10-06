@@ -1161,7 +1161,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
                 f0.h.type = 'r'; // internal implementation at Aprx is a RANGE filter.
                 f0.h.f_latN      = myloc_lat; // radians
                 f0.h.f_lonE      = myloc_lon; // radians
-                f0.h.u1.f_coslat = myloc_coslat; // radians
+                f0.h.u1.f_coslat = myloc_coslat;
 
 		i = sscanf(filt+1, "/%f", &f0.h.u2.f_dist);
 		if (i != 1 || f0.h.u2.f_dist < 0.1) {
@@ -1584,7 +1584,7 @@ static int filter_process_one_b(struct pbuf_t *pb, struct filter_t *f)
 	if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
 
 	/* source address  "addr">... */
-	memset( ref.callsign, 0, sizeof(ref.callsign));
+        memset( &ref, 0, sizeof(ref) ); // clear it all
 	memcpy( ref.callsign, pb->data, i);
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
@@ -1623,8 +1623,8 @@ static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 		// hlog(LOG_INFO, "d:  -> (%d,%d) '%.*s'", (int)(d-pb->data), i, i, d);
 
 		// digipeater address  ",addr,"
+                memset( &ref, 0, sizeof(ref) ); // clear it all
 		memcpy( ref.callsign, d, i);
-		memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 		if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
 
@@ -1659,8 +1659,8 @@ static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 		return 0; /* Bad Entry-station callsign */
 
 	/* entry station address  "qA*,addr," */
+	memset( &ref, 0, sizeof(ref) ); // clear it all
 	memcpy( ref.callsign, e, i);
-	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
@@ -1825,7 +1825,7 @@ static int filter_process_one_o(struct pbuf_t *pb, struct filter_t *f)
         }
 
 	/* object name */
-	memset( ref.callsign, 0, sizeof(ref.callsign) ); // clear it all
+	memset( &ref, 0, sizeof(ref) ); // clear it all
 	memcpy( ref.callsign, pb->srcname, i); // copy the interesting part
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
@@ -1849,8 +1849,8 @@ static int filter_process_one_p(struct pbuf_t *pb, struct filter_t *f)
 	if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
 
 	/* source address  "addr">... */
+	memset( &ref, 0, sizeof(ref) ); // clear it all
 	memcpy( ref.callsign, pb->data, i);
-	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchPrefix);
 }
@@ -2031,8 +2031,8 @@ static int filter_process_one_s(struct pbuf_t *pb, struct filter_t *f)
 
 static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
-	/* [-]t/poimntqsu
-	   [-]t/poimntqsu/call/km
+	/* [-]t/poimntqsu3*c
+	   [-]t/poimntqsu3*c/call/km
 
 	   Type filter 	Pass all traffic based on packet type.
 	   One or more types can be defined at the same time, t/otq
@@ -2051,6 +2051,7 @@ static int filter_process_one_t(struct pbuf_t *pb, struct filter_t *f, historydb
 	   t = Telemetry
 	   u = User-defined
 	   w = Weather
+           3 = 3rd party frame
 
 	   Note: The weather type filter also passes positions packets
 	   for positionless weather packets.
@@ -2183,8 +2184,8 @@ static int filter_process_one_u(struct pbuf_t *pb, struct filter_t *f)
 	*/
 
 	/* destination address  ">addr," */
+	memset( &ref, 0, sizeof(ref) ); // clear it all
 	memcpy( ref.callsign,   d, i);
-	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
