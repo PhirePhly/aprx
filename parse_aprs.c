@@ -1064,7 +1064,7 @@ int parse_aprs_txgate(struct pbuf_t *pb, int look_inside_3rd_party, historydb_t 
  *	Return 0 for parse failures, 1 for OK.
  */
 
-int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*const historydb)
+int parse_aprs(struct pbuf_t*const pb, historydb_t*const historydb)
 {
 	char packettype, poschar;
 	int paclen;
@@ -1074,11 +1074,13 @@ int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*co
 	const char *pos_start;
 	const char *info_start = pb->info_start;
 
-	if (!pb->info_start)
-		return 0;
+	int look_inside_3rd_party = 1; // Look there once..
 
 	pb->packettype = T_ALL;
 	pb->flags      = 0;
+
+	if (!pb->info_start)
+		return 0;
 
 	if (pb->data[0] == 'C' && /* Perhaps CWOP ? */
 	    pb->data[1] == 'W') {
@@ -1097,14 +1099,14 @@ int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*co
 	 * Perl module to C
 	 */
 	
-	/* ignore the CRLF in the end of the body */
+	// ignore the CRLF in the end of the body
 	body_end = pb->data + pb->packet_len; // NOTE! Difference from original aprsc code
 
 	do {
-		/* body is right after the packet type character */
+		// body is right after the packet type character
 		body     = info_start + 1;
 
-		/* length of the info field: */
+		// length of the info field:
 		paclen = body_end - info_start;
 
 		if (paclen < 1) return 0; // consumed all, or empty packet
@@ -1113,7 +1115,7 @@ int parse_aprs(struct pbuf_t*const pb, int look_inside_3rd_party, historydb_t*co
 		// determine the packet type
 		packettype = *info_start;
 
-		/* Exit this loop unless it is 3rd-party frame */
+		// Exit this loop unless it is 3rd-party frame
 		if (packettype != '}') break;
 
 		// Look for ':' character separating address block

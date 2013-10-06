@@ -985,7 +985,7 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 
 	    // If APRS packet, then parse for APRS meaning ...
 	    if (is_aprs) {
-		int rc = parse_aprs(pb, 0,
+		int rc = parse_aprs(pb,
 #ifndef DISABLE_IGATE
 				    historydb
 #else
@@ -1258,8 +1258,9 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 
         pb->source_if_group = 0; // 3rd-party frames are always from APRSIS
 
+
         // This is APRS packet, parse for APRS meaning ...
-        rc = parse_aprs(pb, 1, NULL); // look inside 3rd party -- TODO: but what HISTORYDB ?
+        rc = parse_aprs(pb, NULL); // look inside 3rd party -- historydb is looked up again below
         if (debug) {
           const char *srcif = aif->callsign ? aif->callsign : "??";
           printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
@@ -1288,13 +1289,31 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  struct digipeater_source *digisrc = aif->digisources[d];
 	  struct digipeater        *digi    = digisrc->parent;
 	  struct aprx_interface    *tx_aif  = digi->transmitter;
+#ifndef DISABLE_IGATE
 	  historydb_t            *historydb = digi->historydb;
+#endif
 	  char *srcif;
 	  int  discard_this, filter_discard;
           char     tnc2buf[2800];
           uint8_t  ax25buf[2800];
           int ax25addrlen, ax25len;
           int tnc2addrlen, tnc2len;
+
+          // This is APRS packet, parse for APRS meaning ...
+          rc = parse_aprs(pb,
+#ifndef DISABLE_IGATE
+                          historydb // Transmitter HistoryDB
+#else
+                          NULL
+#endif
+                          ); // look inside 3rd party -- TODO: but what HISTORYDB ?
+          if (debug) {
+            const char *srcif = aif->callsign ? aif->callsign : "??";
+            printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
+                   rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,
+                   pb->info_start);
+          }
+
 
 	  // Produced 3rd-party packet:
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
@@ -1389,7 +1408,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  srcif = aif->callsign ? aif->callsign : "??";
 
 	  // This is APRS packet, parse for APRS meaning ...
-	  rc = parse_aprs(pb, 1, historydb); // look inside 3rd party
+	  rc = parse_aprs(pb, historydb); // look inside 3rd party
 	  if (debug)
 	    printf(".. parse_aprs() rc=%s  type=0x%02x srcif=%s tnc2addr='%s'  info_start='%s'\n",
 		   rc ? "OK":"FAIL", pb->packettype, srcif, pb->data,

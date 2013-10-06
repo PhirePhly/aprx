@@ -704,7 +704,7 @@ extern struct pbuf_t *pbuf_new(const int is_aprs, const int digi_like_aprs, cons
 
 
 /* parse_aprs.c */
-extern int parse_aprs(struct pbuf_t*const pb, int look_into_3rd_party, historydb_t*const historydb);
+extern int parse_aprs(struct pbuf_t*const pb, historydb_t*const historydb);
 
 struct aprs_message_t {
         const char *body;          /* message body */
