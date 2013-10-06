@@ -1,5 +1,9 @@
 2013-10-06 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* filter.c:
+	    Add 'g/call1/call2..' filter to match "group messaging" recently
+	    added on javAPRSSrvr.
+
 	* doc/aprx-manual.odt:
 	    Document internally supported APRS-IS style filter tokens.
 
