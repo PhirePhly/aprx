@@ -2,18 +2,22 @@
 
 				TODO / Wishlist
 
-- Embedded Perl and/or Python?
+- SSL mode to talk to APRS-IS. (Aprsc speaks SSL very efficiently.)
+
+- SCTP communication protocol to APRS-IS matching Aprsc's code
+
+- Embedded Perl and/or Python?  That would allow folks to cook up
+  arbitrary action scripts for who knows what purposes...
 
 - Socket API to send/receive/monitor packets?
   To get Protocol Buffer or JSON/BSON wrapped datasets of parsed frame
   including lat/lon of the packet, type info, etc. ?
+   - BPQ32 protocol?
+   - AWGPE protocol?
+   - Copy-of-APRSIS ?  (okay(ish) for monitor + transmit to APRS-IS..)
 
 - Message destined to $MYCALL to be logged at at syslog INFO level,
   and acknowledged(?)
-
-- digipeater.c: around line 1300 the call of  dupecheck_aprs() is getting
-  wrong kind of data (binary AX.25 instead of TNC2 text).
-  (k3pdk + iw3ijq supplied a patch which needs further analysis.)
 
 - Tx-IGate filter rules (interface.c)
   Tx-IGate is lacking following things, but it is already doing most
@@ -39,15 +43,7 @@
 - OpenTRAC support ?  (UI, PID=0x77)
   - Yes, on DIGIPEATER ONLY - what about WIDEn-N ? Y/N ?
 
-- "<interface> serial-device ... KISS .." to support more esoteric polling
-  modes (being worked at 2.04/2.05)
-
-- KISS to define multiple KISS parameters, a sort of macro for defining
-  initstring by producing formatted KISS frames of parameter entries.
-
 - Windows port?
-  - AGWPE interface for Windows ?
-  - BPQ32 interface ?
 
 - Colorize debug printout (or make another tool to colorize aprx-rf.log)
     - rx-packets green (or blue), tx-packets red
@@ -55,9 +51,6 @@
 
 - Use internal APRS packet parser to validate beacon configurations.
   This should be able to flag bad input on RAW beacon data.
-
-- DPRS-to-APRS gateway
-  Rx-iGate and Rx-DPRS-to-APRS exist.  Tx to DPRS not even in plans.
 
 - Calculate and note APRS DXes (like digi_ned does) ?
 - Calculate ALOHA range, and publish it?
@@ -106,4 +99,4 @@ BoB:
 	72 secnds the channel was clear.
 
 
-by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2012
+by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2013
