@@ -36,8 +36,8 @@
   q/con/ana 	 	q Contruct filter
   r/lat/lon/dist  	Range filter
   s/pri/alt/over  	Symbol filter
-  t/poimntqsu*c		Type filter
-  t/poimntqsu*c/call/km	Type filter
+  t/poimntqsu3*c	Type filter
+  t/poimntqsu3*c/call/km Type filter
   u/unproto1/unproto2/.. Unproto filter (*)
 
   Sample usage frequencies (out of entire APRS-IS):
@@ -1098,7 +1098,6 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 
 
 		break;
-#if 0
 	case 'd':
 	case 'D':
 		/* d/digi1/digi2...  	Digipeater filter (*)	*/
@@ -1110,7 +1109,6 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 			return 0;
 
 		break;
-#endif
 #if 0
 	case 'e':
 	case 'E':
@@ -1161,9 +1159,9 @@ int filter_parse(struct filter_t **ffp, const char *filt)
                 }
                 
                 f0.h.type = 'r'; // internal implementation at Aprx is a RANGE filter.
-                f0.h.f_latN = myloc_lat; // radians
-                f0.h.f_lonE = myloc_lon; // radians
-
+                f0.h.f_latN      = myloc_lat; // radians
+                f0.h.f_lonE      = myloc_lon; // radians
+                f0.h.u1.f_coslat = myloc_coslat; // radians
 
 		i = sscanf(filt+1, "/%f", &f0.h.u2.f_dist);
 		if (i != 1 || f0.h.u2.f_dist < 0.1) {
@@ -1342,6 +1340,9 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 			case '*':
 				f0.h.u4.bitflags |= ~T_CWOP; /* "ALL" -- excluding CWOP */
 				break;
+                        case '3':
+				f0.h.u4.bitflags |= T_THIRDPARTY;
+                        	break;
 			case 'c': case 'C':
 				f0.h.u4.bitflags |= T_CWOP;
 				break;
@@ -1589,16 +1590,15 @@ static int filter_process_one_b(struct pbuf_t *pb, struct filter_t *f)
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
 
-#if 0
 static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* d/digi1/digi2...  	Digipeater filter
 
-	   The digipeater filter will pass all packets that have been
+	   The digipeater filter will match all packets that have been
 	   digipeated by a particular station(s) (the station's call
 	   is in the path).   This filter allows the * wildcard.
 
-	   25-35 filters in use at any given time.
+	   25-35 instances in APRS-IS core at any given time.
 	   Up to 1300 invocations per second.
 	*/
 	struct filter_refcallsign_t ref;
@@ -1612,9 +1612,9 @@ static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 
 	for (i = 0; d < q; ) {
 		++j;
-		if (j > 10) break; /* way too many callsigns... */
+		if (j > 10) break; // way too many callsigns... (code bug?)
 
-		if (*d == ',') ++d; /* second round and onwards.. */
+		if (*d == ',') ++d; // second round and onwards..
 		for (i = 0; i+d <= q && i <= CALLSIGNLEN_MAX; ++i) {
 			if (d[i] == ',')
 				break;
@@ -1622,7 +1622,7 @@ static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 
 		// hlog(LOG_INFO, "d:  -> (%d,%d) '%.*s'", (int)(d-pb->data), i, i, d);
 
-		/* digipeater address  ",addr," */
+		// digipeater address  ",addr,"
 		memcpy( ref.callsign, d, i);
 		memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
 
@@ -1636,14 +1636,13 @@ static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 	}
 	return 0;
 }
-#endif
 
 #if 0
 static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* e/call1/call1/...  	Entry station filter
 
-	   This filter passes all packets with the specified
+	   This filter matches all packets with the specified
 	   callsign-SSID(s) immediately following the q construct.
 	   This allows filtering based on receiving IGate, etc.
 	   Supports * wildcard.
@@ -1671,6 +1670,7 @@ static int filter_process_one_e(struct pbuf_t *pb, struct filter_t *f)
 static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb_t *historydb)
 {
 	/* f/call/dist  	Friend Range filter
+
 	   This is the same as the range filter except that the center is
 	   defined as the last known position of call.
 
@@ -1747,10 +1747,11 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 }
 #endif
 
-#if 0
+#if 0  // No M filter implementation, but there is M filter parse producing R filter..
 static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* m/dist  	My Range filter
+
 	   This is the same as the range filter except that the center is
 	   defined as the last known position of the logged in client.
 
@@ -1765,40 +1766,21 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 
 	   Caching the historydb_lookup() result will lower CPU power
 	   spent on the historydb.
+
+           At Aprx: Implemented using Range filter, and prepared at parse time..
 	*/
 
-	float lat1, lon1, coslat1;
 	float lat2, lon2, coslat2;
 	float r;
-	history_cell_t *history;
-
 
 	if (!(pb->flags & F_HASPOS)) /* packet with a position.. (msgs with RECEIVER's position) */
 		return 0;
-
-	if (!c->username) /* Should not happen... */
-		return 0;
-
-	if (f->h.hist_age < now.tv_sec) {
-                history = historydb_lookup( historydb, c->username, strlen(c->username) );
-		f->h.hist_age = now.tv_sec + hist_lookup_interval;
-		if (!history) return 0; /* no result */
-		f->h.u3.numnames = 1;
-		f->h.f_latN   = history->lat;
-		f->h.f_lonE   = history->lon;
-		f->h.u1.f_coslat = history->coslat;
-	}
-	if (!f->h.u3.numnames) return 0; /* cached lookup invalid.. */
-
-	lat1    = f->h.f_latN;
-	lon1    = f->h.f_lonE;
-	coslat1 = f->h.u1.f_coslat;
 
 	lat2    = pb->lat;
 	lon2    = pb->lng;
 	coslat2 = pb->cos_lat;
 
-	r = maidenhead_km_distance(lat1, coslat1, lon1, lat2, coslat2, lon2);
+	r = maidenhead_km_distance(myloc_lat, myloc_coslat, myloc_lon, lat2, coslat2, lon2);
 	if (f->h.u2.f_dist < 0.0) {
 		// Test for _outside_ the range
 		if (r > -f->h.u2.f_dist)  /* Range is more than given limit */
@@ -1812,6 +1794,7 @@ static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 	return 0;
 }
 #endif
+
 static int filter_process_one_o(struct pbuf_t *pb, struct filter_t *f)
 {
 	/* o/obj1/obj2...  	Object filter
@@ -1828,17 +1811,22 @@ static int filter_process_one_o(struct pbuf_t *pb, struct filter_t *f)
 	int i;
 	// const char *s;
 
-	if ( (pb->packettype & (T_OBJECT|T_ITEM)) == 0 ) /* not an Object NOR Item */
+	if ( (pb->packettype & (T_OBJECT|T_ITEM)) == 0 ) { /* not an Object NOR Item */
+		if (debug) printf("o-filter: packet type not OBJECT nor ITEM\n");
 		return 0;
+	}
 
 	/* parse_aprs() has picked item/object name pointer and length.. */
 	// s = pb->srcname;
 	i = pb->srcname_len;
-	if (i < 1) return 0; /* Bad object/item name */
+	if (i < 1) {
+		if (debug) printf("o-filter: object/item name length < 1 at the packet\n");
+		return 0; /* Bad object/item name */
+        }
 
 	/* object name */
-	memcpy( ref.callsign, pb->info_start+1, i);
-	memset( ref.callsign+i, 0, sizeof(ref.callsign)-i );
+	memset( ref.callsign, 0, sizeof(ref.callsign) ); // clear it all
+	memcpy( ref.callsign, pb->srcname, i); // copy the interesting part
 
 	return filter_match_on_callsignset(&ref, i, f, MatchWild);
 }
@@ -2218,12 +2206,12 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t
 	case 'B':
 		rc = filter_process_one_b(pb, f);
 		break;
-#if 0
 	case 'd':
 	case 'D':
 		rc = filter_process_one_d(pb, f);
 		break;
 
+#if 0
 	case 'e':
 	case 'E':
 		rc = filter_process_one_e(pb, f);
@@ -2236,7 +2224,7 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t
 		rc = filter_process_one_f(pb, f, historydb);
 		break;
 #endif
-#if 0
+#if 0 // these are compiled as R filters, no M filters exist internally
 	case 'm':
 	case 'M':
 		rc = filter_process_one_m(pb, f);

@@ -27,6 +27,7 @@ const char *rflogfile;
 const char *aprxlogfile;
 const char *mycall;
 float myloc_lat;
+float myloc_coslat;
 float myloc_lon;
 const char *myloc_latstr;
 const char *myloc_lonstr;

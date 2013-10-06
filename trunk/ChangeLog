@@ -1,5 +1,12 @@
 2013-10-06 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* filter.c:
+	    * Add feature to recognize 3rd-party frames by type (t/3)
+	    * Enable support of D filter (they are meaningful at RF too)
+
+	* filter.c, aprx.c, aprx.h, config.c:
+	    * Fix M filter preparation to include cos(lat).
+
 	* aprx.h, interface.c, parse_aprs.c:
 	    Always look inside 3rd party APRS frames too to determine
 	    their content for filtering uses. RF->RF relaying didn't
