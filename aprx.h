@@ -148,6 +148,7 @@ extern const char *mycall;
 extern const char *tocall;
 extern const uint8_t tocall25[7];
 extern float myloc_lat;
+extern float myloc_coslat;
 extern float myloc_lon;
 extern const char *myloc_latstr;
 extern const char *myloc_lonstr;

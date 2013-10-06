@@ -441,6 +441,7 @@ static int cfgparam(struct configfile *cf)
 
                 myloc_lat = filter_lat2rad(myloc_lat);
                 myloc_lon = filter_lon2rad(myloc_lon);
+                myloc_coslat = cos(myloc_lat);
 
 
 #ifndef DISABLE_IGATE
