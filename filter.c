@@ -30,6 +30,7 @@
   d/digi1/digi2...  	Digipeater filter (*)
   e/call1/call1/...  	Entry station filter (*)
   f/call/dist  		Friend Range filter
+  g/call1/call2..       Group Messaging filter (*)
   m/dist  		My Range filter
   o/obj1/obj2...  	Object filter (*)
   p/aa/bb/cc...  	Prefix filter
@@ -1149,6 +1150,16 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 
 		break;
 
+	case 'g':
+	case 'G':
+		//  g/call1/call2/     Group Messaging filter
+		i = filter_parse_one_callsignset(ffp, &f0, filt0, MatchWild );
+		if (i < 0)
+			return i;
+		if (i > 0) /* extended previous */
+			return 0;
+		break;
+
 	case 'm':
 	case 'M':
 		/*  m/dist            My range filter  */
@@ -1747,6 +1758,29 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 }
 #endif
 
+static int filter_process_one_g(struct pbuf_t *pb, struct filter_t *f)
+{
+	/* g/call1/call2...  	Group Messaging filter
+
+	   Pass all message traffic TO calls call1/call2/...
+	   (* wild card allowed)
+
+	*/
+
+	struct filter_refcallsign_t ref;
+	int i = pb->dstname_len;
+
+	if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
+
+	/* source address  "addr">... */
+        memset( &ref, 0, sizeof(ref) ); // clear it all
+	memcpy( ref.callsign, pb->dstname, i);
+
+	return filter_match_on_callsignset(&ref, i, f, MatchWild);
+}
+
+
+
 #if 0  // No M filter implementation, but there is M filter parse producing R filter..
 static int filter_process_one_m(struct pbuf_t *pb, struct filter_t *f)
 {
@@ -2225,6 +2259,11 @@ static int filter_process_one(struct pbuf_t *pb, struct filter_t *f, historydb_t
 		rc = filter_process_one_f(pb, f, historydb);
 		break;
 #endif
+        case 'g':
+        case 'G':
+		rc = filter_process_one_g(pb, f);
+		break;
+
 #if 0 // these are compiled as R filters, no M filters exist internally
 	case 'm':
 	case 'M':
