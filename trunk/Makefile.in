@@ -48,7 +48,7 @@ MANDIR:=$(strip $(MANDIR))
 # generate version strings
 
 VERSION    = @VERSION_STRING@
-SVNVERSION = @SVNVERSION_STRING@
+SVNVERSION = $(shell cat SVNVERSION)
 # VERSION:=$(shell cat VERSION)
 # SVNVERSION_CMD:=$(shell which svnversion)
 # SVNVERSION:=$(shell if ${SVNVERSION_CMD} > /dev/null 2>&1  \&\& test -x ${SVNVERSION_CMD} -a \( -d .svn -o -d ../.svn -o -d ../../.svn \)  ; then ${SVNVERSION_CMD} | tee SVNVERSION ; else cat SVNVERSION; fi)
@@ -165,13 +165,13 @@ logrotate.aprx $(MAN) aprx-complex.conf aprx.conf: % : %.in VERSION Makefile
 DISTVERSION:=aprx-$(VERSION).svn$(SVNVERSION)
 DISTTARGET:=../$(DISTVERSION)
 RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
-.PHONY: dist
-dist:
+.PHONY: dist svnversion-test
+
+svnversion-test:
 	# Special for the source maintainer only..
-	@if [ ! -z "$(shell echo -n $(SVNVERSION) | tr -d 0-9)" ]; then	    \
-	  echo "Mixed or modified tree ($(SVNVERSION)), ARE YOU SURE ??." ; \
-	  echo -n "Y/^C ? "; read var ;					    \
-	fi
+	@sh svnversion-test.sh $(SVNVERSION)
+
+dist:	svnversion-test
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
 	fi
