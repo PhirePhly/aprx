@@ -1,5 +1,8 @@
 2013-10-07 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c, VERSION, README, TODO, INSTALL, doc/aprx-manual.odt
+	   Version 2.08 under way.
+
 	* aprx.h, aprx.c, aprsis.c, aprx-stat.c, aprxpolls.c, beacon.c,
 	  digipeater.c, dupecheck.c, erlang.c, interface.c, telemetry.c,
 	  ttyreader.c:
