@@ -1,3 +1,14 @@
+2013-10-07 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, aprx.c, aprsis.c, aprx-stat.c, aprxpolls.c, beacon.c,
+	  digipeater.c, dupecheck.c, erlang.c, interface.c, telemetry.c,
+	  ttyreader.c:
+	    Changed time tracking from "time_t" to "struct timeval".
+	    This supports (sub)millisecond granularity e.g. in KISS
+	    polling, and overall smoothness of processing.
+	    No, it isn't really necessary besides of that KISS polling,
+	    but unified API is always better.
+
 2013-10-06 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* filter.c:

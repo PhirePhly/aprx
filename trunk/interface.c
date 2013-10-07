@@ -628,6 +628,15 @@ int interface_config(struct configfile *cf)
 		    continue;
 		  }
 
+                  if (!have_fault) {
+		    aif->iftype = IFTYPE_TCPIP;
+		    aif->tty = ttyreader_new();
+		    aif->tty->interface[0] = aif;
+		    aif->tty->ttycallsign[0]  = mycall;
+                  }
+		  have_fault |= ttyreader_parse_nullparams(cf, aif->tty, str);
+
+
 		  if (debug)
 		    printf("%s:%d: NULL-DEVICE '%s' '%s'\n",
 			   cf->name, cf->linenum, param1, str);
@@ -1071,7 +1080,7 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 		// If there is linetype error, kisswrite detects it.
 		// Make it into single buffer to give to KISS sender
                 if (debug>2) {
-                  printf("serial_sendto() len=%d,%d ",axaddrlen,axdatalen);
+                  printf("serial_sendto() len=%d,%d: ",axaddrlen,axdatalen);
                   hexdumpfp(stdout, axaddr, axaddrlen, 1);
                   printf(" // ");
                   hexdumpfp(stdout, (uint8_t*)axdata, axdatalen, 0);

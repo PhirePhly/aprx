@@ -29,7 +29,7 @@ struct beaconset {
 	int beacon_msgs_count;
 	int beacon_msgs_cursor;
 
-  	time_t beacon_nexttime;
+  	struct timeval beacon_nexttime;
 	float  beacon_cycle_size;
 };
 
@@ -38,7 +38,7 @@ static int bsets_count;
 
 static void beacon_reset(struct beaconset *bset)
 {
-	bset->beacon_nexttime = now.tv_sec + 30;	/* start 30 seconds from now */
+	tv_timeradd_seconds(&bset->beacon_nexttime, &now, 30);	// start 30 seconds from now
 	bset->beacon_msgs_cursor = 0;
 }
 
@@ -718,11 +718,12 @@ static void beacon_now(struct beaconset *bset)
 
 	bm = bset->beacon_msgs[bset->beacon_msgs_cursor++];
 
-	bset->beacon_nexttime = bm->nexttime;
+	bset->beacon_nexttime.tv_sec = bm->nexttime;
+	bset->beacon_nexttime.tv_usec = 0;
 
 	if (debug)
 	  printf("BEACON: idx=%d, nexttime= +%d sec\n",
-		 bset->beacon_msgs_cursor-1, (int)(bset->beacon_nexttime - now.tv_sec));
+		 bset->beacon_msgs_cursor-1, (int)(bset->beacon_nexttime.tv_sec - now.tv_sec));
 
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
@@ -778,7 +779,7 @@ static void beacon_now(struct beaconset *bset)
                     printf("%ld\tNow beaconing to APRSIS %s '%s' -> '%s',",
                            now.tv_sec, callsign, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime.tv_sec - now.tv_sec)/60.0));
                   }
 
 		  // Send them all also as netbeacons..
@@ -808,7 +809,7 @@ static void beacon_now(struct beaconset *bset)
                     printf("%ld\tNow beaconing to interface[1] %s(%s) '%s' -> '%s',",
                            now.tv_sec, callsign, src, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime.tv_sec - now.tv_sec)/60.0));
                   }
 
 		  interface_transmit_beacon(bm->interface,
@@ -880,7 +881,7 @@ static void beacon_now(struct beaconset *bset)
                     printf("%ld\tNow beaconing to APRSIS %s(%s) '%s' -> '%s',",
                            now.tv_sec, callsign, src, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime.tv_sec - now.tv_sec)/60.0));
                   }
 
 		  aprsis_queue(destbuf, strlen(destbuf),
@@ -910,7 +911,7 @@ static void beacon_now(struct beaconset *bset)
                     printf("%ld\tNow beaconing to interface[2] %s(%s) '%s' -> '%s',",
                            now.tv_sec, callsign, src, destbuf, txt);
                     printf(" next beacon in %.2f minutes\n",
-                           ((bset->beacon_nexttime - now.tv_sec)/60.0));
+                           ((bset->beacon_nexttime.tv_sec - now.tv_sec)/60.0));
                   }
 
 		  interface_transmit_beacon(aif,
@@ -933,7 +934,7 @@ int beacon_prepoll(struct aprxpolls *app)
         for (i = 0; i < bsets_count; ++i) {
           struct beaconset *bset = bsets[i];
           if (bset->beacon_msgs == NULL) continue; // nothing here
-          if (bset->beacon_nexttime < app->next_timeout)
+          if (tv_timercmp(&bset->beacon_nexttime, &app->next_timeout) < 0)
 		app->next_timeout = bset->beacon_nexttime;
         }
 
@@ -951,7 +952,7 @@ int beacon_postpoll(struct aprxpolls *app)
         for (i = 0; i < bsets_count; ++i) {
           struct beaconset *bset = bsets[i];
           if (bset->beacon_msgs == NULL) continue; // nothing..
-          if (bset->beacon_nexttime > now.tv_sec) continue; // not yet
+          if (tv_timercmp(&bset->beacon_nexttime, &now) > 0) continue; // not yet
           beacon_now(bset);
         }
 

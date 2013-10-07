@@ -830,7 +830,7 @@ static void aprsis_main(void)
 #endif
 
 		aprxpolls_reset(&app);
-		app.next_timeout = now.tv_sec + 5;
+                tv_timeradd_seconds( &app.next_timeout, &now, 5 );
 
 		if (aprsis_up >= 0) {
 			pfd = aprxpolls_new(&app);
@@ -842,8 +842,9 @@ static void aprsis_main(void)
 
 		i = aprsis_prepoll_(&app);
 
-		if (app.next_timeout <= now.tv_sec)
-			app.next_timeout = now.tv_sec + 1;	/* Just to be on safe side.. */
+		if (tv_timercmp(&app.next_timeout, &now) <= 0) {
+                	tv_timeradd_seconds( &app.next_timeout, &now, 1 ); // Just to be on safe side..
+                }
 
 		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
                 gettimeofday(&now, NULL);
@@ -1069,7 +1070,7 @@ int aprsis_prepoll(struct aprxpolls *app)
 
 	struct pollfd *pfd;
 
-	if (debug>3) printf("aprsis_prepoll()\n");
+	// if (debug>3) printf("aprsis_prepoll()\n");
 
 	pfd = aprxpolls_new(app);
 
@@ -1119,7 +1120,7 @@ int aprsis_postpoll(struct aprxpolls *app)
 	struct pollfd *pfd = app->polls;
 
 
-	if (debug>3) printf("aprsis_postpoll()\n");
+	// if (debug>3) printf("aprsis_postpoll()\n");
 
 	for (i = 0; i < app->pollcount; ++i, ++pfd) {
 		if (pfd->fd == aprsis_down) {

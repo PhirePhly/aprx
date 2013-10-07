@@ -23,8 +23,8 @@ static int telemetry_1min_steps = 20;
 static int telemetry_10min_steps = 2;
 #endif
 
-static time_t telemetry_time;
-static time_t telemetry_labeltime;
+static struct timeval telemetry_time;
+static struct timeval telemetry_labeltime;
 static int telemetry_seq;
 static int telemetry_params;
 
@@ -53,16 +53,16 @@ void telemetry_start()
 
 	// "now" is supposedly current time..
 
-	telemetry_time      = now.tv_sec + telemetry_interval;
-	telemetry_labeltime = now.tv_sec + 120; // first label 2 minutes from now
+        tv_timeradd_seconds( &telemetry_time, &now, telemetry_interval );
+	tv_timeradd_seconds( &telemetry_labeltime, &now, 120); // first label 2 minutes from now
 }
 
 int telemetry_prepoll(struct aprxpolls *app)
 {
 
-	if (app->next_timeout > telemetry_time)
+        if (tv_timercmp(&app->next_timeout, &telemetry_time) > 0)
 		app->next_timeout = telemetry_time;
-	if (app->next_timeout > telemetry_labeltime)
+	if (tv_timercmp(&app->next_timeout, &telemetry_labeltime) > 0)
 		app->next_timeout = telemetry_labeltime;
 
 	return 0;
@@ -73,17 +73,15 @@ static void telemetry_labeltx(void);
 
 int telemetry_postpoll(struct aprxpolls *app)
 {
-	if (telemetry_time <= now.tv_sec) {
-	  telemetry_time += telemetry_interval;
-	  if (telemetry_time <= now.tv_sec)
-	    telemetry_time = now.tv_sec + telemetry_interval;
+	int i;
+
+        if (tv_timercmp(&telemetry_time, &now) <= 0) {
+          tv_timeradd_seconds(&telemetry_time, &telemetry_time, telemetry_interval);
 	  telemetry_datatx();
 	}
 
-	if (telemetry_labeltime <= now.tv_sec) {
-	  telemetry_labeltime += telemetry_labelinterval;
-	  if (telemetry_labeltime <= now.tv_sec)
-	    telemetry_labeltime = now.tv_sec + 120;
+        if (tv_timercmp(&telemetry_labeltime, &now) <= 0) {
+	  tv_timeradd_seconds(&telemetry_labeltime, &telemetry_labeltime, telemetry_labelinterval);
 	  telemetry_labeltx();
 	}
 
