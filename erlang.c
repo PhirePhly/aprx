@@ -23,14 +23,14 @@
 /* #define USE_ONE_MINUTE_INTERVAL 1 */
 
 
-static time_t erlang_time_end_1min;
+static struct timeval erlang_time_end_1min;
 static float erlang_time_ival_1min = 1.0;
 
-static time_t erlang_time_end_10min;
+static struct timeval erlang_time_end_10min;
 static float erlang_time_ival_10min = 1.0;
 
 #ifdef ERLANGSTORAGE
-static time_t erlang_time_end_60min;
+static struct timeval erlang_time_end_60min;
 static float erlang_time_ival_60min = 1.0;
 #endif
 
@@ -500,8 +500,8 @@ static void erlang_time_end(void)
 
 	printtime(logtime, sizeof(logtime));
 
-	if (now.tv_sec >= erlang_time_end_1min) {
-		erlang_time_end_1min += 60;
+	if (tv_timercmp(&now, &erlang_time_end_1min) >= 0) {
+		erlang_time_end_1min.tv_sec += 60;
 #if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
@@ -548,8 +548,8 @@ static void erlang_time_end(void)
 		erlang_time_ival_1min = 1.0;
 #endif
 	}
-	if (now.tv_sec >= erlang_time_end_10min) {
-		erlang_time_end_10min += 600;
+	if (tv_timercmp(&now, &erlang_time_end_10min) >= 0) {
+		erlang_time_end_10min.tv_sec += 600;
 #if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 0))
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
@@ -590,8 +590,8 @@ static void erlang_time_end(void)
 #endif
 	}
 #ifdef ERLANGSTORAGE
-	if (now.tv_sec >= erlang_time_end_60min) {
-		erlang_time_end_60min += 3600;
+	if (tv_timercmp(&now, &erlang_time_end_60min) >= 0) {
+		erlang_time_end_60min.tv_sec += 3600;
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
 			/* E->last_update = now.tv_sec; -- the 10 minute step does also this */
@@ -638,12 +638,12 @@ static void erlang_time_end(void)
 int erlang_prepoll(struct aprxpolls *app)
 {
 
-	if (app->next_timeout > erlang_time_end_1min)
+	if (tv_timercmp(&app->next_timeout, &erlang_time_end_1min) > 0)
 		app->next_timeout = erlang_time_end_1min;
-	if (app->next_timeout > erlang_time_end_10min)
+	if (tv_timercmp(&app->next_timeout, &erlang_time_end_10min) > 0)
 		app->next_timeout = erlang_time_end_10min;
 #ifdef ERLANGSTORAGE
-	if (app->next_timeout > erlang_time_end_60min)
+	if (tv_timercmp(&app->next_timeout, &erlang_time_end_60min) > 0)
 		app->next_timeout = erlang_time_end_60min;
 #endif
 	return 0;
@@ -651,10 +651,10 @@ int erlang_prepoll(struct aprxpolls *app)
 
 int erlang_postpoll(struct aprxpolls *app)
 {
-	if (now.tv_sec >= erlang_time_end_1min ||
-	    now.tv_sec >= erlang_time_end_10min
+	if (tv_timercmp(&now, &erlang_time_end_1min) >= 0 ||
+	    tv_timercmp(&now, &erlang_time_end_10min) >= 0
 #ifdef ERLANGSTORAGE
-	    || now.tv_sec >= erlang_time_end_60min
+	    || tv_timercmp(&now, &erlang_time_end_60min) >= 0
 #endif
 	    )
 		erlang_time_end();
@@ -674,14 +674,17 @@ void erlang_init(const char *syslog_facility_name)
 	   although said interval will be shorter than full. */
 
 
-	erlang_time_end_1min = now.tv_sec + 60 - (now.tv_sec % 60);
+	erlang_time_end_1min.tv_sec = now.tv_sec + 60 - (now.tv_sec % 60);
+        erlang_time_end_1min.tv_usec = 0;
 	erlang_time_ival_1min = (float) (60 - now.tv_sec % 60) / 60.0;
 
-	erlang_time_end_10min = now.tv_sec + 600 - (now.tv_sec % 600);
+	erlang_time_end_10min.tv_sec = now.tv_sec + 600 - (now.tv_sec % 600);
+	erlang_time_end_10min.tv_usec = 0;
 	erlang_time_ival_10min = (float) (600 - now.tv_sec % 600) / 600.0;
 
 #ifdef ERLANGSTORAGE
-	erlang_time_end_60min = now.tv_sec + 3600 - (now.tv_sec % 3600);
+	erlang_time_end_60min.tv_sec = now.tv_sec + 3600 - (now.tv_sec % 3600);
+	erlang_time_end_60min.tv_usec = 0;
 	erlang_time_ival_60min = (float) (3600 - now.tv_sec % 3600) / 3600.0;
 #endif
 }

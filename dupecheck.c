@@ -448,11 +448,11 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
  *
  */
 
-static time_t dupecheck_cleanup_nexttime;
+static struct timeval dupecheck_cleanup_nexttime;
 
 int dupecheck_prepoll(struct aprxpolls *app)
 {
-	if (dupecheck_cleanup_nexttime < app->next_timeout)
+	if (tv_timercmp(&dupecheck_cleanup_nexttime, &app->next_timeout) > 0)
 		app->next_timeout = dupecheck_cleanup_nexttime;
 
 	return 0;		/* No poll descriptors, only time.. */
@@ -461,10 +461,10 @@ int dupecheck_prepoll(struct aprxpolls *app)
 
 int dupecheck_postpoll(struct aprxpolls *app)
 {
-	if (dupecheck_cleanup_nexttime > now.tv_sec)
+        if (tv_timercmp(&dupecheck_cleanup_nexttime, &now) > 0)
 		return 0;	/* Too early.. */
 
-	dupecheck_cleanup_nexttime = now.tv_sec + 30; // tick every 30 second or so
+        tv_timeradd_seconds( &dupecheck_cleanup_nexttime, &now, 30 ); // tick every 30 second or so
 
 	dupecheck_cleanup();
 

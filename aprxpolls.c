@@ -22,8 +22,7 @@ void aprxpolls_reset(struct aprxpolls *app)
 
 int aprxpolls_millis(struct aprxpolls *app)
 {
-	int dt = (app->next_timeout - now.tv_sec) * 1000 + app->next_timeout_millisecs;
-        return dt;
+	return tv_timerdelta_millis(&now,&app->next_timeout);
 }
 
 struct pollfd *aprxpolls_new(struct aprxpolls *app)

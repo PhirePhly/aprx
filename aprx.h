@@ -129,10 +129,9 @@ struct aprxpolls {
 	struct pollfd *polls;
 	int pollcount;
 	int pollsize;
-	time_t next_timeout;
-	int    next_timeout_millisecs;
+	struct timeval next_timeout;
 };
-#define APRXPOLLS_INIT { NULL, 0, 0, 0 }
+#define APRXPOLLS_INIT { NULL, 0, 0, {0,0} }
 
 extern int  aprxpolls_millis(struct aprxpolls *app);
 extern void aprxpolls_reset(struct aprxpolls *app);
@@ -207,7 +206,7 @@ typedef enum {
 struct serialport {
 	int fd;			/* UNIX fd of the port                  */
 
-	time_t wait_until;
+	struct timeval wait_until;
 	time_t last_read_something;	/* Used by serial port functionality
 					   watchdog */
 	int read_timeout;	/* seconds                              */
@@ -277,6 +276,12 @@ extern void ttyreader_linewrite(struct serialport *S);
 
 extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr);
 extern void aprx_cfmakeraw(struct termios *, int f);
+
+extern void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis);
+extern void tv_timeradd_seconds(struct timeval *res, struct timeval *a, int seconds);
+extern int  tv_timerdelta_millis(struct timeval *_now, struct timeval *_target);
+extern int  tv_timercmp(struct timeval *a, struct timeval *b);
+
 
 /* ax25.c */
 extern int  ax25_to_tnc2_fmtaddress(char *dest, const uint8_t *src,

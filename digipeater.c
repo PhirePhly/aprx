@@ -17,7 +17,7 @@ static struct digipeater **digis;
                                 // 60/5 part of "ratelimit" to be max
 				// that token bucket can be filled to.
 
-static time_t tokenbucket_timer;
+static struct timeval tokenbucket_timer;
 
 struct viastate {
 	int hopsreq;
@@ -1649,14 +1649,30 @@ int  digipeater_prepoll(struct aprxpolls *app)
 	int d, s;
 	time_t t;
 
-	if (tokenbucket_timer < app->next_timeout)
+        if (tokenbucket_timer.tv_sec == 0) {
+          tokenbucket_timer = now; // init this..
+        }
+
+	if (tv_timercmp( &tokenbucket_timer, &now ) <= 0) {
+          // Run the digipeater timer handling now
+          // Will also advance the timer!
+          if (debug>2) printf("digipeater_prepoll() run tockenbucket_timers\n");
+          tv_timeradd_seconds( &tokenbucket_timer, &tokenbucket_timer, TOKENBUCKET_INTERVAL);
+          run_tokenbucket_timers();
+	}
+
+	if (tv_timercmp( &tokenbucket_timer, &app->next_timeout ) <= 0) {
 	  app->next_timeout = tokenbucket_timer;
+        }
+
+        // if (debug>2) printf("digipeater_prepoll - 1 - timeout millis=%d\n",aprxpolls_millis(app));
 
 	// Over all digipeaters..
 	for (d = 0; d < digi_count; ++d) {
 	  struct digipeater *digi = digis[d];
 	  // Over all sources in those digipeaters
 	  for (s = 0; s < digi->sourcecount; ++s) {
+            struct timeval tv;
 	    struct digipeater_source * src = digi->sources[s];
 	    // If viscous delay is zero, there is no work...
 	    // if (src->viscous_delay == 0)
@@ -1665,9 +1681,12 @@ int  digipeater_prepoll(struct aprxpolls *app)
 	    if (src->viscous_queue_size == 0) // Empty queue
 	      continue;
 	    // First entry expires first
-	    t = src->viscous_queue[0]->t + src->viscous_delay;
-	    if (app->next_timeout > t)
-	      app->next_timeout = t;
+	    tv.tv_sec = src->viscous_queue[0]->t + src->viscous_delay;
+            tv.tv_usec = 0;
+	    if (tv_timercmp(&app->next_timeout, &tv) > 0) {
+	      app->next_timeout = tv;
+              // if (debug>2) printf("digipeater_prepoll - 2 - timeout millis=%d\n",aprxpolls_millis(app));
+            }
 	  }
 	}
 
@@ -1679,34 +1698,19 @@ static void sourcecalltick(struct digipeater *digi);
 int  digipeater_postpoll(struct aprxpolls *app)
 {
 	int d, s, i, donecount;
-	int do_tokenbuckets = 0;
 
-	if (tokenbucket_timer < now.tv_sec) {
-	  tokenbucket_timer = now.tv_sec + TOKENBUCKET_INTERVAL;
-	  do_tokenbuckets = 1;
+	if (tv_timercmp(&tokenbucket_timer, &now) < 0) {
+          tv_timeradd_seconds( &tokenbucket_timer, &tokenbucket_timer, TOKENBUCKET_INTERVAL);
+          run_tokenbucket_timers();
 	}
 
 	// Over all digipeaters..
 	for (d = 0; d < digi_count; ++d) {
 	  struct digipeater *digi = digis[d];
 
-	  if (do_tokenbuckets) {
-	    digi->tokenbucket += digi->tbf_increment;
-	    if (digi->tokenbucket > digi->tbf_limit)
-	      digi->tokenbucket = digi->tbf_limit;
-
-            sourcecalltick(digi);
-	  }
-
 	  // Over all sources in those digipeaters
 	  for (s = 0; s < digi->sourcecount; ++s) {
 	    struct digipeater_source * src = digi->sources[s];
-
-	    if (do_tokenbuckets) {
-	      src->tokenbucket += src->tbf_increment;
-	      if (src->tokenbucket > src->tbf_limit)
-		src->tokenbucket = src->tbf_limit;
-	    }
 
 	    // If viscous delay is zero, there is no work...
 	    // if (src->viscous_delay == 0)
@@ -1756,6 +1760,34 @@ int  digipeater_postpoll(struct aprxpolls *app)
 
 	return 0;
 }
+
+int  run_tokenbucket_timers()
+{
+	int d, s, i, donecount;
+	// Over all digipeaters..
+	for (d = 0; d < digi_count; ++d) {
+	  struct digipeater *digi = digis[d];
+
+          digi->tokenbucket += digi->tbf_increment;
+          if (digi->tokenbucket > digi->tbf_limit)
+            digi->tokenbucket = digi->tbf_limit;
+
+          sourcecalltick(digi);
+
+	  // Over all sources in those digipeaters
+	  for (s = 0; s < digi->sourcecount; ++s) {
+	    struct digipeater_source * src = digi->sources[s];
+
+            src->tokenbucket += src->tbf_increment;
+            if (src->tokenbucket > src->tbf_limit)
+              src->tokenbucket = src->tbf_limit;
+
+	  }
+	}
+
+	return 0;
+}
+
 
 static void sourcecalltick(struct digipeater *digi)
 {
