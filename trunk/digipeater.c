@@ -1772,7 +1772,9 @@ int  run_tokenbucket_timers()
           if (digi->tokenbucket > digi->tbf_limit)
             digi->tokenbucket = digi->tbf_limit;
 
+#ifndef DISABLE_IGATE
           sourcecalltick(digi);
+#endif
 
 	  // Over all sources in those digipeaters
 	  for (s = 0; s < digi->sourcecount; ++s) {
@@ -1788,7 +1790,7 @@ int  run_tokenbucket_timers()
 	return 0;
 }
 
-
+#ifndef DISABLE_IGATE
 static void sourcecalltick(struct digipeater *digi)
 {
 	int i;
@@ -1804,7 +1806,7 @@ static void sourcecalltick(struct digipeater *digi)
           }
         }
 }
-
+#endif
 
 // An utility function that exists at GNU Libc..
 
