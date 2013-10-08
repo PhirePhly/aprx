@@ -236,12 +236,14 @@ static int logging_config(struct configfile *cf)
 	
 			aprxlogfile = strdup(param1);
 	
+#ifndef DISABLE_IGATE
 		} else if (strcmp(name, "dprslog") == 0) {
 			if (debug)
 				printf("%s:%d: INFO: DPRSLOG = '%s' '%s'\n",
 				       cf->name, cf->linenum, param1, str);
 	
 			dprslogfile = strdup(param1);
+#endif
 	
 		} else if (strcmp(name, "rflog") == 0) {
 			if (debug)
