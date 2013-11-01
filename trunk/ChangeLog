@@ -1,3 +1,18 @@
+2013-11-01 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* historydb.c:
+	    Initialize also tokenbucket value so that freshly arrived
+	    packet at the historydb will have at least 1.0 tokens
+	    at hand to permit one initial digipeat. Will not be enough
+	    for multi-transmitter case.
+
+	* digipeater.c:
+	    Display Ratelimit caused packet drops at all debug levels.
+	    ( Instead of >1 )
+
+	* filter.c:
+	    Correct parse of s// filter.  (Original author not recorded.)
+
 2013-10-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* config.c, digipeater.c:

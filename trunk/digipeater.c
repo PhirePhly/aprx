@@ -1432,7 +1432,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
           if (hcell != NULL) {
             if (hcell->tokenbucket < 1.0) {
-              if (debug>1) printf("TRANSMITTER SOURCE CALLSIGN RATELIMIT DISCARD.\n");
+              if (debug) printf("TRANSMITTER SOURCE CALLSIGN RATELIMIT DISCARD.\n");
               return;
             }
             hcell->tokenbucket -= 1.0;
@@ -1441,7 +1441,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
           // Now we do token bucket filtering -- rate limiting
           if (digi->tokenbucket < 1.0) {
-            if (debug>1) printf("TRANSMITTER RATELIMIT DISCARD.\n");
+            if (debug) printf("TRANSMITTER RATELIMIT DISCARD.\n");
             return;
           }
           digi->tokenbucket -= 1.0;
