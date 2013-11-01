@@ -2055,7 +2055,7 @@ static int filter_process_one_s(struct pbuf_t *pb, struct filter_t *f)
 	/* OK, no overlay... */
 	if (f->h.u5.lens.len2 != 0) {
 		/* Secondary table symbols */
-		if ( symtable != '\\' &&
+		if ( symtable != '/' &&
 		     memchr(f->h.text+f->h.u5.lens.len2s, symcode, f->h.u5.lens.len2) != NULL )
 			return f->h.negation ? 2 : 1;
 	}

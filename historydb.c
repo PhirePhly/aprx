@@ -340,6 +340,16 @@ history_cell_t *historydb_insert_(historydb_t *db, const struct pbuf_t *pb, cons
 		  cp->packet = malloc( cp->packetlen );
 		}
 
+                // Initial value is 32.0 tokens to permit
+                // digipeat a packet source at the first
+                // time it has been heard -- including to
+                // possible multiple transmitters. Within
+                // about 5 seconds this will be dropped
+                // down to max burst rate of the srcratefilter
+                // parameter. This code does not know how
+                // many interfaces there are...
+                cp->tokenbucket = 32.0;
+
 		*hp = cp; 
 	}
 
