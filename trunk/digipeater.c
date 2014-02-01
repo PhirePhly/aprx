@@ -1649,10 +1649,29 @@ int  digipeater_prepoll(struct aprxpolls *app)
 	int d, s;
 	time_t t;
 
+	struct timeval nowminus;
+	struct timeval nowplus;
+        int margin = TOKENBUCKET_INTERVAL*2;
+
+        tv_timeradd_seconds(&nowminus, &now, -margin);
+        tv_timeradd_seconds(&nowplus,  &now,  margin);
+
         if (tokenbucket_timer.tv_sec == 0) {
-          tokenbucket_timer = now; // init this..
+        	tokenbucket_timer = now; // init this..
         }
 
+        // If the time(2) has jumped around a lot,
+        // and we didn't get around to do our work, reset the timer.
+
+        if (tv_timercmp( &tokenbucket_timer, &nowminus ) < 0) {
+        	// Reset it..
+        	tokenbucket_timer = now;
+        }
+        if (tv_timercmp( &nowplus, &tokenbucket_timer ) < 0) {
+        	// Reset it..
+        	tokenbucket_timer = now;
+        }
+        
 	if (tv_timercmp( &tokenbucket_timer, &now ) <= 0) {
           // Run the digipeater timer handling now
           // Will also advance the timer!

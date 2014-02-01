@@ -59,6 +59,33 @@ void telemetry_start()
 
 int telemetry_prepoll(struct aprxpolls *app)
 {
+	// Check that time has not jumped too far ahead (1.5 telemetry intervals)
+	struct timeval nowminus;
+	struct timeval nowplus;
+        int margin = telemetry_interval + telemetry_interval/2;
+
+        tv_timeradd_seconds(&nowminus, &now, -margin);
+        if (tv_timercmp(&telemetry_time, &nowminus) < 0) {
+		// Reset the time keeping
+        	telemetry_start();
+        }
+        if (tv_timercmp(&telemetry_labeltime, &nowminus) < 0) {
+		// Reset the time keeping
+        	telemetry_start();
+        }
+
+	// Check that time has not jumped too far back (1.5 telemetry intervals)
+        tv_timeradd_seconds(&nowplus, &now, margin);
+        if (tv_timercmp(&nowplus, &telemetry_time) < 0) {
+		// Reset the time keeping
+        	telemetry_start();
+        }
+        if (tv_timercmp(&nowplus, &telemetry_labeltime) < 0) {
+		// Reset the time keeping
+        	telemetry_start();
+        }
+
+        // Normal operational step
 
         if (tv_timercmp(&app->next_timeout, &telemetry_time) > 0)
 		app->next_timeout = telemetry_time;

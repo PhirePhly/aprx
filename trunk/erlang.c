@@ -364,6 +364,30 @@ static struct erlangline *erlang_findline(const char *portname,
 }
 
 
+static void erlang_timer_init()
+{
+
+	/* Time intervals will end at next even
+	   1 minute/10 minutes/60 minutes,
+	   although said interval will be shorter than full. */
+
+	erlang_time_end_1min.tv_sec = now.tv_sec + 60 - (now.tv_sec % 60);
+        erlang_time_end_1min.tv_usec = 0;
+	erlang_time_ival_1min = (float) (60 - now.tv_sec % 60) / 60.0;
+
+	erlang_time_end_10min.tv_sec = now.tv_sec + 600 - (now.tv_sec % 600);
+	erlang_time_end_10min.tv_usec = 0;
+	erlang_time_ival_10min = (float) (600 - now.tv_sec % 600) / 600.0;
+
+#ifdef ERLANGSTORAGE
+	erlang_time_end_60min.tv_sec = now.tv_sec + 3600 - (now.tv_sec % 3600);
+	erlang_time_end_60min.tv_usec = 0;
+	erlang_time_ival_60min = (float) (3600 - now.tv_sec % 3600) / 3600.0;
+#endif
+}
+
+
+
 /*
  *  erlang_set()
  */
@@ -637,6 +661,21 @@ static void erlang_time_end(void)
 
 int erlang_prepoll(struct aprxpolls *app)
 {
+	struct timeval nowplus;
+        tv_timeradd_seconds(&nowplus, &now, 70); // 1 minute + 10 seconds
+        if (tv_timercmp(&nowplus, &erlang_time_end_1min) < 0) {
+        	erlang_timer_init();
+        }
+        tv_timeradd_seconds(&nowplus, &now, 610); // 10 minutes + 10 seconds
+        if (tv_timercmp(&nowplus, &erlang_time_end_10min) < 0) {
+        	erlang_timer_init();
+        }
+#ifdef ERLANGSTORAGE
+        tv_timeradd_seconds(&nowplus, &now, 3610); // 60 minutes + 10 seconds
+        if (tv_timercmp(&nowplus, &erlang_time_end_60min) < 0) {
+        	erlang_timer_init();
+        }
+#endif
 
 	if (tv_timercmp(&app->next_timeout, &erlang_time_end_1min) > 0)
 		app->next_timeout = erlang_time_end_1min;
@@ -669,24 +708,7 @@ void erlang_init(const char *syslog_facility_name)
 
 	now.tv_sec = time(NULL);
 
-	/* Time intervals will end at next even
-	   1 minute/10 minutes/60 minutes,
-	   although said interval will be shorter than full. */
-
-
-	erlang_time_end_1min.tv_sec = now.tv_sec + 60 - (now.tv_sec % 60);
-        erlang_time_end_1min.tv_usec = 0;
-	erlang_time_ival_1min = (float) (60 - now.tv_sec % 60) / 60.0;
-
-	erlang_time_end_10min.tv_sec = now.tv_sec + 600 - (now.tv_sec % 600);
-	erlang_time_end_10min.tv_usec = 0;
-	erlang_time_ival_10min = (float) (600 - now.tv_sec % 600) / 600.0;
-
-#ifdef ERLANGSTORAGE
-	erlang_time_end_60min.tv_sec = now.tv_sec + 3600 - (now.tv_sec % 3600);
-	erlang_time_end_60min.tv_usec = 0;
-	erlang_time_ival_60min = (float) (3600 - now.tv_sec % 3600) / 3600.0;
-#endif
+        erlang_timer_init();
 }
 
 void erlang_start(int do_create)

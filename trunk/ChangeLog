@@ -1,3 +1,11 @@
+2014-02-01 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* agwpesocket.c, beacon.c, digipeater.c, dupecheck.c, erlang.c,
+	  telemetry.c, ttyreader.c:
+	    If the time reported by time(2) seems to jump ahead or backwards
+	    too much, various deadline schedulers keeping time goals in mind
+	    will reset themselves upon detection of the condition.
+
 2013-11-01 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* historydb.c:
