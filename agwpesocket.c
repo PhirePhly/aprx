@@ -658,6 +658,10 @@ int agwpe_prepoll(struct aprxpolls *app)
 		S = pecom[i];
 		if (S->fd < 0) {
 			/* Not an open TTY, but perhaps waiting ? */
+                	if (S->wait_until > now.tv_sec+60) {
+                        	// Verify that wait is not too long
+                        	S->wait_until = now.tv_sec;
+                        }
 			if ((S->wait_until != 0) && (S->wait_until > now)) {
 				/* .. waiting for future! */
 				if (app->next_timeout > S->wait_until)

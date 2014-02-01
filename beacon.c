@@ -679,6 +679,30 @@ static char *msg_read_file(const char *filename, char *buf, int buflen)
 	return buf;
 }
 
+static void beacon_resettimer(struct beaconset *bset)
+{
+	float beacon_increment;
+	int   i;
+	time_t t = now.tv_sec;
+
+	srand((long)t);
+        beacon_increment = (bset->beacon_cycle_size / bset->beacon_msgs_count);
+
+        if (debug)
+        	printf("beacons cycle: %.2f minutes, increment: %.2f minutes\n",
+                       bset->beacon_cycle_size/60.0, beacon_increment/60.0);
+        
+        for (i = 0; i < bset->beacon_msgs_count; ++i) {
+        	int r = rand() % 1024;
+                int interval = (int)(beacon_increment - 0.2*beacon_increment * (r*0.001));
+                if (interval < 3) interval = 3; // Minimum interval: 3 seconds
+                t += interval;
+                if (debug)
+                	printf("beacons offset: %.2f minutes\n", (t-now.tv_sec)/60.0);
+                bset->beacon_msgs[i]->nexttime = t;
+        }
+}
+
 static void beacon_now(struct beaconset *bset) 
 {
 	int  destlen;
@@ -692,26 +716,7 @@ static void beacon_now(struct beaconset *bset)
 		bset->beacon_msgs_cursor = 0;
 
 	if (bset->beacon_msgs_cursor == 0) {
-		float beacon_increment;
-		int   i;
-		time_t t = now.tv_sec;
-
-		srand((long)t);
-		beacon_increment = (bset->beacon_cycle_size / bset->beacon_msgs_count);
-
-		if (debug)
-			printf("beacons cycle: %.2f minutes, increment: %.2f minutes\n",
-			       bset->beacon_cycle_size/60.0, beacon_increment/60.0);
-
-		for (i = 0; i < bset->beacon_msgs_count; ++i) {
-			int r = rand() % 1024;
-			int interval = (int)(beacon_increment - 0.2*beacon_increment * (r*0.001));
-			if (interval < 3) interval = 3; // Minimum interval: 3 seconds
-			t += interval;
-			if (debug)
-				printf("beacons offset: %.2f minutes\n", (t-now.tv_sec)/60.0);
-			bset->beacon_msgs[i]->nexttime = t;
-		}
+        	beacon_resettimer(bset);
 	}
 
 	/* --- now the business of sending ... */
@@ -931,11 +936,29 @@ int beacon_prepoll(struct aprxpolls *app)
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
 #endif
+	struct timeval nowminus;
+	struct timeval nowplus;
         for (i = 0; i < bsets_count; ++i) {
-          struct beaconset *bset = bsets[i];
-          if (bset->beacon_msgs == NULL) continue; // nothing here
-          if (tv_timercmp(&bset->beacon_nexttime, &app->next_timeout) < 0)
-		app->next_timeout = bset->beacon_nexttime;
+        	struct beaconset *bset = bsets[i];
+                if (bset->beacon_msgs == NULL) continue; // nothing here
+
+                int margin = 1200; // 20 minutes by default
+                int b;
+                // Pick largest of cycle sizes
+                for (b = 0; b < bset->beacon_msgs_count; ++b) {
+                	if (margin < bset->beacon_msgs[b]->interval)
+                        	margin = bset->beacon_msgs[b]->interval;
+                }
+                margin += margin/2; // times 1.5
+                tv_timeradd_seconds(&nowminus, &now, -margin);
+                tv_timeradd_seconds(&nowplus,  &now,  margin);
+                if (tv_timercmp(&bset->beacon_nexttime, &nowminus) < 0)
+                	beacon_resettimer(bset);
+                if (tv_timercmp(&nowplus, &bset->beacon_nexttime) < 0)
+                	beacon_resettimer(bset);
+                
+                if (tv_timercmp(&bset->beacon_nexttime, &app->next_timeout) < 0)
+                	app->next_timeout = bset->beacon_nexttime;
         }
 
 	return 0;		/* No poll descriptors, only time.. */
@@ -950,10 +973,10 @@ int beacon_postpoll(struct aprxpolls *app)
 		return 0;	/* No mycall !  hoh... */
 #endif
         for (i = 0; i < bsets_count; ++i) {
-          struct beaconset *bset = bsets[i];
-          if (bset->beacon_msgs == NULL) continue; // nothing..
-          if (tv_timercmp(&bset->beacon_nexttime, &now) > 0) continue; // not yet
-          beacon_now(bset);
+        	struct beaconset *bset = bsets[i];
+                if (bset->beacon_msgs == NULL) continue; // nothing..
+                if (tv_timercmp(&bset->beacon_nexttime, &now) > 0) continue; // not yet
+                beacon_now(bset);
         }
 
 	return 0;

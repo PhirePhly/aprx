@@ -535,7 +535,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 
         if (poll_millis_tv.tv_sec == 0) {
-          poll_millis_tv = now;
+        	poll_millis_tv = now;
         }
 
         // if (debug) printf("ttyreader_prepoll() %d\n", poll_millis);
@@ -590,8 +590,12 @@ int ttyreader_prepoll(struct aprxpolls *app)
 
 
                 if (poll_millis > 0) {
+                        int margin  = poll_millis*2;
+                        // Limit large delta time to within 0..poll_millis.
 			int deltams = tv_timerdelta_millis(&now, &poll_millis_tv);
-                        tv_timeradd_millis(&poll_millis_tv, &now, poll_millis);
+                        if (deltams > margin)  deltams = poll_millis;
+                        if (deltams < -margin) deltams = poll_millis;
+                        tv_timeradd_millis(&poll_millis_tv, &now, deltams);
 
                         if (debug) printf("%ld.%06d .. defining %d ms KISS POLL\n", (long)now.tv_sec, (int)now.tv_usec, poll_millis);
                 }

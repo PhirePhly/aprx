@@ -452,6 +452,13 @@ static struct timeval dupecheck_cleanup_nexttime;
 
 int dupecheck_prepoll(struct aprxpolls *app)
 {
+	struct timeval nowplus;
+        tv_timeradd_seconds(&nowplus, &now, 60);
+        if (tv_timercmp(&nowplus, &dupecheck_cleanup_nexttime) < 0) {
+        	// time(2) has jumped back a lot..
+        	dupecheck_cleanup_nexttime = now;
+        }
+
 	if (tv_timercmp(&dupecheck_cleanup_nexttime, &app->next_timeout) > 0)
 		app->next_timeout = dupecheck_cleanup_nexttime;
 
