@@ -1,5 +1,8 @@
 2014-02-01 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* ssl.c, ssl.h, hlog.c, hlog.h:
+	    Copied SSL client code material from Aprsc. Not yet functional.
+
 	* agwpesocket.c, beacon.c, digipeater.c, dupecheck.c, erlang.c,
 	  telemetry.c, ttyreader.c:
 	    If the time reported by time(2) seems to jump ahead or backwards
