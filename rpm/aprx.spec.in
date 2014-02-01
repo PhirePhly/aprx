@@ -62,7 +62,7 @@ rules, optionally relay APRS packets from APRS-IS to radio (TX-iGate)
 %setup -q
 
 %build
-%configure --with-erlangstorage
+%configure --with-erlangstorage CFLAGS="-m32 -march=i386" LDFLAGS="-m32 -march=i386"
 make %{?_smp_mflags}
 make logrotate.aprx
 

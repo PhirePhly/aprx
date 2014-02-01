@@ -1,5 +1,13 @@
 2014-02-01 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* rpm/aprx.spec.in:
+	    Forcing RPM building to produce i386 package.
+	    (There is no need to produce x86-64 binary package.
+	     Small footprint is the goal.)
+
+	* erlang.c:
+	    Do not call aprx_syslog_init() from this module.
+
 	* ssl.c, ssl.h, hlog.c, hlog.h:
 	    Copied SSL client code material from Aprsc. Not yet functional.
 

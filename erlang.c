@@ -704,8 +704,6 @@ int erlang_postpoll(struct aprxpolls *app)
 
 void erlang_init(const char *syslog_facility_name)
 {
-	aprx_syslog_init(syslog_facility_name);
-
 	now.tv_sec = time(NULL);
 
         erlang_timer_init();
