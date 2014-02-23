@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 #include "aprx.h"
@@ -19,7 +19,6 @@
 #endif
 #include <fcntl.h>
 
-struct timeval now;			/* this is globally used */
 int debug;
 int verbout;
 int erlangout;
@@ -481,69 +480,4 @@ void aprx_syslog_init(const char *syslog_facility_name)
 		erlangsyslog = 1;
 		openlog("aprx", LOG_NDELAY | LOG_PID, syslog_fac);
 	}
-}
-
-int tv_timerdelta_millis(struct timeval *_now, struct timeval *_target)
-{
-	int deltasec  = _target->tv_sec  - _now->tv_sec;
-        int deltausec = _target->tv_usec - _now->tv_usec;
-        while (deltausec < 0) {
-        	deltausec += 1000000;
-                --deltasec;
-        }
-        return deltasec * 1000 + deltausec / 1000;
-}
-
-void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis)
-{
-	if (res != a) {
-          // Copy if different pointers..
-          *res = *a;
-        }
-        int usec = (int)(res->tv_usec) + millis * 1000;
-        if (usec >= 1000000) {
-          int dsec = (usec / 1000000);
-          res->tv_sec += dsec;
-          usec %= 1000000;
-          // if (debug>3) printf("tv_timeadd_millis() dsec=%d dusec=%d\n",dsec, usec);
-        }
-        res->tv_usec = usec;
-}
-
-void tv_timeradd_seconds(struct timeval *res, struct timeval *a, int seconds)
-{
-	if (res != a) {
-          // Copy if different pointers..
-          *res = *a;
-        }
-        res->tv_sec += seconds;
-}
-
-int tv_timercmp(struct timeval *a, struct timeval *b)
-{
-  // if (debug>3) {
-  // int dt_sec  = a->tv_sec - b->tv_sec;
-  // int dt_usec = a->tv_usec - b->tv_usec;
-  // printf("tv_timercmp(%d.%06d <=> %d.%06d) dt=%d:%06d ret= ",
-  // a->tv_sec, a->tv_usec, b->tv_sec, b->tv_usec, dt_sec, dt_usec);
-  // }
-
-	if (a->tv_sec < b->tv_sec) {
-          // if (debug>3) printf("-1s\n");
-          return -1;
-        }
-	if (a->tv_sec > b->tv_sec) {
-          // if (debug>3) printf("1s\n");
-          return 1;
-        }
-        if (a->tv_usec < b->tv_usec) {
-          // if (debug>3) printf("-1u\n");
-          return -1;
-        }
-        if (a->tv_usec > b->tv_usec) {
-          // if (debug>3) printf("1u\n");
-          return 1;
-        }
-        // if (debug>3) printf("0\n");
-        return 0; // equals!
 }

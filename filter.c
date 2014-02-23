@@ -3,7 +3,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  ********************************************************************/
 /*

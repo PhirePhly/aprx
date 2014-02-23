@@ -1,3 +1,35 @@
+2014-02-23 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* all files:
+	    Change copyright statement toread 2007-2014.
+
+	* timercmp.c, Makefile.in:
+	    New file bringing all struct timeval tools to one place.
+	    Added tv_timerbounds() that monitors time targets vs.
+	    current time value -- if machine has hibernated a lot
+	    without running timers and the 'now' jumps ahead a lot
+	    (or backwards for complete coverage), then the target
+	    time is reset.  This avoids running a burst of beacon
+	    events when 'now' jumps ahead a lot, as an example.
+
+2014-02-13 Forgot to record the author
+
+	* debian/control:
+	    Add build and run dependency of OpenSSL.
+	    (Actually not yet necessary, SSL support is not being
+	     compilable / compiled yet.)
+
+2014-02-13 Heikki Hannikainen <hes@aprs.fi>
+
+	* parse_aprs.c:
+	    Check that the timestamp ends with one of valid timestamp type ids.
+	    Those being: 'z', 'h', '/'
+
+2014-02-03 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* ttyreader.c:
+	    Read only when poll reports data availability.  (uh3ack)
+
 2014-02-01 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* rpm/aprx.spec.in:

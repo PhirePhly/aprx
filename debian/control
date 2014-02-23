@@ -2,12 +2,12 @@ Source: aprx
 Section: hamradio
 Priority: extra
 Maintainer: HAM APRX release  maintenance <aprx@ham>
-Build-Depends: debhelper (>= 4)
+Build-Depends: debhelper (>= 4), libssl-dev
 Standards-Version: 3.7.2
 
 Package: aprx
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, openssl
 Description: APRS Digipeater and iGate
  Aprx is an APRS specific Digipeater and iGate.
  It supports multiple KISS-TNCs on serial ports  and listening 

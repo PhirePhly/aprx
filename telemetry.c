@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -38,8 +38,21 @@ struct rftelemetry {
 static int                  rftelemetrycount;
 static struct rftelemetry **rftelemetry;
 
-static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
-			 const char *buf, const int buflen);
+static void rf_telemetry(const struct aprx_interface *sourceaif, const char *beaconaddr,
+			 const const char *buf, const int buflen);
+
+static void telemetry_resettime(void *arg)
+{
+	struct timeval *tv = (struct timeval*)arg;
+	tv_timeradd_seconds( tv, &now, telemetry_interval );
+}
+
+static void telemetry_resetlabeltime(void *arg)
+{
+	struct timeval *tv = (struct timeval*)arg;
+	tv_timeradd_seconds( tv, &now, 120 );  // first label 2 minutes from now
+}
+
 
 void telemetry_start()
 {
@@ -52,38 +65,26 @@ void telemetry_start()
 	telemetry_seq = (time(NULL)) & 255;
 
 	// "now" is supposedly current time..
+        telemetry_resettime( &telemetry_time );
+        telemetry_resetlabeltime( &telemetry_time );
 
-        tv_timeradd_seconds( &telemetry_time, &now, telemetry_interval );
-	tv_timeradd_seconds( &telemetry_labeltime, &now, 120); // first label 2 minutes from now
+	if (debug) printf("telemetry_start()\n");
 }
 
 int telemetry_prepoll(struct aprxpolls *app)
 {
-	// Check that time has not jumped too far ahead (1.5 telemetry intervals)
-	struct timeval nowminus;
-	struct timeval nowplus;
+	// Check that time has not jumped too far ahead/back (1.5 telemetry intervals)
         int margin = telemetry_interval + telemetry_interval/2;
-
-        tv_timeradd_seconds(&nowminus, &now, -margin);
-        if (tv_timercmp(&telemetry_time, &nowminus) < 0) {
-		// Reset the time keeping
-        	telemetry_start();
-        }
-        if (tv_timercmp(&telemetry_labeltime, &nowminus) < 0) {
-		// Reset the time keeping
-        	telemetry_start();
-        }
-
-	// Check that time has not jumped too far back (1.5 telemetry intervals)
-        tv_timeradd_seconds(&nowplus, &now, margin);
-        if (tv_timercmp(&nowplus, &telemetry_time) < 0) {
-		// Reset the time keeping
-        	telemetry_start();
-        }
-        if (tv_timercmp(&nowplus, &telemetry_labeltime) < 0) {
-		// Reset the time keeping
-        	telemetry_start();
-        }
+        tv_timerbounds("telemetry time",
+                       &telemetry_time,
+                       margin,
+                       telemetry_resettime,
+                       &telemetry_time);
+        tv_timerbounds("telemetry labeltime",
+                       &telemetry_labeltime,
+                       margin,
+                       telemetry_resetlabeltime,
+                       &telemetry_labeltime);
 
         // Normal operational step
 
@@ -398,8 +399,10 @@ static void telemetry_labeltx()
 	  telemetry_labelindex = 0;
 }
 
-static void rf_telemetry(struct aprx_interface *sourceaif, char *beaconaddr,
-			 const char *buf, const int buflen)
+static void rf_telemetry(const struct aprx_interface *sourceaif,
+                         const char *beaconaddr,
+			 const char *buf,
+                         const const int buflen)
 {
 	int i;
 	int t_idx;
