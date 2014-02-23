@@ -156,7 +156,7 @@ static void dupecheck_cleanup(void)
 	  for (i = 0; i < DUPECHECK_DB_SIZE; ++i) {
 	    dpp = & (dpc->dupecheck_db[i]);
 	    while (( dp = *dpp )) {
-	      if (dp->t_exp < now.tv_sec) {
+	      if ((dp->t_exp - now.tv_sec) < 0) {
 		/* Old..  discard. */
 		*dpp = dp->next;
 		dp->next = NULL;
@@ -235,7 +235,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if (dp->t_exp < now.tv_sec) {
+		if ((dp->t_exp - now.tv_sec) < 0) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
@@ -388,7 +388,7 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if (dp->t_exp < now.tv_sec) {
+		if ((dp->t_exp - now.tv_sec) < 0) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;

@@ -682,7 +682,7 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 
 	/* Not all aprs-is systems send "heartbeat", but when they do.. */
 	if ((A->H->heartbeat_monitor_timeout > 0) &&
-	    (A->last_read + A->H->heartbeat_monitor_timeout < now.tv_sec)) {
+	    ((A->last_read + A->H->heartbeat_monitor_timeout - now.tv_sec) < 0)) {
 
 		/*
 		 * More than 120 seconds (2 minutes) since last time
@@ -783,7 +783,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 static void aprsis_cond_reconnect(void)
 {
 	if (AprsIS &&	/* First time around it may trip.. */
-	    AprsIS->server_socket < 0 && AprsIS->next_reconnect <= now.tv_sec) {
+	    AprsIS->server_socket < 0 && (AprsIS->next_reconnect - now.tv_sec) <= 0) {
 		aprsis_reconnect(AprsIS);
 	}
 }

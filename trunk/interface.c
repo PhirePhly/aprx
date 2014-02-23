@@ -1520,7 +1520,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    }
 	    // See that it has 'heard on radio' flag on this tx interface
 	    if (hist_rx != NULL && discard_this == 0) {
-	      if (hist_rx->last_heard[tx_aif->ifgroup] >= recent_time) {
+	      if ((hist_rx->last_heard[tx_aif->ifgroup] - recent_time) >= 0) {
 		// Heard recently enough
 		discard_this = 0;
 		if (debug) printf("History entry for receiving call '%s' from RADIO is recent enough.  KEEPING.\n", recipient);
@@ -1533,7 +1533,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    //           (FIXME: RF hop-count recording infra needed!)
 
 	    // 4) the receiving station has not been heard via the internet
-	    if (hist_rx != NULL && hist_rx->last_heard[0] > recent_time) {
+	    if (hist_rx != NULL && (hist_rx->last_heard[0] - recent_time) > 0) {
 	      // "is heard recently via internet"
 	      discard_this = 1;
 	      if (debug) printf("History entry for sending call '%s' from APRSIS is too new.  DISCARDING.\n", fromcall);
@@ -1547,7 +1547,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	    if (hist_tx != NULL) {
 	      // There is a history entry for this tx callsign, check rules 2+4
 	      // 2) Sending station has not been heard recently on radio (this target)
-	      if (hist_tx->last_heard[tx_aif->ifgroup] > recent_time) {
+	      if ((hist_tx->last_heard[tx_aif->ifgroup] - recent_time) > 0) {
 		// "is heard recently"
 		discard_this = 1;
 		if (debug) printf("History entry for sending call '%s' from RADIO is too new.  DISCARDING.\n", fromcall);
