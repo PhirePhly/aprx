@@ -21,7 +21,9 @@
 
 struct timeval now;			/* this is globally used */
 
-
+/*
+ * Calculate difference from now time to target time in milliseconds.
+ */
 int tv_timerdelta_millis(struct timeval *_now, struct timeval *_target)
 {
 	int deltasec  = _target->tv_sec  - _now->tv_sec;
@@ -33,6 +35,10 @@ int tv_timerdelta_millis(struct timeval *_now, struct timeval *_target)
         return deltasec * 1000 + deltausec / 1000;
 }
 
+/*
+ * Add milliseconds to input parameter a returning
+ * the result though parameter ret.
+ */
 void tv_timeradd_millis(struct timeval *ret, struct timeval *a, int millis)
 {
 	if (ret != a) {
@@ -49,6 +55,10 @@ void tv_timeradd_millis(struct timeval *ret, struct timeval *a, int millis)
         ret->tv_usec = usec;
 }
 
+/*
+ * Add seconds to input parameter a returning
+ * the result though parameter ret.
+ */
 void tv_timeradd_seconds(struct timeval *ret, struct timeval *a, int seconds)
 {
 	if (ret != a) {
@@ -58,6 +68,11 @@ void tv_timeradd_seconds(struct timeval *ret, struct timeval *a, int seconds)
         ret->tv_sec += seconds;
 }
 
+/*
+ * Time compare function returning -1/0/+1 depending
+ * which parameter presents time before the other.
+ * Zero means equals.
+ */
 int tv_timercmp(struct timeval *a, struct timeval *b)
 {
   // if (debug>3) {
@@ -88,16 +103,17 @@ int tv_timercmp(struct timeval *a, struct timeval *b)
 }
 
 /*
- * Compare *tv on current time value (now), and if the difference
+ * Compare *tv with current time value (now), and if the difference
  * is more than margin seconds, then call resetfunc with resetarg.
  *
  * Usually resetarg == tv, but not always.
+ * See 
  */
-extern void tv_timerbounds(const char *timername,
-                           struct timeval *tv,
-                           const int margin,
-                           void (*resetfunc)(void*),
-                           void *resetarg)
+void tv_timerbounds(const char *timername,
+                    struct timeval *tv,
+                    const int margin,
+                    void (*resetfunc)(void*),
+                    void *resetarg)
 {
 	// Check that system time has not jumped too far ahead/back;
 	// that it is within margin seconds to tv.
@@ -107,6 +123,7 @@ extern void tv_timerbounds(const char *timername,
 
         tv_timeradd_seconds(&nowminus, &now, -margin);
 
+        // If current time MINUS margin is AFTER tv, then reset.
         if (tv_timercmp(tv, &nowminus) < 0) {
         	if (debug)
                 	printf("System time has gone too much forwards, Resetting timer '%s'.\n", timername);
@@ -115,6 +132,7 @@ extern void tv_timerbounds(const char *timername,
 
         tv_timeradd_seconds(&nowplus,  &now,  margin);
 
+        // If current time PLUS margin is BEFORE tv, then reset.
         if (tv_timercmp(&nowplus, tv) < 0) {
         	if (debug)
                 	printf("System time has gone too much backwards, Resetting timer '%s'.\n", timername);
