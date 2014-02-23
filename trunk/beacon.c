@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -679,11 +679,12 @@ static char *msg_read_file(const char *filename, char *buf, int buflen)
 	return buf;
 }
 
-static void beacon_resettimer(struct beaconset *bset)
+static void beacon_resettimer(void *arg)
 {
+	const struct beaconset *bset = (struct beaconset *)arg;
 	float beacon_increment;
 	int   i;
-	time_t t = now.tv_sec;
+	time_t t = now.tv_sec + now.tv_usec;
 
 	srand((long)t);
         beacon_increment = (bset->beacon_cycle_size / bset->beacon_msgs_count);
@@ -936,8 +937,6 @@ int beacon_prepoll(struct aprxpolls *app)
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
 #endif
-	struct timeval nowminus;
-	struct timeval nowplus;
         for (i = 0; i < bsets_count; ++i) {
         	struct beaconset *bset = bsets[i];
                 if (bset->beacon_msgs == NULL) continue; // nothing here
@@ -950,13 +949,8 @@ int beacon_prepoll(struct aprxpolls *app)
                         	margin = bset->beacon_msgs[b]->interval;
                 }
                 margin += margin/2; // times 1.5
-                tv_timeradd_seconds(&nowminus, &now, -margin);
-                tv_timeradd_seconds(&nowplus,  &now,  margin);
-                if (tv_timercmp(&bset->beacon_nexttime, &nowminus) < 0)
-                	beacon_resettimer(bset);
-                if (tv_timercmp(&nowplus, &bset->beacon_nexttime) < 0)
-                	beacon_resettimer(bset);
-                
+                tv_timerbounds("beacon time", &bset->beacon_nexttime, margin, beacon_resettimer, bset);
+
                 if (tv_timercmp(&bset->beacon_nexttime, &app->next_timeout) < 0)
                 	app->next_timeout = bset->beacon_nexttime;
         }

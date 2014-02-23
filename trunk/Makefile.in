@@ -70,9 +70,9 @@ OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o	\
 		cellmalloc.o historydb.o keyhash.o parse_aprs.o		\
 		dupecheck.o  kiss.o interface.o pbuf.o digipeater.o	\
 		valgrind.o filter.o dprsgw.o  crc.o  agwpesocket.o	\
-		netresolver.o #ssl.o
+		netresolver.o timercmp.o #ssl.o
 
-OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o valgrind.o
+OBJSSTAT=	erlang.o aprx-stat.o aprxpolls.o valgrind.o timercmp.o
 
 # man page sources, will be installed as $(PROGAPRX).8 / $(PROGSTAT).8
 MANAPRX := 	aprx.8

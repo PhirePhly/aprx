@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -450,14 +450,15 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 
 static struct timeval dupecheck_cleanup_nexttime;
 
+static void dupecheck_resettime(void *arg)
+{
+	struct timeval *tv = (struct timeval *)arg;
+        *tv = now;
+}
+
 int dupecheck_prepoll(struct aprxpolls *app)
 {
-	struct timeval nowplus;
-        tv_timeradd_seconds(&nowplus, &now, 60);
-        if (tv_timercmp(&nowplus, &dupecheck_cleanup_nexttime) < 0) {
-        	// time(2) has jumped back a lot..
-        	dupecheck_cleanup_nexttime = now;
-        }
+	tv_timerbounds("dupecheck timer", &dupecheck_cleanup_nexttime, 60, dupecheck_resettime, &dupecheck_cleanup_nexttime);
 
 	if (tv_timercmp(&dupecheck_cleanup_nexttime, &app->next_timeout) > 0)
 		app->next_timeout = dupecheck_cleanup_nexttime;

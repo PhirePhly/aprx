@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -1641,6 +1641,11 @@ dupecheck_t *digipeater_find_dupecheck(const struct aprx_interface *aif)
 	return NULL;
 }
 
+static void digipeater_resettime(void *arg)
+{
+	struct timeval *tv = (struct timeval *)arg;
+        *tv = now;
+}
 
 
 // Viscous queue processing needs poll digis <source>s for delayed actions
@@ -1649,12 +1654,7 @@ int  digipeater_prepoll(struct aprxpolls *app)
 	int d, s;
 	time_t t;
 
-	struct timeval nowminus;
-	struct timeval nowplus;
-        int margin = TOKENBUCKET_INTERVAL*2;
-
-        tv_timeradd_seconds(&nowminus, &now, -margin);
-        tv_timeradd_seconds(&nowplus,  &now,  margin);
+        const int margin = TOKENBUCKET_INTERVAL*2;
 
         if (tokenbucket_timer.tv_sec == 0) {
         	tokenbucket_timer = now; // init this..
@@ -1663,14 +1663,8 @@ int  digipeater_prepoll(struct aprxpolls *app)
         // If the time(2) has jumped around a lot,
         // and we didn't get around to do our work, reset the timer.
 
-        if (tv_timercmp( &tokenbucket_timer, &nowminus ) < 0) {
-        	// Reset it..
-        	tokenbucket_timer = now;
-        }
-        if (tv_timercmp( &nowplus, &tokenbucket_timer ) < 0) {
-        	// Reset it..
-        	tokenbucket_timer = now;
-        }
+        tv_timerbounds("digipeater timer", &tokenbucket_timer, margin, digipeater_resettime, &tokenbucket_timer);
+
         
 	if (tv_timercmp( &tokenbucket_timer, &now ) <= 0) {
           // Run the digipeater timer handling now

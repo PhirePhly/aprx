@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -277,6 +277,7 @@ extern void ttyreader_linewrite(struct serialport *S);
 extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr);
 extern void aprx_cfmakeraw(struct termios *, int f);
 
+extern void tv_timerbounds(const char *, struct timeval *tv, const int margin, void (*resetfunc)(void*), void *resetarg );
 extern void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis);
 extern void tv_timeradd_seconds(struct timeval *res, struct timeval *a, int seconds);
 extern int  tv_timerdelta_millis(struct timeval *_now, struct timeval *_target);

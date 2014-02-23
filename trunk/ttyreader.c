@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -662,7 +662,7 @@ int ttyreader_postpoll(struct aprxpolls *app)
                         }
                 }
 
-		if (!(P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)))
+		/* if (!(P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)))
 			continue;	/* No read event we are interested in... */
 
 		for (i = 0; i < ttycount; ++i) {
@@ -674,7 +674,8 @@ int ttyreader_postpoll(struct aprxpolls *app)
 			if (P->revents & POLLOUT)
 				ttyreader_linewrite(S);
 
-			ttyreader_lineread(S);
+                        if (P->revents & (POLLIN | POLLPRI))
+                		ttyreader_lineread(S);
 		}
 	}
 

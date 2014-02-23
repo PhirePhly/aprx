@@ -4,7 +4,7 @@
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2013                            *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
  *                                                                  *
  * **************************************************************** */
 
@@ -364,7 +364,7 @@ static struct erlangline *erlang_findline(const char *portname,
 }
 
 
-static void erlang_timer_init()
+static void erlang_timer_init(void *dummy)
 {
 
 	/* Time intervals will end at next even
@@ -662,19 +662,12 @@ static void erlang_time_end(void)
 int erlang_prepoll(struct aprxpolls *app)
 {
 	struct timeval nowplus;
-        tv_timeradd_seconds(&nowplus, &now, 70); // 1 minute + 10 seconds
-        if (tv_timercmp(&nowplus, &erlang_time_end_1min) < 0) {
-        	erlang_timer_init();
-        }
-        tv_timeradd_seconds(&nowplus, &now, 610); // 10 minutes + 10 seconds
-        if (tv_timercmp(&nowplus, &erlang_time_end_10min) < 0) {
-        	erlang_timer_init();
-        }
+
+        tv_timerbounds("erlang 1min timer", &erlang_time_end_1min, 70,     erlang_timer_init, &erlang_time_end_1min);
+        tv_timerbounds("erlang 10min timer", &erlang_time_end_10min, 610,  erlang_timer_init, &erlang_time_end_10min);
+
 #ifdef ERLANGSTORAGE
-        tv_timeradd_seconds(&nowplus, &now, 3610); // 60 minutes + 10 seconds
-        if (tv_timercmp(&nowplus, &erlang_time_end_60min) < 0) {
-        	erlang_timer_init();
-        }
+        tv_timerbounds("erlang 60min timer", &erlang_time_end_60min, 3610, erlang_timer_init, &erlang_time_end_60min);
 #endif
 
 	if (tv_timercmp(&app->next_timeout, &erlang_time_end_1min) > 0)
@@ -706,7 +699,7 @@ void erlang_init(const char *syslog_facility_name)
 {
 	now.tv_sec = time(NULL);
 
-        erlang_timer_init();
+        erlang_timer_init(NULL);
 }
 
 void erlang_start(int do_create)
