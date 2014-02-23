@@ -82,14 +82,17 @@ int tv_timercmp(struct timeval *a, struct timeval *b)
   // a->tv_sec, a->tv_usec, b->tv_sec, b->tv_usec, dt_sec, dt_usec);
   // }
 
-	if (a->tv_sec < b->tv_sec) {
+	// Time delta calculation to avoid year 2038 issue
+	const int dt = (int)(a->tv_sec - b->tv_sec);
+	if (dt < 0) {
           // if (debug>3) printf("-1s\n");
           return -1;
         }
-	if (a->tv_sec > b->tv_sec) {
+	if (dt > 0) {
           // if (debug>3) printf("1s\n");
           return 1;
         }
+        // tv_usec is always in range 0 .. 999 999
         if (a->tv_usec < b->tv_usec) {
           // if (debug>3) printf("-1u\n");
           return -1;
