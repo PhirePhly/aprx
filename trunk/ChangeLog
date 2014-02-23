@@ -1,7 +1,7 @@
 2014-02-23 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* all files:
-	    Change copyright statement toread 2007-2014.
+	    Change copyright statement to read 2007-2014.
 
 	* timercmp.c, Makefile.in:
 	    New file bringing all struct timeval tools to one place.
