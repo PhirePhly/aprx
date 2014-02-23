@@ -15,6 +15,9 @@
 
 - uh3ack's (avk@gamma.ru) conditional telemetry-to-is transmit
 
+- Fix Year-2038 issues properly by not comparing time_t values directly
+  to each other, instead compare (int)(t1-t2) against zero.
+
 - "[Aprx] Re: WIDE2-2/NOGATE - trace not working?"
 
 - "[Aprx] Re: Bi-Directional Cross-band Digipeater"
