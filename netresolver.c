@@ -49,7 +49,7 @@ static void resolve_all(void) {
 
                 gettimeofday(&now, NULL);
 
-		if (n->re_resolve_time > now.tv_sec) {
+		if ((n->re_resolve_time - now.tv_sec) > 0) {
 		  // Not yet to re-resolve this one
 		  if (debug>1)
 		    printf("nr[%d] re_resolve_time in future (%d secs)\n",

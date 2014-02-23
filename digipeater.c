@@ -1736,7 +1736,7 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    for (i = 0; i < src->viscous_queue_size; ++i) {
 	      struct dupe_record_t *dupe = src->viscous_queue[i];
 	      time_t t = dupe->t + src->viscous_delay;
-	      if (t <= now.tv_sec) {
+	      if ((t - now.tv_sec) <= 0) {
 		if (debug)printf("%ld LEAVE VISCOUS QUEUE: dupe=%p pbuf=%p\n",
 				 now.tv_sec, dupe, dupe->pbuf);
 		if (dupe->pbuf != NULL) {

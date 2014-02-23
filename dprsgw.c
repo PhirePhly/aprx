@@ -105,11 +105,11 @@ static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
           if (dp->history[i].callsign[0] == 0)
             continue; 
 
-          if (dp->history[i].gated > now.tv_sec) {
+          if ((dp->history[i].gated - now.tv_sec) >  0) {
             // system time has jumped backwards, expire it.
             dp->history[i].gated = expiry;
           }
-	  if (dp->history[i].gated > expiry) {
+	  if ((dp->history[i].gated - expiry) > 0) {
 	    // Fresh enough to be interesting!
 	    if (strcmp(dp->history[i].callsign, callsign) == 0) {
 	      // This callsign!
@@ -866,8 +866,8 @@ int dprsgw_pulldprs( struct serialport *S )
 	if (S->dprsgw == NULL)
 	  S->dprsgw = dprsgw_new(30);   // FIXME: hard-coded 30 second delay for DPRS repeats
 
-	if (rdtime+2 < now.tv_sec) {
-		// A timeout has happen? Either data is added constantly,
+	if ((rdtime+2 - now.tv_sec) < 0) {
+		// A timeout has happen? (2 seconds!) Either data is added constantly,
 		// or nothing was received from DPRS datastream!
 
 		if (S->rdlinelen > 0)

@@ -406,7 +406,7 @@ static int filter_entrycall_lookup(const struct pbuf_t *pb)
 				int rc =  strncasecmp(f->callsign, key, keylen);
 				if (rc == 0) { /* Have key match, see if it is
 						  still valid entry ? */
-					if (f->expirytime < now.tv_sec - 60) {
+                                	if ((f->expirytime - (now.tv_sec - 60)) < 0) {
 						f2 = f;
 						break;
 					}
@@ -433,7 +433,7 @@ void filter_entrycall_cleanup(void)
 		fp = & filter_entrycall_hash[k];
 		while (( f = *fp )) {
 			/* Did it expire ? */
-			if (f->expirytime <= now.tv_sec) {
+                  if ((f->expirytime - now.tv_sec) <= 0) {
 				*fp = f->next;
 				f->next = NULL;
 				filter_entrycall_free(f);
@@ -594,7 +594,7 @@ static int filter_wx_lookup(const struct pbuf_t *pb)
 				int rc = strncasecmp(f->callsign, key, keylen);
 				if (rc == 0) { /* Have key match, see if it is
 						  still valid entry ? */
-					if (f->expirytime < now.tv_sec - 60) {
+                                  if ((f->expirytime - (now.tv_sec - 60)) < 0) {
 						f2 = f;
 						break;
 					}
@@ -622,7 +622,7 @@ void filter_wx_cleanup(void)
 		fp = & filter_wx_hash[k];
 		while (( f = *fp )) {
 			/* Did it expire ? */
-			if (f->expirytime <= now.tv_sec) {
+                	if ((f->expirytime - now.tv_sec) <= 0) {
 				*fp = f->next;
 				f->next = NULL;
 				filter_wx_free(f);
