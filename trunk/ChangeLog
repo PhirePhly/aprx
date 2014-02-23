@@ -17,6 +17,9 @@
 	    Timer tracking against possibly jumping 'now' with conditional
 	    resetting.
 
+	* beacon.c, dupecheck.c, netax25.c, telemetry.c, timercmp.c:
+	    Few wrong initializations of timers fixed.
+
 2014-02-13 Forgot to record the author
 
 	* debian/control:

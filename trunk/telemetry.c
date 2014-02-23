@@ -66,7 +66,7 @@ void telemetry_start()
 
 	// "now" is supposedly current time..
         telemetry_resettime( &telemetry_time );
-        telemetry_resetlabeltime( &telemetry_time );
+        telemetry_resetlabeltime( &telemetry_labeltime );
 
 	if (debug) printf("telemetry_start()\n");
 }
@@ -80,6 +80,7 @@ int telemetry_prepoll(struct aprxpolls *app)
                        margin,
                        telemetry_resettime,
                        &telemetry_time);
+        margin = telemetry_labelinterval + telemetry_labelinterval/2;
         tv_timerbounds("telemetry labeltime",
                        &telemetry_labeltime,
                        margin,

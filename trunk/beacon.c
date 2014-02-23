@@ -684,7 +684,7 @@ static void beacon_resettimer(void *arg)
 	const struct beaconset *bset = (struct beaconset *)arg;
 	float beacon_increment;
 	int   i;
-	time_t t = now.tv_sec + now.tv_usec;
+	time_t t = now.tv_sec;
 
 	srand((long)t);
         beacon_increment = (bset->beacon_cycle_size / bset->beacon_msgs_count);

@@ -458,6 +458,8 @@ static void dupecheck_resettime(void *arg)
 
 int dupecheck_prepoll(struct aprxpolls *app)
 {
+	if (dupecheck_cleanup_nexttime.tv_sec == 0) dupecheck_cleanup_nexttime = now;
+
 	tv_timerbounds("dupecheck timer", &dupecheck_cleanup_nexttime, 60, dupecheck_resettime, &dupecheck_cleanup_nexttime);
 
 	if (tv_timercmp(&dupecheck_cleanup_nexttime, &app->next_timeout) > 0)

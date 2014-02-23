@@ -542,6 +542,8 @@ int netax25_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 	int i;
 
+        if (next_scantime.tv_sec == 0) next_scantime = now;
+
         // 1 minute+ from now -- exact timing is not important
         tv_timerbounds("netax25 scantimer", &next_scantime, 70, netax25_resettimer, &next_scantime);
 
