@@ -608,6 +608,11 @@ int  historydb_prepoll(struct aprxpolls *app)
 int  historydb_postpoll(struct aprxpolls *app)
 {
 	int i;
+        // Limit next cleanup to be at most 60 second in future
+        // (just in case the system time jumped back)
+        if (next_cleanup_time >= now.tv_sec+61) {
+          next_cleanup_time = now.tv_sec + 60;
+        }
 	if (next_cleanup_time >= now.tv_sec) return 0;
 	next_cleanup_time = now.tv_sec + 60; // A minute from now..
 

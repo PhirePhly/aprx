@@ -528,17 +528,22 @@ const void* netax25_open(const char *ifcallsign)
 	return netax25_openpty(ifcallsign);
 }
 
-static time_t next_scantime;
+static struct timeval next_scantime;
+
+static void netax25_resettimer(void*arg)
+{
+	struct timeval *tv = (struct timeval *)arg;
+	tv_timeradd_seconds(tv, &now, 60);
+        scan_linux_devices();
+}
 
 int netax25_prepoll(struct aprxpolls *app)
 {
 	struct pollfd *pfd;
 	int i;
 
-	if (next_scantime <= now.tv_sec) {
-	  next_scantime = now.tv_sec + 60; // 1 minute+ from now -- exact timing is not important
-	  scan_linux_devices();
-	}
+        // 1 minute+ from now -- exact timing is not important
+        tv_timerbounds("netax25 scantimer", &next_scantime, 70, netax25_resettimer, &next_scantime);
 
 	if (rx_socket >= 0) {
 		/* FD is open, lets mark it for poll read.. */
@@ -722,6 +727,12 @@ int netax25_postpoll(struct aprxpolls *app)
 	// char ifaddress[10];
 
         assert(app->polls != NULL);
+
+        if (tv_timercmp(&now, &next_scantime) > 0) {
+        	scan_linux_devices();
+                // Rescan every 60 seconds, on the dot.
+                tv_timeradd_seconds(&next_scantime, &next_scantime, 60);
+        }
 
 	pfd = app->polls;
 

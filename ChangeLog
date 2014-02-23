@@ -12,6 +12,11 @@
 	    time is reset.  This avoids running a burst of beacon
 	    events when 'now' jumps ahead a lot, as an example.
 
+	* netax25.c, digipeater.c, beacon.c, ttyreader.c, telemetry.c, dprsgw.c,
+	  agwpesocket.c, aprsis.c, aprx.h, historydb.c, dupecheck.c, erlang.c:
+	    Timer tracking against possibly jumping 'now' with conditional
+	    resetting.
+
 2014-02-13 Forgot to record the author
 
 	* debian/control:

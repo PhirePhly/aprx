@@ -505,8 +505,7 @@ static void ttyreader_linesetup(struct serialport *S)
 	S->last_read_something = now.tv_sec;	/* mark the timeout for future.. */
 
 	S->rdlen = S->rdcursor = S->rdlinelen = 0;
-	S->kissstate = 0;	/* Zero it, whatever protocol we actually use
-				   will consider it as 'hunt for sync' state. */
+	S->kissstate = KISSSTATE_SYNCHUNT;
 
 	memset( S->smack_probe, 0, sizeof(S->smack_probe) );
 	S->smack_subids = 0;
@@ -554,6 +553,11 @@ int ttyreader_prepoll(struct aprxpolls *app)
 #endif
 
 		if (S->fd < 0) {
+                	if ((S->wait_until.tv_sec != 0) && S->wait_until.tv_sec + TTY_OPEN_RETRY_DELAY_SECS > now.tv_sec) {
+                          // System time jumped backwards, reset it to NOW.
+                          S->wait_until = now;
+                        }
+
 			/* Not an open TTY, but perhaps waiting ? */
 			if ((S->wait_until.tv_sec != 0) && tv_timercmp( &S->wait_until, &now) > 0) {
 				/* .. waiting for future! */
@@ -576,7 +580,14 @@ int ttyreader_prepoll(struct aprxpolls *app)
 		if (S->fd < 0)
 			continue;
 
-		/* FD is open, check read/idle timeout ... */
+		// FD is open, check read/idle timeout ...
+                if (S->last_read_something > now.tv_sec) {
+                  // System time has jumped backwards, Reset the read time to NOW.
+                  S->last_read_something = now.tv_sec;
+                }
+                // Forward jumping system time causes serial port to be closed and reopened.
+
+		// FD is open, check read/idle timeout ...
 		if ((S->read_timeout > 0) &&
 		    (now.tv_sec > (S->last_read_something + S->read_timeout))) {
 			if (debug)
@@ -591,7 +602,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
 
                 if (poll_millis > 0) {
                         int margin  = poll_millis*2;
-                        // Limit large delta time to within 0..poll_millis.
+                        // Limit large delta time to within 0..2*poll_millis.
 			int deltams = tv_timerdelta_millis(&now, &poll_millis_tv);
                         if (deltams > margin)  deltams = poll_millis;
                         if (deltams < -margin) deltams = poll_millis;

@@ -33,14 +33,17 @@ typedef struct dprsgw_history {
 	char   callsign[10];
 } dprsgw_history_t;
 
+// Up to 30 history entries to not to send same callsign too often
+#define HISTORYSIZE 30
+
 typedef struct dprs_gw {
 	char *ggaline;
 	char *rmcline;
 	int ggaspace;
 	int rmcspace;
 
-	// Up to 30 history entries to not to send same callsign too often
-	dprsgw_history_t history[30];
+	int              historylimit;  // Time limit in seconds
+	dprsgw_history_t history[HISTORYSIZE];
 } dprsgw_t;
 
 
@@ -73,8 +76,9 @@ static void dprsgw_flush(dprsgw_t *dp) {
 	dp->rmcline[0] = 0;
 }
 
-static void *dprsgw_new(void) {
-	dprsgw_t *dp = calloc(1, sizeof(struct dprs_gw));
+static void *dprsgw_new(int historylimit) {
+	dprsgw_t *dp = calloc(1, sizeof(*dp));
+        dp->historylimit = historylimit;
 	dprsgw_flush(dp); // init buffers
 	return dp;
 }
@@ -83,7 +87,7 @@ static void *dprsgw_new(void) {
 static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
 	int i, n;
 	char callsign[10];
-	time_t expiry = now.tv_sec - 30; // FIXME: hard-coded 30 second delay for DPRS repeats
+	time_t expiry = now.tv_sec - dp->historylimit;
 
 	memcpy(callsign, tnc2buf, sizeof(callsign));
 	callsign[sizeof(callsign)-1] = 0;
@@ -95,7 +99,16 @@ static int dprsgw_ratelimit( dprsgw_t *dp, const void *tnc2buf ) {
 	  }
 	}
 	n = -1;
-	for (i = 0; i < 30; ++i) {
+	for (i = 0; i < HISTORYSIZE; ++i) {
+
+          // Is there an entry?
+          if (dp->history[i].callsign[0] == 0)
+            continue; 
+
+          if (dp->history[i].gated > now.tv_sec) {
+            // system time has jumped backwards, expire it.
+            dp->history[i].gated = expiry;
+          }
 	  if (dp->history[i].gated > expiry) {
 	    // Fresh enough to be interesting!
 	    if (strcmp(dp->history[i].callsign, callsign) == 0) {
@@ -851,7 +864,7 @@ int dprsgw_pulldprs( struct serialport *S )
 
 
 	if (S->dprsgw == NULL)
-	  S->dprsgw = dprsgw_new();
+	  S->dprsgw = dprsgw_new(30);   // FIXME: hard-coded 30 second delay for DPRS repeats
 
 	if (rdtime+2 < now.tv_sec) {
 		// A timeout has happen? Either data is added constantly,
@@ -963,12 +976,12 @@ int dprsgw_pulldprs( struct serialport *S )
 
 int  dprsgw_prepoll(struct aprxpolls *app)
 {
-	return 0;
+	return 0; // returns number of sockets filled (ignored at caller)
 }
 
 int  dprsgw_postpoll(struct aprxpolls *app)
 {
-	return 0;
+	return 0; // returns number of sockets filled (ignored at caller)
 }
 
 
