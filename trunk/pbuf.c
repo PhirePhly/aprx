@@ -115,7 +115,7 @@ static struct pbuf_t *_pbuf_new(const int is_aprs, const int digi_like_aprs, con
 
 	pb->is_aprs        = is_aprs;
 	pb->digi_like_aprs = digi_like_aprs;
-	pb->t              = now.tv_sec;      // Arrival time
+	pb->t              = tick.tv_sec;      // Arrival time
 
 	return pb;
 }

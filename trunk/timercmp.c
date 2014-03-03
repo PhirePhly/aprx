@@ -19,7 +19,8 @@
 #endif
 #include <fcntl.h>
 
-struct timeval now;			/* this is globally used */
+struct timeval now; // public wall clock that can jump around
+struct timeval tick;  // monotonic clock
 
 /*
  * Calculate difference from now time to target time in milliseconds.
@@ -68,12 +69,26 @@ void tv_timeradd_seconds(struct timeval *ret, struct timeval *a, int seconds)
         ret->tv_sec += seconds;
 }
 
+
+/*
+ * Comparison returning -1/0/+1 depending on ( a <=> b )
+ *
+ * This handles overflow wraparound of Y2038 issue of 32-bit UNIX time_t.
+ */
+int timecmp(const time_t a, const time_t b)
+{
+	const int i = (int)(a - b);
+        if (i == 0) return 0;
+        if (i > 0) return 1;
+        return -1;
+}
+
 /*
  * Time compare function returning -1/0/+1 depending
  * which parameter presents time before the other.
  * Zero means equals.
  */
-int tv_timercmp(struct timeval *a, struct timeval *b)
+int tv_timercmp(struct timeval * const a, struct timeval * const b)
 {
   // if (debug>3) {
   // int dt_sec  = a->tv_sec - b->tv_sec;
@@ -83,14 +98,10 @@ int tv_timercmp(struct timeval *a, struct timeval *b)
   // }
 
 	// Time delta calculation to avoid year 2038 issue
-	const int dt = (int)(a->tv_sec - b->tv_sec);
-	if (dt < 0) {
-          // if (debug>3) printf("-1s\n");
-          return -1;
-        }
-	if (dt > 0) {
-          // if (debug>3) printf("1s\n");
-          return 1;
+	const int dt = timecmp(a->tv_sec, b->tv_sec);
+        if (dt != 0) {
+          // if (debug>3) printf("%ds\n", dt);
+          return dt;
         }
         // tv_usec is always in range 0 .. 999 999
         if (a->tv_usec < b->tv_usec) {
@@ -124,7 +135,7 @@ void tv_timerbounds(const char *timername,
 	struct timeval nowminus;
 	struct timeval nowplus;
 
-        tv_timeradd_seconds(&nowminus, &now, -margin);
+        tv_timeradd_seconds(&nowminus, &tick, -margin);
 
         // If current time MINUS margin is AFTER tv, then reset.
         if (tv_timercmp(tv, &nowminus) < 0) {
@@ -134,7 +145,7 @@ void tv_timerbounds(const char *timername,
                 resetfunc(resetarg);
         }
 
-        tv_timeradd_seconds(&nowplus,  &now,  margin);
+        tv_timeradd_seconds(&nowplus,  &tick,  margin);
 
         // If current time PLUS margin is BEFORE tv, then reset.
         if (tv_timercmp(&nowplus, tv) < 0) {

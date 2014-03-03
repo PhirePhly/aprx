@@ -163,15 +163,16 @@ static int ttyreader_pullaea(struct serialport *S)
 static int ttyreader_pulltext(struct serialport *S)
 {
 	int c;
+	const time_t rdtime = S->rdline_time;
+        // "rdtime > now" case ("now" going backwards) is always overwritten below
 
-	time_t rdtime = S->rdline_time;
-	if (rdtime+2 < now.tv_sec) {
+	if (timecmp(rdtime+2, tick.tv_sec) < 0) {
 		// A timeout has happen? Either data is added constantly, or
 		// nothing was received from TEXT datastream for couple seconds!
 		S->rdlinelen = 0;
 		// S->kissstate = KISSSTATE_SYNCHUNT;
 	}
-	S->rdline_time = now.tv_sec;
+	S->rdline_time = tick.tv_sec;
 
 	for (;;) {
 
@@ -301,9 +302,9 @@ static void ttyreader_lineread(struct serialport *S)
 		if (i == 0) {	/* EOF ?  USB unplugged ? */
 			close(S->fd);
 			S->fd = -1;
-                        tv_timeradd_seconds(&S->wait_until, &now, TTY_OPEN_RETRY_DELAY_SECS);
+                        tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
 			if (debug)
-				printf("%ld\tTTY %s EOF - CLOSED, WAITING %d SECS\n", now.tv_sec, S->ttyname, TTY_OPEN_RETRY_DELAY_SECS);
+				printf("%ld\tTTY %s EOF - CLOSED, WAITING %d SECS\n", tick.tv_sec, S->ttyname, TTY_OPEN_RETRY_DELAY_SECS);
 			return;
 		}
 		if (i < 0)	/* EAGAIN or whatever.. */
@@ -311,13 +312,13 @@ static void ttyreader_lineread(struct serialport *S)
 
 		/* Some data has been accumulated ! */
 		if (debug > 2) {
-		  printf("%ld\tTTY %s: read() frame: ", now.tv_sec, S->ttyname);
+		  printf("%ld\tTTY %s: read() frame: ", tick.tv_sec, S->ttyname);
 		  hexdumpfp(stdout, S->rdbuf+S->rdlen, i, 1);
 		  printf("\n");
 		}
                 
 		S->rdlen += i;
-		S->last_read_something = now.tv_sec;
+		S->last_read_something = tick.tv_sec;
 	}
 
 	/* Done reading, maybe.  Now processing.
@@ -352,7 +353,7 @@ static void ttyreader_lineread(struct serialport *S)
 	} else {
 		close(S->fd);	/* Urgh ?? Bad linetype value ?? */
 		S->fd = -1;
-                tv_timeradd_seconds(&S->wait_until, &now, TTY_OPEN_RETRY_DELAY_SECS);
+                tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
 	}
 
 	/* Consumed something, and our read cursor is not in the beginning ? */
@@ -385,13 +386,13 @@ static void ttyreader_linesetup(struct serialport *S)
 
 		if (debug) {
                 	printf("%ld\tTTY %s OPEN - fd=%d - ",
-                               now.tv_sec, S->ttyname, S->fd);
+                               tick.tv_sec, S->ttyname, S->fd);
                         if (S->fd < 0) {
                           printf("errno=%d (%s) - ", errno, strerror(errno));
                         }
                 }
 		if (S->fd < 0) {	/* Urgh.. an error.. */
-			tv_timeradd_seconds(&S->wait_until, &now, TTY_OPEN_RETRY_DELAY_SECS);
+			tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
 			if (debug)
 				printf("FAILED, WAITING %d SECS\n",
 				       TTY_OPEN_RETRY_DELAY_SECS);
@@ -407,10 +408,10 @@ static void ttyreader_linesetup(struct serialport *S)
 		if (i < 0) {
 			if (debug)
 			  printf("%ld\tERROR: TCSETATTR failed; errno=%d\n",
-				 now.tv_sec, errno);
+				 tick.tv_sec, errno);
 			close(S->fd);
 			S->fd = -1;
-			tv_timeradd_seconds(&S->wait_until, &now, TTY_OPEN_RETRY_DELAY_SECS);
+			tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
 			return;
 		}
 		/* FIXME: ??  Set baud-rates ?
@@ -502,7 +503,7 @@ static void ttyreader_linesetup(struct serialport *S)
 		free(par);
 	}
 
-	S->last_read_something = now.tv_sec;	/* mark the timeout for future.. */
+	S->last_read_something = tick.tv_sec;	/* mark the timeout for future.. */
 
 	S->rdlen = S->rdcursor = S->rdlinelen = 0;
 	S->kissstate = KISSSTATE_SYNCHUNT;
@@ -534,7 +535,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 
         if (poll_millis_tv.tv_sec == 0) {
-        	poll_millis_tv = now;
+        	poll_millis_tv = tick;
         }
 
         // if (debug) printf("ttyreader_prepoll() %d\n", poll_millis);
@@ -546,20 +547,20 @@ int ttyreader_prepoll(struct aprxpolls *app)
 
 #if 0 // occasional debug mode without real hardware at hand
                 if (poll_millis > 0) {
-                  int deltams = tv_timerdelta_millis(&now, &poll_millis_tv);
+                  int deltams = tv_timerdelta_millis(&tick, &poll_millis_tv);
                   struct timeval tv;
-                  if (debug) printf("%d.%06d .. defining %d ms KISS POLL\n", now.tv_sec, now.tv_usec, poll_millis);
+                  if (debug) printf("%d.%06d .. defining %d ms KISS POLL\n", tick.tv_sec, tick.tv_usec, poll_millis);
                 }
 #endif
 
 		if (S->fd < 0) {
-                	if ((S->wait_until.tv_sec != 0) && S->wait_until.tv_sec + TTY_OPEN_RETRY_DELAY_SECS > now.tv_sec) {
-                          // System time jumped backwards, reset it to NOW.
-                          S->wait_until = now;
+                	if (time_reset && (S->wait_until.tv_sec != 0)) {
+                        	// System time jumped, reset it to NOW.
+                        	S->wait_until = tick;
                         }
 
 			/* Not an open TTY, but perhaps waiting ? */
-			if ((S->wait_until.tv_sec != 0) && tv_timercmp( &S->wait_until, &now) > 0) {
+			if ((S->wait_until.tv_sec != 0) && tv_timercmp( &S->wait_until, &tick) > 0) {
 				/* .. waiting for future! */
                         	if (tv_timercmp( &app->next_timeout, &S->wait_until ) > 0) {
                                 	app->next_timeout = S->wait_until;
@@ -581,21 +582,20 @@ int ttyreader_prepoll(struct aprxpolls *app)
 			continue;
 
 		// FD is open, check read/idle timeout ...
-                if (S->last_read_something > now.tv_sec) {
-                  // System time has jumped backwards, Reset the read time to NOW.
-                  S->last_read_something = now.tv_sec;
+                if (time_reset) {
+                  // System time has jumped, Reset the read time to NOW.
+                  S->last_read_something = tick.tv_sec;
                 }
-                // Forward jumping system time causes serial port to be closed and reopened.
 
 		// FD is open, check read/idle timeout ...
 		if ((S->read_timeout > 0) &&
-		    (now.tv_sec > (S->last_read_something + S->read_timeout))) {
+		    timecmp(tick.tv_sec, (S->last_read_something + S->read_timeout)) > 0) {
 			if (debug)
 			  printf("%ld\tRead timeout on %s; %d seconds w/o input. fd=%d\n",
-				 now.tv_sec, S->ttyname, S->read_timeout, S->fd);
+				 tick.tv_sec, S->ttyname, S->read_timeout, S->fd);
 			close(S->fd);	/* Close and mark for re-open */
 			S->fd = -1;
-                        tv_timeradd_seconds( &S->wait_until, &now, TTY_OPEN_RETRY_DELAY_SECS);
+                        tv_timeradd_seconds( &S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
 			continue;
 		}
 
@@ -603,12 +603,12 @@ int ttyreader_prepoll(struct aprxpolls *app)
                 if (poll_millis > 0) {
                         int margin  = poll_millis*2;
                         // Limit large delta time to within 0..2*poll_millis.
-			int deltams = tv_timerdelta_millis(&now, &poll_millis_tv);
+			int deltams = tv_timerdelta_millis(&tick, &poll_millis_tv);
                         if (deltams > margin)  deltams = poll_millis;
                         if (deltams < -margin) deltams = poll_millis;
-                        tv_timeradd_millis(&poll_millis_tv, &now, deltams);
+                        tv_timeradd_millis(&poll_millis_tv, &tick, deltams);
 
-                        if (debug) printf("%ld.%06d .. defining %d ms KISS POLL\n", (long)now.tv_sec, (int)now.tv_usec, poll_millis);
+                        if (debug) printf("%ld.%06d .. defining %d ms KISS POLL\n", (long)tick.tv_sec, (int)tick.tv_usec, poll_millis);
                 }
 
 		/* FD is open, lets mark it for poll read.. */
@@ -646,7 +646,7 @@ int ttyreader_postpoll(struct aprxpolls *app)
                                	S = ttys[i];
 
 #if 0  // occasional debug mode without real hardware at hand
-                                if (tv_timercmp(&poll_millis_tv, &now) <= 0) {
+                                if (tv_timercmp(&poll_millis_tv, &tick) <= 0) {
 	                                // Poll interval gone, time for next active POLL request!
                                         kiss_poll(S);
                                         tv_timeradd_millis(&poll_millis_tv, &poll_millis_tv, poll_millis);
@@ -665,7 +665,7 @@ int ttyreader_postpoll(struct aprxpolls *app)
                                         // Not a KISS line..
                                         continue;
                                 }
-                                if (tv_timercmp(&poll_millis_tv, &now) <= 0) {
+                                if (tv_timercmp(&poll_millis_tv, &tick) <= 0) {
 	                                // Poll interval gone, time for next active POLL request!
                                         kiss_poll(S);
                                         tv_timeradd_millis(&poll_millis_tv, &poll_millis_tv, poll_millis);
@@ -725,8 +725,8 @@ struct serialport *ttyreader_new(void)
 	int baud = B1200;
 
 	tty->fd = -1;
-        tv_timeradd_seconds( &tty->wait_until, &now, -1); /* begin opening immediately */
-	tty->last_read_something = now.tv_sec;	/* well, not really.. */
+        tv_timeradd_seconds( &tty->wait_until, &tick, -1); /* begin opening immediately */
+	tty->last_read_something = tick.tv_sec;	/* well, not really.. */
 	tty->linetype  = LINETYPE_KISS;	/* default */
 	tty->kissstate = KISSSTATE_SYNCHUNT;
 

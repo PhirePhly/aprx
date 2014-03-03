@@ -64,7 +64,7 @@ DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r@SVNVERSION_STRING@\"" \
 PROGAPRX=	aprx
 PROGSTAT=	$(PROGAPRX)-stat
 
-LIBS=		@LIBS@ @LIBRESOLV@ @LIBSOCKET@  @LIBM@ @LIBPTHREAD@ @LIBGETADDRINFO@
+LIBS=		@LIBS@ @LIBRESOLV@ @LIBSOCKET@  @LIBM@ @LIBPTHREAD@ @LIBGETADDRINFO@ @LIBRT@
 OBJSAPRX=	aprx.o ttyreader.o ax25.o aprsis.o beacon.o config.o	\
 		netax25.o erlang.o aprxpolls.o telemetry.o igate.o	\
 		cellmalloc.o historydb.o keyhash.o parse_aprs.o		\

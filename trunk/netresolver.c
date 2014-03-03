@@ -47,13 +47,13 @@ static void resolve_all(void) {
 		struct addrinfo *ai, req;
 		int rc;
 
-                gettimeofday(&now, NULL);
+                timetick();
 
-		if ((n->re_resolve_time - now.tv_sec) > 0) {
+		if (timecmp(n->re_resolve_time, tick.tv_sec) > 0) {
 		  // Not yet to re-resolve this one
 		  if (debug>1)
 		    printf("nr[%d] re_resolve_time in future (%d secs)\n",
-			   i, (int)(n->re_resolve_time - now.tv_sec));
+			   i, (int)(n->re_resolve_time - tick.tv_sec));
 		  continue;
 		}
 
@@ -83,6 +83,8 @@ static void resolve_all(void) {
 		  printf("nr[%d] resolving of %s:%s success!\n",
 			 i, n->hostname, n->port);
 
+                timetick();
+
 		// Make local static copy of first result
 		memcpy(&n->sa, ai->ai_addr, ai->ai_addrlen);
 		n->ai.ai_flags     = ai->ai_flags;
@@ -93,7 +95,7 @@ static void resolve_all(void) {
 		n->ai.ai_addrlen   = ai->ai_addrlen;
 
 		freeaddrinfo(ai);
-		n->re_resolve_time  = now.tv_sec + RE_RESOLVE_INTERVAL;
+		n->re_resolve_time  = tick.tv_sec + RE_RESOLVE_INTERVAL;
 	}
 }
 

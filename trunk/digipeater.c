@@ -1621,7 +1621,7 @@ void digipeater_receive( struct digipeater_source *src,
 				= dupecheck_get(dupe);
 			
 			if (debug) printf("%ld ENTER VISCOUS QUEUE: len=%d pbuf=%p\n",
-					  now.tv_sec, src->viscous_queue_size, pb);
+					  tick.tv_sec, src->viscous_queue_size, pb);
 			return; // Put on viscous queue
 
 		} 
@@ -1644,7 +1644,7 @@ dupecheck_t *digipeater_find_dupecheck(const struct aprx_interface *aif)
 static void digipeater_resettime(void *arg)
 {
 	struct timeval *tv = (struct timeval *)arg;
-        *tv = now;
+        *tv = tick;
 }
 
 
@@ -1657,16 +1657,17 @@ int  digipeater_prepoll(struct aprxpolls *app)
         const int margin = TOKENBUCKET_INTERVAL*2;
 
         if (tokenbucket_timer.tv_sec == 0) {
-        	tokenbucket_timer = now; // init this..
+        	tokenbucket_timer = tick; // init this..
         }
 
         // If the time(2) has jumped around a lot,
         // and we didn't get around to do our work, reset the timer.
 
-        tv_timerbounds("digipeater timer", &tokenbucket_timer, margin, digipeater_resettime, &tokenbucket_timer);
-
+        if (time_reset) {
+        	digipeater_resettime(&tokenbucket_timer);
+        }
         
-	if (tv_timercmp( &tokenbucket_timer, &now ) <= 0) {
+	if (tv_timercmp( &tokenbucket_timer, &tick ) <= 0) {
           // Run the digipeater timer handling now
           // Will also advance the timer!
           if (debug>2) printf("digipeater_prepoll() run tockenbucket_timers\n");
@@ -1712,7 +1713,7 @@ int  digipeater_postpoll(struct aprxpolls *app)
 {
 	int d, s, i, donecount;
 
-	if (tv_timercmp(&tokenbucket_timer, &now) < 0) {
+	if (tv_timercmp(&tokenbucket_timer, &tick) < 0) {
           tv_timeradd_seconds( &tokenbucket_timer, &tokenbucket_timer, TOKENBUCKET_INTERVAL);
           run_tokenbucket_timers();
 	}
@@ -1736,9 +1737,9 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	    for (i = 0; i < src->viscous_queue_size; ++i) {
 	      struct dupe_record_t *dupe = src->viscous_queue[i];
 	      time_t t = dupe->t + src->viscous_delay;
-	      if ((t - now.tv_sec) <= 0) {
+	      if ((t - tick.tv_sec) <= 0) {
 		if (debug)printf("%ld LEAVE VISCOUS QUEUE: dupe=%p pbuf=%p\n",
-				 now.tv_sec, dupe, dupe->pbuf);
+				 tick.tv_sec, dupe, dupe->pbuf);
 		if (dupe->pbuf != NULL) {
                   // We send the pbuf from viscous queue, if it still is
 		  // present in the dupe record.  (For example direct sourced

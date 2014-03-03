@@ -156,7 +156,7 @@ static void dupecheck_cleanup(void)
 	  for (i = 0; i < DUPECHECK_DB_SIZE; ++i) {
 	    dpp = & (dpc->dupecheck_db[i]);
 	    while (( dp = *dpp )) {
-	      if ((dp->t_exp - now.tv_sec) < 0) {
+	      if ((dp->t_exp - tick.tv_sec) < 0) {
 		/* Old..  discard. */
 		*dpp = dp->next;
 		dp->next = NULL;
@@ -235,7 +235,7 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if ((dp->t_exp - now.tv_sec) < 0) {
+		if ((dp->t_exp - tick.tv_sec) < 0) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
@@ -270,8 +270,8 @@ dupe_record_t *dupecheck_aprs(dupecheck_t *dpc,
 
 	dp->seen  = 1;  // First observation gets number 1
 	dp->hash  = hash;
-	dp->t     = now.tv_sec;
-	dp->t_exp = now.tv_sec + dpc->storetime;
+	dp->t     = tick.tv_sec;
+	dp->t_exp = tick.tv_sec + dpc->storetime;
 	return NULL;
 }
 
@@ -388,7 +388,7 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	dpp = &(dpc->dupecheck_db[i]);
 	while (*dpp) {
 		dp = *dpp;
-		if ((dp->t_exp - now.tv_sec) < 0) {
+		if ((dp->t_exp - tick.tv_sec) < 0) {
 			// Old ones are discarded when seen
 			*dpp = dp->next;
 			dp->next = NULL;
@@ -437,8 +437,8 @@ dupe_record_t *dupecheck_pbuf(dupecheck_t *dpc, struct pbuf_t *pb, const int vis
 	}
 
 	dp->hash  = hash;
-	dp->t     = now.tv_sec;
-	dp->t_exp = now.tv_sec + dpc->storetime;
+	dp->t     = tick.tv_sec;
+	dp->t_exp = tick.tv_sec + dpc->storetime;
 
 	return dp;
 }
@@ -453,14 +453,16 @@ static struct timeval dupecheck_cleanup_nexttime;
 static void dupecheck_resettime(void *arg)
 {
 	struct timeval *tv = (struct timeval *)arg;
-        *tv = now;
+        *tv = tick;
 }
 
 int dupecheck_prepoll(struct aprxpolls *app)
 {
-	if (dupecheck_cleanup_nexttime.tv_sec == 0) dupecheck_cleanup_nexttime = now;
+	if (time_reset) {
+        	dupecheck_resettime(&dupecheck_cleanup_nexttime);
+        }
 
-	tv_timerbounds("dupecheck timer", &dupecheck_cleanup_nexttime, 60, dupecheck_resettime, &dupecheck_cleanup_nexttime);
+	if (dupecheck_cleanup_nexttime.tv_sec == 0) dupecheck_cleanup_nexttime = tick;
 
 	if (tv_timercmp(&dupecheck_cleanup_nexttime, &app->next_timeout) > 0)
 		app->next_timeout = dupecheck_cleanup_nexttime;
@@ -471,10 +473,10 @@ int dupecheck_prepoll(struct aprxpolls *app)
 
 int dupecheck_postpoll(struct aprxpolls *app)
 {
-        if (tv_timercmp(&dupecheck_cleanup_nexttime, &now) > 0)
+        if (tv_timercmp(&dupecheck_cleanup_nexttime, &tick) > 0)
 		return 0;	/* Too early.. */
 
-        tv_timeradd_seconds( &dupecheck_cleanup_nexttime, &now, 30 ); // tick every 30 second or so
+        tv_timeradd_seconds( &dupecheck_cleanup_nexttime, &tick, 30 ); // tick every 30 second or so
 
 	dupecheck_cleanup();
 

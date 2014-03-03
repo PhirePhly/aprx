@@ -88,6 +88,57 @@ void fd_nonblockingmode(int fd)
 	// return __i;
 }
 
+int time_reset;                 // observed time jump
+static struct timeval old_tick; // monotonic
+// static struct timeval old_now;  // wall-clock
+
+static int timetick_count;
+
+void timetick(void)
+{
+	++timetick_count;
+        old_tick  = tick;
+        //old_now = now;
+
+	// Monotonic (or as near as possible) clock..
+	// .. which is NOT wall clock time.
+#ifdef HAVE_CLOCK_GETTIME
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	tick.tv_usec = ts.tv_nsec/1000;
+	tick.tv_sec  = ts.tv_sec;
+        // if (debug) printf("newtick: %d.%6d\n", tick.tv_sec, tick.tv_usec);
+#else
+	gettimeofday(&tick, NULL);
+#endif
+        // Wall clock time
+        // gettimeofday(&tick, NULL);
+
+        // Main program clears this when appropriate
+        // time_reset = 0;
+        if (old_tick.tv_sec != 0) {
+          int delta = tv_timerdelta_millis(&old_tick, &tick);
+          if (delta < -1) { // Up to 0.99999 seconds backwards for a leap second
+            if (debug) {
+              printf("MONOTONIC TIME JUMPED BACK BY %g SECONDS. ttcallcount=%d\n", delta/1000.0D, timetick_count);
+            }
+            time_reset = 1;
+          } else if (delta > 32000) { // 30.0 + leap second + margin
+            if (debug) {
+              printf("MONOTONIC TIME JUMPED FORWARD BY %g SECONDS. ttcallcount=%d\n", delta/1000.0D, timetick_count);
+            }
+            time_reset = 1;
+          } else {
+            // Time is OK.
+            // time_reset = 0;
+          }
+        } else {
+          time_reset = 1;
+          // This happens before argv is parsed, thus debug is never set.
+          // if (debug) printf("Initializing MONOTONIC time\n");
+        }
+}
+
 int main(int argc, char *const argv[])
 {
 	int i;
@@ -99,7 +150,8 @@ int main(int argc, char *const argv[])
 	/* Init the poll(2) descriptor array */
 	struct aprxpolls app = APRXPOLLS_INIT;
 
-        gettimeofday(&now, NULL); // init global time reference
+        timetick(); // init global time references
+        time_reset = 0;
 
 	setlinebuf(stdout);
 	setlinebuf(stderr);
@@ -163,7 +215,7 @@ int main(int argc, char *const argv[])
 	  fflush(stdout);
 	  fprintf(stderr, "Seen configuration errors. Aborting!\n");
 	  fflush(stderr);
-	  exit(1); // CONFIGURATION ERRORS SEEN! ABORT!
+	  exit(1); // CONFIION ERRORS SEEN! ABORT!
 	}
 
 	erlang_start(1);
@@ -309,10 +361,10 @@ int main(int argc, char *const argv[])
 
 	while (!die_now) {
 
-                gettimeofday(&now, NULL);
+        	timetick();
 
 		aprxpolls_reset(&app);
-                tv_timeradd_millis( &app.next_timeout, &now, 30000 ); // 30 seconds
+                tv_timeradd_millis( &app.next_timeout, &tick, 30000 ); // 30 seconds
 
 		i = ttyreader_prepoll(&app);
                 // if (debug>3)printf("after ttyreader prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
@@ -345,6 +397,9 @@ int main(int argc, char *const argv[])
                 // if (debug>3)printf("after dprsgw prepoll - timeout millis=%d\n",aprxpolls_millis(&app));
 #endif
 
+                // All pre-polls are done
+                time_reset = 0;
+
 		// if (app.next_timeout <= now.tv_sec)
                 // app.next_timeout = now.tv_sec + 1;	// Just to be on safe side..
 
@@ -353,7 +408,7 @@ int main(int argc, char *const argv[])
                   millis = 10;
 
 		i = poll(app.polls, app.pollcount, millis);
-                gettimeofday(&now, NULL);
+                timetick();
 
 
 		i = beacon_postpoll(&app);
@@ -397,6 +452,7 @@ void printtime(char *buf, int buflen)
 	struct timeval tv;
 	struct tm t;
 
+        // Wall lock time for printouts
 	gettimeofday(&tv, NULL);
         gmtime_r(&tv.tv_sec, &t);
 	// strftime(timebuf, 60, "%Y-%m-%d %H:%M:%S", t);
