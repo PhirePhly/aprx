@@ -172,7 +172,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 				EF->head.version =
 					ERLANGLINE_STRUCT_VERSION;
 				EF->head.linecount = 0;
-				EF->head.last_update = now.tv_sec;
+				EF->head.last_update = tick.tv_sec;
 				ErlangLinesCount = 0;
 			} else {
 				/* Wrong head magic, and not doing block init..  */
@@ -371,21 +371,20 @@ static void erlang_timer_init(void *dummy)
 	   1 minute/10 minutes/60 minutes,
 	   although said interval will be shorter than full. */
 
-	erlang_time_end_1min.tv_sec = now.tv_sec + 60 - (now.tv_sec % 60);
+	erlang_time_end_1min.tv_sec = tick.tv_sec + 60 - (tick.tv_sec % 60);
         erlang_time_end_1min.tv_usec = 0;
-	erlang_time_ival_1min = (float) (60 - now.tv_sec % 60) / 60.0;
+	erlang_time_ival_1min = (float) (60 - tick.tv_sec % 60) / 60.0;
 
-	erlang_time_end_10min.tv_sec = now.tv_sec + 600 - (now.tv_sec % 600);
+	erlang_time_end_10min.tv_sec = tick.tv_sec + 600 - (tick.tv_sec % 600);
 	erlang_time_end_10min.tv_usec = 0;
-	erlang_time_ival_10min = (float) (600 - now.tv_sec % 600) / 600.0;
+	erlang_time_ival_10min = (float) (600 - tick.tv_sec % 600) / 600.0;
 
 #ifdef ERLANGSTORAGE
-	erlang_time_end_60min.tv_sec = now.tv_sec + 3600 - (now.tv_sec % 3600);
+	erlang_time_end_60min.tv_sec = tick.tv_sec + 3600 - (tick.tv_sec % 3600);
 	erlang_time_end_60min.tv_usec = 0;
-	erlang_time_ival_60min = (float) (3600 - now.tv_sec % 3600) / 3600.0;
+	erlang_time_ival_60min = (float) (3600 - tick.tv_sec % 3600) / 3600.0;
 #endif
 }
-
 
 
 /*
@@ -417,90 +416,90 @@ void erlang_add(const char *portname, ErlangMode erl, int bytes, int packets)
 	if (erl == ERLANG_RX) {
 		E->SNMP.bytes_rx += bytes;
 		E->SNMP.packets_rx += packets;
-		E->SNMP.update = now.tv_sec;
-		E->last_update = now.tv_sec;
+		E->SNMP.update = tick.tv_sec;
+		E->last_update = tick.tv_sec;
 
 #ifdef ERLANGSTORAGE
 		E->erl1m.bytes_rx += bytes;
 		E->erl1m.packets_rx += packets;
-		E->erl1m.update = now.tv_sec;
+		E->erl1m.update = tick.tv_sec;
 
 		E->erl10m.bytes_rx += bytes;
 		E->erl10m.packets_rx += packets;
-		E->erl10m.update = now.tv_sec;
+		E->erl10m.update = tick.tv_sec;
 
 		E->erl60m.bytes_rx += bytes;
 		E->erl60m.packets_rx += packets;
-		E->erl60m.update = now.tv_sec;
+		E->erl60m.update = tick.tv_sec;
 #else
 #if (USE_ONE_MINUTE_STORAGE == 1)
 		E->erl1m.bytes_rx += bytes;
 		E->erl1m.packets_rx += packets;
-		E->erl1m.update = now.tv_sec;
+		E->erl1m.update = tick.tv_sec;
 #else
 		E->erl10m.bytes_rx += bytes;
 		E->erl10m.packets_rx += packets;
-		E->erl10m.update = now.tv_sec;
+		E->erl10m.update = tick.tv_sec;
 #endif
 #endif
 	}
 	if (erl == ERLANG_TX) {
 		E->SNMP.bytes_tx += bytes;
 		E->SNMP.packets_tx += packets;
-		E->SNMP.update = now.tv_sec;
-		E->last_update = now.tv_sec;
+		E->SNMP.update = tick.tv_sec;
+		E->last_update = tick.tv_sec;
 
 #ifdef ERLANGSTORAGE
 		E->erl1m.bytes_tx += bytes;
 		E->erl1m.packets_tx += packets;
-		E->erl1m.update = now.tv_sec;
+		E->erl1m.update = tick.tv_sec;
 
 		E->erl10m.bytes_tx += bytes;
 		E->erl10m.packets_tx += packets;
-		E->erl10m.update = now.tv_sec;
+		E->erl10m.update = tick.tv_sec;
 
 		E->erl60m.bytes_tx += bytes;
 		E->erl60m.packets_tx += packets;
-		E->erl60m.update = now.tv_sec;
+		E->erl60m.update = tick.tv_sec;
 #else
 #if (USE_ONE_MINUTE_STORAGE == 1)
 		E->erl1m.bytes_tx += bytes;
 		E->erl1m.packets_tx += packets;
-		E->erl1m.update = now.tv_sec;
+		E->erl1m.update = tick.tv_sec;
 #else
 		E->erl10m.bytes_tx += bytes;
 		E->erl10m.packets_tx += packets;
-		E->erl10m.update = now.tv_sec;
+		E->erl10m.update = tick.tv_sec;
 #endif
 #endif
 	}
 	if (erl == ERLANG_DROP) {
 		E->SNMP.bytes_rxdrop += bytes;
 		E->SNMP.packets_rxdrop += packets;
-		E->SNMP.update = now.tv_sec;
-		E->last_update = now.tv_sec;
+		E->SNMP.update = tick.tv_sec;
+		E->last_update = tick.tv_sec;
 
 #ifdef ERLANGSTORAGE
 		E->erl1m.bytes_rxdrop += bytes;
 		E->erl1m.packets_rxdrop += packets;
-		E->erl1m.update = now.tv_sec;
+		E->erl1m.update = tick.tv_sec;
 
 		E->erl10m.bytes_rxdrop += bytes;
 		E->erl10m.packets_rxdrop += packets;
-		E->erl10m.update = now.tv_sec;
+		E->erl10m.update = tick.tv_sec;
 
 		E->erl60m.bytes_rxdrop += bytes;
 		E->erl60m.packets_rxdrop += packets;
-		E->erl60m.update = now.tv_sec;
+		E->erl60m.update = tick.tv_sec;
 #else
 #if (USE_ONE_MINUTE_STORAGE == 1)
 		E->erl1m.bytes_rxdrop += bytes;
 		E->erl1m.packets_rxdrop += packets;
-		E->erl1m.update = now.tv_sec;
+		E->erl1m.update = tick.tv_sec;
 #else
 		E->erl10m.bytes_rxdrop += bytes;
 		E->erl10m.packets_rxdrop += packets;
-		E->erl10m.update = now.tv_sec;
+		E->erl10m.update = tick.tv_sec;
 #endif
 #endif
 	}
@@ -524,12 +523,12 @@ static void erlang_time_end(void)
 
 	printtime(logtime, sizeof(logtime));
 
-	if (tv_timercmp(&now, &erlang_time_end_1min) >= 0) {
+	if (tv_timercmp(&tick, &erlang_time_end_1min) >= 0) {
 		erlang_time_end_1min.tv_sec += 60;
 #if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 1))
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
-			E->last_update = now.tv_sec;
+			E->last_update = tick.tv_sec;
 
 			if (erlanglog1min) {
 				sprintf(msgbuf,
@@ -554,30 +553,30 @@ static void erlang_time_end(void)
 					fprintf(fp, "%s %s\n", logtime,
 						msgbuf);
 				else if (erlangout)
-					printf("%ld\t%s\n", now.tv_sec, msgbuf);
+					printf("%ld\t%s\n", tick.tv_sec, msgbuf);
 				if (erlangsyslog)
-					syslog(LOG_INFO, "%ld %s", now.tv_sec,
+					syslog(LOG_INFO, "%ld %s", tick.tv_sec,
 					       msgbuf);
 			}
 
-			E->erl1m.update = now.tv_sec;
+			E->erl1m.update = tick.tv_sec;
 			E->e1[E->e1_cursor] = E->erl1m;
 			++E->e1_cursor;
 			if (E->e1_cursor >= E->e1_max)
 				E->e1_cursor = 0;
 
 			memset(&E->erl1m, 0, sizeof(E->erl1m));
-			E->erl1m.update = now.tv_sec;
+			E->erl1m.update = tick.tv_sec;
 		}
 		erlang_time_ival_1min = 1.0;
 #endif
 	}
-	if (tv_timercmp(&now, &erlang_time_end_10min) >= 0) {
+	if (tv_timercmp(&tick, &erlang_time_end_10min) >= 0) {
 		erlang_time_end_10min.tv_sec += 600;
 #if (defined(ERLANGSTORAGE) || (USE_ONE_MINUTE_STORAGE == 0))
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
-			E->last_update = now.tv_sec;
+			E->last_update = tick.tv_sec;
 			sprintf(msgbuf,
 				"ERLANG%-2d %s Rx %6ld %3ld Dp %6ld %3ld Tx %6ld %3ld : %5.3f %5.3f %5.3f",
 				10, E->name, 
@@ -598,23 +597,23 @@ static void erlang_time_end(void)
 			if (fp)
 				fprintf(fp, "%s %s\n", logtime, msgbuf);
 			else if (erlangout)
-				printf("%ld\t%s\n", now.tv_sec, msgbuf);
+				printf("%ld\t%s\n", tick.tv_sec, msgbuf);
 			if (erlangsyslog)
-				syslog(LOG_INFO, "%ld %s", now.tv_sec, msgbuf);
+				syslog(LOG_INFO, "%ld %s", tick.tv_sec, msgbuf);
 
-			E->erl10m.update = now.tv_sec;
+			E->erl10m.update = tick.tv_sec;
 			E->e10[E->e10_cursor] = E->erl10m;
 			++E->e10_cursor;
 			if (E->e10_cursor >= E->e10_max)
 				E->e10_cursor = 0;
 			memset(&E->erl10m, 0, sizeof(E->erl10m));
-			E->erl10m.update = now.tv_sec;
+			E->erl10m.update = tick.tv_sec;
 		}
 		erlang_time_ival_10min = 1.0;
 #endif
 	}
 #ifdef ERLANGSTORAGE
-	if (tv_timercmp(&now, &erlang_time_end_60min) >= 0) {
+	if (tv_timercmp(&tick, &erlang_time_end_60min) >= 0) {
 		erlang_time_end_60min.tv_sec += 3600;
 		for (i = 0; i < ErlangLinesCount; ++i) {
 			struct erlangline *E = ErlangLines[i];
@@ -639,18 +638,18 @@ static void erlang_time_end(void)
 			if (fp)
 				fprintf(fp, "%s %s\n", logtime, msgbuf);
 			else if (erlangout)
-				printf("%ld\t%s\n", now.tv_sec, msgbuf);
+				printf("%ld\t%s\n", tick.tv_sec, msgbuf);
 			if (erlangsyslog)
-				syslog(LOG_INFO, "%ld %s", now.tv_sec, msgbuf);
+				syslog(LOG_INFO, "%ld %s", tick.tv_sec, msgbuf);
 
-			E->erl60m.update = now.tv_sec;
+			E->erl60m.update = tick.tv_sec;
 			E->e60[E->e60_cursor] = E->erl60m;
 			++E->e60_cursor;
 			if (E->e60_cursor >= E->e60_max)
 				E->e60_cursor = 0;
 
 			memset(&E->erl60m, 0, sizeof(E->erl60m));
-			E->erl60m.update = now.tv_sec;
+			E->erl60m.update = tick.tv_sec;
 		}
 		erlang_time_ival_60min = 1.0;
 	}
@@ -661,14 +660,10 @@ static void erlang_time_end(void)
 
 int erlang_prepoll(struct aprxpolls *app)
 {
-	struct timeval nowplus;
-
-        tv_timerbounds("erlang 1min timer", &erlang_time_end_1min, 70,     erlang_timer_init, &erlang_time_end_1min);
-        tv_timerbounds("erlang 10min timer", &erlang_time_end_10min, 610,  erlang_timer_init, &erlang_time_end_10min);
-
-#ifdef ERLANGSTORAGE
-        tv_timerbounds("erlang 60min timer", &erlang_time_end_60min, 3610, erlang_timer_init, &erlang_time_end_60min);
-#endif
+        if (time_reset) {
+        	if (debug) printf("erlang_timer_init() to be called\n");
+        	erlang_timer_init(NULL);
+        }
 
 	if (tv_timercmp(&app->next_timeout, &erlang_time_end_1min) > 0)
 		app->next_timeout = erlang_time_end_1min;
@@ -683,10 +678,10 @@ int erlang_prepoll(struct aprxpolls *app)
 
 int erlang_postpoll(struct aprxpolls *app)
 {
-	if (tv_timercmp(&now, &erlang_time_end_1min) >= 0 ||
-	    tv_timercmp(&now, &erlang_time_end_10min) >= 0
+	if (tv_timercmp(&tick, &erlang_time_end_1min) >= 0 ||
+	    tv_timercmp(&tick, &erlang_time_end_10min) >= 0
 #ifdef ERLANGSTORAGE
-	    || tv_timercmp(&now, &erlang_time_end_60min) >= 0
+	    || tv_timercmp(&tick, &erlang_time_end_60min) >= 0
 #endif
 	    )
 		erlang_time_end();
@@ -697,8 +692,6 @@ int erlang_postpoll(struct aprxpolls *app)
 
 void erlang_init(const char *syslog_facility_name)
 {
-	now.tv_sec = time(NULL);
-
         erlang_timer_init(NULL);
 }
 

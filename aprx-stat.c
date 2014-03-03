@@ -244,6 +244,7 @@ int main(int argc, char **argv)
 
 #else
 
+int time_reset;
 int debug;			/* linkage dummy */
 int erlangout;
 int epochtime;

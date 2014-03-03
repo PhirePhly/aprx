@@ -127,12 +127,12 @@ void historydb_dump(const historydb_t *db, FILE *fp)
 	/* Dump the historydb out on text format */
 	int i;
 	struct history_cell_t *hp;
-	time_t expirytime   = now.tv_sec - lastposition_storetime;
+	time_t expirytime   = tick.tv_sec - lastposition_storetime;
 
 	for ( i = 0; i < HISTORYDB_HASH_MODULO; ++i ) {
 		hp = db->hash[i];
 		for ( ; hp ; hp = hp->next )
-			if (hp->arrivaltime > expirytime)
+                	if (timecmp(hp->arrivaltime, expirytime) > 0)
 				historydb_dump_entry(fp, hp);
 	}
 }
@@ -159,7 +159,7 @@ history_cell_t *historydb_insert_(historydb_t *db, const struct pbuf_t *pb, cons
 	int isdead = 0, keylen;
 	struct history_cell_t **hp, *cp, *cp1;
 
-	time_t expirytime   = now.tv_sec - lastposition_storetime;
+	time_t expirytime   = tick.tv_sec - lastposition_storetime;
 
 	char keybuf[CALLSIGNLEN_MAX+2];
 	char *s;
@@ -257,7 +257,7 @@ history_cell_t *historydb_insert_(historydb_t *db, const struct pbuf_t *pb, cons
 
 	// scan the hash-bucket chain, and do incidential obsolete data discard
 	while (( cp = *hp )) {
-		if (cp->arrivaltime < expirytime) {
+		if (timecmp(cp->arrivaltime, expirytime) < 0) {
 			// OLD...
 			*hp = cp->next;
 			cp->next = NULL;
@@ -363,7 +363,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	int keylen;
 	struct history_cell_t **hp, *cp, *cp1;
 
-	time_t expirytime   = now.tv_sec - lastposition_storetime;
+	time_t expirytime   = tick.tv_sec - lastposition_storetime;
 
 	char keybuf[CALLSIGNLEN_MAX+2];
 	char *s;
@@ -422,7 +422,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 
 	// scan the hash-bucket chain, and do incidential obsolete data discard
 	while (( cp = *hp ) != NULL) {
-		if (cp->arrivaltime < expirytime) {
+        	if (timecmp(cp->arrivaltime, expirytime) < 0) {
 			// OLD...
 			if (debug > 1) printf(" .. dropping old record\n");
 			*hp = cp->next;
@@ -528,7 +528,7 @@ history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int 
 	struct history_cell_t *cp;
 
 	// validity is 5 minutes shorter than expiration time..
-	time_t validitytime   = now.tv_sec - lastposition_storetime + 5*60;
+	time_t validitytime   = tick.tv_sec - lastposition_storetime + 5*60;
 
 	++db->historydb_lookups;
 
@@ -547,7 +547,7 @@ history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int 
 	    if (memcmp(cp->key, keybuf, keylen) == 0) {
 	      if (debug > 1) printf(" .. key match");
 	      // Key match!
-	      if (cp->arrivaltime > validitytime) {
+	      if (timecmp(cp->arrivaltime, validitytime) > 0) {
 		if (debug > 1) printf(" .. and not too old\n");
 		return cp;
 	      }
@@ -572,7 +572,7 @@ static void historydb_cleanup(historydb_t *db)
 
 	if (debug > 1) printf("historydb_cleanup() ");
 
-	time_t expirytime   = now.tv_sec - lastposition_storetime;
+	time_t expirytime   = tick.tv_sec - lastposition_storetime;
 
 	for (i = 0; i < HISTORYDB_HASH_MODULO; ++i) {
 		hp = &db->hash[i];
@@ -580,7 +580,7 @@ static void historydb_cleanup(historydb_t *db)
 		// multiple locks ? one for each bucket, or for a subset of buckets ?
 
 		while (( cp = *hp )) {
-			if (cp->arrivaltime < expirytime) {
+                	if (timecmp(cp->arrivaltime, expirytime) < 0) {
 				// OLD...
 				*hp = cp->next;
 				cp->next = NULL;
@@ -610,11 +610,11 @@ int  historydb_postpoll(struct aprxpolls *app)
 	int i;
         // Limit next cleanup to be at most 60 second in future
         // (just in case the system time jumped back)
-        if (next_cleanup_time >= now.tv_sec+61) {
-          next_cleanup_time = now.tv_sec + 60;
+        if (next_cleanup_time >= tick.tv_sec+61) {
+          next_cleanup_time = tick.tv_sec + 60;
         }
-	if (next_cleanup_time >= now.tv_sec) return 0;
-	next_cleanup_time = now.tv_sec + 60; // A minute from now..
+	if (next_cleanup_time >= tick.tv_sec) return 0;
+	next_cleanup_time = tick.tv_sec + 60; // A minute from now..
 
 	for (i = 0; i < _dbs_count; ++i) {
 	  historydb_cleanup(_dbs[i]);

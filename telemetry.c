@@ -44,13 +44,13 @@ static void rf_telemetry(const struct aprx_interface *sourceaif, const char *bea
 static void telemetry_resettime(void *arg)
 {
 	struct timeval *tv = (struct timeval*)arg;
-	tv_timeradd_seconds( tv, &now, telemetry_interval );
+	tv_timeradd_seconds( tv, &tick, telemetry_interval );
 }
 
 static void telemetry_resetlabeltime(void *arg)
 {
 	struct timeval *tv = (struct timeval*)arg;
-	tv_timeradd_seconds( tv, &now, 120 );  // first label 2 minutes from now
+	tv_timeradd_seconds( tv, &tick, 120 );  // first label 2 minutes from now
 }
 
 
@@ -74,18 +74,10 @@ void telemetry_start()
 int telemetry_prepoll(struct aprxpolls *app)
 {
 	// Check that time has not jumped too far ahead/back (1.5 telemetry intervals)
-        int margin = telemetry_interval + telemetry_interval/2;
-        tv_timerbounds("telemetry time",
-                       &telemetry_time,
-                       margin,
-                       telemetry_resettime,
-                       &telemetry_time);
-        margin = telemetry_labelinterval + telemetry_labelinterval/2;
-        tv_timerbounds("telemetry labeltime",
-                       &telemetry_labeltime,
-                       margin,
-                       telemetry_resetlabeltime,
-                       &telemetry_labeltime);
+	if (time_reset) {
+        	telemetry_resettime(&telemetry_time);
+                telemetry_resetlabeltime(&telemetry_labeltime);
+        }
 
         // Normal operational step
 
@@ -104,12 +96,12 @@ int telemetry_postpoll(struct aprxpolls *app)
 {
 	int i;
 
-        if (tv_timercmp(&telemetry_time, &now) <= 0) {
+        if (tv_timercmp(&telemetry_time, &tick) <= 0) {
           tv_timeradd_seconds(&telemetry_time, &telemetry_time, telemetry_interval);
 	  telemetry_datatx();
 	}
 
-        if (tv_timercmp(&telemetry_labeltime, &now) <= 0) {
+        if (tv_timercmp(&telemetry_labeltime, &tick) <= 0) {
 	  tv_timeradd_seconds(&telemetry_labeltime, &telemetry_labeltime, telemetry_labelinterval);
 	  telemetry_labeltx();
 	}

@@ -193,7 +193,7 @@ static int kissprocess(struct serialport *S)
 		   than 0  coming from TNC to host! */
 		/* printf(" ..bad CMD byte\n"); */
 		if (debug) {
-		  printf("%ld\tTTY %s: Bad CMD byte on KISS frame: ", now.tv_sec, S->ttyname);
+		  printf("%ld\tTTY %s: Bad CMD byte on KISS frame: ", tick.tv_sec, S->ttyname);
 		  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		  printf("\n");
 		}
@@ -227,7 +227,7 @@ static int kissprocess(struct serialport *S)
 	      /* D'OH!  received packet on multiplexer tncid without
 		 callsign definition!  We discard this packet! */
 	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", now.tv_sec, S->ttyname, cmdbyte);
+		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
 		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		printf("\n");
 	      }
@@ -238,7 +238,7 @@ static int kissprocess(struct serialport *S)
 	    if (crc != 0x7070) {
 	      if (debug) {
 		printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",
-		       now.tv_sec, S->ttyname, tncid, crc);
+		       tick.tv_sec, S->ttyname, tncid, crc);
 		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		printf("\n");
 	      }
@@ -257,7 +257,7 @@ static int kissprocess(struct serialport *S)
 		  /* D'OH!  received packet on multiplexer tncid without
 		     callsign definition!  We discard this packet! */
 		  if (debug > 0) {
-		    printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", now.tv_sec, S->ttyname, cmdbyte);
+		    printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
 		    hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		    printf("\n");
 		  }
@@ -270,7 +270,7 @@ static int kissprocess(struct serialport *S)
 		xorsum &= 0xFF;
 		if (xorsum != 0) {
 			if (debug) {
-			  printf("%ld\tTTY %s tncid %d: Received bad BPQCRC: %02x: ", now.tv_sec, S->ttyname, tncid, xorsum);
+			  printf("%ld\tTTY %s tncid %d: Received bad BPQCRC: %02x: ", tick.tv_sec, S->ttyname, tncid, xorsum);
 			  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 			  printf("\n");
 			}
@@ -279,7 +279,7 @@ static int kissprocess(struct serialport *S)
 		}
 		S->rdlinelen -= 1;	/* remove the sum-byte from tail */
 		if (debug > 2)
-			printf("%ld\tTTY %s tncid %d: Received OK BPQCRC frame\n", now.tv_sec, S->ttyname, tncid);
+			printf("%ld\tTTY %s tncid %d: Received OK BPQCRC frame\n", tick.tv_sec, S->ttyname, tncid);
 	}
 	/* Are we expecting SMACK ? */
 	if (S->linetype == LINETYPE_KISSSMACK) {
@@ -290,7 +290,7 @@ static int kissprocess(struct serialport *S)
 	      /* D'OH!  received packet on multiplexer tncid without
 		 callsign definition!  We discard this packet! */
 	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", now.tv_sec, S->ttyname, cmdbyte);
+		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
 		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		printf("\n");
 	      }
@@ -302,11 +302,11 @@ static int kissprocess(struct serialport *S)
 	        /* SMACK data frame */
 
 		if (debug > 3)
-		    printf("%ld\tTTY %s tncid %d: Received SMACK frame\n", now.tv_sec, S->ttyname, tncid);
+		    printf("%ld\tTTY %s tncid %d: Received SMACK frame\n", tick.tv_sec, S->ttyname, tncid);
 
 		if (!(S->smack_subids & (1 << tncid))) {
 		    if (debug)
-			printf("%ld\t... marking received SMACK\n", now.tv_sec);
+			printf("%ld\t... marking received SMACK\n", tick.tv_sec);
 		}
 		S->smack_subids |= (1 << tncid);
 
@@ -318,7 +318,7 @@ static int kissprocess(struct serialport *S)
 		if (check_crc_16(S->rdline, S->rdlinelen) != 0) {
 			if (debug) {
 			  printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC: ",
-				 now.tv_sec, S->ttyname, tncid);
+				 tick.tv_sec, S->ttyname, tncid);
 			  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 			  printf("\n");
 			}
@@ -339,9 +339,9 @@ static int kissprocess(struct serialport *S)
 		S->smack_subids &= ~(1 << tncid); // Turn off the SMACK mode indication bit..
 
 		if (debug > 2)
-		    printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", now.tv_sec, S->ttyname, tncid);
+		    printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", tick.tv_sec, S->ttyname, tncid);
 
-		if (S->smack_probe[tncid] < now.tv_sec) {
+		if (timecmp(S->smack_probe[tncid], tick.tv_sec) < 0) {
 		    uint8_t probe[4];
 		    uint8_t kissbuf[12];
 		    int kisslen;
@@ -363,10 +363,10 @@ static int kissprocess(struct serialport *S)
 			   poll(2) will take care of it soon enough.. */
 			ttyreader_linewrite(S);
 
-			S->smack_probe[tncid] = now.tv_sec + 30*60; /* 30 minutes */
+			S->smack_probe[tncid] = tick.tv_sec + 1800; /* 30 minutes */
 
 			if (debug)
-			    printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", now.tv_sec, S->ttyname, tncid);
+			    printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", tick.tv_sec, S->ttyname, tncid);
 
 		    }
 		    /* Else no space to write ?  Huh... */
@@ -375,7 +375,7 @@ static int kissprocess(struct serialport *S)
 		// Else...  there should be no other kind data frames
 		if (debug) {
 		    printf("%ld\tTTY %s: Bad CMD byte on expected SMACK frame: %02x, len=%d: ",
-			   now.tv_sec, S->ttyname, cmdbyte, S->rdlinelen);
+			   tick.tv_sec, S->ttyname, cmdbyte, S->rdlinelen);
 		    hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		    printf("\n");
 		}
@@ -390,7 +390,7 @@ static int kissprocess(struct serialport *S)
 	      /* D'OH!  received packet on multiplexer tncid without
 		 callsign definition!  We discard this packet! */
 	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", now.tv_sec, S->ttyname, cmdbyte);
+		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
 		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 		printf("\n");
 	      }
@@ -555,7 +555,7 @@ int kiss_pullkiss(struct serialport *S)
 				S->kissstate = KISSSTATE_SYNCHUNT;	/* Sigh.. discard it. */
 				S->rdlinelen = 0;
 				if (debug) {
-				  printf("%ld\tTTY %s: Too long frame to be KISS: ", now.tv_sec, S->ttyname);
+				  printf("%ld\tTTY %s: Too long frame to be KISS: ", tick.tv_sec, S->ttyname);
 				  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
 				  printf("\n");
 				}
@@ -699,7 +699,7 @@ void kiss_poll(struct serialport *S)
                         ttyreader_linewrite(S);
           
                         if (debug)
-                          printf("%ld.%06d\tTTY %s tncid %d: Sending KISS POLL\n", (long)now.tv_sec, (int)now.tv_usec, S->ttyname, tncid);
+                          printf("%ld.%06d\tTTY %s tncid %d: Sending KISS POLL\n", (long)tick.tv_sec, (int)tick.tv_usec, S->ttyname, tncid);
 		}
 	}
 }

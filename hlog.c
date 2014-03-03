@@ -311,6 +311,7 @@ static int hlog_write(int priority, const char *s)
 	char wb[LOG_LEN];
 	int len, w;
 	
+        // Wall clock time
 	gettimeofday(&tv, NULL);
 	gmtime_r(&tv.tv_sec, &lt);
 	

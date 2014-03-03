@@ -157,7 +157,10 @@ extern void fd_nonblockingmode(int fd);
 extern const char *swname;
 extern const char *swversion;
 
-extern struct timeval now;
+extern void timetick(void);
+extern struct timeval now; // Public wall lock time that can jump around
+extern struct timeval tick;  // Monotonic clock, progresses regularly from boot. NOT wall clock time.
+extern int time_reset;      // Set during ONE call cycle of prepolls
 extern int debug;
 extern int verbout;
 extern int erlangout;
@@ -278,10 +281,11 @@ extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr);
 extern void aprx_cfmakeraw(struct termios *, int f);
 
 extern void tv_timerbounds(const char *, struct timeval *tv, const int margin, void (*resetfunc)(void*), void *resetarg );
-extern void tv_timeradd_millis(struct timeval *res, struct timeval *a, int millis);
-extern void tv_timeradd_seconds(struct timeval *res, struct timeval *a, int seconds);
-extern int  tv_timerdelta_millis(struct timeval *_now, struct timeval *_target);
-extern int  tv_timercmp(struct timeval *a, struct timeval *b);
+extern void tv_timeradd_millis(struct timeval *res, struct timeval * const a, const int millis);
+extern void tv_timeradd_seconds(struct timeval *res, struct timeval * const a, const int seconds);
+extern int  tv_timerdelta_millis(struct timeval * const _now, struct timeval * const _target);
+extern int  tv_timercmp(struct timeval * const a, struct timeval * const b);
+extern int  timecmp(time_t a, time_t b);
 
 
 /* ax25.c */

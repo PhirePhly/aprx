@@ -1,3 +1,39 @@
+2014-02-26 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* Makefile.in,  agwpesocket.c, aprsis.c, aprx-stat.c, aprx.c, aprx.h,
+	  aprxpolls.c, beacon.c, config.h.in, configure.in, digipeater.c,
+	  dprsgw.c, dupecheck.c, erlang.c, filter.c, historydb.c, hlog.c,
+	  igate.c, interface.c, kiss.c, netax25.c, netresolver.c, pbuf.c,
+	  telemetry.c, timercmp.c, ttyreader.c:
+	    Change primary time management to use system monotonic clock
+	    instead of time-of-day clock that can jump back/forward.
+	    This clock is in -lrt as: clock_gettime(CLOCK_MONOTONIC, ...)
+	    and it is the kernel internal primary jiffy lock.
+	    This value is not synchronized with wall clock, although it
+	    does proceeds at about same rate.  It is also present at FreeBSD,
+	    and presumably several other platforms too. (It is a POSIX thing,
+	    after all.)
+
+	    The system also watches over if the delta in between subsequent
+	    value extracts exceeds about 30 seconds, or the time jumps
+	    backwards at all. If such happens, next call cycle on all prepoll
+	    routines are resetting all time management things in particular
+	    subsystem.
+
+	    Renamed the primary time tracking variable from "now" to "tick",
+	    as it has no correlation with current wall-clock time.
+
+	    There are no Y2038 issues in this code approach.
+
+
+2014-02-24 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* agwpesocket.c, aprsis.c, digipeater.c, dptsgw.c, dupecheck.c,
+	  filter.c, interface.c, netresolver.c:
+
+	    Y2038 comparison things of time values. Somewhat premature, but
+	    gets things in line with uses of 'struct timeval' -- tv_timercmp().
+
 2014-02-23 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* all files:
