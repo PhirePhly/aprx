@@ -11,12 +11,15 @@
 
 #include "aprx.h"
 
-#ifdef ERLANGSTORAGE
-int debug; /* linkage dummy */
+
+int time_reset;
+int debug;			/* linkage dummy */
 int erlangout;
 int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
 const char *mycall;		/* linkage dummy */
+
+#ifdef ERLANGSTORAGE
 
 void printtime(char *buf, int buflen)
 {
@@ -243,13 +246,6 @@ int main(int argc, char **argv)
 }
 
 #else
-
-int time_reset;
-int debug;			/* linkage dummy */
-int erlangout;
-int epochtime;
-const char *aprxlogfile;	/* linkage dummy */
-const char *mycall;		/* linkage dummy */
 
 void printtime(char *buf, int buflen) {} /* linkage dummy */
 void aprx_syslog_init(const char *p) {}
