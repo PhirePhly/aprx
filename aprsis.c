@@ -1,11 +1,11 @@
 /* **************************************************************** *
- *                                                                  *
- *  APRX -- 2nd generation receive-only APRS-i-gate with            *
- *          minimal requirement of esoteric facilities or           *
- *          libraries of any kind beyond UNIX system libc.          *
- *                                                                  *
- * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
- *                                                                  *
+ *								    *
+ *  APRX -- 2nd generation receive-only APRS-i-gate with	    *
+ *	    minimal requirement of esoteric facilities or	    *
+ *	    libraries of any kind beyond UNIX system libc.	    *
+ *								    *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014			    *
+ *								    *
  * **************************************************************** */
 
 /* This code works only with single  aprsis-server  instance! */
@@ -21,12 +21,6 @@
 
 #ifdef HAVE_NETINET_SCTP_H
 #include <netinet/sctp.h>
-#endif
-
-#ifdef HAVE_STDARG_H
-#include <stdarg.h>
-#else
-#include <varargs.h>
 #endif
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
@@ -48,9 +42,9 @@ pthread_attr_t pthr_attrs;
 
 enum aprsis_mode {
 	MODE_TCP,
-        MODE_SSL,
-        MODE_SCTP,
-        MODE_DTLS
+	MODE_SSL,
+	MODE_SCTP,
+	MODE_DTLS
 };
 
 static char default_passcode[] = "-1";
@@ -116,71 +110,6 @@ static void sig_handler(int sig)
 }
 #endif
 
-#ifdef HAVE_STDARG_H
-#ifdef __STDC__
-static void aprxlog(const char *buf, const int buflen, const char *fmt, ...)
-#else
-static void aprxlog(fmt)
-#endif
-#else
-/* VARARGS */
-static void aprxlog(va_list)
-va_dcl
-#endif
-{
-	va_list ap;
-	char timebuf[60];
-
-#ifdef 	HAVE_STDARG_H
-	va_start(ap, fmt);
-#else
-	const char *buf;
-	const int buflen;
-	const char *fmt;
-	va_start(ap);
-	buf    = va_arg(ap, const char *);
-	buflen = va_arg(ap, const int);
-	fmt    = va_arg(ap, const char *);
-#endif
-
-        printtime(timebuf, sizeof(timebuf));
-	if (verbout) {
-	  fprintf(stdout, "%s ", timebuf);
-	  vfprintf(stdout, fmt, ap);
-	  if (buf != NULL && buflen != 0) {
-	    (void)fwrite(buf, buflen, 1, stdout);
-	    (void)fprintf(stdout, "\n");
-	  }
-	}
-
-        if (aprxlogfile && log_aprsis) {
-          FILE *fp;
-
-#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-          pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-#endif
-          fp = fopen(aprxlogfile, "a");
-          if (fp != NULL) {
-            fprintf(fp, "%s ", timebuf);
-            vfprintf(fp, fmt, ap);
-            if (buf != NULL && buflen != 0) {
-              (void)fwrite(buf, buflen, 1, fp);
-              (void)fprintf(fp, "\n");
-            }
-            fclose(fp);
-          }
-#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-          pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-#endif
-
-        }
-
-#ifdef 	HAVE_STDARG_H
-        va_end(ap);
-#endif
-}
-
-
 /*
  *Close APRS-IS server_socket, clean state..
  */
@@ -215,7 +144,7 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 	int i;
 	char addrbuf[1000];
 	int addrlen, len;
-        char * p;
+	char * p;
 
 	/* Queue for sending to APRS-IS only when the socket is operational */
 	if (A->server_socket < 0)
@@ -240,7 +169,7 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 		addrlen = sprintf(addrbuf, "%s,qA%c,%s:", addr, qtype,
 				  (gwcall
 				   && *gwcall) ? gwcall : A->H->login);
-        aprsis_login = A->H->login;
+	aprsis_login = A->H->login;
 
 	len = addrlen + textlen;
 
@@ -249,7 +178,7 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 
 	if ((sizeof(A->wrbuf) - 10) <= (A->wrbuf_len + len)) {
 		/* The string does not fit in, perhaps it needs compacting ? */
-		if (A->wrbuf_cur > 0) {	/* Compacting is possible ! */
+		if (A->wrbuf_cur > 0) { /* Compacting is possible ! */
 			memcpy(A->wrbuf, A->wrbuf + A->wrbuf_cur,
 			       A->wrbuf_len - A->wrbuf_cur);
 			A->wrbuf_len -= A->wrbuf_cur;
@@ -258,7 +187,7 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 
 		/* Check again if it fits in.. */
 		if ((sizeof(A->wrbuf) - 10) <= (A->wrbuf_len + len)) {
-			/* NOT!  Too bad, drop it.. */
+			/* NOT!	 Too bad, drop it.. */
 			return 2;
 		}
 	}
@@ -271,21 +200,21 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 		A->wrbuf_len += addrlen;
 	}
 
-        /* If there is CR or LF within the packet, terminate packet at it.. */
-        p = memchr(text, '\r', textlen);
-        if (p != NULL) {
-          textlen = p - text;
-        }
-        p = memchr(text, '\n', textlen);
-        if (p != NULL) {
-          textlen = p - text;
-        }
+	/* If there is CR or LF within the packet, terminate packet at it.. */
+	p = memchr(text, '\r', textlen);
+	if (p != NULL) {
+	  textlen = p - text;
+	}
+	p = memchr(text, '\n', textlen);
+	if (p != NULL) {
+	  textlen = p - text;
+	}
 
-        /* Append CR+LF at the end of the packet */
-        p = (char*)(text + textlen);
+	/* Append CR+LF at the end of the packet */
+	p = (char*)(text + textlen);
 	*p++ = '\r';
 	*p++ = '\n';
-        textlen += 2;
+	textlen += 2;
 
 	memcpy(A->wrbuf + A->wrbuf_len, text, textlen);
 	A->wrbuf_len += textlen;	/* Always supplied with tail newline.. */
@@ -301,8 +230,9 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 		  A->wrbuf_len - A->wrbuf_cur);
 	if (i > 0) {
 		// the buffer's last character is \n, don't write it
-		aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur) -1,
-			"<< %s:%s << ", A->H->server_name, A->H->server_port);
+		if (log_aprsis)
+		  aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur) -1,
+			  "<< %s:%s << ", A->H->server_name, A->H->server_port);
 
 		A->wrbuf_cur += i;
 		if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all ! */
@@ -329,7 +259,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	char *s;
 	char aprsislogincmd[3000];
 	const char *errstr;
-        int errcode;
+	int errcode;
 
 	memset(aprsislogincmd, 0, sizeof(aprsislogincmd)); // please valgrind
 
@@ -345,11 +275,12 @@ static void aprsis_reconnect(struct aprsis *A)
 	}
 
 	if (!A->H->login) {
-		aprxlog(NULL, 0, "FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n");
+		if (log_aprsis)
+		  aprxlog(NULL, 0, "FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n");
 
 		return;		/* Will try to reconnect in about 60 seconds.. */
 	}
-        aprsis_login = A->H->login;
+	aprsis_login = A->H->login;
 
 	memset(&req, 0, sizeof(req));
 	req.ai_socktype = SOCK_STREAM;
@@ -365,7 +296,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	i = getaddrinfo(A->H->server_name, A->H->server_port, &req, &ai);
 	errstr = "address resolution failure";
-        errcode = errno;
+	errcode = errno;
 
 	if (i != 0) {
 
@@ -409,14 +340,14 @@ static void aprsis_reconnect(struct aprsis *A)
 		A->server_socket =
 			socket(a->ai_family, a->ai_socktype,
 			       a->ai_protocol);
-                errcode = errno;
+		errcode = errno;
 
 		if (A->server_socket < 0)
 			continue;
 
 		errstr = "connection failed";
 		i = connect(A->server_socket, a->ai_addr, a->ai_addrlen);
-                errcode = errno;
+		errcode = errno;
 
 		if (i < 0) {
 			/* If connection fails, try next possible address */
@@ -433,7 +364,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	ai = NULL;
 
 
-        timetick(); // unpredictable time since system did last poll..
+	timetick(); // unpredictable time since system did last poll..
 
 	aprxlog(NULL, 0, "CONNECT APRSIS %s:%s\n",
 		A->H->server_name, A->H->server_port);
@@ -471,10 +402,11 @@ static int aprsis_sockreadline(struct aprsis *A)
 		if (A->rdlin_len > 0) {
 		    A->rdline[A->rdlin_len] = 0;
 		    /* */
-		    A->last_read = tick.tv_sec;	/* Time stamp me ! */
+		    A->last_read = tick.tv_sec; /* Time stamp me ! */
 
-		    aprxlog(A->rdline, A->rdlin_len,
-			    ">> %s:%s >> ", A->H->server_name, A->H->server_port);
+		    if (log_aprsis)
+		      aprxlog(A->rdline, A->rdlin_len,
+			      ">> %s:%s >> ", A->H->server_name, A->H->server_port);
 
 		    /* Send the A->rdline content to main program */
 		    c = send(aprsis_up, A->rdline, A->rdlin_len, 0);
@@ -581,10 +513,10 @@ static void aprsis_readup(void)
 
 	textlen = head.textlen;
 	if (textlen <= 2)
-          return;		// BAD!
-        if ((text + textlen) > (buf + i)) {
-          return;		// BAD!
-        }
+	  return;		// BAD!
+	if ((text + textlen) > (buf + i)) {
+	  return;		// BAD!
+	}
 
 	/*
 	  printf("addrlen=%d addr=%s\n",head.addrlen, addr);
@@ -601,7 +533,7 @@ static void aprsis_readup(void)
 
 
 // main program side
-int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gwcall, const char *text,  int textlen)
+int aprsis_queue(const char *addr, int addrlen, const char qtype, const char *gwcall, const char *text,	 int textlen)
 {
 	static char *buf;	/* Dynamically allocated buffer... */
 	static int buflen;
@@ -680,9 +612,9 @@ static int aprsis_prepoll_(struct aprxpolls *app)
 
 	if (debug>3) printf("aprsis_prepoll_()\n");
 
-        if (time_reset) {
-        	aprsis_close(A, "time_reset!");
-        }
+	if (time_reset) {
+		aprsis_close(A, "time_reset!");
+	}
 
 
 	/* Not all aprs-is systems send "heartbeat", but when they do.. */
@@ -727,11 +659,11 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 		if (pfd->fd == A->server_socket && pfd->fd >= 0) {
 			/* This is APRS-IS socket, and we may have some results.. */
 
-			if (pfd->revents & (POLLERR)) {	/* Errors ? */
+			if (pfd->revents & (POLLERR)) { /* Errors ? */
 				aprsis_close(A,"postpoll_ POLLERR");
 				continue;
 			}
-			if (pfd->revents & (POLLHUP)) {	/* Errors ? */
+			if (pfd->revents & (POLLHUP)) { /* Errors ? */
 				aprsis_close(A,"postpoll_ POLLHUP");
 				continue;
 			}
@@ -758,16 +690,19 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 						  A->wrbuf_cur,
 						  A->wrbuf_len -
 						  A->wrbuf_cur);
-                                        if (debug>2)
-                                          printf("%ld << %s:%s << write() rc= %d\n",
-                                                 tick.tv_sec, A->H->server_name, A->H->server_port, i);
+					if (debug>2)
+					  printf("%ld << %s:%s << write() rc= %d\n",
+						 tick.tv_sec, A->H->server_name, A->H->server_port, i);
 
 					if (i < 0)
 						continue;	/* Argh.. nothing */
-					// if (i == 0);	/* What ? */
+					// if (i == 0); /* What ? */
 
-                                        aprxlog(A->wrbuf + A->wrbuf_cur, (A->wrbuf_len - A->wrbuf_cur) -1,
-                                                "<< %s:%s << ", A->H->server_name, A->H->server_port);
+					if (log_aprsis)
+					  aprxlog(A->wrbuf + A->wrbuf_cur,
+						  (A->wrbuf_len - A->wrbuf_cur) -1,
+						  "<< %s:%s << ", A->H->server_name,
+						  A->H->server_port);
 
 					A->wrbuf_cur += i;
 					if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all! */
@@ -819,11 +754,11 @@ static void aprsis_main(void)
 		struct pollfd *pfd;
 		int i;
 
-                timetick();
+		timetick();
 
 		aprsis_cond_reconnect(); // may take unpredictable time..
 
-                timetick();
+		timetick();
 
 #if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 		// Parent-pid makes no sense in threaded setup
@@ -835,7 +770,7 @@ static void aprsis_main(void)
 #endif
 
 		aprxpolls_reset(&app);
-                tv_timeradd_seconds( &app.next_timeout, &tick, 5 );
+		tv_timeradd_seconds( &app.next_timeout, &tick, 5 );
 
 		if (aprsis_up >= 0) {
 			pfd = aprxpolls_new(&app);
@@ -847,18 +782,18 @@ static void aprsis_main(void)
 
 		i = aprsis_prepoll_(&app);
 
-                // Prepolls are done
-                time_reset = 0;
+		// Prepolls are done
+		time_reset = 0;
 
 		if (tv_timercmp(&app.next_timeout, &tick) <= 0) {
-                	tv_timeradd_seconds( &app.next_timeout, &tick, 1 ); // Just to be on safe side..
-                }
+			tv_timeradd_seconds( &app.next_timeout, &tick, 1 ); // Just to be on safe side..
+		}
 
 		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
 
-                timetick();
+		timetick();
 
-                assert(app.polls != NULL);
+		assert(app.polls != NULL);
 		if (app.polls[0].
 		    revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)) {
 			/* messaging channel has something for us, if
@@ -897,7 +832,7 @@ int aprsis_add_server(const char *server, const char *port)
 	H->server_port = strdup(port);
 	H->heartbeat_monitor_timeout = 120; // Default timeout 120 seconds
 	H->login       = strdup(aprsis_login);	// global aprsis_login
-	H->pass        = default_passcode;
+	H->pass	       = default_passcode;
 	if (H->login == NULL) H->login = strdup(mycall);
 
 	AprsIS->server_socket = -1;
@@ -1166,10 +1101,10 @@ int aprsis_config(struct configfile *cf)
 	int line0 = cf->linenum;
 
 	struct aprsis_host *AIH = calloc(1,sizeof(*AIH));
-	AIH->login              = strdup(mycall);
-        AIH->pass               = default_passcode;
+	AIH->login		= strdup(mycall);
+	AIH->pass		= default_passcode;
 	AIH->heartbeat_monitor_timeout = 120;
-        AIH->mode = MODE_TCP; // default mode
+	AIH->mode = MODE_TCP; // default mode
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -1198,7 +1133,7 @@ int aprsis_config(struct configfile *cf)
 		// server
 		// filter
 		// heartbeat-timeout
-                // mode
+		// mode
 
 		if (strcmp(name, "login") == 0) {
 		  if (strcasecmp("$mycall",param1) != 0) {
@@ -1227,16 +1162,16 @@ int aprsis_config(struct configfile *cf)
 
 		  param1 = str;
 		  str = config_SKIPTEXT(str, NULL);
-                  // coverity[returned_pointer]
+		  // coverity[returned_pointer]
 		  str = config_SKIPSPACE(str);
 		  if ('1' <= *param1 && *param1 <= '9') {
 		    // fixme: more input analysis?
-                    int port = atoi(param1);
-                    if (port < 1 || port > 65535) {
-                      printf("%s:%d INFO: SERVER = '%s' port='%s' is not supplying valid TCP port number, defaulting to '14580'\n",
-                             cf->name, cf->linenum, AIH->server_name, param1);
-                      param1 = "14580";
-                    }
+		    int port = atoi(param1);
+		    if (port < 1 || port > 65535) {
+		      printf("%s:%d INFO: SERVER = '%s' port='%s' is not supplying valid TCP port number, defaulting to '14580'\n",
+			     cf->name, cf->linenum, AIH->server_name, param1);
+		      param1 = "14580";
+		    }
 		    AIH->server_port = strdup(param1);
 		  } else if (*param1 == 0) {
 		    // Default silently!
@@ -1289,24 +1224,24 @@ int aprsis_config(struct configfile *cf)
 			   cf->name, cf->linenum, param1, AIH->filterparam);
 
 		} else if (strcmp(name, "mode") == 0) {
-                  if (strcmp(param1,"tcp") == 0) {
-                    AIH->mode = MODE_TCP;
-                  } else if (strcmp(param1,"ssl") == 0) {
-                    AIH->mode = MODE_SSL;
-                  } else if (strcmp(param1,"sctp") == 0) {
-                    AIH->mode = MODE_SCTP;
-                  } else if (strcmp(param1,"dtls") == 0) {
-                    AIH->mode = MODE_DTLS;
-                  } else {
-                    printf("%s:%d: ERROR: Unknown mode keyword in <aprsis> block: '%s'\n",
+		  if (strcmp(param1,"tcp") == 0) {
+		    AIH->mode = MODE_TCP;
+		  } else if (strcmp(param1,"ssl") == 0) {
+		    AIH->mode = MODE_SSL;
+		  } else if (strcmp(param1,"sctp") == 0) {
+		    AIH->mode = MODE_SCTP;
+		  } else if (strcmp(param1,"dtls") == 0) {
+		    AIH->mode = MODE_DTLS;
+		  } else {
+		    printf("%s:%d: ERROR: Unknown mode keyword in <aprsis> block: '%s'\n",
 			 cf->name, cf->linenum, param1);
-                    has_fault = 1;
-                  }
+		    has_fault = 1;
+		  }
 
-		} else  {
+		} else	{
 		  printf("%s:%d: ERROR: Unknown configuration keyword in <aprsis> block: '%s'\n",
 			 cf->name, cf->linenum, name);
-                  has_fault = 1;
+		  has_fault = 1;
 		}
 	}
 	if (AIH->server_name == NULL) {
@@ -1318,7 +1253,7 @@ int aprsis_config(struct configfile *cf)
 		if (AIH->server_name != NULL) free(AIH->server_name);
 		if (AIH->server_port != NULL) free(AIH->server_port);
 		if (AIH->filterparam != NULL) free(AIH->filterparam);
-		if (AIH->login       != NULL) free(AIH->login);
+		if (AIH->login	     != NULL) free(AIH->login);
 		free(AIH);
 
 	} else {

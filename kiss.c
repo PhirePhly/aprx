@@ -438,10 +438,12 @@ static int kissprocess(struct serialport *S)
 	  erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 
 	  if (aprxlogfile) {
+            // NOT replaced with aprxlog() -- because this is a bit more complicated..
 	    FILE *fp = fopen(aprxlogfile, "a");
 	    if (fp) {
 	      char timebuf[60];
 	      printtime(timebuf, sizeof(timebuf));
+              setlinebuf(fp);
 
 	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message: ", timebuf, S->ttycallsign[tncid], S->rdlinelen-1);
 	      hexdumpfp(fp, S->rdline, S->rdlinelen, 1);

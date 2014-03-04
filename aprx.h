@@ -32,6 +32,11 @@
 #ifdef HAVE_STDDEF_H
 # include <stddef.h>
 #endif
+#ifdef HAVE_STDARG_H
+#include <stdarg.h>
+#else
+#include <varargs.h>
+#endif
 
 #ifdef _FOR_VALGRIND_
 #define strdup  aprx_strdup
@@ -172,6 +177,15 @@ extern const char *pidfile;
 
 extern void printtime(char *buf, int buflen);
 extern void aprx_syslog_init(const char *syslog_fac);
+
+#ifdef HAVE_STDARG_H
+#ifdef __STDC__
+extern void aprxlog(const char *fmt, ...);
+#endif
+#else
+/* VARARGS */
+extern void aprxlog(va_list);
+#endif
 
 /* netresolver.c */
 extern void netresolv_start(void); // separate thread working on this!

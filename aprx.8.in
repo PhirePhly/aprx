@@ -521,7 +521,7 @@ server    rotate.aprs2.net    14580
 #
 # Message type is by default '!', which is positional no timestamp format.
 # Other possible formats are definable with options:
-# 'type'   Single character setting type:  ! = / @
+# 'type'   Single character setting type:  ! = / @ 
 # 'item'   Defines a name of Item (')') type beacons.
 # 'object' Defines a name of Object (';') type beacons.
 #
@@ -646,6 +646,12 @@ The APRSIS network login.
 Defaults to the
 .B mycall
 configuration entry.
+.IP "\fCpasscode -1\fR" 8em
+Defining a small integer in range of 0 to 32767 authenticating your login
+to APRS-IS server. Ask for assistance from your APRS-IS managers, or calculate
+it yourself with
+.I aprspass
+program. (Web search engines do find several of them.)
 .IP "\fCserver \fIserver-name 14850\fR" 8em
 Define which APRS-IS is being connected to.
 Multiple definitions are used in round-robin style,
