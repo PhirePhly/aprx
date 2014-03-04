@@ -120,12 +120,12 @@ void timetick(void)
           int delta = tv_timerdelta_millis(&old_tick, &tick);
           if (delta < -1) { // Up to 0.99999 seconds backwards for a leap second
             if (debug) {
-              printf("MONOTONIC TIME JUMPED BACK BY %g SECONDS. ttcallcount=%d\n", delta/1000.0D, timetick_count);
+              printf("MONOTONIC TIME JUMPED BACK BY %g SECONDS. ttcallcount=%d\n", delta/1000.0, timetick_count);
             }
             time_reset = 1;
           } else if (delta > 32000) { // 30.0 + leap second + margin
             if (debug) {
-              printf("MONOTONIC TIME JUMPED FORWARD BY %g SECONDS. ttcallcount=%d\n", delta/1000.0D, timetick_count);
+              printf("MONOTONIC TIME JUMPED FORWARD BY %g SECONDS. ttcallcount=%d mypid=%d\n", delta/1000.0, timetick_count, getpid());
             }
             time_reset = 1;
           } else {
@@ -537,3 +537,59 @@ void aprx_syslog_init(const char *syslog_facility_name)
 		openlog("aprx", LOG_NDELAY | LOG_PID, syslog_fac);
 	}
 }
+
+#ifdef HAVE_STDARG_H
+#ifdef __STDC__
+void aprxlog(const char *fmt, ...)
+#else
+void aprxlog(fmt)
+#endif
+#else
+/* VARARGS */
+void aprxlog(va_list)
+va_dcl
+#endif
+{
+	va_list ap;
+	char timebuf[60];
+
+#ifdef 	HAVE_STDARG_H
+	va_start(ap, fmt);
+#else
+	const char *fmt;
+	va_start(ap);
+	fmt    = va_arg(ap, const char *);
+#endif
+
+        printtime(timebuf, sizeof(timebuf));
+	if (verbout) {
+	  fprintf(stdout, "%s ", timebuf);
+	  vfprintf(stdout, fmt, ap);
+          (void)fprintf(stdout, "\n");
+	}
+
+        if (aprxlogfile) {
+          FILE *fp;
+
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+          pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+#endif
+          fp = fopen(aprxlogfile, "a");
+          if (fp != NULL) {
+            setlinebuf(fp);
+            fprintf(fp, "%s ", timebuf);
+            vfprintf(fp, fmt, ap);
+            (void)fprintf(fp, "\n");
+            fclose(fp);
+          }
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+          pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#endif
+
+        }
+
+#ifdef 	HAVE_STDARG_H
+        va_end(ap);
+#endif
+}
+

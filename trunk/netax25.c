@@ -269,14 +269,7 @@ void netax25_sendax25(const void *nax25p, const void *ax25, int ax25len)
 	// in both cases we give up on this frame.
 	if (p < ax25len) {
 	  if (aprxlogfile) {
-	    FILE *fp = fopen(aprxlogfile, "a");
-	    if (fp) {
-	      char timebuf[60];
-	      printtime(timebuf, sizeof(timebuf));
-
-	      fprintf(fp, "%s netax25_sendax25(%s,len=%d) wrote %d bytes\n", timebuf, nax25->callsign, ax25len, p);
-	      fclose(fp);
-	    }
+            aprxlog("netax25_sendax25(%s,len=%d) wrote %d bytes\n", nax25->callsign, ax25len, p);
 	  }
 	}
 }

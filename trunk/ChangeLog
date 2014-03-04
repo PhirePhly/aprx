@@ -1,3 +1,14 @@
+2014-03-04 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.8.in, doc/aprx-manual.odt:
+	    Document <aprsis> passcode a bit more.
+
+	* aprsis.c, aprx.c, aprx.h, netax25.c:
+	    Move aprxlog() from aprsis.c to aprx.c.
+	    Use aprxlog() instead of open coded logger at netax25.c.
+	    Modify which type of APRSIS events get logged without
+	    the runtime -L option to the aprxlogfile.
+
 2014-02-26 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* Makefile.in,  agwpesocket.c, aprsis.c, aprx-stat.c, aprx.c, aprx.h,
