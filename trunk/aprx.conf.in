@@ -246,6 +246,11 @@ aprxlog @VARLOG@/aprx.log
 #        available, though probably should not be used.
 #        No \-processing is done on read text line.
 #
+# 'exec' option tells a computer program which returns to stdout _raw_ APRS
+#        message content without newline. The timefix is
+#        available, though probably should not be used.
+#        No \-processing is done on read text line.
+#
 # The parameter sets can vary:
 #  a) 'srccall nnn-n dstcall "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
 #  b) 'srccall nnn-n dstcall "string" symbol "R&" $myloc [comment "any text"]
@@ -277,6 +282,10 @@ aprxlog @VARLOG@/aprx.log
 #                           comment "Rx-only iGate"
 #beacon interface $mycall   symbol "I&" $myloc \
 #                           comment "Tx-iGate"
+#beacon                     exec /usr/bin/telemetry.pl
+#beacon                     timeout 20 exec /usr/bin/telemetry.pl
+#beacon interface N0CALL-3 srccall N0CALL-3 \
+#                           timeout 20 exec /usr/bin/telemetry.pl
 #
 </beacon>
 
