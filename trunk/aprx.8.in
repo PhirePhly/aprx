@@ -1004,6 +1004,12 @@ This
 mode runs designated program, and waits for at most a
 .I timeout
 number of seconds (default 10) for the program to produce the result.
+.TP 12em
+.B timeout
+This is optional parameter for
+.I exec
+allowing altered timeout (number of seconds) for waiting the program to respond.
+Default is 10 seconds.
 .PP
 The type/symbol/lat/lon/comment-format supports only
 a few types of APRS packets.
