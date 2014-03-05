@@ -338,8 +338,7 @@ int main(int argc, char *const argv[])
 	signal(SIGINT, sig_handler);
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
-
-
+	signal(SIGCHLD, SIG_IGN);
 
 	// Must be after config reading ...
 	netresolv_start();

@@ -668,7 +668,7 @@ static int aprsis_postpoll_(struct aprxpolls *app)
 				continue;
 			}
 
-			if (pfd->revents & POLLIN) {	/* Ready for reading */
+			if (pfd->revents & (POLLIN | POLLPRI)) { /* Ready for reading */
 				for (;;) {
 					i = aprsis_sockread(A);
 					if (i == 0) {	/* EOF ! */
@@ -1071,12 +1071,7 @@ int aprsis_postpoll(struct aprxpolls *app)
 			/* This is APRS-IS communicator subprocess socket,
 			   and we may have some results.. */
 
-			if (pfd->revents & (POLLERR | POLLHUP)) {	/* Errors ? */
-				printf("APRS-IS coms subprocess socket failure from main program side!\n");
-				continue;
-			}
-
-			if (pfd->revents & POLLIN) {	/* Ready for reading */
+			if (pfd->revents) {	/* Ready for reading */
 				i = aprsis_comssockread(pfd->fd);
 				if (i == 0) {	/* EOF ! */
 					printf("APRS-IS coms subprocess socket EOF from main program side!\n");

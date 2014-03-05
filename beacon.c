@@ -19,22 +19,35 @@ struct beaconmsg {
 	const char *via;
 	const char *msg;
 	const char *filename;
+	const char *execfile;
 	int8_t	    beaconmode; // -1: net only, 0: both, +1: radio only
 	int8_t	    timefix;
+	int         timeout;
 };
 
 struct beaconset {
 	struct beaconmsg **beacon_msgs;
 
+  	struct timeval beacon_nexttime;
+	float  beacon_cycle_size;
+
 	int beacon_msgs_count;
 	int beacon_msgs_cursor;
 
-  	struct timeval beacon_nexttime;
-	float  beacon_cycle_size;
+	int exec_pid;
+	int exec_fd;
+        time_t exec_deadline; // seconds
+  	char *exec_buf;
+	int   exec_buf_length;
+	int   exec_buf_space;
+  	struct beaconmsg *exec_bm;
 };
 
 static struct beaconset **bsets;
 static int bsets_count;
+
+static void beacon_it(struct beaconset *bset, struct beaconmsg *bm);
+
 
 static void beacon_reset(struct beaconset *bset)
 {
@@ -52,6 +65,7 @@ static void beacon_set(struct configfile *cf,
 	const char *destaddr = NULL;
 	const char *via      = NULL;
 	const char *name     = NULL;
+	int timeout 		 = 5;
 	int buflen = strlen(p1) + strlen(str ? str : "") + 10;
 	char *buf  = alloca(buflen);
 	const char *to   = NULL;
@@ -379,6 +393,37 @@ static void beacon_set(struct configfile *cf,
 			if (debug)
 				printf("file '%s' ", bm->filename);
 
+		} else if (strcmp(p1, "exec") == 0) {
+
+			p1 = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			if (bm->execfile != NULL) {
+			  has_fault = 1;
+			  printf("%s:%d ERROR: Double definition of %s parameter\n",
+				 cf->name, cf->linenum, p1);
+			} else
+			  bm->execfile = strdup(p1);
+
+                        // Set default timeout if not yet set.
+                        if (bm->timeout == 0)
+                          bm->timeout = 10;
+
+			if (debug)
+				printf("exec file '%s' ", bm->execfile);
+
+		} else if (strcmp(p1, "timeout") == 0) {
+
+			p1 = str;
+			str = config_SKIPTEXT(str, NULL);
+			str = config_SKIPSPACE(str);
+
+			bm->timeout = atoi(p1);
+
+			if (debug)
+				printf("timeout %d ", bm->timeout);
+
 		} else if (strcmp(p1, "timefix") == 0) {
 			if (bm->timefix) {
 			  has_fault = 1;
@@ -446,7 +491,7 @@ static void beacon_set(struct configfile *cf,
 	bm->interface = aif;
 	bm->beaconmode = beaconmode;
 
-	if (!bm->msg && !bm->filename) {
+	if (!bm->msg && !bm->filename && !bm->execfile) {
 		/* Not raw packet, perhaps composite ? */
 		if (!type) type = "!";
 		if (code && strlen(code) == 2 && lat && strlen(lat) == 8 &&
@@ -541,6 +586,7 @@ static void free_beaconmsg(struct beaconmsg *bmsg) {
         if (bmsg->via)  free((void*)bmsg->via);
         if (bmsg->msg)  free((void*)bmsg->msg);
         if (bmsg->filename) free((void*)bmsg->filename);
+        if (bmsg->execfile) free((void*)bmsg->execfile);
         free(bmsg);
 }
 
@@ -704,14 +750,153 @@ static void beacon_resettimer(void *arg)
         }
 }
 
-static void beacon_now(struct beaconset *bset) 
+static void msg_exec_read(struct beaconset *bset)
 {
-	int  destlen;
-	int  txtlen, msglen;
-	int  i;
+	int rc;
+        int space = bset->exec_buf_space - bset->exec_buf_length;
+        if (debug) printf("msg_exec_read\n");
+
+        if (space < 256) {
+        	space += 256;
+                bset->exec_buf_space += 256;
+                bset->exec_buf = realloc(bset->exec_buf, bset->exec_buf_space);
+        }
+        
+        while ((rc = read(bset->exec_fd, bset->exec_buf + bset->exec_buf_length, space)) > 0) {
+		char *p;
+        	bset->exec_buf_length += rc;
+                p = memrchr(bset->exec_buf, '\n', bset->exec_buf_length);
+                if (p) {
+                  if (debug) printf("found newline in exec read data\n");
+                  *p = 0;
+                  bset->exec_buf_length = p - bset->exec_buf;
+                  struct beaconmsg *bm = bset->exec_bm;
+                  if (bset->exec_buf_length > 2) {
+                    // Run that beacon!
+                    // Point it to read buffer
+                    bm->msg = bset->exec_buf;
+                    if (debug) printf(".. calling beacon_it() on buffer: %s\n", bm->msg+2);
+                    beacon_it(bset, bm);
+                  } else {
+                    if (debug) printf(".. nothing read from exec pipe\n");
+                  }
+                  // erase the read buffer pointer
+                  bm->msg = NULL;
+                  // restore the nexttime
+                  bset->beacon_nexttime.tv_sec = bm->nexttime;
+                  close(bset->exec_fd);
+                  bset->exec_fd = -1;
+                  bset->exec_pid = 0; 
+                  return;
+                }
+                if (debug) printf("no newline in exec read data\n");
+        }
+        if (rc == 0) { // EOF read
+		char *p;
+		if (debug) printf("Seen EOF on exec-read\n");
+        	bset->exec_buf_length += rc;
+                p = memrchr(bset->exec_buf, '\n', bset->exec_buf_length);
+                if (p) {
+                  *p = 0;
+                  bset->exec_buf_length = p - bset->exec_buf;
+                  struct beaconmsg *bm = bset->exec_bm;
+                  if (bset->exec_buf_length > 2) {
+                    // Run that beacon!
+                    // Point it to read buffer
+                    bm->msg = bset->exec_buf;
+                    if (debug) printf(".. calling beacon_it() on buffer: %s\n", bm->msg+2);
+                    beacon_it(bset, bm);
+                  } else {
+                    if (debug) printf(".. nothing read from exec pipe\n");
+                  }
+                  // erase the read buffer pointer
+                  bm->msg = NULL;
+                  // restore the nexttime
+                  bset->beacon_nexttime.tv_sec = bm->nexttime;
+                  close(bset->exec_fd);
+                  bset->exec_fd = -1;
+                  bset->exec_pid = 0; 
+                }
+        }
+        if (bset->exec_pid > 0) {
+          printf("killing subprogram pid=%d mypid=%d\n", bset->exec_pid, getpid());
+          kill(bset->exec_pid, SIGKILL);
+        }
+        bset->exec_pid = 0;
+}
+
+static int msg_exec_file(const char *filename, int timeout, struct beaconset *bset)
+{
+	int p[2];
+        int pid;
+        int dev_null;
+	if (pipe(p)) {
+		return 0;
+	}
+
+        pid = fork();
+	if (pid < 0) {
+		close(p[0]);
+		close(p[1]);
+		return 0;
+	}
+        if (pid == 0) { //child
+
+        	if (debug) fprintf(stderr,"execing child pid %d, file: %s\n", getpid(), filename);
+
+		close(p[0]);
+                if (p[1] != 1) {
+                  dup2(p[1], 1);
+                  close(p[1]);
+                }
+                dev_null = open("/dev/null", O_WRONLY);
+		if (debug && dev_null < 0)
+                  fprintf(stderr,"child process: Failed to open file: /den/null\n");
+                if (dev_null >= 0) {
+                  if (dev_null != 2) {
+                    dup2(dev_null, 2);
+                    close(dev_null);
+                  }
+                  dup2(2, 0);
+                }
+
+		//FIXME: change second parameter
+		execl(filename, "aprx", NULL);
+		if (debug)
+                  fprintf(stderr,"child process: Failed to execute: %s\n", filename);
+		exit(255);
+
+	}
+
+        // parent
+
+        bset->exec_deadline = tick.tv_sec + timeout;
+        bset->exec_pid = pid;
+        bset->exec_fd  = p[0];
+        
+        bset->beacon_nexttime.tv_sec = bset->exec_deadline;
+        
+        close(p[1]);
+
+        return 1;
+}
+
+//        int val;
+//        waitpid(pid, &val, 0);
+//        if (WIFEXITED(val) && WEXITSTATUS(val) == 0) {
+//          return buf;
+//        }
+
+static void beacon_now(struct beaconset *bset)
+{
 	struct beaconmsg *bm;
-	char const *txt;
-	char *msg;
+
+        if (bset->exec_pid > 0) {
+          if (debug) printf("beacon_now - still an exec under way.\n");
+          // Wait 3 seconds before retrying.
+          bset->beacon_nexttime.tv_sec += 3;
+          return;
+        }
 
 	if (bset->beacon_msgs_cursor >= bset->beacon_msgs_count) // Last done..
 		bset->beacon_msgs_cursor = 0;
@@ -722,10 +907,22 @@ static void beacon_now(struct beaconset *bset)
 
 	/* --- now the business of sending ... */
 
+        //if (debug) printf("beacon_now idx=%d\n", bset->beacon_msgs_cursor );
 	bm = bset->beacon_msgs[bset->beacon_msgs_cursor++];
 
 	bset->beacon_nexttime.tv_sec = bm->nexttime;
 	bset->beacon_nexttime.tv_usec = 0;
+
+        beacon_it(bset, bm);
+}
+
+static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
+{
+	int  destlen;
+	int  txtlen, msglen;
+	int  i;
+	char const *txt;
+	char *msg;
 
 	if (debug)
 	  printf("BEACON: idx=%d, nexttime= +%d sec\n",
@@ -745,10 +942,27 @@ static void beacon_now(struct beaconset *bset)
 			syslog(LOG_ERR, "Failed to load anything from beacon file %s", bm->filename);
 			return;
 		}
-	} else {
+        } else if (bm->msg != NULL) {
 		msg     = (char*)bm->msg;
 		txt     = bm->msg+2; // Skip Control+PID bytes
-	}
+	} else if (bm->execfile != NULL) {
+		bset->exec_buf = realloc(bset->exec_buf, 1000);
+                bset->exec_buf[0] = 0x03;
+                bset->exec_buf[1] = 0xF0;
+                bset->exec_buf_length = 2;
+                bset->exec_buf_space = 1000;
+                bset->exec_bm = bm;
+		if (!msg_exec_file(bm->execfile, bm->timeout, bset)) {
+			if (debug)
+			  printf("BEACON ERROR: Failed to exec file %s\n",bm->execfile);
+			syslog(LOG_ERR, "Failed to exec file %s", bm->execfile);
+			return;
+		}
+                return; // spawning done, successfull or not..
+	} else {
+          if (debug) printf("Nothing to beacon now.\n");
+          return;
+        }
 
 	txtlen  = strlen(txt);
 	msglen  = txtlen+2; // this includes the control+pid bytes
@@ -941,13 +1155,6 @@ int beacon_prepoll(struct aprxpolls *app)
         	struct beaconset *bset = bsets[i];
                 if (bset->beacon_msgs == NULL) continue; // nothing here
 
-                int margin = 1200; // 20 minutes by default
-                int b;
-                // Pick largest of cycle sizes
-                for (b = 0; b < bset->beacon_msgs_count; ++b) {
-                	if (margin < bset->beacon_msgs[b]->interval)
-                        	margin = bset->beacon_msgs[b]->interval;
-                }
                 if (time_reset) {
                 	// master time pickup noticed time back-tracking
                 	beacon_resettimer(bset);
@@ -955,6 +1162,15 @@ int beacon_prepoll(struct aprxpolls *app)
 
                 if (tv_timercmp(&bset->beacon_nexttime, &app->next_timeout) < 0)
                 	app->next_timeout = bset->beacon_nexttime;
+
+                if (bset->exec_pid > 0 && bset->exec_fd >= 0) {
+                	struct pollfd *pfd;
+                        // FD is open, lets mark it for poll read..
+                        pfd = aprxpolls_new(app);
+                        pfd->fd = bset->exec_fd;
+                        pfd->events = POLLIN | POLLPRI;
+                        pfd->revents = 0;
+                }
         }
 
 	return 0;		/* No poll descriptors, only time.. */
@@ -963,17 +1179,41 @@ int beacon_prepoll(struct aprxpolls *app)
 
 int beacon_postpoll(struct aprxpolls *app)
 {
-	int i;
+	int idx, i;
+	struct serialport *S;
+	struct pollfd *P;
 #ifndef DISABLE_IGATE
 	if (!aprsis_login)
 		return 0;	/* No mycall !  hoh... */
 #endif
         for (i = 0; i < bsets_count; ++i) {
         	struct beaconset *bset = bsets[i];
+                if (bset->exec_pid > 0 && bset->exec_deadline < tick.tv_sec) {
+			// Waited too long, discard it.
+                	//printf("killing subprogram pid=%d mypid=%d\n", bset->exec_pid, getpid());
+                        if (debug) printf("Killing overdue beacon exec subprogram pid %d\n", bset->exec_pid);
+                	kill(bset->exec_pid, SIGKILL);
+                        bset->exec_pid = 0;
+                        close(bset->exec_fd);
+                        bset->exec_fd = -1;
+                        continue;
+                }
+                for (idx = 0, P = app->polls; idx < app->pollcount; ++idx, ++P) {
+                	if (bset->exec_fd == P->fd) {
+                          if (debug) printf("revents of exec_fd = 0x%x\n", P->revents);
+                          if (P->revents & (POLLIN | POLLPRI | POLLHUP)) {
+                            msg_exec_read(bset);
+                          }
+                        }
+                }
                 if (bset->beacon_msgs == NULL) continue; // nothing..
                 if (tv_timercmp(&bset->beacon_nexttime, &tick) > 0) continue; // not yet
+
                 beacon_now(bset);
         }
+
+        if (debug) printf("beacon_postpoll()\n");
+
 
 	return 0;
 }

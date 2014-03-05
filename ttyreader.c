@@ -673,9 +673,6 @@ int ttyreader_postpoll(struct aprxpolls *app)
                         }
                 }
 
-		/* if (!(P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP)))
-			continue;	/* No read event we are interested in... */
-
 		for (i = 0; i < ttycount; ++i) {
 			S = ttys[i];
 			if (S->fd != P->fd)
@@ -685,7 +682,7 @@ int ttyreader_postpoll(struct aprxpolls *app)
 			if (P->revents & POLLOUT)
 				ttyreader_linewrite(S);
 
-                        if (P->revents & (POLLIN | POLLPRI))
+                        if (P->revents & (POLLIN | POLLPRI | POLLERR | POLLHUP))
                 		ttyreader_lineread(S);
 		}
 	}
