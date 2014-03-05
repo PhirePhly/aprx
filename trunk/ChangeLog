@@ -1,6 +1,6 @@
 2014-03-04 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
-	* beacon.c, aprx.c, aprx.h, aprx.conf.in:
+	* beacon.c, aprx.c, aprx.h, aprx.conf.in, aprx.8.in:
 	    Kamil Palkowiski SQ8KFH's beacon exec idea rewritten to be
 	    non-blocking in execution.  The Aprx main loop does not
 	    tolerate blocking programs.

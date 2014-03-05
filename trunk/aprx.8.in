@@ -530,6 +530,14 @@ server    rotate.aprs2.net    14580
 #        is removed, and no escapes are supported.  The timefix is
 #        available, though probably should not be used.
 #
+# 'exec' option defines program path for a program whose stdout is
+#        read up to first newline (which must be present), and then
+#        transmit as beacon content. No format helpers are supplied,
+#        although 'timefix' can be used.
+# 'timeout' option is associated with 'exec', and defines when the
+#        exec must by latest produce the output, or the subprogram
+#        execution is killed. Default value is 10 seconds.
+#
 # The parameter sets can vary:
 #  a) 'srccall nnn-n dstcall "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
 #  b) 'srccall nnn-n dstcall "string" raw "string"'
@@ -879,6 +887,11 @@ Load beacon text from a file, path data is configurable:
 .nf
 \fCbeacon file \fR\fI/path/to/file\fR
 .fi
+.IP \(bu 2
+Run a program to produce beacon data in raw format:
+.nf
+\fCbeacon exec \fR\fI/path/to/file\fR\fC timeout \fR\fI10\fR 
+.fi
 .PP
 The fields and parameters:
 .TP 12em
@@ -984,6 +997,13 @@ way defines path to a file with single text line defining
 content of
 .I raw
 message data.
+.TP 12em
+.B exec
+This
+.I alternative
+mode runs designated program, and waits for at most a
+.I timeout
+number of seconds (default 10) for the program to produce the result.
 .PP
 The type/symbol/lat/lon/comment-format supports only
 a few types of APRS packets.
