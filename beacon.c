@@ -34,12 +34,12 @@ struct beaconset {
 	int beacon_msgs_count;
 	int beacon_msgs_cursor;
 
-	int exec_pid;
-	int exec_fd;
+	int    exec_pid;
+	int    exec_fd;
         time_t exec_deadline; // seconds
-  	char *exec_buf;
-	int   exec_buf_length;
-	int   exec_buf_space;
+  	char  *exec_buf;
+	int    exec_buf_length;
+	int    exec_buf_space;
   	struct beaconmsg *exec_bm;
 };
 
@@ -786,7 +786,7 @@ static void msg_exec_read(struct beaconset *bset)
                   bset->beacon_nexttime.tv_sec = bm->nexttime;
                   close(bset->exec_fd);
                   bset->exec_fd = -1;
-                  bset->exec_pid = 0; 
+                  //bset->exec_pid = 0; 
                   return;
                 }
                 if (debug) printf("no newline in exec read data\n");
@@ -815,14 +815,9 @@ static void msg_exec_read(struct beaconset *bset)
                   bset->beacon_nexttime.tv_sec = bm->nexttime;
                   close(bset->exec_fd);
                   bset->exec_fd = -1;
-                  bset->exec_pid = 0; 
+                  //bset->exec_pid = 0; 
                 }
         }
-        if (bset->exec_pid > 0) {
-          printf("killing subprogram pid=%d mypid=%d\n", bset->exec_pid, getpid());
-          kill(bset->exec_pid, SIGKILL);
-        }
-        bset->exec_pid = 0;
 }
 
 static int msg_exec_file(const char *filename, int timeout, struct beaconset *bset)
@@ -1163,7 +1158,7 @@ int beacon_prepoll(struct aprxpolls *app)
                 if (tv_timercmp(&bset->beacon_nexttime, &app->next_timeout) < 0)
                 	app->next_timeout = bset->beacon_nexttime;
 
-                if (bset->exec_pid > 0 && bset->exec_fd >= 0) {
+                if (bset->exec_pid != 0 && bset->exec_fd >= 0) {
                 	struct pollfd *pfd;
                         // FD is open, lets mark it for poll read..
                         pfd = aprxpolls_new(app);
@@ -1193,10 +1188,7 @@ int beacon_postpoll(struct aprxpolls *app)
                 	//printf("killing subprogram pid=%d mypid=%d\n", bset->exec_pid, getpid());
                         if (debug) printf("Killing overdue beacon exec subprogram pid %d\n", bset->exec_pid);
                 	kill(bset->exec_pid, SIGKILL);
-                        bset->exec_pid = 0;
-                        close(bset->exec_fd);
-                        bset->exec_fd = -1;
-                        continue;
+                        bset->exec_pid = - bset->exec_pid;
                 }
                 for (idx = 0, P = app->polls; idx < app->pollcount; ++idx, ++P) {
                 	if (bset->exec_fd == P->fd) {
@@ -1216,4 +1208,17 @@ int beacon_postpoll(struct aprxpolls *app)
 
 
 	return 0;
+}
+
+void beacon_childexit(int pid)
+{
+	int i;
+        for (i = 0; i < bsets_count; ++i) {
+        	struct beaconset *bset = bsets[i];
+                if (pid == bset->exec_pid) {
+                	bset->exec_pid = -pid;
+                        if (debug) printf("matched child exit, pid=%d\n", pid);
+                        break;
+                }
+        }
 }

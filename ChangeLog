@@ -1,5 +1,9 @@
 2014-03-04 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c, aprx.h, beacon.c:
+	    Pickup child process exit SIGCHLD signals, and track
+	    which child did exit.
+
 	* beacon.c, aprx.c, aprx.h, aprx.conf.in, aprx.8.in:
 	    Kamil Palkowiski SQ8KFH's beacon exec idea rewritten to be
 	    non-blocking in execution.  The Aprx main loop does not

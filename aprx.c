@@ -55,6 +55,15 @@ static void sig_handler(int sig)
 	  printf("SIGNAL %d - DYING!\n", sig);
 }
 
+static void sig_child(int sig)
+{
+	int status;
+        int pid;
+        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        	beacon_childexit(pid);
+        }
+}  
+
 static void usage(void)
 {
 	printf("aprx: [-d[d[d]]][-e][-i][-v][-L][-l logfacility] [-f %s]\n",
@@ -338,7 +347,7 @@ int main(int argc, char *const argv[])
 	signal(SIGINT, sig_handler);
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, sig_child);
 
 	// Must be after config reading ...
 	netresolv_start();

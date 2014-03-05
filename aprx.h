@@ -342,6 +342,7 @@ extern char * const aprsis_loginid;
 extern int  beacon_prepoll(struct aprxpolls *app);
 extern int  beacon_postpoll(struct aprxpolls *app);
 extern int  beacon_config(struct configfile *cf);
+extern void beacon_childexit(int pid);
 
 /* config.c */
 extern void *readconfigline(struct configfile *cf);
