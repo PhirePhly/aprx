@@ -65,8 +65,7 @@ AC_CHECK_FUNCS(atan2f,,
 	       AC_CHECK_LIB(m, atan2f,
 			    [LIBM="-lm"]))
 
-AC_CHECK_FUNCS(memchr memrchr)
-AC_CHECK_FUNC(gettimeofday)
+AC_CHECK_FUNCS(memchr memrchr gettimeofday)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(openpty,,
