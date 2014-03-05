@@ -1412,3 +1412,5 @@ Debian packaging by
 .IR "Kimmo Jukarinen, OH3GNU" .
 Testing of SMACK variant of KISS by
 .IR "Patrick Hertenstein, DL1GHN" .
+The beacon exec functionality prototype by
+.IR "Kamil Palkowiski SQ8KFH" .
