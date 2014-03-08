@@ -439,6 +439,7 @@ server    rotate.aprs2.net    14580
 #<interface>
 #   ax25\-device $mycall  # Either $mycall macro, or actual callsign
 #   #tx\-ok      false  # transmitter enable defaults to false
+#   #telem\-to\-is true # set to false to disable
 #</interface>
 
 # The  TNC serial  options.  Parameters are:
@@ -458,18 +459,21 @@ server    rotate.aprs2.net    14580
 #   serial\-device /dev/ttyUSB0  19200 8n1    KISS
 #   #callsign     $mycall  # Either $mycall macro, or actual callsign
 #   #tx\-ok        false    # transmitter enable defaults to false
+#   #telem\-to\-is true # set to false to disable
 #</interface>
 #
 #<interface>
 #   serial\-device /dev/ttyUSB1  19200 8n1    TNC2
 #   #callsign     $mycall  # Either $mycall macro, or actual callsign
 #   #tx\-ok        false    # TNC2 monitor can not have transmitter
+#   #telem\-to\-is true # set to false to disable
 #</interface>
 #
 #<interface>
 #   serial\-device /dev/ttyUSB1  19200 8n1    DPRS
 #   callsign     dprsgwcallsign  # must define actual callsign
 #   #tx\-ok        false    # DPRS monitor can not do transmit
+#   #telem\-to\-is true # set to false to disable
 #</interface>
 #
 
@@ -811,7 +815,15 @@ options applies only on designated KISS sub-port.
 The
 .I callsign
 option sets port specific callsign when relaying to APRS-IS.
-
+.PP
+The
+.I "telem\-to\-is true"
+option can be used to disable (by explicitly setting it to 'false')
+radio interface telemetry transmission to APRS-IS.
+By default it is on.
+This is separate from <telemetry> sections, which send telemetry
+to RF interfaces.
+.PP
 .nf
 \fC<interface>
    serial\-device /dev/ttyUSB1 19200 8n1 KISS
