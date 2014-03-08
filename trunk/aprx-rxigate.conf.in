@@ -42,6 +42,11 @@ server    rotate.aprs2.net
 #server   soam.aprs2.net
 #server   aunz.aprs2.net
 
+#
+# Passcode for your callsign
+#
+passcode -1
+
 </aprsis>
 
 <logging>
