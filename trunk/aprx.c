@@ -18,6 +18,9 @@
 # include <time.h>
 #endif
 #include <fcntl.h>
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
 
 int debug;
 int verbout;
