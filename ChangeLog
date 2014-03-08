@@ -1,5 +1,8 @@
 2014-03-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* configure.in, config.h.in, aprx.c:
+	    Autoconf test for <sys/wait.h>, and include if available.
+
 	* aprx.h, beacon.c, config.c, digipeater.c, interface.c, netax25.c,
 	  telemetry.c, doc/aprx-manual.odt, aprx.8.in:
 	    Change single boolean flag 'txok' into multiple interface flags

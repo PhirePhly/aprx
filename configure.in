@@ -56,7 +56,7 @@ AC_CHECK_HEADERS([netinet/sctp.h], AC_DEFINE([HAVE_NETINET_SCTP_H]))
 
 
 dnl Check for varargs
-AC_CHECK_HEADERS(stdarg.h varargs.h)
+AC_CHECK_HEADERS(stdarg.h varargs.h sys/wait.h)
 AC_FUNC_VPRINTF
 
 dnl Checks for libraries.
