@@ -62,6 +62,8 @@ static const struct tracewide default_wide_param = {
 	widewordlens
 };
 
+static int  run_tokenbucket_timers(void);
+
 
 float ratelimitmax     = 9999999.9;
 float rateincrementmax = 9999999.9;
@@ -1652,9 +1654,6 @@ static void digipeater_resettime(void *arg)
 int  digipeater_prepoll(struct aprxpolls *app)
 {
 	int d, s;
-	time_t t;
-
-        const int margin = TOKENBUCKET_INTERVAL*2;
 
         if (tokenbucket_timer.tv_sec == 0) {
         	tokenbucket_timer = tick; // init this..
@@ -1775,9 +1774,9 @@ int  digipeater_postpoll(struct aprxpolls *app)
 	return 0;
 }
 
-int  run_tokenbucket_timers()
+static int  run_tokenbucket_timers()
 {
-	int d, s, i, donecount;
+	int d, s;
 	// Over all digipeaters..
 	for (d = 0; d < digi_count; ++d) {
 	  struct digipeater *digi = digis[d];

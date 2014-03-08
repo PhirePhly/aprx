@@ -65,7 +65,6 @@ static void beacon_set(struct configfile *cf,
 	const char *destaddr = NULL;
 	const char *via      = NULL;
 	const char *name     = NULL;
-	int timeout 		 = 5;
 	int buflen = strlen(p1) + strlen(str ? str : "") + 10;
 	char *buf  = alloca(buflen);
 	const char *to   = NULL;
@@ -1175,7 +1174,7 @@ int beacon_prepoll(struct aprxpolls *app)
 int beacon_postpoll(struct aprxpolls *app)
 {
 	int idx, i;
-	struct serialport *S;
+	//struct serialport *S;
 	struct pollfd *P;
 #ifndef DISABLE_IGATE
 	if (!aprsis_login)

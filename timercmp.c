@@ -141,7 +141,7 @@ void tv_timerbounds(const char *timername,
         if (tv_timercmp(tv, &nowminus) < 0) {
         	if (debug)
                 	printf("System time has gone too much forwards, Resetting timer '%s'. dt=%d margin=%d\n",
-                               timername,  tv->tv_sec - nowminus.tv_sec, margin);
+                               timername,  (int)(tv->tv_sec - nowminus.tv_sec), margin);
                 resetfunc(resetarg);
         }
 
@@ -151,7 +151,7 @@ void tv_timerbounds(const char *timername,
         if (tv_timercmp(&nowplus, tv) < 0) {
         	if (debug)
                 	printf("System time has gone too much backwards, Resetting timer '%s'. dt=%d margin=%d\n",
-                               timername, nowplus.tv_sec - tv->tv_sec, margin);
+                               timername, (int)(nowplus.tv_sec - tv->tv_sec), margin);
                 resetfunc(resetarg);
         }
 }
