@@ -1257,6 +1257,12 @@ int aprsis_config(struct configfile *cf)
 			AprsIS->server_socket = -1;
 			AprsIS->next_reconnect = tick.tv_sec;
 		}
+                if (AIH->pass == default_passcode) {
+                  printf("%s:%d WARNING: This <aprsis> block does not define passcode!\n",
+                         cf->name, line0);
+                  printf("%s:%d WARNING: Your beacons and RF received will not make it to APRS-IS.\n",
+                         cf->name, line0);
+                }
 
 		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
 		AISh[AIShcount] = AIH;

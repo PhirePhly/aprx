@@ -960,7 +960,7 @@ int digipeater_config(struct configfile *cf)
 				param1 = (char*)mycall;
 
 			aif = find_interface_by_callsign(param1);
-			if (aif != NULL && (!aif->txok)) {
+			if (aif != NULL && (!IF_TX_OK(aif->flags))) {
 			  aif = NULL; // Not 
 			  printf("%s:%d ERROR: This transmit interface has no TX-OK TRUE setting: '%s'\n",
 				 cf->name, cf->linenum, param1);

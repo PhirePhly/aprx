@@ -28,6 +28,7 @@ static struct timeval telemetry_labeltime;
 static int telemetry_seq;
 static int telemetry_params;
 
+
 struct rftelemetry {
 	struct aprx_interface  *transmitter;
 	struct aprx_interface **sources;
@@ -306,11 +307,13 @@ static void telemetry_datatx(void)
 		/* Send those (net)beacons.. */
 		buflen = s - buf;
 #ifndef DISABLE_IGATE
-		aprsis_queue(beaconaddr, beaconaddrlen, 
-			     qTYPE_LOCALGEN, aprsis_login,
-			     buf+2, buflen-2);
+                if (IF_TELEM_TO_IS(sourceaif->flags)) {
+                  aprsis_queue(beaconaddr, beaconaddrlen, 
+                               qTYPE_LOCALGEN, aprsis_login,
+                               buf+2, buflen-2);
+                }
 #endif
-		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+                rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 	}
 	++telemetry_params;
@@ -351,11 +354,13 @@ static void telemetry_labeltx()
 				      E->name);
 		  buflen = s - buf;
 #ifndef DISABLE_IGATE
-		  aprsis_queue(beaconaddr, beaconaddrlen,
-			       qTYPE_LOCALGEN, aprsis_login,
-			       buf+2, buflen-2);
+                  if (IF_TELEM_TO_IS(sourceaif->flags)) {
+			  aprsis_queue(beaconaddr, beaconaddrlen,
+                                       qTYPE_LOCALGEN, aprsis_login,
+                                       buf+2, buflen-2);
+                  }
 #endif
-		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+                  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 		} else if (telemetry_labelindex == 1) {
 		
@@ -364,11 +369,13 @@ static void telemetry_labeltx()
 				      E->name);
 		  buflen = s - buf;
 #ifndef DISABLE_IGATE
-		  aprsis_queue(beaconaddr, beaconaddrlen,
-			       qTYPE_LOCALGEN, aprsis_login,
-			       buf+2, buflen-2);
+                  if (IF_TELEM_TO_IS(sourceaif->flags)) {
+			  aprsis_queue(beaconaddr, beaconaddrlen,
+                                       qTYPE_LOCALGEN, aprsis_login,
+                                       buf+2, buflen-2);
+                  }
 #endif
-		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+                  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		  
 		} else if (telemetry_labelindex == 2) {
 		  
@@ -377,11 +384,13 @@ static void telemetry_labeltx()
 				      E->name);
 		  buflen = s - buf;
 #ifndef DISABLE_IGATE
-		  aprsis_queue(beaconaddr, beaconaddrlen,
-			       qTYPE_LOCALGEN, aprsis_login,
-			       buf+2, buflen-2);
+                  if (IF_TELEM_TO_IS(sourceaif->flags)) {
+			  aprsis_queue(beaconaddr, beaconaddrlen,
+                                       qTYPE_LOCALGEN, aprsis_login,
+                                       buf+2, buflen-2);
+                  }
 #endif
-		  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
+                  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 		}
 	}
 	++telemetry_params;
@@ -392,6 +401,10 @@ static void telemetry_labeltx()
 	  telemetry_labelindex = 0;
 }
 
+/*
+ * Transmit telemetry to the RF interface that is being monitored.
+ * Interface 'flags' contain controls on thist.
+ */
 static void rf_telemetry(const struct aprx_interface *sourceaif,
                          const char *beaconaddr,
 			 const char *buf,
@@ -404,7 +417,9 @@ static void rf_telemetry(const struct aprx_interface *sourceaif,
 	if (rftelemetrycount == 0) return; // Nothing to do!
 	if (sourceaif == NULL) return; // Huh? Unknown source..
 
-	if (!interface_is_telemetrable(sourceaif)) return;
+	if (!interface_is_telemetrable(sourceaif)) return; // not possible
+        if (!IF_TELEM_TO_RF(sourceaif->flags)) return; // not wanted
+
 
 	// The beaconaddr comes in as:
 	//    "interfacecall>APRXxx,TCPIP*"
@@ -470,7 +485,7 @@ int telemetry_config(struct configfile *cf)
 				param1 = (char*)mycall;
 
 			aif = find_interface_by_callsign(param1);
-			if (aif != NULL && (!aif->txok)) {
+			if (aif != NULL && (!IF_TX_OK(aif->flags))) {
 			  aif = NULL; // Not 
 			  printf("%s:%d ERROR: This transmit interface has no TX-OK TRUE setting: '%s'\n",
 				 cf->name, cf->linenum, param1);
@@ -480,6 +495,7 @@ int telemetry_config(struct configfile *cf)
 				 cf->name, cf->linenum, param1);
 			  has_fault = 1;
 			}
+
 		} else if (strcmp(name, "via") == 0) {
 			if (viapath != NULL) {
 			  printf("%s:%d ERROR: Double definition of 'via'\n",

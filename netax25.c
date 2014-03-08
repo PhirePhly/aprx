@@ -55,7 +55,7 @@ struct netax25_dev {
 	int16_t		protocol;
 	uint8_t		ax25addr[7];
 	uint8_t		rxok;
-	uint8_t		txok;
+	//uint8_t	txok;
 	uint8_t         scan;
 	char		devname[IFNAMSIZ];
 	char		callsign[10];

@@ -34,13 +34,14 @@ char *config_SKIPDIGIT(char *Y)
 #endif
 
 // return 0 for failures, 1 for OK.
-int validate_callsign_input(char *callsign, int strict)
+int validate_callsign_input(char *callsign, int if_flags)
 {
 	int i = strlen(callsign);
 	char *p = callsign;
 	char c = 0;
 	int seen_minus = 0;
 	int ssid = 0;
+        int strict = IF_TX_OK(if_flags);
 
 	for ( ; *p ; ++p ) {
 		c = *p;
