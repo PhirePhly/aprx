@@ -95,8 +95,6 @@ static void telemetry_labeltx(void);
 
 int telemetry_postpoll(struct aprxpolls *app)
 {
-	int i;
-
         if (tv_timercmp(&telemetry_time, &tick) <= 0) {
           tv_timeradd_seconds(&telemetry_time, &telemetry_time, telemetry_interval);
 	  telemetry_datatx();

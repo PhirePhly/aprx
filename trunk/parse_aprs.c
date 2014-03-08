@@ -939,7 +939,7 @@ static int parse_aprs_object(struct pbuf_t *pb, const char *body, const char *bo
 	/* check that the timestamp ends with one of the valid timestamp type IDs */
         char tz_end = body[16];
         if (tz_end != 'z' && tz_end != 'h' && tz_end != '/') {
-        	DEBUG_LOG("\tinvalid object timestamp character: '%s'", tz_end);
+        	DEBUG_LOG("\tinvalid object timestamp character: '%c'", tz_end);
 		return 0;
 	}
 	

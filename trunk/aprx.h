@@ -290,7 +290,7 @@ extern int  ttyreader_getc(struct serialport *tty);
 // extern void               ttyreader_setkissparams(struct serialport *tty, const int tncid, const char *callsign, const int timeout);
 extern int  ttyreader_parse_ttyparams(struct configfile *cf, struct serialport *tty, char *str);
 extern void ttyreader_linewrite(struct serialport *S);
-
+extern int  ttyreader_parse_nullparams(struct configfile *cf, struct serialport *tty, char *str);
 
 extern void hexdumpfp(FILE *fp, const uint8_t *buf, const int len, int axaddr);
 extern void aprx_cfmakeraw(struct termios *, int f);

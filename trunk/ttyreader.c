@@ -747,9 +747,6 @@ struct serialport *ttyreader_new(void)
  */
 int ttyreader_parse_nullparams(struct configfile *cf, struct serialport *tty, char *str)
 {
-	int i;
-	speed_t baud;
-	int tncid   = 0;
 	char *param1 = 0;
         int has_fault = 0;
 
