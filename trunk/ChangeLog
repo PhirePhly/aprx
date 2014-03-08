@@ -1,3 +1,14 @@
+2014-03-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, beacon.c, config.c, digipeater.c, interface.c, netax25.c,
+	  telemetry.c, doc/aprx-manual.odt:
+	    Change single boolean flag 'txok' into multiple interface flags
+	    where the 'txok' is just one bit.  Added 'telem-to-is <boolean>'
+	    option to <interface>
+
+	* aprsis.c:
+	    Warn at startup if an <aprsis> block does not contain passcode.
+
 2014-03-04 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c, aprx.h, beacon.c:

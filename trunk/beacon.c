@@ -117,7 +117,7 @@ static void beacon_set(struct configfile *cf,
 			}
 
 			aif = find_interface_by_callsign(to);
-			if ((aif != NULL) && !aif->txok) {
+			if ((aif != NULL) && !IF_TX_OK(aif->flags)) {
 				aif = NULL;  // Not an TX interface :-(
 				if (debug)printf("\n");
 				printf("%s:%d ERROR: beacon interface '%s' that is not a TX capable interface.\n",
@@ -1004,7 +1004,7 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 		}
 #endif
 
-		if (bm->beaconmode >= 0 && bm->interface->txok) {
+		if (bm->beaconmode >= 0 && IF_TX_OK(bm->interface->flags)) {
 		  // And to interfaces
                   char *dp = destbuf; // destbuf collects ONLY the VIA data
 
@@ -1105,7 +1105,7 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 		}
 #endif
 
-		if (bm->beaconmode >= 0 && aif->txok) {
+		if (bm->beaconmode >= 0 && IF_TX_OK(aif->flags)) {
 		  // And to transmit-capable interfaces
                   char *dp = destbuf; // destbuf collects ONLY the VIA data
 
