@@ -1,7 +1,7 @@
 2014-03-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, beacon.c, config.c, digipeater.c, interface.c, netax25.c,
-	  telemetry.c, doc/aprx-manual.odt:
+	  telemetry.c, doc/aprx-manual.odt, aprx.8.in:
 	    Change single boolean flag 'txok' into multiple interface flags
 	    where the 'txok' is just one bit.  Added 'telem-to-is <boolean>'
 	    option to <interface>
