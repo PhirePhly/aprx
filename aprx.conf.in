@@ -151,8 +151,9 @@ aprxlog @VARLOG@/aprx.log
 #
 
 #<interface>
-#   ax25-device $mycall
-#   #tx-ok      false  # transmitter enable defaults to false
+#   ax25-device   $mycall
+#   #tx-ok        false  # transmitter enable defaults to false
+#   #telem-to-is  true # set to 'false' to disable
 #</interface>
 
 
@@ -175,18 +176,21 @@ aprxlog @VARLOG@/aprx.log
 #   serial-device /dev/ttyUSB0  19200 8n1    KISS
 #   #callsign     $mycall  # callsign defaults to $mycall
 #   #tx-ok        false    # transmitter enable defaults to false
+#   #telem-to-is  true # set to 'false' to disable
 #</interface>
 
 #<interface>
 #   serial-device /dev/ttyUSB1  19200 8n1    TNC2
 #   #callsign     $mycall  # callsign defaults to $mycall
 #   #tx-ok        false    # TNC2 monitor can not have transmitter
+#   #telem-to-is  true # set to 'false' to disable
 #</interface>
 
 #<interface>
 #   serial-device /dev/ttyUSB1  19200 8n1    DPRS
 #   callsign     dprsgwcallsign  # must define actual callsign
 #   #tx-ok       false           # DPRS monitor can not do transmit
+#   #telem-to-is true # set to 'false' to disable
 #</interface>
 
 

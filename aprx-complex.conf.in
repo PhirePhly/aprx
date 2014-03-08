@@ -164,6 +164,7 @@ aprxlog @VARLOG@/aprx.log
 #   ax25-device   $mycall
 #   tx-ok true    # There be transmitter there!
 #  #alias         RELAY,WIDE,TRACE
+#  #telem-to-is   true # set to 'false' to disable
 #</interface>
 
 # The  radio serial  option.  Parameters are:
@@ -183,6 +184,7 @@ aprxlog @VARLOG@/aprx.log
 #   serial-device   /dev/ttyUSB0  19200 8n1    KISS
 #  #alias         RELAY,WIDE,TRACE
 #   callsign N0CALL-14
+#  #telem-to-is   true # set to 'false' to disable
 #</interface>
 
 ### KISS mode example with multiple sub-interfaces via TNCID multiplexing
@@ -193,23 +195,27 @@ aprxlog @VARLOG@/aprx.log
 #   <kiss-subif 0>
 #      callsign N0CALL-14
 #      tx-ok    true
+#      #telem-to-is   true # set to 'false' to disable
 #   </kiss-subif>
 #   ## kiss-subif 3 == KISS TNCID 3
 #   <kiss-subif 3>
 #      callsign N0CALL-15
 #      tx-ok    false
+#      #telem-to-is   true # set to 'false' to disable
 #   </kiss-subif>
 #</interface>
 
 #<interface>
 #   serial-device   /dev/ttyUSB1  19200 8n1    TNC2
 #   callsign N0CALL-13
+#   #telem-to-is   true # set to 'false' to disable
 #</interface>
 
 #<interface>
 #   serial-device /dev/ttyUSB1  19200 8n1    DPRS
 #   callsign     dprsgwcallsign  # must define actual callsign
 #   #tx-ok       false           # DPRS monitor can not do transmit
+#   #telem-to-is   true # set to 'false' to disable
 #</interface>
 
 #
@@ -340,6 +346,15 @@ aprxlog @VARLOG@/aprx.log
 #         is removed, and no escapes are supported.  The timefix is
 #         available, though probably should not be used.
 #         No \-processing is done on read text line.
+#
+# 'exec' option tells a computer program which returns to stdout _raw_ APRS
+#        message content without newline. The timefix is
+#        available, though probably should not be used.
+#        No \-processing is done on read text line.
+# 'timeout' defines number of seconds the exec:ed program has to produce
+#        a single text line of APRS data + ending newline, until it is
+#        considered overdue and will be killed + processing moves to next
+#        beacon item.
 #
 # The parameter sets can vary:
 #  a) 'srccall nnn-n dstcall "string" symbol "R&" lat "ddmm.mmN" lon "dddmm.mmE" [comment "any text"]
