@@ -1,5 +1,16 @@
 2014-03-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* digipeater.c:
+	    Corrected the digipeating recognition algorithm.
+	    If the current leading VIA field value without
+	    H-bit set is not recognized as transmitter callsign,
+	    transmitter alias, or value of <trace> or <wide>
+	    directive at digipeater source or digipeater transmitter
+	    configuration, then the packet is _not_ eligible for
+	    digipeat.
+
+2014-03-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
 	* aprx.h, beacon.c, digipeater.c, parse_aprs.c, telemetry.c,
 	  timercmp.c, ttyreader.c:
 	     Fix all things flagged at CFLAGS="-g -O2 -Wall".

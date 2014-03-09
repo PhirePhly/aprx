@@ -2,22 +2,6 @@
 
 				TODO / Wishlist
 
-- Hi Matti,
-  Sadly the /b filter still discards all IS to RF packets. I have not 
-  seen this work since version 2.06
-
-  73 de Ron
-  VE3CGR
-
-- sq8kfh_exec_beacon.patch -- with non-blocking subprogram execution
-  and not starting other subprogram before previous has terminated.
-  Proposed patch has issues of doing blocking wait of defined seconds.
-
-- uh3ack's (avk@gamma.ru) conditional telemetry-to-is transmit
-
-- Fix Year-2038 issues properly by not comparing time_t values directly
-  to each other, instead compare (int)(t1-t2) against zero.
-
 - "[Aprx] Re: WIDE2-2/NOGATE - trace not working?"
 
 - "[Aprx] Re: Bi-Directional Cross-band Digipeater"
