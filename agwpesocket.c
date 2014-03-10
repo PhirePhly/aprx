@@ -196,7 +196,7 @@ struct agwpesocket; // forward declarator
 // One agwpecom per connection to AGWPE
 struct agwpecom {
 	int		fd;
-	time_t		wait_until;
+	struct timeval	wait_until;
 
 	const struct netresolver *netaddr;
 
@@ -263,7 +263,7 @@ static struct agwpecom *agwpe_find_or_add_com(const char *hostname, const char *
 	com->fd = -1;
 	com->netaddr = netresolv_add(hostname, hostport);
 	com->rdneed = sizeof(struct agwpeheader);
-	com->wait_until = now.tv_sec + 30; // redo in 30 seconds or so
+	tv_timeradd_millis(&com->wait_until, &tick, 30000); // redo in 30 seconds or so
 
 	++pecomcount;
 	pecom = realloc(pecom, sizeof(void*)*pecomcount);
@@ -304,7 +304,7 @@ void *agwpe_addport(const char *hostname, const char *hostport, const char *agwp
 static void agwpe_reset(struct agwpecom *com, const char *why)
 {
 	com->wrlen = com->wrcursor = 0;
-	com->wait_until = now.tv_sec + 30;
+	tv_timeradd_millis(&com->wait_until, &tick, 30000); // redo in 30 seconds or so
 
 	if (debug>1)
 	  printf("Resetting AGWPE socket; %s\n", why);
@@ -655,44 +655,44 @@ int agwpe_prepoll(struct aprxpolls *app)
 	struct pollfd *pfd;
 
 	for (i = 0; i < pecomcount; ++i) {
-		S = pecom[i];
-		if (S->fd < 0) {
-			/* Not an open TTY, but perhaps waiting ? */
-			if ((S->wait_until != 0) && timecmp(S->wait_until, now.tv_sec) > 0) {
-                        	if (timecmp(S->wait_until, (now.tv_sec+60)) > 0) {
-                                	// Verify that wait is not too long -- system time jumped backwards?  (but not 68 years..)
-                                	S->wait_until = now.tv_sec;
-                                }
+          S = pecom[i];
+          if (S->fd < 0) {
+            /* Not an open TTY, but perhaps waiting ? */
+            if ((S->wait_until.tv_sec != 0) && tv_timercmp(&S->wait_until, &tick) > 0) {
+              if (tv_timerdelta_millis(&S->wait_until, &tick) > 60000) {
+                // Verify that wait is not too long -- system time jumped backwards?  (but not 68 years..)
+                S->wait_until = tick;
+              }
 
-				/* .. waiting for future! */
-                        	if (timecmp(app->next_timeout, S->wait_until) > 0)
-					app->next_timeout = S->wait_until;
-				/* .. but only until our timeout,
-				   if it is sooner than global one. */
-				continue;	/* Waiting on this one.. */
-			}
+              /* .. waiting for future! */
+              if (tv_timercmp(&app->next_timeout, &S->wait_until) > 0)
+                app->next_timeout = S->wait_until;
+              /* .. but only until our timeout,
+                 if it is sooner than global one. */
+              continue;	/* Waiting on this one.. */
+            }
 
-			/* Waiting or not, FD is not open, and deadline is past.
-			   Lets try to open! */
+            /* Waiting or not, FD is not open, and deadline is past.
+               Lets try to open! */
 
-			agwpe_connect(S);
+            agwpe_connect(S);
 
-		}
-		/* .. No open FD */
-		/* Still no open FD ? */
-		if (S->fd < 0)
-			continue;
+          }
+          /* .. No open FD */
+          /* Still no open FD ? */
+          if (S->fd < 0)
+            continue;
 
-		// FD is open, lets mark it for poll read..
-		pfd = aprxpolls_new(app);
-		pfd->fd = S->fd;
-		pfd->events = POLLIN | POLLPRI;
-		pfd->revents = 0;
-		// .. and if needed, poll write.
-		if (S->wrlen > S->wrcursor)
-			pfd->events |= POLLOUT;
+          // FD is open, lets mark it for poll read..
+          pfd = aprxpolls_new(app);
+          pfd->fd = S->fd;
+          pfd->events = POLLIN | POLLPRI;
+          pfd->revents = 0;
+          // .. and if needed, poll write.
+          if (S->wrlen > S->wrcursor)
+            pfd->events |= POLLOUT;
 
-		++idx;
+          ++idx;
 	}
 	return idx;
 }
