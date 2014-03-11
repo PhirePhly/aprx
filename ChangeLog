@@ -1,3 +1,22 @@
+2014-03-11 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* ttyreader.c:
+	    Do open /dev/ttySnnn up front in non-blocking mode so that
+	    if the serial port hardware needs to be wired specially to
+	    be considered active ( = flow control ) the serial port open
+	    will not stop -- hang -- at it missing.
+
+	* agwpesocket.c:
+	    Update time comparison codes to current model.
+
+	* aprx.c:
+	    time_reset gets cleared only after first round through
+	    the main loop.
+
+	* beacon.c:
+	    The 'file' and 'exec' directives need at most 256 bytes of read
+	    buffer to get beacon body content. No need for 2kB buffer alloc.
+
 2014-03-08 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* digipeater.c:

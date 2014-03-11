@@ -65,7 +65,7 @@ void telemetry_start()
 	 */
 	telemetry_seq = (time(NULL)) & 255;
 
-	// "now" is supposedly current time..
+	// "tick" is supposedly current time..
         telemetry_resettime( &telemetry_time );
         telemetry_resetlabeltime( &telemetry_labeltime );
 
@@ -87,6 +87,8 @@ int telemetry_prepoll(struct aprxpolls *app)
 	if (tv_timercmp(&app->next_timeout, &telemetry_labeltime) > 0)
 		app->next_timeout = telemetry_labeltime;
 
+        if (debug>1) printf("telemetry_prepoll()\n");
+
 	return 0;
 }
 
@@ -95,6 +97,7 @@ static void telemetry_labeltx(void);
 
 int telemetry_postpoll(struct aprxpolls *app)
 {
+        if (debug>1) printf("telemetry_postpoll()\n");
         if (tv_timercmp(&telemetry_time, &tick) <= 0) {
           tv_timeradd_seconds(&telemetry_time, &telemetry_time, telemetry_interval);
 	  telemetry_datatx();

@@ -380,9 +380,12 @@ static void ttyreader_linesetup(struct serialport *S)
 
 	S->wrlen = S->wrcursor = 0;	// init them at first
 
+        // If NOT tcp! type socket, it is presumably openable with
+        // open(2) instead of something else, like socket(2)...
 	if (memcmp(S->ttyname, "tcp!", 4) != 0) {
 
-		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY, 0);
+        	// Open the serial port as RW, non-blocking, no-control-tty
+		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY | O_NONBLOCK, 0);
 
 		if (debug) {
                 	printf("%ld\tTTY %s OPEN - fd=%d - ",
@@ -414,16 +417,12 @@ static void ttyreader_linesetup(struct serialport *S)
 			tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
 			return;
 		}
-		/* FIXME: ??  Set baud-rates ?
-		   Used system (Linux) has them in   'struct termios'  so they
-		   are now set, but other systems may have different ways..
-		 */
+		// FIXME: ??  Set baud-rates ?
+		//   Used system (Linux) has them in   'struct termios'  so they
+		//   are now set, but other systems may have different ways..
 
-		/* Flush buffers once again. */
+		// Flush buffers once again.
 		i = tcflush(S->fd, TCIOFLUSH);
-
-		/* change the file handle to non-blocking */
-		fd_nonblockingmode(S->fd);
 
 		for (i = 0; i < 16; ++i) {
 		  if (S->initstring[i] != NULL) {
