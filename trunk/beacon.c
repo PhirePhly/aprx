@@ -755,7 +755,7 @@ static void msg_exec_read(struct beaconset *bset)
         int space = bset->exec_buf_space - bset->exec_buf_length;
         if (debug) printf("msg_exec_read\n");
 
-        if (space < 256) {
+        if (space < 1) {
         	space += 256;
                 bset->exec_buf_space += 256;
                 bset->exec_buf = realloc(bset->exec_buf, bset->exec_buf_space);
@@ -925,11 +925,11 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 	destlen = strlen(bm->dest) + ((bm->via != NULL) ? strlen(bm->via): 0) +2;
 
 	if (bm->filename != NULL) {
-		msg = alloca(2000);  // This is a load-and-discard allocation
+		msg = alloca(256);  // This is a load-and-discard allocation
 		txt = msg+2;
 		msg[0] = 0x03;
 		msg[1] = 0xF0;
-		if (!msg_read_file(bm->filename, msg+2, 2000-2)) {
+		if (!msg_read_file(bm->filename, msg+2, 256-2)) {
 			// Failed loading
 			if (debug)
 			  printf("BEACON ERROR: Failed to load anything from file %s\n",bm->filename);
@@ -940,11 +940,11 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 		msg     = (char*)bm->msg;
 		txt     = bm->msg+2; // Skip Control+PID bytes
 	} else if (bm->execfile != NULL) {
-		bset->exec_buf = realloc(bset->exec_buf, 1000);
+		bset->exec_buf = realloc(bset->exec_buf, 256);
                 bset->exec_buf[0] = 0x03;
                 bset->exec_buf[1] = 0xF0;
                 bset->exec_buf_length = 2;
-                bset->exec_buf_space = 1000;
+                bset->exec_buf_space = 256;
                 bset->exec_bm = bm;
 		if (!msg_exec_file(bm->execfile, bm->timeout, bset)) {
 			if (debug)

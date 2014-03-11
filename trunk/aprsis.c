@@ -91,7 +91,7 @@ static int aprsis_down = -1;	/* down talking socket(pair),
 
 
 extern int log_aprsis;
-static int aprsis_die_now;
+extern int die_now;
 
 void aprsis_init(void)
 {
@@ -105,7 +105,7 @@ void aprsis_init(void)
 #if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 static void sig_handler(int sig)
 {
-	aprsis_die_now = 1;
+	die_now = 1;
 	signal(sig, sig_handler);
 }
 #endif
@@ -415,7 +415,7 @@ static int aprsis_sockreadline(struct aprsis *A)
 				  errno == ECONNRESET ||
 				  errno == ECONNREFUSED ||
 				  errno == ENOTCONN)) {
-		      aprsis_die_now = 1; // upstream socket send failed
+		      die_now = 1; // upstream socket send failed
 		    }
 		}
 		A->rdlin_len = 0;
@@ -494,7 +494,7 @@ static void aprsis_readup(void)
 	i = recv(aprsis_up, buf, sizeof(buf), 0);
 	if (i == 0) {		/* EOF ! */
 	  if (debug>1) printf("Upstream fd read resulted eof status.\n");
-	  aprsis_die_now = 1;
+	  die_now = 1;
 	  return;
 	}
 	if (i < 0) {
@@ -750,7 +750,7 @@ static void aprsis_main(void)
 #endif
 
 	/* The main loop */
-	while (!aprsis_die_now) {
+	while (!die_now) {
 		struct pollfd *pfd;
 		int i;
 
@@ -952,7 +952,7 @@ void aprsis_start(void)
 // Shutdown the aprsis thread
 void aprsis_stop(void)
 {
-	aprsis_die_now = 1;
+	die_now = 1;
 	pthread_cancel(aprsis_thread);
 	pthread_join(aprsis_thread, NULL);
 }

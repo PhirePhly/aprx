@@ -128,8 +128,9 @@ void timetick(void)
 
         // Main program clears this when appropriate
         // time_reset = 0;
+        int delta = 0;
         if (old_tick.tv_sec != 0) {
-          int delta = tv_timerdelta_millis(&old_tick, &tick);
+          delta = tv_timerdelta_millis(&old_tick, &tick);
           if (delta < -1) { // Up to 0.99999 seconds backwards for a leap second
             if (debug) {
               printf("MONOTONIC TIME JUMPED BACK BY %g SECONDS. ttcallcount=%d\n", delta/1000.0, timetick_count);
@@ -147,8 +148,10 @@ void timetick(void)
         } else {
           time_reset = 1;
           // This happens before argv is parsed, thus debug is never set.
-          // if (debug) printf("Initializing MONOTONIC time\n");
+          // But if it sets happens afterwards...
+          if (debug) printf("Initializing MONOTONIC time\n");
         }
+        // if (debug>1) printf("TIMETICK %ld:%6d  %d delta=%d ms\n", tick.tv_sec, tick.tv_usec, timetick_count, delta);
 }
 
 int main(int argc, char *const argv[])
@@ -158,12 +161,12 @@ int main(int argc, char *const argv[])
 	const char *syslog_facility = "NONE";
 	int foreground = 0;
         int millis;
+        int can_clear_timereset;
 
 	/* Init the poll(2) descriptor array */
 	struct aprxpolls app = APRXPOLLS_INIT;
 
         timetick(); // init global time references
-        time_reset = 0;
 
 	setlinebuf(stdout);
 	setlinebuf(stderr);
@@ -347,8 +350,8 @@ int main(int argc, char *const argv[])
 	// Set default signal handling
 
 	signal(SIGTERM, sig_handler);
-	signal(SIGINT, sig_handler);
-	signal(SIGHUP, sig_handler);
+	signal(SIGINT,  sig_handler);
+	signal(SIGHUP,  sig_handler);
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, sig_child);
 
@@ -370,9 +373,11 @@ int main(int argc, char *const argv[])
 
 	// The main loop
 
+        can_clear_timereset = 0;
+
 	while (!die_now) {
 
-        	timetick();
+        	timetick(); // pre-poll
 
 		aprxpolls_reset(&app);
                 tv_timeradd_millis( &app.next_timeout, &tick, 30000 ); // 30 seconds
@@ -409,7 +414,10 @@ int main(int argc, char *const argv[])
 #endif
 
                 // All pre-polls are done
-                time_reset = 0;
+                if (can_clear_timereset)
+                  time_reset = 0;
+                else
+                  can_clear_timereset = 1;
 
 		// if (app.next_timeout <= now.tv_sec)
                 // app.next_timeout = now.tv_sec + 1;	// Just to be on safe side..
@@ -419,7 +427,7 @@ int main(int argc, char *const argv[])
                   millis = 10;
 
 		i = poll(app.polls, app.pollcount, millis);
-                timetick();
+                timetick(); // post-poll
 
 
 		i = beacon_postpoll(&app);
