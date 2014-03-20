@@ -462,6 +462,7 @@ int interface_config(struct configfile *cf)
 	aif->aliases    = interface_default_aliases;
 	aif->ifindex    = -1; // system sets automatically at store time
 	aif->ifgroup    = ifgroup; // either user sets, or system sets at store time
+        aif->flags      = IFFLAG_TELEM_TO_IS|IFFLAG_TELEM_TO_RF; // defaults
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -775,6 +776,32 @@ int interface_config(struct configfile *cf)
 		      continue;
 		    }
 		  }
+
+		} else if (strcmp(name, "telem-to-is") == 0) {
+                  int bool;
+		  if (!config_parse_boolean(param1, &bool)) {
+		    printf("%s:%d ERROR: Bad TELEM-TO-IS parameter value -- not a recognized boolean: %s\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    break;
+		  }
+                  if (bool)
+                    aif->flags |= IFFLAG_TELEM_TO_IS;
+                  else
+                    aif->flags &= ~IFFLAG_TELEM_TO_IS;
+
+		} else if (strcmp(name, "telem-to-rf") == 0) {
+                  int bool;
+		  if (!config_parse_boolean(param1, &bool)) {
+		    printf("%s:%d ERROR: Bad TELEM-TO-RF parameter value -- not a recognized boolean: %s\n",
+			   cf->name, cf->linenum, param1);
+		    have_fault = 1;
+		    break;
+		  }
+                  if (bool)
+                    aif->flags |= IFFLAG_TELEM_TO_RF;
+                  else
+                    aif->flags &= ~IFFLAG_TELEM_TO_RF;
 
 		} else if (strcmp(name,"timeout") == 0) {
 		  if (config_parse_interval(param1, &(aif->timeout) ) ||

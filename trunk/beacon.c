@@ -812,10 +812,10 @@ static void msg_exec_read(struct beaconset *bset)
                   bm->msg = NULL;
                   // restore the nexttime
                   bset->beacon_nexttime.tv_sec = bm->nexttime;
-                  close(bset->exec_fd);
-                  bset->exec_fd = -1;
-                  //bset->exec_pid = 0; 
                 }
+                close(bset->exec_fd);
+                bset->exec_fd = -1;
+                //bset->exec_pid = 0; 
         }
 }
 

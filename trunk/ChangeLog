@@ -1,3 +1,18 @@
+2014-03-21 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c:
+	    Correct close() of exec type beacon file descriptor.
+
+	* interface.c:
+	    Correct primary <interface> flags defaults, and setting of
+	    "telem-to-is <boolean>" and "telem-t-rf <boolean>" flags.
+
+	* telemetry.c:
+	    Debug-printout (debug>1) of telemetry about time until next
+	    output, plus packet that is being telemetered along with
+	    hex coding of interface flags. Also streamlined the telemetry
+	    label output code.
+
 2014-03-11 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* ttyreader.c:

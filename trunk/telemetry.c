@@ -97,7 +97,11 @@ static void telemetry_labeltx(void);
 
 int telemetry_postpoll(struct aprxpolls *app)
 {
-        if (debug>1) printf("telemetry_postpoll()\n");
+	if (debug>1) {
+          printf("telemetry_postpoll()  telemetrytime=%ds  labeltime=%ds\n",
+                 tv_timerdelta_millis(&tick, &telemetry_time)/1000,
+                 tv_timerdelta_millis(&tick, &telemetry_labeltime)/1000);
+        }
         if (tv_timercmp(&telemetry_time, &tick) <= 0) {
           tv_timeradd_seconds(&telemetry_time, &telemetry_time, telemetry_interval);
 	  telemetry_datatx();
@@ -302,6 +306,8 @@ static void telemetry_datatx(void)
 		
 		/* Tail filler */
 		s += sprintf(s, "00000000");  // FIXME: flag telemetry?
+
+                if (debug>2) printf("%s (%x) %s\n", beaconaddr, sourceaif->flags, buf+2);
 		
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 		
@@ -349,50 +355,38 @@ static void telemetry_labeltx()
 
 		/* Send every 5h20m or thereabouts. */
 
-		if (telemetry_labelindex == 0) {
+                switch (telemetry_labelindex) {
+                case 0:
 		  s = buf+2 + sprintf(buf+2,
 				      ":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
 				      E->name);
-		  buflen = s - buf;
-#ifndef DISABLE_IGATE
-                  if (IF_TELEM_TO_IS(sourceaif->flags)) {
-			  aprsis_queue(beaconaddr, beaconaddrlen,
-                                       qTYPE_LOCALGEN, aprsis_login,
-                                       buf+2, buflen-2);
-                  }
-#endif
-                  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
-
-		} else if (telemetry_labelindex == 1) {
-		
+                  break;
+                case 1:
 		  s = buf+2 + sprintf(buf+2,
 				      ":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
 				      E->name);
-		  buflen = s - buf;
-#ifndef DISABLE_IGATE
-                  if (IF_TELEM_TO_IS(sourceaif->flags)) {
-			  aprsis_queue(beaconaddr, beaconaddrlen,
-                                       qTYPE_LOCALGEN, aprsis_login,
-                                       buf+2, buflen-2);
-                  }
-#endif
-                  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
-		  
-		} else if (telemetry_labelindex == 2) {
+                  break;
+                case 2:
 		  
 		  s = buf+2 + sprintf(buf+2,
 				      ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 				      E->name);
-		  buflen = s - buf;
+                  break;
+                default:
+                  break;
+                }
+
+                if (debug>2) printf("%s (%x) %s\n", beaconaddr, sourceaif->flags, buf+2);
+
+                buflen = s - buf;
 #ifndef DISABLE_IGATE
-                  if (IF_TELEM_TO_IS(sourceaif->flags)) {
-			  aprsis_queue(beaconaddr, beaconaddrlen,
-                                       qTYPE_LOCALGEN, aprsis_login,
-                                       buf+2, buflen-2);
-                  }
+                if (IF_TELEM_TO_IS(sourceaif->flags)) {
+                  aprsis_queue(beaconaddr, beaconaddrlen,
+                               qTYPE_LOCALGEN, aprsis_login,
+                               buf+2, buflen-2);
+                }
 #endif
-                  rf_telemetry(sourceaif, beaconaddr, buf, buflen);
-		}
+                rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 	}
 	++telemetry_params;
 
