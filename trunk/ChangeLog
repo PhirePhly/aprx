@@ -1,5 +1,17 @@
 2014-03-21 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.h, interface.c, beacon.c, config.c, digipeater.c,
+	  telemetry.c:
+	    Change the "flags are bits in an int" to "packet bit fields"
+	    allowing direct setting of flags.
+
+	* aprx.c, beacon.c:
+	    Do not use stdout FILE* to print things out of signal handler.
+	    Use sprintf(3) to put things into local buffer, then use write(2)
+	    to send them to file handle 1.  Otherwise GLIBC has some
+	    interlock issue causing a deadlock in rare case. (Happened
+	    with debug printouts in development.)
+
 	* beacon.c:
 	    Correct close() of exec type beacon file descriptor.
 

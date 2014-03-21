@@ -116,7 +116,7 @@ static void beacon_set(struct configfile *cf,
 			}
 
 			aif = find_interface_by_callsign(to);
-			if ((aif != NULL) && !IF_TX_OK(aif->flags)) {
+			if ((aif != NULL) && (!aif->tx_ok)) {
 				aif = NULL;  // Not an TX interface :-(
 				if (debug)printf("\n");
 				printf("%s:%d ERROR: beacon interface '%s' that is not a TX capable interface.\n",
@@ -1003,7 +1003,7 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 		}
 #endif
 
-		if (bm->beaconmode >= 0 && IF_TX_OK(bm->interface->flags)) {
+		if (bm->beaconmode >= 0 && bm->interface->tx_ok) {
 		  // And to interfaces
                   char *dp = destbuf; // destbuf collects ONLY the VIA data
 
@@ -1104,7 +1104,7 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 		}
 #endif
 
-		if (bm->beaconmode >= 0 && IF_TX_OK(aif->flags)) {
+		if (bm->beaconmode >= 0 && aif->tx_ok) {
 		  // And to transmit-capable interfaces
                   char *dp = destbuf; // destbuf collects ONLY the VIA data
 
@@ -1216,7 +1216,12 @@ void beacon_childexit(int pid)
         	struct beaconset *bset = bsets[i];
                 if (pid == bset->exec_pid) {
                 	bset->exec_pid = -pid;
-                        if (debug) printf("matched child exit, pid=%d\n", pid);
+                        if (debug) {
+                          // Avoid stdio FILE* interlocks within signal handler
+                          char buf[64];
+                          sprintf(buf, "matched child exit, pid=%d\n", pid);
+                          write(1, buf, strlen(buf));
+                        }
                         break;
                 }
         }

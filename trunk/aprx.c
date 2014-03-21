@@ -54,8 +54,12 @@ static void sig_handler(int sig)
 {
 	die_now = 1;
 	signal(sig, sig_handler);
-	if (debug)
-	  printf("SIGNAL %d - DYING!\n", sig);
+	if (debug) {
+          // Avoid stdio FILE* interlocks within signal handler
+          char buf[64];
+	  sprintf(buf, "SIGNAL %d - DYING!\n", sig);
+          write(1, buf, strlen(buf));
+        }
 }
 
 static void sig_child(int sig)
