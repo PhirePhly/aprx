@@ -66,7 +66,9 @@ struct aprx_interface aprsis_interface = {
 	IFTYPE_APRSIS, 0, 0, 0, "APRSIS",
 	{'A'<<1,'P'<<1,'R'<<1,'S'<<1,'I'<<1,'S'<<1, 0x60},
 	0, NULL,
-	0, 0, 0, 0, NULL,
+	0, 0, 0, // subif, txrefcount, tx_ok
+        1, 1, 0, // telemeter-to-is, telemeter-to-rf, telemeter-newformat
+        0, NULL,
 	NULL,
 #ifdef ENABLE_AGWPE
 	NULL,
@@ -216,7 +218,9 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aifp,
 	int   initlength = 0;
 	char *callsign   = NULL;
 	int   subif      = 0;
-	int   flags      = IFFLAG_TELEM_TO_IS|IFFLAG_TELEM_TO_RF; // defaults
+        int   tx_ok      = 0;
+        int   telemeter_to_is = 1;
+        int   telemeter_to_rf = 1;
 	int   aliascount = 0;
 	char **aliases   = NULL;
 	int   ifgroup    = -1;
@@ -279,8 +283,8 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aifp,
 		  else
 		    callsign = strdup(param1);
 
-		  if (!validate_callsign_input(callsign,flags)) {
-		    if (IF_TX_OK(flags))
+		  if (!validate_callsign_input(callsign,tx_ok)) {
+		    if (tx_ok)
 		      printf("%s:%d ERROR: The CALLSIGN parameter on AX25-DEVICE must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, callsign);
 		    else
@@ -312,41 +316,28 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aifp,
                   }
 
 		} else if (strcmp(name, "tx-ok") == 0) {
-                  int bool;
-		  if (!config_parse_boolean(param1, &bool)) {
+		  if (!config_parse_boolean(param1, &tx_ok)) {
 		    printf("%s:%d ERROR: Bad TX-OK parameter value -- not a recognized boolean: %s\n",
 			   cf->name, cf->linenum, param1);
 		    fail = 1;
 		    break;
 		  }
-                  if (bool)
-                    flags |= IFFLAG_TX_OK;
 
 		} else if (strcmp(name, "telem-to-is") == 0) {
-                  int bool;
-		  if (!config_parse_boolean(param1, &bool)) {
+		  if (!config_parse_boolean(param1, &telemeter_to_is)) {
 		    printf("%s:%d ERROR: Bad TELEM-TO-IS parameter value -- not a recognized boolean: %s\n",
 			   cf->name, cf->linenum, param1);
 		    fail = 1;
 		    break;
 		  }
-                  if (bool)
-                    flags |= IFFLAG_TELEM_TO_IS;
-                  else
-                    flags &= ~IFFLAG_TELEM_TO_IS;
 
 		} else if (strcmp(name, "telem-to-rf") == 0) {
-                  int bool;
-		  if (!config_parse_boolean(param1, &bool)) {
+		  if (!config_parse_boolean(param1, &telemeter_to_rf)) {
 		    printf("%s:%d ERROR: Bad TELEM-TO-RF parameter value -- not a recognized boolean: %s\n",
 			   cf->name, cf->linenum, param1);
 		    fail = 1;
 		    break;
 		  }
-                  if (bool)
-                    flags |= IFFLAG_TELEM_TO_RF;
-                  else
-                    flags &= ~IFFLAG_TELEM_TO_RF;
 
 		} else if (strcmp(name, "alias") == 0) {
 		  char *k = strtok(param1, ",");
@@ -406,7 +397,7 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aifp,
 
         if (debug)
           printf(" Defining <kiss-subif %d>  callsign=%s txok=%s\n", subif, callsign,
-                 IF_TX_OK(flags) ? "true":"false");
+                 tx_ok ? "true":"false");
 
 
 	aif = malloc(sizeof(*aif));
@@ -415,7 +406,10 @@ static int config_kiss_subif(struct configfile *cf, struct aprx_interface *aifp,
 	aif->callsign = callsign;
 	parse_ax25addr(aif->ax25call, callsign, 0x60);
 	aif->subif    = subif;
-	aif->flags    = flags;
+	aif->tx_ok    = tx_ok;
+        aif->telemeter_to_is = telemeter_to_is;
+        aif->telemeter_to_rf = telemeter_to_rf;
+        // aif->telemeter_newformat = ...
 	aif->ifindex  = -1; // system sets automatically at store time
 	aif->ifgroup  = ifgroup; // either user sets, or system sets at store time
 
@@ -462,7 +456,10 @@ int interface_config(struct configfile *cf)
 	aif->aliases    = interface_default_aliases;
 	aif->ifindex    = -1; // system sets automatically at store time
 	aif->ifgroup    = ifgroup; // either user sets, or system sets at store time
-        aif->flags      = IFFLAG_TELEM_TO_IS|IFFLAG_TELEM_TO_RF; // defaults
+        aif->tx_ok      = 0;
+        aif->telemeter_to_is = 1;
+        aif->telemeter_to_rf = 1;
+        aif->telemeter_newformat = 0;
 
 	while (readconfigline(cf) != NULL) {
 		if (configline_is_comment(cf))
@@ -647,7 +644,7 @@ int interface_config(struct configfile *cf)
 		    have_fault = 1;
 		    continue;
 		  }
-		  aif->flags |= IFFLAG_TX_OK;
+		  aif->tx_ok = 1;
 
 		  if (strcasecmp(param1,"$mycall") == 0)
 		    param1 = strdup(mycall);
@@ -767,10 +764,9 @@ int interface_config(struct configfile *cf)
 		    have_fault = 1;
 		    continue;
 		  }
-                  if (bool)
-                    aif->flags |= IFFLAG_TX_OK;
-		  if (IF_TX_OK(aif->flags) && aif->callsign) {
-		    if (!validate_callsign_input(aif->callsign,aif->flags)) {  // Transmitters REQUIRE valid AX.25 address
+                  aif->tx_ok = bool;
+		  if (bool && aif->callsign) {
+		    if (!validate_callsign_input(aif->callsign,bool)) {  // Transmitters REQUIRE valid AX.25 address
 		      printf("%s:%d: ERROR: TX-OK 'TRUE' -- BUT PREVIOUSLY SET CALLSIGN IS NOT VALID AX.25 ADDRESS \n",
 			     cf->name, cf->linenum);
 		      continue;
@@ -785,10 +781,7 @@ int interface_config(struct configfile *cf)
 		    have_fault = 1;
 		    break;
 		  }
-                  if (bool)
-                    aif->flags |= IFFLAG_TELEM_TO_IS;
-                  else
-                    aif->flags &= ~IFFLAG_TELEM_TO_IS;
+                  aif->telemeter_to_is = bool;
 
 		} else if (strcmp(name, "telem-to-rf") == 0) {
                   int bool;
@@ -798,10 +791,7 @@ int interface_config(struct configfile *cf)
 		    have_fault = 1;
 		    break;
 		  }
-                  if (bool)
-                    aif->flags |= IFFLAG_TELEM_TO_RF;
-                  else
-                    aif->flags &= ~IFFLAG_TELEM_TO_RF;
+                  aif->telemeter_to_rf = bool;
 
 		} else if (strcmp(name,"timeout") == 0) {
 		  if (config_parse_interval(param1, &(aif->timeout) ) ||
@@ -828,8 +818,8 @@ int interface_config(struct configfile *cf)
 		    continue;
 		  }
 
-		  if (!validate_callsign_input(param1, aif->flags)) {
-		    if (IF_TX_OK(aif->flags) && aif->iftype != IFTYPE_NULL) {
+		  if (!validate_callsign_input(param1, aif->tx_ok)) {
+		    if (aif->tx_ok && aif->iftype != IFTYPE_NULL) {
 		      printf("%s:%d ERROR: The CALLSIGN parameter on transmit capable interface must be of valid AX.25 format! '%s'\n",
 			     cf->name, cf->linenum, param1);
 		      have_fault = 1;
@@ -1670,7 +1660,7 @@ static int dstname_is_myself(const struct pbuf_t*const pb, char *dstname, const 
 
         // Maybe one of my transmitters?
         aif = find_interface_by_callsign(dstname);
-        if (aif != NULL && IF_TX_OK(aif->flags)) {
+        if (aif != NULL && aif->tx_ok) {
           // To one of my transmitter interfaces
           *aifp = aif;
           return 1;
@@ -1782,10 +1772,10 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 
 	if (debug)
 	  printf("interface_transmit_beacon() aif=%p, aif->txok=%d aif->callsign='%s'\n",
-		 aif, aif && IF_TX_OK(aif->flags) ? 1 : 0, aif ? aif->callsign : "<nil>");
+		 aif, aif && aif->tx_ok ? 1 : 0, aif ? aif->callsign : "<nil>");
 
 	if (aif == NULL)    return 0;
-	if (!IF_TX_OK(aif->flags)) return 0; // Sorry, no Tx
+	if (!aif->tx_ok) return 0; // Sorry, no Tx
 
 	dupechecker = digipeater_find_dupecheck(aif);
 

@@ -307,14 +307,17 @@ static void telemetry_datatx(void)
 		/* Tail filler */
 		s += sprintf(s, "00000000");  // FIXME: flag telemetry?
 
-                if (debug>2) printf("%s (%x) %s\n", beaconaddr, sourceaif->flags, buf+2);
+                if (debug>2) printf("%s (to is=%d rf=%d) %s\n",
+                                    beaconaddr, sourceaif->telemeter_to_is,
+                                    sourceaif->telemeter_to_rf,
+                                    buf+2);
 		
 		/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 		
 		/* Send those (net)beacons.. */
 		buflen = s - buf;
 #ifndef DISABLE_IGATE
-                if (IF_TELEM_TO_IS(sourceaif->flags)) {
+                if (sourceaif->telemeter_to_is) {
                   aprsis_queue(beaconaddr, beaconaddrlen, 
                                qTYPE_LOCALGEN, aprsis_login,
                                buf+2, buflen-2);
@@ -376,11 +379,14 @@ static void telemetry_labeltx()
                   break;
                 }
 
-                if (debug>2) printf("%s (%x) %s\n", beaconaddr, sourceaif->flags, buf+2);
+                if (debug>2) printf("%s (to is=%d rf=%d) %s\n",
+                                    beaconaddr, sourceaif->telemeter_to_is,
+                                    sourceaif->telemeter_to_rf,
+                                    buf+2);
 
                 buflen = s - buf;
 #ifndef DISABLE_IGATE
-                if (IF_TELEM_TO_IS(sourceaif->flags)) {
+                if (sourceaif->telemeter_to_is) {
                   aprsis_queue(beaconaddr, beaconaddrlen,
                                qTYPE_LOCALGEN, aprsis_login,
                                buf+2, buflen-2);
@@ -412,8 +418,8 @@ static void rf_telemetry(const struct aprx_interface *sourceaif,
 	if (rftelemetrycount == 0) return; // Nothing to do!
 	if (sourceaif == NULL) return; // Huh? Unknown source..
 
+        if (!sourceaif->telemeter_to_rf) return; // not wanted
 	if (!interface_is_telemetrable(sourceaif)) return; // not possible
-        if (!IF_TELEM_TO_RF(sourceaif->flags)) return; // not wanted
 
 
 	// The beaconaddr comes in as:
@@ -480,7 +486,7 @@ int telemetry_config(struct configfile *cf)
 				param1 = (char*)mycall;
 
 			aif = find_interface_by_callsign(param1);
-			if (aif != NULL && (!IF_TX_OK(aif->flags))) {
+			if (aif != NULL && (!aif->tx_ok)) {
 			  aif = NULL; // Not 
 			  printf("%s:%d ERROR: This transmit interface has no TX-OK TRUE setting: '%s'\n",
 				 cf->name, cf->linenum, param1);

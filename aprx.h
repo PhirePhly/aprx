@@ -39,6 +39,12 @@
 #include <varargs.h>
 #endif
 
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+#include <pthread.h>
+pthread_t aprsis_thread;
+pthread_attr_t pthr_attrs;
+#endif
+
 #ifdef _FOR_VALGRIND_
 #define strdup  aprx_strdup
 #define strcmp  aprx_strcmp
@@ -675,17 +681,6 @@ typedef enum {
 } iftype_e;
 
 
-#define IFFLAG_TX_OK        0x0001  // This is transmitter interface
-#define IFFLAG_TELEM_TO_IS  0x0002  // Telemeter this to APRS-IS
-#define IFFLAG_TELEM_TO_RF  0x0004  // Telemeter this to this radio port
-#define IFFLAG_TELEM_NEWFORMAT 0x0008  // Telemeter in "new format"
-
-#define IF_TX_OK(_flags)       (_flags & IFFLAG_TX_OK)
-#define IF_TELEM_TO_IS(_flags) (_flags & IFFLAG_TELEM_TO_IS)
-#define IF_TELEM_TO_RF(_flags) (_flags & IFFLAG_TELEM_TO_RF)
-#define IF_TELEM_NEWFMT(_flags) (_flags & IFFLAG_TELEM_NEWFORMAT)
-
-
 struct aprx_interface {
 	iftype_e    iftype;
 	int	    timeout;
@@ -698,9 +693,13 @@ struct aprx_interface {
 	int	    aliascount;
 	char	  **aliases;	   // Alias callsigns for this interface
 
-	int	    subif;	   // Sub-interface index - for KISS uses
-	uint16_t    flags;	   // This is Tx interface
+	int8_t	    subif;	   // Sub-interface index - for KISS uses
 	uint8_t	    txrefcount;    // Number of digipeaters using this as Tx
+	unsigned    tx_ok:1;	   // This is Tx interface
+	unsigned    telemeter_to_is:1; // Telemeter this to APRS-IS
+	unsigned    telemeter_to_rf:1; // Telemeter this to this radio port
+	unsigned    telemeter_newformat:1; // Telemeter in "new format"
+
 	int	    initlength;
 	char	   *initstring;
 
