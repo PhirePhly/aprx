@@ -1,3 +1,10 @@
+2014-03-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* configure.in, Makefile.in:
+	    Revised the pthread support autoconfig to really find where
+	    the libraries are, and set correct definitions and compile/link
+	    time parameters.
+
 2014-03-21 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, interface.c, beacon.c, config.c, digipeater.c,

@@ -15,7 +15,6 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 
-
 dnl AC_PATH_PROG(LD, ld, ld)dnl
 if test -z "$LD" ; then
   LD="$CC"
@@ -59,6 +58,28 @@ dnl Check for varargs
 AC_CHECK_HEADERS(stdarg.h varargs.h sys/wait.h)
 AC_FUNC_VPRINTF
 
+
+dnl This group must be after header tests
+
+
+AC_MSG_RESULT([** Using C compiler: $CC])
+AC_MSG_RESULT([** Using CFLAGS:     $CFLAGS])
+AC_MSG_RESULT([** Using CPPDEP:     $CPPDEP])
+
+AC_C_BIGENDIAN
+dnl AC_INLINE
+AC_CHECK_SIZEOF(void *)
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(double)
+
+dnl AC_DEFINE_UNQUOTED(CONFIGURE_CMD,"$0 $ac_configure_args")
+AC_DEFINE_UNQUOTED(CONFIGURE_CMD,
+                   "CC='$CC' CFLAGS='$CFLAGS' $0 $ac_configure_args",
+		   [Configuration command line])
+
+
 dnl Checks for libraries.
 AC_SUBST(LIBM)
 AC_CHECK_FUNCS(atan2f,,
@@ -88,23 +109,6 @@ AC_ARG_WITH(pthread,  [  --with-pthread   When desiring use pthread subsystem],
 AC_ARG_WITH(pthreads, [  --with-pthreads  (mistyped pthread) When desiring use pthread subsystem],
 		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
 
-
-AC_SUBST(LIBPTHREAD)
-if test "${ENABLE_PTHREAD}" = "1" ; then
-AC_CHECK_FUNCS(pthread_create,
-		AC_DEFINE(HAVE_PTHREAD_CREATE,1,[]),
-	       AC_CHECK_LIB(pthread, pthread_create,
-			    [LIBPTHREAD="-lpthread"],
-			    [AC_DEFINE(HAVE_PTHREAD_CREATE,1,[])]))
-else
-AC_CHECK_FUNCS(pthread_create,
-		AC_MSG_RESULT(["The system does have libs for --with-pthread support but you did not enable it"]),
-	       AC_CHECK_LIB(pthread, pthread_create,
-			    [],
-		            [AC_MSG_RESULT([The system does have libs for --with-pthread support but you did not enable it])],))
-fi
-
-
 AC_ARG_ENABLE(igate,    [  --disable-igate         Disable all IGate codes],
 [if test "${enable_igate}" = no ; then
     AC_DEFINE(DISABLE_IGATE,1,[Define to 1 if you want to disable all IGATE codes.])
@@ -114,6 +118,68 @@ AC_ARG_ENABLE(agwpe,    [  --enable-agwpe          Enable AGWPE socket interface
 [if test "${enable_agwpe}" != no ; then
     AC_DEFINE(ENABLE_AGWPE,1,[Define to 1 if you want to enable AGWPE socket interface.])
 fi])
+
+
+dnl search for pthread libs and compilation option
+AC_SUBST(LIBPTHREAD)
+AC_SUBST(CCPTHREAD)
+if test "${ENABLE_PTHREAD}" = "1" ; then
+    AC_MSG_RESULT([The --with-pthread option is set, looking for pthread_create() function.])
+    have_pthread=no
+    if test $have_pthread = no; then
+       t_oldLibs="$LIBS"
+       LIBS="$LIBS -pthread"
+       t_oldCflags="$CFLAGS"
+       CFLAGS="$CFLAGS -pthread"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <pthread.h>]],[[pthread_t pt;
+pthread_attr_t pat;
+int rc = pthread_create(&pt, &pat, NULL, NULL)]])],
+                      [have_pthread=yes;AC_MSG_RESULT([Have pthread_create()])],
+                      [AC_MSG_RESULT([Not have pthread_create()])])
+
+       if test $have_pthread = no ; then
+          AC_MSG_RESULT([Failure at HAVE_PTHREAD_CREATE])
+       else
+          AC_DEFINE(HAVE_PTHREAD_CREATE,1,[Have pthread_create() function])
+          AC_MSG_RESULT([Success at HAVE_PTHREAD_CREATE])
+          LIBPTHREAD="-pthread"
+          CCPTHREAD="-pthread"
+       fi
+       LIBS="$t_oldLibs"
+       CFLAGS="$t_oldCflags"
+    fi
+    if test $have_pthread = no; then
+       AC_MSG_RESULT([Failure at HAVE_PTHREAD_CREATE, trying second way.])
+       t_oldLibs="$LIBS"
+       LIBS="$LIBS -lpthread"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <pthread.h>]],[[pthread_t pt;
+pthread_attr_t pat;
+int rc = pthread_create(&pt, &pat, NULL, NULL)]])],
+                      [have_pthread=yes;AC_MSG_RESULT([Have pthread_create()])],
+                      [AC_MSG_RESULT([Not have pthread_create()])])
+
+       if test $have_pthread = no ; then
+          AC_MSG_RESULT([Failure at HAVE_PTHREAD_CREATE])
+       else
+          AC_DEFINE(HAVE_PTHREAD_CREATE,1,[Have pthread_create() function])
+          AC_MSG_RESULT([Success at HAVE_PTHREAD_CREATE])
+          LIBPTHREAD="-lpthread"
+          CCPTHREAD=""
+       fi
+       LIBS="$t_oldLibs"
+       CFLAGS="$t_oldCflags"
+    fi
+    if test $have_pthread = no; then
+       AC_MSG_RESULT([Still failure at HAVE_PTHREAD_CREATE, Run out of ways to set it up.])
+    fi
+else
+AC_CHECK_FUNCS(pthread_create,
+		AC_MSG_RESULT(["The system does have libs for --with-pthread support but you did not enable it"]),
+	       AC_CHECK_LIB(pthread, pthread_create,
+			    [],
+		            [AC_MSG_RESULT([The system does have libs for --with-pthread support but you did not enable it])],))
+fi
+
 
 
 dnl Check for clock_gettime, and a library to have it

@@ -24,11 +24,12 @@ PROF=		# used by 'make profile'
 
 # Compiler and flags
 CC=		@CC@
-CFLAGS=		@CFLAGS@
+CFLAGS=		@CFLAGS@ @CCPTHREAD@
 
 # Linker and flags
-LD=		@LD@
+LD=		@CC@
 LDFLAGS=	@LDFLAGS@ $(PROF)
+datarootdir=	@datarootdir@
 
 INSTALL=	$(srcdir)/install-sh
 INSTALL_PROGRAM=$(INSTALL)  -m 755
@@ -49,6 +50,8 @@ MANDIR:=$(strip $(MANDIR))
 
 VERSION    = @VERSION_STRING@
 SVNVERSION = $(shell cat SVNVERSION)
+versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > SVNVERSION; fi)
+
 # VERSION:=$(shell cat VERSION)
 # SVNVERSION_CMD:=$(shell which svnversion)
 # SVNVERSION:=$(shell if ${SVNVERSION_CMD} > /dev/null 2>&1  \&\& test -x ${SVNVERSION_CMD} -a \( -d .svn -o -d ../.svn -o -d ../../.svn \)  ; then ${SVNVERSION_CMD} | tee SVNVERSION ; else cat SVNVERSION; fi)
@@ -56,7 +59,7 @@ SVNVERSION = $(shell cat SVNVERSION)
 DATE:=$(shell date +"%Y %B %d")
 RFCDATE:=$(shell date +"%a, %d %b %Y %H:%M:%S %z")
 
-DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r@SVNVERSION_STRING@\"" \
+DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r$(SVNVERSION)\"" \
 	-DVARRUN="\"$(VARRUN)\"" -DVARLOG="\"$(VARLOG)\"" \
 	-DCFGFILE="\"$(CFGFILE)\""
 
