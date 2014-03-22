@@ -122,7 +122,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 	A->server_socket = -1;
 
 	A->wrbuf_len = A->wrbuf_cur = 0;
-	A->next_reconnect = tick.tv_sec + 60;
+	A->next_reconnect = tick.tv_sec + 10;
 	A->last_read = tick.tv_sec;
 
 	if (!A->H)
@@ -365,6 +365,12 @@ static void aprsis_reconnect(struct aprsis *A)
 
 
 	timetick(); // unpredictable time since system did last poll..
+
+        if (time_reset) {
+          if (debug) printf("In time_reset mode, no touching yet!\n");
+          A->next_reconnect = tick.tv_sec + 10;
+          return;
+        }
 
 	aprxlog("CONNECT APRSIS %s:%s",
 		A->H->server_name, A->H->server_port);
@@ -836,7 +842,7 @@ int aprsis_add_server(const char *server, const char *port)
 	if (H->login == NULL) H->login = strdup(mycall);
 
 	AprsIS->server_socket = -1;
-	AprsIS->next_reconnect = tick.tv_sec;	/* perhaps somewhen latter.. */
+	AprsIS->next_reconnect = tick.tv_sec +10;	/* perhaps somewhen latter.. */
 
 	return 0;
 }
@@ -1255,7 +1261,7 @@ int aprsis_config(struct configfile *cf)
 		if (AprsIS == NULL) {
 			AprsIS = calloc(1, sizeof(*AprsIS));
 			AprsIS->server_socket = -1;
-			AprsIS->next_reconnect = tick.tv_sec;
+			AprsIS->next_reconnect = tick.tv_sec +10;
 		}
                 if (AIH->pass == default_passcode) {
                   printf("%s:%d WARNING: This <aprsis> block does not define passcode!\n",

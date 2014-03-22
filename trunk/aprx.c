@@ -104,7 +104,7 @@ void fd_nonblockingmode(int fd)
 	// return __i;
 }
 
-int time_reset;                 // observed time jump
+int time_reset = 1;             // observed time jump, initially as "reset is happening!"
 static struct timeval old_tick; // monotonic
 // static struct timeval old_now;  // wall-clock
 
@@ -131,7 +131,6 @@ void timetick(void)
         // gettimeofday(&tick, NULL);
 
         // Main program clears this when appropriate
-        // time_reset = 0;
         int delta = 0;
         if (old_tick.tv_sec != 0) {
           delta = tv_timerdelta_millis(&old_tick, &tick);
@@ -375,6 +374,8 @@ int main(int argc, char *const argv[])
 	igate_start();
 #endif
 
+        aprxlog("APRX start");
+
 	// The main loop
 
         can_clear_timereset = 0;
@@ -418,10 +419,14 @@ int main(int argc, char *const argv[])
 #endif
 
                 // All pre-polls are done
-                if (can_clear_timereset)
+                if (can_clear_timereset) {
+                  // if (time_reset) {
+                  //   printf("Clearing time_reset.\n");
+                  // }
                   time_reset = 0;
-                else
+                } else {
                   can_clear_timereset = 1;
+                }
 
 		// if (app.next_timeout <= now.tv_sec)
                 // app.next_timeout = now.tv_sec + 1;	// Just to be on safe side..
@@ -576,23 +581,36 @@ va_dcl
 	va_list ap;
 	char timebuf[60];
 
-#ifdef 	HAVE_STDARG_H
-	va_start(ap, fmt);
-#else
-	const char *fmt;
-	va_start(ap);
-	fmt    = va_arg(ap, const char *);
-#endif
-
         printtime(timebuf, sizeof(timebuf));
 	if (verbout) {
+#ifdef 	HAVE_STDARG_H
+          va_start(ap, fmt);
+#else
+          const char *fmt;
+          va_start(ap);
+          fmt    = va_arg(ap, const char *);
+#endif
+
 	  fprintf(stdout, "%s ", timebuf);
 	  vfprintf(stdout, fmt, ap);
           (void)fprintf(stdout, "\n");
+
+#ifdef 	HAVE_STDARG_H
+          va_end(ap);
+#endif
 	}
 
         if (aprxlogfile) {
           FILE *fp;
+
+#ifdef 	HAVE_STDARG_H
+          va_start(ap, fmt);
+#else
+          const char *fmt;
+          va_start(ap);
+          fmt    = va_arg(ap, const char *);
+#endif
+
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
           pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
@@ -609,10 +627,9 @@ va_dcl
           pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 #endif
 
-        }
-
 #ifdef 	HAVE_STDARG_H
-        va_end(ap);
+          va_end(ap);
 #endif
+        }
 }
 
