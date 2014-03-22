@@ -125,7 +125,7 @@ void timetick(void)
 	tick.tv_sec  = ts.tv_sec;
         // if (debug) printf("newtick: %d.%6d\n", tick.tv_sec, tick.tv_usec);
 #else
-	gettimeofday(&tick, NULL);
+	gettimeofday(&tick, NULL); // fallback when no clock_gettime() is available
 #endif
         // Wall clock time
         // gettimeofday(&tick, NULL);
@@ -172,8 +172,8 @@ int main(int argc, char *const argv[])
 
         timetick(); // init global time references
 
-	setlinebuf(stdout);
-	setlinebuf(stderr);
+        setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+        setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
 
 	while ((i = getopt(argc, argv, "def:hiLl:vV?")) != -1) {
 		switch (i) {
