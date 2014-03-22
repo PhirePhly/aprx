@@ -1,6 +1,21 @@
 2014-03-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c:
+	    Fix aprxlog() function internal varargs usage.
+	    It must be reset for each vfprintf() call...
+
+	* aprx.c:
+	    Initial value of time_reset = 1; start in "reset state",
+	    which does time resetting in all prepoll codes in main
+	    loop. At second round and there after of the main loop
+	    the reset_time flag will be reset after execution of all
+	    prepoll functions.
+
+	* aprsis.c:
+	    Do initial connect at about current tick + 10 seconds.
+	    Reset phase will also put next connect attempt at that time.
+
+	* aprx.c:
 	    Change stdout and stderr buffering definition to have
 	    a buffer, and make line buffering in a way that works..
 
