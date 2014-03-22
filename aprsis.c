@@ -128,7 +128,7 @@ static void aprsis_close(struct aprsis *A, const char *why)
 	if (!A->H)
 		return;		/* Not connected, nor defined.. */
 
-	aprxlog(NULL, 0, "CLOSE APRSIS %s:%s %s\n", 
+	aprxlog("CLOSE APRSIS %s:%s %s", 
 		A->H->server_name, A->H->server_port,
 		why ? why : "");
 }
@@ -276,7 +276,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	if (!A->H->login) {
 		if (log_aprsis)
-		  aprxlog(NULL, 0, "FAIL - APRSIS-LOGIN not defined, no APRSIS connection!\n");
+		  aprxlog("FAIL - APRSIS-LOGIN not defined, no APRSIS connection!");
 
 		return;		/* Will try to reconnect in about 60 seconds.. */
 	}
@@ -308,7 +308,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 		aprsis_close(A, "fail on connect");
 
-		aprxlog(NULL, 0, "FAIL - Connect to %s:%s failed: %s - errno=%d - %s\n",
+		aprxlog("FAIL - Connect to %s:%s failed: %s - errno=%d - %s",
 			A->H->server_name, A->H->server_port, errstr, errno, strerror(errcode));
 		return;
 	}
@@ -366,7 +366,7 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	timetick(); // unpredictable time since system did last poll..
 
-	aprxlog(NULL, 0, "CONNECT APRSIS %s:%s\n",
+	aprxlog("CONNECT APRSIS %s:%s",
 		A->H->server_name, A->H->server_port);
 
 	/* From now the socket will be non-blocking for its entire lifetime.. */

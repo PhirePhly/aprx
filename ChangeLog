@@ -1,5 +1,12 @@
 2014-03-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
+	* aprx.c:
+	    Change stdout and stderr buffering definition to have
+	    a buffer, and make line buffering in a way that works..
+
+	* aprsis.c:
+	    Correct calls to aprxlog().
+
 	* configure.in, Makefile.in:
 	    Revised the pthread support autoconfig to really find where
 	    the libraries are, and set correct definitions and compile/link
