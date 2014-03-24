@@ -57,8 +57,8 @@ static void pbuf_free(struct pbuf_t *pb)
 	if (debug > 1) printf("pbuf_free(%p)\n",pb);
 }
 
-struct pbuf_t *pbuf_alloc( const int axlen,
-			   const int tnc2len )
+static struct pbuf_t *pbuf_alloc( const int axlen,
+                                  const int tnc2len )
 {
 	int pblen = sizeof(struct pbuf_t) + axlen + tnc2len + 2;
 

@@ -226,7 +226,7 @@ static struct agwpecom **pecom;
 static int               pecomcount;
 
 
-static uint32_t fetch_le32(uint8_t *u) {
+static uint32_t get_le32(uint8_t *u) {
 	return (u[3] << 24 |
 		u[2] << 16 |
 		u[1] <<  8 |
@@ -542,12 +542,12 @@ static void agwpe_read(struct agwpecom *com) {
 
 	while (com->rdlen >= com->rdneed) {
 
-	  hdr.radioPort = fetch_le32(com->rdbuf + 0);
-	  hdr.dataKind  = fetch_le32(com->rdbuf + 4);
+	  hdr.radioPort = get_le32(com->rdbuf + 0);
+	  hdr.dataKind  = get_le32(com->rdbuf + 4);
 	  memcpy(hdr.fromCall, com->rdbuf + 8, 10);
 	  memcpy(hdr.toCall,   com->rdbuf + 18, 10);
-	  hdr.dataLength = fetch_le32(com->rdbuf + 28);
-	  hdr.userField  = fetch_le32(com->rdbuf + 32);
+	  hdr.dataLength = get_le32(com->rdbuf + 28);
+	  hdr.userField  = get_le32(com->rdbuf + 32);
 
 	  if (com->rdneed < (sizeof(hdr) + hdr.dataLength)) {
 	    // recalculate needed data size

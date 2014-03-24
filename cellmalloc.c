@@ -17,11 +17,11 @@
 # include <unistd.h>
 #endif
 #include <string.h>
-#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
-#include <pthread.h>
-#endif
 #include <sys/mman.h>
 #include <fcntl.h>
+// #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+// #include <pthread.h>
+// #endif
 
 #include "cellmalloc.h"
 
