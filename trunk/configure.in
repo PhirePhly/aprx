@@ -104,11 +104,6 @@ AC_ARG_WITH(embedded, [  --with-embedded  When desiring to target as embedded],
 AC_ARG_WITH(erlangstorage, [  --with-erlangstorage  When desiring a longer term backing storage on erlang datasets.  NOT compatible with EMBEDDED, REQUIRES FILESYSTEM!],
 		      [AC_DEFINE(ERLANGSTORAGE,1,[Define for a non-embedded system with filesystem based Erlang history storage]) ERLANGSTORAGE=1])
 
-AC_ARG_WITH(pthread,  [  --with-pthread   When desiring use pthread subsystem],
-		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
-AC_ARG_WITH(pthreads, [  --with-pthreads  (mistyped pthread) When desiring use pthread subsystem],
-		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
-
 AC_ARG_ENABLE(igate,    [  --disable-igate         Disable all IGate codes],
 [if test "${enable_igate}" = no ; then
     AC_DEFINE(DISABLE_IGATE,1,[Define to 1 if you want to disable all IGATE codes.])
@@ -120,11 +115,17 @@ AC_ARG_ENABLE(agwpe,    [  --enable-agwpe          Enable AGWPE socket interface
 fi])
 
 
+AC_ARG_WITH(pthread,  [  --without-pthread   When desiring not to use pthread subsystem],
+                      [AC_DEFINE(DISABLE_PTHREAD,1,[Define for pthread(3p) disabling]) DISABLE_PTHREAD=1],
+		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
+AC_ARG_WITH(pthreads, [  --with-pthreads  (mistyped pthread) When desiring use pthread subsystem],
+		      [AC_DEFINE(ENABLE_PTHREAD,1,[Define for pthread(3p) enabling]) ENABLE_PTHREAD=1])
+
 dnl search for pthread libs and compilation option
 AC_SUBST(LIBPTHREAD)
 AC_SUBST(CCPTHREAD)
 if test "${ENABLE_PTHREAD}" = "1" ; then
-    AC_MSG_RESULT([The --with-pthread option is set, looking for pthread_create() function.])
+    AC_MSG_RESULT([The --without-pthread option is not set, looking for pthread_create() function.])
     have_pthread=no
     if test $have_pthread = no; then
        t_oldLibs="$LIBS"
@@ -172,12 +173,6 @@ int rc = pthread_create(&pt, &pat, NULL, NULL)]])],
     if test $have_pthread = no; then
        AC_MSG_RESULT([Still failure at HAVE_PTHREAD_CREATE, Run out of ways to set it up.])
     fi
-else
-AC_CHECK_FUNCS(pthread_create,
-		AC_MSG_RESULT(["The system does have libs for --with-pthread support but you did not enable it"]),
-	       AC_CHECK_LIB(pthread, pthread_create,
-			    [],
-		            [AC_MSG_RESULT([The system does have libs for --with-pthread support but you did not enable it])],))
 fi
 
 
