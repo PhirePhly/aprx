@@ -251,6 +251,7 @@ history_cell_t *historydb_insert_(historydb_t *db, const struct pbuf_t *pb, cons
 
 	h1 = keyhash(keybuf, keylen, 0);
 	i  = foldhash(h1);
+	if (debug > 1) printf(" key='%s' hash=%d", keybuf, i);
 
 	cp = cp1 = NULL;
 	hp = &db->hash[i];
@@ -394,15 +395,19 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 
 	} else if (pb->packettype & T_MESSAGE) {
 	  // Pick originator callsign
-	  memcpy( keybuf, pb->data, CALLSIGNLEN_MAX) ;
-	  s = strchr(keybuf, '>');
-	  if (s) *s = 0;
+	  //memcpy( keybuf, pb->data, CALLSIGNLEN_MAX) ;
+	  //s = strchr(keybuf, '>');
+	  //if (s) *s = 0;
+          memcpy(keybuf, pb->srcname, pb->srcname_len);
+          keybuf[pb->srcname_len] = 0;
 
 	} else if (pb->packettype & T_POSITION) {
 	  // Something with a position (but not an item or an object)
-	  memcpy( keybuf, pb->data, CALLSIGNLEN_MAX) ;
-	  s = strchr(keybuf, '>');
-	  if (s) *s = 0;
+	  //memcpy( keybuf, pb->data, CALLSIGNLEN_MAX) ;
+	  //s = strchr(keybuf, '>');
+	  //if (s) *s = 0;
+          memcpy(keybuf, pb->srcname, pb->srcname_len);
+          keybuf[pb->srcname_len] = 0;
 
 	} else {
 	  if (debug > 1) printf(" .. other not interested\n");
@@ -415,7 +420,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 
 	h1 = keyhash(keybuf, keylen, 0);
 	i  = foldhash(h1);
-	if (debug > 1) printf(" key='%*s' i=%d", keylen, keybuf, i);
+	if (debug > 1) printf(" key='%s' hash=%d", keybuf, i);
 
 	cp1 = NULL;
 	hp = &db->hash[i];

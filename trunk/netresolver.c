@@ -118,7 +118,7 @@ static void netresolv_runthread(void) {
 	// the main program can cancel us at will
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
-	while (!netresolv_die_now) {
+	while (!die_now) {
 	  poll(NULL, 0, 30000); // Sleep 30 seconds (in a reliable way)
 	  resolve_all();
 	}
@@ -143,7 +143,7 @@ void netresolv_start(void) {
 // Shutdown the netresolver thread
 void netresolv_stop(void)
 {
-	netresolv_die_now = 1;
+	die_now = 1;
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
 	pthread_cancel(netresolv_thread);
 	pthread_join(netresolv_thread, NULL);
