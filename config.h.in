@@ -9,6 +9,9 @@
 /* Define to 1 if you want to disable all IGATE codes. */
 #undef DISABLE_IGATE
 
+/* Define for pthread(3p) disabling */
+#undef DISABLE_PTHREAD
+
 /* Define for an embedded target */
 #undef EMBEDDED
 
@@ -43,9 +46,6 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-#undef HAVE_LIBPTHREAD
-
 /* Define to 1 if you have the `memchr' function. */
 #undef HAVE_MEMCHR
 
@@ -67,7 +67,7 @@
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
 
-/* Define to 1 if you have the `pthread_create' function. */
+/* Have pthread_create() function */
 #undef HAVE_PTHREAD_CREATE
 
 /* Define to 1 if you have the <pthread.h> header file. */
