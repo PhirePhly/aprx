@@ -303,8 +303,7 @@ static void ttyreader_lineread(struct serialport *S)
 			close(S->fd);
 			S->fd = -1;
                         tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
-			if (debug)
-				printf("%ld\tTTY %s EOF - CLOSED, WAITING %d SECS\n", tick.tv_sec, S->ttyname, TTY_OPEN_RETRY_DELAY_SECS);
+                        aprxlog("TTY %s EOF - CLOSED, WAITING %d SECS\n", S->ttyname, TTY_OPEN_RETRY_DELAY_SECS);
 			return;
 		}
 		if (i < 0)	/* EAGAIN or whatever.. */
@@ -354,6 +353,7 @@ static void ttyreader_lineread(struct serialport *S)
 		close(S->fd);	/* Urgh ?? Bad linetype value ?? */
 		S->fd = -1;
                 tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
+                aprxlog("TTY %s Unsupported linetype - CLOSED, WAITING %d SECS\n", S->ttyname, TTY_OPEN_RETRY_DELAY_SECS);
 	}
 
 	/* Consumed something, and our read cursor is not in the beginning ? */
@@ -383,15 +383,16 @@ static void ttyreader_linesetup(struct serialport *S)
         // If NOT tcp! type socket, it is presumably openable with
         // open(2) instead of something else, like socket(2)...
 	if (memcmp(S->ttyname, "tcp!", 4) != 0) {
-
+		int e;
         	// Open the serial port as RW, non-blocking, no-control-tty
 		S->fd = open(S->ttyname, O_RDWR | O_NOCTTY | O_NONBLOCK, 0);
+                e = errno;
 
 		if (debug) {
                 	printf("%ld\tTTY %s OPEN - fd=%d - ",
                                tick.tv_sec, S->ttyname, S->fd);
                         if (S->fd < 0) {
-                          printf("errno=%d (%s) - ", errno, strerror(errno));
+                          printf("errno=%d (%s) - ", e, strerror(e));
                         }
                 }
 		if (S->fd < 0) {	/* Urgh.. an error.. */
@@ -399,10 +400,15 @@ static void ttyreader_linesetup(struct serialport *S)
 			if (debug)
 				printf("FAILED, WAITING %d SECS\n",
 				       TTY_OPEN_RETRY_DELAY_SECS);
+                        aprxlog("TTY %s failed to open; errno=%d (%s)",
+                                S->ttyname, e, strerror(e));
 			return;
 		}
 		if (debug)
 			printf("OK\n");
+
+                aprxlog("TTY %s Opened.\n", S->ttyname);
+
 
 		/* Set attributes */
 		aprx_cfmakeraw(&S->tio, 1); /* hw-flow on */
@@ -415,6 +421,7 @@ static void ttyreader_linesetup(struct serialport *S)
 			close(S->fd);
 			S->fd = -1;
 			tv_timeradd_seconds(&S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
+                        aprxlog("TTY %s tcsetattr() failed. CLOSING TTY.\n", S->ttyname);
 			return;
 		}
 		// FIXME: ??  Set baud-rates ?
@@ -494,6 +501,7 @@ static void ttyreader_linesetup(struct serialport *S)
 						printf("ttyreader socket connect call failed: %d : %s\n", errno, strerror(errno));
 					close(S->fd);
 					S->fd = -1;
+                                        aprxlog("TTY %s Socket open failed.\n", S->ttyname);
 				}
 			}
 
@@ -595,6 +603,7 @@ int ttyreader_prepoll(struct aprxpolls *app)
 			close(S->fd);	/* Close and mark for re-open */
 			S->fd = -1;
                         tv_timeradd_seconds( &S->wait_until, &tick, TTY_OPEN_RETRY_DELAY_SECS);
+                        aprxlog("TTY %s read timeout. Closing TTY for later re-open.\n", S->ttyname);
 			continue;
 		}
 
@@ -725,6 +734,7 @@ struct serialport *ttyreader_new(void)
 	tty->last_read_something = tick.tv_sec;	/* well, not really.. */
 	tty->linetype  = LINETYPE_KISS;	/* default */
 	tty->kissstate = KISSSTATE_SYNCHUNT;
+        tty->read_timeout = 3600;  /* Default port read timeout is 60 minutes. */
 
 	tty->ttyname = NULL;
 
