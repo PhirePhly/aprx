@@ -1,3 +1,38 @@
+2014-03-24 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* interface.c:
+	    Igated 3rd-party frames are produced with different TNC2 format
+	    message from AX.25 frame message.  This is because TNC2 format
+	    is used at filter processing, and needs to have original source
+	    address arriving from APRS-IS.
+
+	* ttyreader.c:
+	    Set default read timeout to 60 minutes, it can be configured to
+	    any value from 1 second to 4 hours as channel busyness supports,
+	    and even disabled.
+
+	* ttyreader.c:
+	    Use aprxlog() to record tty state changes: close/open
+
+	* netresolver.c:
+	    Use same "die_now" flag as all other thread loops do.
+
+	* historydb.c:
+	    Fix key pickup of sourcename.
+	    Debug print key in history_db_insert_()
+
+	* agwpesocket.c:
+	    Code cleaning.
+
+	* cellmalloc.c:
+	    No need to include <pthread.h>
+
+	* configure.in:
+	    Make pthread autoconfig default with option to disable it.
+
+	* pbuf.c:
+	    Declare pbuf_alloc() static.
+
 2014-03-22 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.c:
