@@ -764,6 +764,7 @@ static void msg_exec_read(struct beaconset *bset)
         while ((rc = read(bset->exec_fd, bset->exec_buf + bset->exec_buf_length, space)) > 0) {
 		char *p;
         	bset->exec_buf_length += rc;
+                space -= rc;
                 p = memrchr(bset->exec_buf, '\n', bset->exec_buf_length);
                 if (p) {
                   if (debug) printf("found newline in exec read data\n");
@@ -789,11 +790,15 @@ static void msg_exec_read(struct beaconset *bset)
                   return;
                 }
                 if (debug) printf("no newline in exec read data\n");
+                if (space < 1) {
+                  aprxlog("BEACON EXEC output overflowed read buffer.");
+                  rc = 0; // simulate as if..  and kill it.
+                  break;
+                }
         }
         if (rc == 0) { // EOF read
 		char *p;
 		if (debug) printf("Seen EOF on exec-read\n");
-        	bset->exec_buf_length += rc;
                 p = memrchr(bset->exec_buf, '\n', bset->exec_buf_length);
                 if (p) {
                   *p = 0;
@@ -812,6 +817,8 @@ static void msg_exec_read(struct beaconset *bset)
                   bm->msg = NULL;
                   // restore the nexttime
                   bset->beacon_nexttime.tv_sec = bm->nexttime;
+                } else {
+                  aprxlog("BEACON EXEC abnormal close.");
                 }
                 close(bset->exec_fd);
                 bset->exec_fd = -1;
