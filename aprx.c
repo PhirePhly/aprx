@@ -633,3 +633,49 @@ va_dcl
         }
 }
 
+
+/* ---------------------------------------------------------- */
+
+void rfloghex(const char *portname, char direction, int discard, const char *buf, int buflen)
+{
+}
+
+void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len)
+{
+	if (rflogfile) {
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+        	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+#endif
+
+		FILE *fp = NULL;
+		if (strcmp("-",rflogfile)==0) {
+		  if (debug < 2) return;
+		  fp = stdout;
+		} else {
+		  fp = fopen(rflogfile, "a");
+		}
+		
+		if (fp) {
+		  char timebuf[60];
+		  printtime(timebuf, sizeof(timebuf));
+	  
+		  (void)fprintf(fp, "%s %-9s ", timebuf, portname);
+		  (void)fprintf(fp, "%c ", direction);
+
+		  if (discard < 0) {
+		    fprintf(fp, "*");
+		  }
+		  if (discard > 0) {
+		    fprintf(fp, "#");
+		  }
+		  (void)fwrite( tnc2buf, tnc2len, 1, fp);
+		  (void)fprintf( fp, "\n" );
+
+		  if (fp != stdout)
+		    fclose(fp);
+		}
+#if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+		pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#endif
+	}
+}

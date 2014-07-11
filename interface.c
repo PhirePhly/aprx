@@ -795,9 +795,9 @@ int interface_config(struct configfile *cf)
 
 		} else if (strcmp(name,"timeout") == 0) {
 		  if (config_parse_interval(param1, &(aif->timeout) ) ||
-		      (aif->timeout < 0) || (aif->timeout > 1200)) {
+		      (aif->timeout < 0) || (aif->timeout > 14400)) {
 		    aif->timeout = 0;
-		    printf("%s:%d ERROR: Bad TIMEOUT parameter value: '%s' accepted range: 0 to 1200 seconds.\n",
+		    printf("%s:%d ERROR: Bad TIMEOUT parameter value: '%s' accepted range: 0s to 4h.\n",
 			   cf->name, cf->linenum, param1);
 		    have_fault = 1;
 		    continue;
@@ -1231,13 +1231,16 @@ void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, 
 static uint8_t toaprs[7] =    { 'A'<<1,'P'<<1,'R'<<1,'S'<<1,' '<<1,' '<<1,0x60 };
 
 void interface_receive_3rdparty( const struct aprx_interface *aif,
-				 const char *fromcall,
-				 const char *origtocall,
-				 const char *gwtype,
-				 const char *tnc2data,
-				 const int tnc2datalen )
+                                 char       **heads,
+                                 const int    headscount,
+				 const char  *gwtype,
+				 const char  *tnc2data,
+				 const int    tnc2datalen )
 {
 	int d; // digipeater index
+
+        const char *fromcall   = heads[0];
+        const char *origtocall = heads[1];
 
 	char     tnc2buf1[2800];
 	uint8_t  ax25buf1[2800];
@@ -1247,7 +1250,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
         int ax25addrlen1;
         int ax25len1;
         int rc, tnc2addrlen1, tnc2len1;
-        uint8_t *a;
+        uint8_t *a, *b;
         char    *t;
         struct pbuf_t *pb;
 
@@ -1270,9 +1273,10 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
         // that the filter can process:
         
         // Incoming:
-        //   EI7IG-1>APRS,TCPIP*,qAC,T2IRELAND:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+        //   EI7IG-1>APRSX,TCPIP*,qAC,T2IRELAND:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
         // Filtered:
-        //   EI7IG-1>APRS:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+        //   MYCALL>APRSX,VIA:}EI7IG-1>APRSX:@262231z5209.97N/00709.65W_238/019g019t049P006h95b10290.wview_5_19_0
+        
 
         a = ax25buf1;
         parse_ax25addr( a, tocall, 0x60 );
@@ -1378,7 +1382,7 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  // Produced 3rd-party packet:
 	  //   IGATECALL>APRS,GATEPATH:}FROMCALL>TOCALL,TCPIP,IGATECALL*:original packet data
 
-	  if (debug) printf("## produce 3rd-party frame for transmit:\n");
+	  if (debug) printf("## produce 3rd-party AX.25 frames for transmit, and original source one for filtering:\n");
 	  // Parse the TNC2 format to AX.25 format
 	  // using ax25buf[] storage area.
 	  memcpy(ax25buf,    toaprs, 7);           // AX.25 DEST call
@@ -1412,6 +1416,8 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  *a++ = 0x03; // UI
 	  *a++ = 0xF0; // PID = 0xF0
 
+          b = a; // AX.25 data body
+
 	  a += sprintf((char*)a, "}%s>%s,%s,%s*:",
 		       fromcall, origtocall, gwtype, tx_aif->callsign );
 	  ax25len = a - ax25buf;
@@ -1423,10 +1429,34 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
 	  }
 	  memcpy(a, tnc2data, tnc2datalen);
 	  ax25len += tnc2datalen;
+          a       += tnc2datalen;
+
+          if (debug>1) {
+            printf("Formatted AX.25: %s>APRS", tx_aif->callsign);
+            if ((filter_packettype & T_MESSAGE) != 0 && digisrc->msg_path != NULL) {
+              if (digisrc->msg_path != NULL) {
+                printf(",%s", digisrc->msg_path);
+              }
+            } else {
+              if (digisrc->via_path != NULL) {
+                printf( ",%s", digisrc->via_path);
+              }
+            }
+            printf(":");
+            fwrite(b, 1, a-b, stdout);
+            printf("\n");
+          }
 
 	  // AX.25 packet is built, now build TNC2 version of it
 	  t = tnc2buf;
-	  t += sprintf(t, "%s>%s", tx_aif->callsign, tocall);
+
+          // NOTE: Building TNC2 form for filter purposes, that is the data
+          //       has original source address, and not out interface specific one!
+          // 
+	  //t += sprintf(t, "%s>%s", tx_aif->callsign, tocall);
+	  t += sprintf(t, "%s>%s", fromcall, origtocall);
+
+          /*
           if ((filter_packettype & T_MESSAGE) != 0 && digisrc->msg_path != NULL) {
             if (digisrc->msg_path != NULL) {
               t += sprintf(t, ",%s", digisrc->msg_path);
@@ -1436,7 +1466,8 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
               t += sprintf(t, ",%s", digisrc->via_path);
             }
           }
-	  if (debug>1)printf(" tnc2addr = %s\n", tnc2buf);
+          */
+	  if (debug>1)printf(" filter tnc2addr = %s\n", tnc2buf);
 
 	  tnc2addrlen = t - tnc2buf;
 	  *t++ = ':';
@@ -1735,7 +1766,7 @@ int process_message_to_myself(const struct aprx_interface*const srcif, const str
         }
 
         // Whatever message, syslog it.
-        syslog(LOG_INFO, "%*s", pb->packet_len, pb->data);
+        syslog(LOG_INFO, "%.*s", pb->packet_len, pb->data);
 
         if (am.is_rej || am.is_ack) {
           // A REJect or ACKnowledge received, drop.
@@ -1888,7 +1919,7 @@ int interface_transmit_beacon(const struct aprx_interface *aif, const char *src,
 	  memcpy(a, txbuf+2, txlen-2); // forget control+pid bytes..
 	  a += txlen -2;   // final assembled message end pointer
 
-	  rflog(aif->callsign, 'T', 0, axbuf, a - axbuf);
+	  rflog(aif->callsign, 'T', 0, axbuf, a - axbuf); // beacon
 	}
 
 	return 0;

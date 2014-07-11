@@ -1720,7 +1720,7 @@ static int filter_process_one_f(struct pbuf_t *pb, struct filter_t *f, historydb
 		history = historydb_lookup( historydb, callsign, i );
 		f->h.hist_age = tick.tv_sec + hist_lookup_interval;
 		if (!history) {
-		  if (debug) printf("f-filter: no history lookup result (%*s) -> return 0\n", i, callsign );
+		  if (debug) printf("f-filter: no history lookup result (%.*s) -> return 0\n", i, callsign );
 		  return 0; /* no lookup result.. */
 		}
 		f->h.u3.numnames = 1;

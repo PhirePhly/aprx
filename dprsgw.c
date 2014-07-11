@@ -689,23 +689,24 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
             erlang_add(aif->callsign, ERLANG_RX, 0, 1);
           }
 
-	  fromcall = tnc2buf;
-	  p = fromcall;
-	  origtocall = NULL;
+          char *heads[2];
+          heads[0] = tnc2buf;
+	  p = heads[0];
+	  heads[1] = NULL;
 	  while (*p != '>' && *p != 0) ++p;
 	  if (*p == '>') {
 	    *p++ = 0;
-	    origtocall = p;
+	    heads[1] = p;
 	  } else
 	    return; // BAD :-(
-	  p = origtocall;
+	  p = heads[1];
 	  while (p != NULL && *p != ':' &&  *p != 0 && *p != ',') ++p;
 	  if (p != NULL && (*p == ':' || *p == ',')) {
 	    *p++ = 0;
 	  }
 	  b = tnc2buf + tnc2addrlen +1;
 	  interface_receive_3rdparty( aif,
-				      fromcall, origtocall, "DSTAR*",
+				      heads, 2, "DSTAR*",
 				      b, tnc2buflen - (b-tnc2buf) );
 	}
 }
@@ -731,7 +732,7 @@ static void dprsgw_rxigate( struct serialport *S )
 	  tnc2bodylen -= 10; // header + body together
 	  tnc2body = memchr( tnc2addr, ':', tnc2addrlen);
 	  if (tnc2body != NULL) {
-	    char *fromcall, *origtocall;
+            char *heads[2];
 	    char *s;
 
 	    tnc2addrlen = tnc2body - tnc2addr;
@@ -747,23 +748,23 @@ static void dprsgw_rxigate( struct serialport *S )
           // Bytes have been counted previously, now count meaningful packet
             erlang_add( aif->callsign, ERLANG_RX, 0, 1 );
 
-	    fromcall = (char*)tnc2addr;
-	    s = fromcall;
-	    origtocall = NULL;
+	    heads[0] = (char*)tnc2addr;
+	    s = heads[0];
+	    heads[1] = NULL;
 	    while (*s != '>' && *s != 0) ++s;
 	    if (*s == '>') {
 	      *s++ = 0;
-	      origtocall = s;
+	      heads[1] = s;
 	    } else
 	      return; // BAD :-(
-	    s = origtocall;
+	    s = heads[1];
 	    while (s != NULL && *s != ':' &&  *s != 0 && *s != ',') ++s;
 	    if (s != NULL && (*s == ':' || *s == ',')) {
 	      *s++ = 0;
 	    }
 
 	    interface_receive_3rdparty( aif,
-					fromcall, origtocall, "DSTAR*",
+					heads, 2, "DSTAR*",
 					(const char*)tnc2body, tnc2bodylen - (tnc2body-tnc2addr) );
 	    return;
 	    
@@ -1021,10 +1022,10 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
   printf("DPRS RX-IGATE: %s\n", tnc2buf);
 }
 
-void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen) // DPRSGW_DEBUG_MAIN
+void interface_receive_3rdparty(const struct aprx_interface *aif, char **heads, int headscount, const char *gwtype, const char *tnc2data, const int tnc2datalen) // DPRSGW_DEBUG_MAIN
 {
   printf("DPRS 3RDPARTY RX: ....:}%s>%s,%s,GWCALLSIGN*:%s\n",
-	 fromcall, origtocall, gwtype, tnc2data);
+	 heads[0], heads[1], gwtype, tnc2data);
 }
 
 int debug = 3;

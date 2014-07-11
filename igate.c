@@ -185,8 +185,6 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
 	e  = tp + tnc2len;      // stays the same all the time
 
-	rflog(portname, 'R', discard, tp, tnc2len);
-
       redo_frame_filter:;
 
 	t  = tp;
@@ -354,6 +352,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 
 	if (discard) {
 		erlang_add(portname, ERLANG_DROP, tnc2len, 1);
+                rflog(portname, 'd', discard, tp, tnc2len);
 	}
 }
 
@@ -608,43 +607,8 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	if (debug) printf(".. igate from aprsis\n");
 
 	interface_receive_3rdparty( &aprsis_interface,
-				    fromcall, origtocall, "TCPIP",
+				    heads, headscount, "TCPIP",
 				    b, ax25len - (b-ax25) );
 }
 
 #endif
-
-/* ---------------------------------------------------------- */
-
-void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len)
-{
-	if (rflogfile) {
-		FILE *fp = NULL;
-		if (strcmp("-",rflogfile)==0) {
-		  if (debug < 2) return;
-		  fp = stdout;
-		} else {
-		  fp = fopen(rflogfile, "a");
-		}
-		
-		if (fp) {
-		  char timebuf[60];
-		  printtime(timebuf, sizeof(timebuf));
-	  
-		  (void)fprintf(fp, "%s %-9s ", timebuf, portname);
-		  (void)fprintf(fp, "%c ", direction);
-
-		  if (discard < 0) {
-		    fprintf(fp, "*");
-		  }
-		  if (discard > 0) {
-		    fprintf(fp, "#");
-		  }
-		  (void)fwrite( tnc2buf, tnc2len, 1, fp);
-		  (void)fprintf( fp, "\n" );
-
-		  if (fp != stdout)
-		    fclose(fp);
-		}
-	}
-}

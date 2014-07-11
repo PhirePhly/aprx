@@ -690,6 +690,7 @@ Leads with 00 byte, then AX.25 address..
 	  ;
 	} else {
 	  // The packet is not valid per AX.25 header bit rules
+          rfloghex(netdev->callsign, 'D', 1, rxbuf, rcvlen);
 	  erlang_add(netdev->callsign, ERLANG_DROP, rcvlen+10, 1);	/* Account one packet */
 
 	  if (aprxlogfile) {
