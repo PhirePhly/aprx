@@ -1,13 +1,33 @@
-				 APRX   2.08
+				 APRX   2.09
 
-				TODO / Wishlist
+				BUGS / TODO / Wishlist
 
-- "[Aprx] Re: WIDE2-2/NOGATE - trace not working?"
+- Digipeater working wrong:
+    oz1ekd> oh2mqk - it seems like KG4PID is right, aprx does not digipeat as it should, mine set to "non viscous" and "not direct-only" live log at: http://stave.dk/aprx 
+
+  From: kg4pid@yahoo.com
+  Subject:  Re: RF beacons vs TCPIP* (was: 2.08 r593 Not digipeating correctly)
+
+	As far as I know all the digi's in this area insert their calsign in the
+	packet. I do see some beacons being digied and igated by other stations
+	just not as many as I think I should. You maybe right about receiving my
+	own beacon after a digipeat as I have seen that happen before. It would be
+	nice if it was marked somehow and what digi heard me. They look just like
+	the telemetry packets that I know are sent direct. Max
+
+	20140417070330,KG4PID-14>APRX28,TCPIP*,qAC,FIRENET1:T#014,23.6,4.3,101.0,0.0,17.0,00000000
+	20140417070351,KG4PID-14>APRX28,TCPIP*,qAC,FIRENET1:>Digi/Igate kg4pid at yahoo dot com
+	20140417071955,KG4PID-14>APRX28,WIDE2-2,qAR,N4XWC:!3417.45N/08742.32W#PHG7250 Bear Creek, Al
+
+
+
+- Add to RF-log all packets dropped due to bad bits; use HEX dump,
+  and type tag 'D'.  Use type tag 'd' with text dump when APRS-IS
+  dropped the frame for one reason or other (network timeouts mostly)
 
 - "[Aprx] Re: Bi-Directional Cross-band Digipeater"
   Probably heard sources accounting bucket initializing as zero,
-  which was fixed recently.
-
+  which was fixed recently. (2.07ish)
 
 - SSL mode to talk to APRS-IS. (Aprsc speaks SSL very efficiently.)
 
