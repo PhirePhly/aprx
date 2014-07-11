@@ -542,7 +542,7 @@ history_cell_t *historydb_lookup(historydb_t *db, const char *keybuf, const int 
 
 	cp = db->hash[i];
 
-	if (debug > 1) printf("historydb_lookup(%*s) -> i=%d", keylen, keybuf, i);
+	if (debug > 1) printf("historydb_lookup('%.*s') -> i=%d", keylen, keybuf, i);
 
 	for ( ; cp != NULL ; cp = cp->next ) {
 	  if ( (cp->hash1 == h1) &&

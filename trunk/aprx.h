@@ -193,6 +193,8 @@ extern void aprxlog(const char *fmt, ...);
 /* VARARGS */
 extern void aprxlog(va_list);
 #endif
+extern void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len);
+extern void rfloghex(const char *portname, char direction, int discard, const char *buf, int buflen);
 
 /* netresolver.c */
 extern void netresolv_start(void); // separate thread working on this!
@@ -384,7 +386,6 @@ extern void igate_from_aprsis(const char *ax25, int ax25len);
 extern void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard, const int strictax25);
 extern void enable_tx_igate(const char *, const char *);
 #endif
-extern void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len);
 extern const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e);
 
 /* netax25.c */
@@ -728,7 +729,7 @@ extern int interface_is_telemetrable(const struct aprx_interface *iface );
 
 extern void interface_receive_ax25( const struct aprx_interface *aif, const char *ifaddress, const int is_aprs, const int ui_pid, const uint8_t *axbuf, const int axaddrlen, const int axlen, const char *tnc2buf, const int tnc2addrlen, const int tnc2len);
 extern void interface_transmit_ax25(const struct aprx_interface *aif, uint8_t *axaddr, const int axaddrlen, const char *axdata, const int axdatalen);
-extern void interface_receive_3rdparty(const struct aprx_interface *aif, const char *fromcall, const char *origtocall, const char *gwtype, const char *tnc2data, const int tnc2datalen);
+extern void interface_receive_3rdparty(const struct aprx_interface *aif, char **heads, const int headscount,  const char *gwtype, const char *tnc2data, const int tnc2datalen);
 extern int  interface_transmit_beacon(const struct aprx_interface *aif, const char *src, const char *dest, const char *via, const char *tncbuf, const int tnclen);
 extern int process_message_to_myself(const struct aprx_interface*const srcif, const struct pbuf_t*const pb);
 

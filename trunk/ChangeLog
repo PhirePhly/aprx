@@ -1,3 +1,16 @@
+2014-03-31 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* aprx.h, interface.c, igate.c, dprsgw.c:
+	    Deliver all APRS-IS supplied tokens to the interface 3rd-party
+	    receiver
+
+	* beacon.c:
+	    Limit read amount of 256 bytes, excess is rejected and usually
+	    also the beaconing is skipped.
+
+	* aprx.c, aprx.h, igate.c:
+	    Moved rflog() from igate.c to aprx.c.
+
 2014-03-24 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* interface.c:

@@ -509,17 +509,18 @@ static void aprsis_readup(void)
 	buf[i] = 0;		/* String Termination NUL byte */
 
 	memcpy(&head, buf, sizeof(head));
-	if (head.then + 10 < tick.tv_sec)
-		return;		/* Too old, discard */
 	addr = buf + sizeof(head);
-
 	gwcall = addr + head.addrlen + 1;
-
 	text = gwcall + head.gwlen + 1;
-
 	textlen = head.textlen;
-	if (textlen <= 2)
+
+	if (head.then + 10 < tick.tv_sec) {
+          return;		/* Too old, discard */
+          // rflog();
+        }
+	if (textlen <= 2) {
 	  return;		// BAD!
+        }
 	if ((text + textlen) > (buf + i)) {
 	  return;		// BAD!
 	}
