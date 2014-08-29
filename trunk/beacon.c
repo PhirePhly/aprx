@@ -961,7 +961,7 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 		}
                 return; // spawning done, successfull or not..
 	} else {
-          if (debug) printf("Nothing to beacon now.\n");
+          if (debug>1) printf("Nothing to beacon now.\n");
           return;
         }
 
@@ -1198,7 +1198,7 @@ int beacon_postpoll(struct aprxpolls *app)
                 }
                 for (idx = 0, P = app->polls; idx < app->pollcount; ++idx, ++P) {
                 	if (bset->exec_fd == P->fd) {
-                          if (debug) printf("revents of exec_fd = 0x%x\n", P->revents);
+                          if (debug>1) printf("revents of exec_fd = 0x%x\n", P->revents);
                           if (P->revents & (POLLIN | POLLPRI | POLLHUP)) {
                             msg_exec_read(bset);
                           }
@@ -1210,7 +1210,7 @@ int beacon_postpoll(struct aprxpolls *app)
                 beacon_now(bset);
         }
 
-        if (debug) printf("beacon_postpoll()\n");
+        if (debug>1) printf("beacon_postpoll()\n");
 
 
 	return 0;

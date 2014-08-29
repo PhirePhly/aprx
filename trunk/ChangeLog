@@ -1,3 +1,8 @@
+2014-08-29 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
+
+	* beacon.c:
+	    Demote some nuisance logging to "-dd" level.
+
 2014-03-31 Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprx.h, interface.c, igate.c, dprsgw.c:
