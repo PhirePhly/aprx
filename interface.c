@@ -1013,9 +1013,8 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	if (debug) printf("interface_receive_ax25() from %s axlen=%d tnc2len=%d\n",aif->callsign,axlen,tnc2len);
 
 
-	if (axaddrlen <= 14) return;     // SOURCE>DEST without any VIAs..
-	// Note: Above one disables MICe destaddress-SSID embedded
-	//       extremely compressed WIDEn-N notation.
+	// AX.25 address length is missing at least a SRCADDR>DESTADDR
+	if (axaddrlen < 14) return;     
 
 // FIXME: match ui_pid to list of UI PIDs that are treated with similar
 //        digipeat rules as is APRS New-N.
