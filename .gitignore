@@ -1,0 +1,16 @@
+
+Makefile
+aprx-complex.conf
+aprx.conf
+config.h
+config.log
+config.status
+aprx
+aprx-stat
+aprx-stat.8
+aprx.8
+
+
+*.o
+*.d
+
