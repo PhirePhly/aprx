@@ -185,7 +185,9 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
 	e  = tp + tnc2len;      // stays the same all the time
 
-      redo_frame_filter:;
+	rflog(portname, 'R', discard, tp, tnc2len);
+
+    redo_frame_filter:;
 
 	t  = tp;
 	t0 = NULL;
@@ -558,33 +560,10 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  /* 3) */
 	  if (forbidden_to_gate_addr(heads[i])) {
 	    if (debug)
-	      printf("Not relayable packet! [3]\n");
+	      printf("Not relayable packet! [3]: %s\n", heads[i]);
 	    return;
 	  }
 
-// FIXME: Hmm.. Really ??  q-construct analysis and "ok_to_relay" decission
-	  if (heads[i][0] == 'q' && heads[i][1] == 'A') {
-	    int qcode = heads[i][2];
-	    ok_to_relay = 1;
-
-	    // Depending on qA? value, following may
-	    // actually be fromcall, or some other..
-	    switch (qcode) {
-	    case 'X':
-	      ok_to_relay = 0;
-	      break;
-	    default:
-	      break;
-	    }
-	    
-	    heads[i] = NULL;
-	    break;
-	  }
-	}
-	if (!ok_to_relay) {
-	  if (debug)
-	    printf("Not relayable packet! [4]\n");
-	  return;
 	}
 
 	++b; /* Skip the ':' */

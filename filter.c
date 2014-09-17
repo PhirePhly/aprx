@@ -1625,23 +1625,24 @@ static int filter_process_one_d(struct pbuf_t *pb, struct filter_t *f)
 		++j;
 		if (j > 10) break; // way too many callsigns... (code bug?)
 
+		if (*d == ':') break; //end of via fields
 		if (*d == ',') ++d; // second round and onwards..
 		for (i = 0; i+d <= q && i <= CALLSIGNLEN_MAX; ++i) {
-			if (d[i] == ',')
+			if ((d[i] == ',') || (d[i] == ':'))
 				break;
 		}
 
 		// hlog(LOG_INFO, "d:  -> (%d,%d) '%.*s'", (int)(d-pb->data), i, i, d);
 
 		// digipeater address  ",addr,"
-                memset( &ref, 0, sizeof(ref) ); // clear it all
+        memset( &ref, 0, sizeof(ref) ); // clear it all
 		memcpy( ref.callsign, d, i);
 
 		if (i > CALLSIGNLEN_MAX) i = CALLSIGNLEN_MAX;
 
 		rc = filter_match_on_callsignset(&ref, i, f, MatchWild);
 		if (rc) {
-			return (rc == 1);
+			return (rc);
 		}
 		d += i;
 	}

@@ -1454,6 +1454,12 @@ void interface_receive_3rdparty( const struct aprx_interface *aif,
           // 
 	  //t += sprintf(t, "%s>%s", tx_aif->callsign, tocall);
 	  t += sprintf(t, "%s>%s", fromcall, origtocall);
+	  {
+		  int i;
+		  for (i=2; i<headscount; i++) {
+			  t += sprintf(t, ",%s", heads[i]);
+		  }
+	  }
 
           /*
           if ((filter_packettype & T_MESSAGE) != 0 && digisrc->msg_path != NULL) {
