@@ -432,7 +432,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
           return 1; // Dest reject filters
         }
 
-        // Where is the last via-field with a start on it?
+        // Where is the last via-field with a star on it?
         len = pb->info_start - p; if (len < 0) len=0;
         lastviastar = memrchr(p, len, '*');
 
@@ -519,6 +519,7 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
 
           // .. otherwise following rules are applied only to APRS packets.
           if (pb->is_aprs) {
+		  
             if ((len = match_tracewide(viafield, src->src_trace))) {
               have_fault = count_single_tnc2_tracewide(&state->v, viafield, 1, len, viaindex);
               if (!have_fault)
@@ -549,8 +550,11 @@ static int parse_tnc2_hops(struct digistate *state, struct digipeater_source *sr
             pb->ax25addr[ AX25ADDRLEN*viaindex + AX25ADDRLEN-1 ] |= AX25HBIT;
             state->v.fixthis = 0;
           }
-          if (!digiok) {
-            if (debug>1) printf(" this via field is not matching with a TRACE, WIDE, ALIAS or INTERFACE.\n");
+
+          //wb4bxo - I think this was backwards... I believe it should exit the
+          //  loop on the first viapath it finds available to use, not the first failed.
+          if (digiok) {
+            if (debug>1) printf(" via field match %s\n", viafield);
             break;
           }
         }
