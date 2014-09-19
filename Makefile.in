@@ -49,7 +49,8 @@ MANDIR:=$(strip $(MANDIR))
 # generate version strings
 
 VERSION    = @VERSION_STRING@
-SVNVERSION = $(shell cat SVNVERSION)
+#SVNVERSION = $(shell cat SVNVERSION)
+SVNVERSION = -$(shell git rev-parse --short HEAD)
 versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > SVNVERSION; fi)
 
 # VERSION:=$(shell cat VERSION)
