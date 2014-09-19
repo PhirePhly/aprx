@@ -50,7 +50,7 @@ MANDIR:=$(strip $(MANDIR))
 
 VERSION    = @VERSION_STRING@
 #SVNVERSION = $(shell cat SVNVERSION)
-SVNVERSION = $(shell git describe --tags)
+SVNVERSION = -$(shell git rev-parse --short HEAD)
 versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > SVNVERSION; fi)
 
 # VERSION:=$(shell cat VERSION)
