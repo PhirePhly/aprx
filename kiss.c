@@ -350,6 +350,13 @@ static int kissprocess(struct serialport *S)
 
 		if (debug > 2)
 		    printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", tick.tv_sec, S->ttyname, tncid);
+		
+//code needs fixing so it does not send KISS data frames until successful SMACK probe... corrupts RF packets OD 23/09/14
+//I am not confident there is a sound way to recover failure to negotiate SMACK, other than perhaps to immediately retry at startup.
+                S->linetype = LINETYPE_KISS; //turn kiss off, temporary workaround? 
+
+		if (debug > 2)
+		    printf("%ld\tTTY %s tncid %d: Setting linetype=KISS.\n", tick.tv_sec, S->ttyname, tncid);
 
 		if (timecmp(S->smack_probe[tncid], tick.tv_sec) < 0) {
 		    uint8_t probe[4];
