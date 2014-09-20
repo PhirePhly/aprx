@@ -407,7 +407,7 @@ static void ttyreader_linesetup(struct serialport *S)
 		if (debug)
 			printf("OK\n");
 
-                aprxlog("TTY %s Opened.\n", S->ttyname);
+                aprxlog("TTY %s opened", S->ttyname);
 
 
 		/* Set attributes */
