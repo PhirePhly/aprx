@@ -54,6 +54,7 @@ static void sig_handler(int sig)
 {
 	die_now = 1;
 	signal(sig, sig_handler);
+        aprxlog("aprx ending (SIG %d) - %s",sig,swversion);
 	if (debug) {
           // Avoid stdio FILE* interlocks within signal handler
           char buf[64];
@@ -374,7 +375,7 @@ int main(int argc, char *const argv[])
 	igate_start();
 #endif
 
-        aprxlog("APRX start");
+        aprxlog("aprx start - %s",swversion);
 
 	// The main loop
 
