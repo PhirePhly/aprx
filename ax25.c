@@ -1,6 +1,6 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRX -- 2nd generation receive-only APRS-i-gate with            *
+ *  APRX -- 2nd generation APRS iGate and digi with                 *
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
