@@ -597,7 +597,7 @@ void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25ra
 	uint8_t kissbuf[2300];
 
 	if (debug) {
-	  printf("kiss_kisswrite(->%s, axlen=%d)", S->ttycallsign[tncid], ax25rawlen);
+	  printf("kiss_kisswrite(->%s, axlen=%d)\n", S->ttycallsign[tncid], ax25rawlen);
 	}
 	if (S->fd < 0) {
 	  if (debug)
@@ -637,12 +637,24 @@ void kiss_kisswrite(struct serialport *S, const int tncid, const uint8_t *ax25ra
 	  }
 	}
 
-	ssid = (tncid << 4) | ((S->linetype == LINETYPE_KISSSMACK) ? 0x80 : 0x00);
-	if (S->linetype == LINETYPE_KISSFLEXNET)  ssid |= 0x20; // CRC presence
-
-	len = kissencoder( kissbuf, sizeof(kissbuf), S->linetype, ax25raw, ax25rawlen, ssid );
+	ssid = (tncid << 4);
+	switch (S->linetype) {
+	case LINETYPE_KISSFLEXNET:
+	  len = kissencoder( kissbuf, sizeof(kissbuf), S->linetype, ax25raw, ax25rawlen, ssid |= 0x20 );
+	  break;
+	case LINETYPE_KISSSMACK:
+	  if (S->smack_subids & (1 << tncid)) //if SMACK currently active
+	    len = kissencoder( kissbuf, sizeof(kissbuf), S->linetype, ax25raw, ax25rawlen, ssid |= 0x80 );
+	  else 
+	    len = kissencoder( kissbuf, sizeof(kissbuf), LINETYPE_KISS, ax25raw, ax25rawlen, ssid );
+	  break;
+	default:
+	  len = kissencoder( kissbuf, sizeof(kissbuf), S->linetype, ax25raw, ax25rawlen, ssid );
+	  break;
+	}
 
 	if (debug>2) {
+	  printf("ssid=%0x S->smack_subids=%0x\n",ssid,S->smack_subids);
 	  printf("kiss-encoded: ");
 	  hexdumpfp(stdout, kissbuf, len, 1);
 	  printf("\n");
