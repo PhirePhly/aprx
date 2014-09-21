@@ -621,7 +621,7 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-SVNVERSION_STRING
+SCMVERSION_STRING
 VERSION_STRING
 LIBCRYPTO
 LIBSSL
@@ -4964,8 +4964,8 @@ fi
 t_vers="`cat VERSION`"
 VERSION_STRING="`cat VERSION`"
 
-t_vers="`cat SVNVERSION`"
-SVNVERSION_STRING="$t_vers"
+t_vers="`cat SCMVERSION`"
+SCMVERSION_STRING="$t_vers"
 
 
 ac_config_files="$ac_config_files Makefile"

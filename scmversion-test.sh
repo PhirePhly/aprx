@@ -1,36 +1,36 @@
 #!/bin/sh
 
 #set -x
-echo "svnversion-test.sh: $*"
+echo "scmversion-test.sh: $*"
 
 SV="$1"
 shift
 
-SVNVERSION=undef
+SCMVERSION=undef
 
-for x in /bin/svnversion /usr/bin/svnversion
+for x in /bin/scmversion /usr/bin/scmversion
 do
     if [ -x $x ] ; then
-        SVNVERSION="`$x`"
+        SCMVERSION="`$x`"
     fi
 done
 
-if [ "$SVNVERSION" = "undef" -o "$SVNVERSION" = "Unversioned directory" ] ; then
-    if [ -f SVNVERSION ] ; then
-        echo "Can't pull SVNVERSION value from svn storage, pulling from SVNVERSION file.."
-        SVNVERSION="`cat SVNVERSION`"
+if [ "$SCMVERSION" = "undef" -o "$SCMVERSION" = "Unversioned directory" ] ; then
+    if [ -f SCMVERSION ] ; then
+        echo "Can't pull SCMVERSION value from svn storage, pulling from SCMVERSION file.."
+        SCMVERSION="`cat SCMVERSION`"
     fi
 else
-    echo "$SVNVERSION" > SVNVERSION
+    echo "$SCMVERSION" > SCMVERSION
 fi
 
-if [ "$SVNVERSION" != "$SV" ] ; then
-    echo "Miss-match of '$SVNVERSION' vs. '$SV' -- aborting now, please rerun the make command."
+if [ "$SCMVERSION" != "$SV" ] ; then
+    echo "Miss-match of '$SCMVERSION' vs. '$SV' -- aborting now, please rerun the make command."
     exit 1
 fi
 
-X="`(echo -n $SVNVERSION | tr -d 0-9)`"
+X="`(echo -n $SCMVERSION | tr -d 0-9)`"
 if [ -n "$X" ] ; then
-  echo "Mixed or modified tree: ($SVNVERSION), ARE YOU SURE ??." ; \
+  echo "Mixed or modified tree: ($SCMVERSION), ARE YOU SURE ??." ; \
   echo -n "Y/^C ? "; read var ;					    \
 fi

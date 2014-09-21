@@ -49,13 +49,13 @@ MANDIR:=$(strip $(MANDIR))
 # generate version strings
 
 VERSION    = @VERSION_STRING@
-GITVERSION = $(shell git rev-parse --short HEAD)
-versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > GITVERSION; fi)
+SCMVERSION = $(shell git rev-parse --short HEAD)
+versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > SCMVERSION; fi)
 
 DATE:=$(shell date +"%Y %B %d")
 RFCDATE:=$(shell date +"%a, %d %b %Y %H:%M:%S %z")
 
-DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r$(GITVERSION)\"" \
+DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r$(SCMVERSION)\"" \
 	-DVARRUN="\"$(VARRUN)\"" -DVARLOG="\"$(VARLOG)\"" \
 	-DCFGFILE="\"$(CFGFILE)\""
 
@@ -161,16 +161,16 @@ logrotate.aprx $(MAN) aprx-complex.conf aprx.conf: % : %.in VERSION Makefile
 # Following is for the original author only...
 #
 
-DISTVERSION:=aprx-$(VERSION).git$(GITVERSION)
+DISTVERSION:=aprx-$(VERSION).git$(SCMVERSION)
 DISTTARGET:=../$(DISTVERSION)
 RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
-.PHONY: dist gitversion-test
+.PHONY: dist scmversion-test
 
-gitversion-test:
+scmversion-test:
 	# Special for the source maintainer only..
-	@sh gitversion-test.sh $(GITVERSION)
+	@sh scmversion-test.sh $(SCMVERSION)
 
-dist:	gitversion-test
+dist:	scmversion-test
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
 	fi
