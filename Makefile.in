@@ -49,17 +49,13 @@ MANDIR:=$(strip $(MANDIR))
 # generate version strings
 
 VERSION    = @VERSION_STRING@
-SVNVERSION = $(shell git rev-parse --short HEAD)
-versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > SVNVERSION; fi)
-
-# VERSION:=$(shell cat VERSION)
-# SVNVERSION_CMD:=$(shell which svnversion)
-# SVNVERSION:=$(shell if ${SVNVERSION_CMD} > /dev/null 2>&1  \&\& test -x ${SVNVERSION_CMD} -a \( -d .svn -o -d ../.svn -o -d ../../.svn \)  ; then ${SVNVERSION_CMD} | tee SVNVERSION ; else cat SVNVERSION; fi)
+SCMVERSION = $(shell git rev-parse --short HEAD)
+versionupdate := $(shell if [ "$(PKG_REV)-$(PKG_RELEASE)" != "-" ]; then echo "$(PKG_REV)-$(PKG_RELEASE)" > SCMVERSION; fi)
 
 DATE:=$(shell date +"%Y %B %d")
 RFCDATE:=$(shell date +"%a, %d %b %Y %H:%M:%S %z")
 
-DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r$(SVNVERSION)\"" \
+DEFS=	-DAPRXVERSION="\"@VERSION_STRING@r$(SCMVERSION)\"" \
 	-DVARRUN="\"$(VARRUN)\"" -DVARLOG="\"$(VARLOG)\"" \
 	-DCFGFILE="\"$(CFGFILE)\""
 
@@ -165,16 +161,16 @@ logrotate.aprx $(MAN) aprx-complex.conf aprx.conf: % : %.in VERSION Makefile
 # Following is for the original author only...
 #
 
-DISTVERSION:=aprx-$(VERSION).svn$(SVNVERSION)
+DISTVERSION:=aprx-$(VERSION).git$(SCMVERSION)
 DISTTARGET:=../$(DISTVERSION)
 RPMVERSION:=$(shell echo "${DISTVERSION}" | sed -e 's/aprx-//')
-.PHONY: dist svnversion-test
+.PHONY: dist scmversion-test
 
-svnversion-test:
+scmversion-test:
 	# Special for the source maintainer only..
-	@sh svnversion-test.sh $(SVNVERSION)
+	@sh scmversion-test.sh $(SCMVERSION)
 
-dist:	svnversion-test
+dist:	scmversion-test
 	if [ ! -d $(DISTTARGET) ] ; then	\
 		mkdir $(DISTTARGET) ;		\
 	fi
@@ -207,7 +203,7 @@ dist:	svnversion-test
 make-deb:
 	if [ -f debian/changelog.release ] ; then \
 	perl -ne "\$$ver = '$(DISTVERSION)'; 	\
-		  \$$ver =~ tr/0-9.//cd;	\
+                  \$$ver =~ tr/0-9.//cd;        \
 		  \$$ver .= '-1';		\
 		  s{\@VERSION\@}{\$$ver}g;	\
 		  s{\@RFCDATE\@}{$(RFCDATE)}g;	\
