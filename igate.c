@@ -185,9 +185,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
 	e  = tp + tnc2len;      // stays the same all the time
 
-	rflog(portname, 'R', discard, tp, tnc2len);
-
-    redo_frame_filter:;
+	redo_frame_filter:;
 
 	t  = tp;
 	t0 = NULL;
@@ -342,10 +340,6 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	/* DEBUG OUTPUT TO STDOUT ! */
 	verblog(portname, 0, tp, tnc2len);
 
-	// Log the innermost form of packet to be sent out..
-	if (tp != tnc2buf || discard != discard0)
-	  rflog(portname, 'R', discard, tp, tnc2len);
-
 	if (0) {
  discard:;
 
@@ -355,6 +349,8 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	if (discard) {
 		erlang_add(portname, ERLANG_DROP, tnc2len, 1);
                 rflog(portname, 'd', discard, tp, tnc2len);
+	} else {
+                rflog(portname, 'R', discard, tp, tnc2len);
 	}
 }
 
