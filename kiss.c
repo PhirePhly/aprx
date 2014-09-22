@@ -314,8 +314,9 @@ static int kissprocess(struct serialport *S)
 		    printf("%ld\tTTY %s tncid %d: Received SMACK frame\n", tick.tv_sec, S->ttyname, tncid);
 
 		if (!(S->smack_subids & (1 << tncid))) {
-		    if (debug)
-			printf("%ld\t... marking received SMACK\n", tick.tv_sec);
+			aprxlog("Received SMACK frame TTY=%s tncid=%d",S->ttyname,tncid);
+			if (debug)
+				printf("%ld\t... marking received SMACK\n", tick.tv_sec);
 		}
 		S->smack_subids |= (1 << tncid);
 
@@ -375,8 +376,9 @@ static int kissprocess(struct serialport *S)
 
 			S->smack_probe[tncid] = tick.tv_sec + 1800; /* 30 minutes */
 
+			aprxlog("Sent SMACK activation probe TTY=%s tncid=%d",S->ttyname,tncid);
 			if (debug)
-			    printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", tick.tv_sec, S->ttyname, tncid);
+				printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", tick.tv_sec, S->ttyname, tncid);
 
 		    }
 		    /* Else no space to write ?  Huh... */
