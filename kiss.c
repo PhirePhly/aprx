@@ -241,6 +241,7 @@ static int kissprocess(struct serialport *S)
 	    }
 	    crc = calc_crc_flex(S->rdline, S->rdlinelen);
 	    if (crc != 0x7070) {
+              aprxlog("Received FLEXNET frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
 	      if (debug) {
 		printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",
 		       tick.tv_sec, S->ttyname, tncid, crc);
@@ -326,6 +327,7 @@ static int kissprocess(struct serialport *S)
 
 		// Whole buffer including CMD-byte!
 		if (check_crc_16(S->rdline, S->rdlinelen) != 0) {
+                        aprxlog("Received SMACK frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
 			if (debug) {
 			  printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC: ",
 				 tick.tv_sec, S->ttyname, tncid);
