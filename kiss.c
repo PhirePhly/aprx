@@ -196,63 +196,63 @@ static int kissprocess(struct serialport *S)
 		   than 0  coming from TNC to host! */
 		/* printf(" ..bad CMD byte\n"); */
 		if (debug) {
-		  printf("%ld\tTTY %s: Bad CMD byte on KISS frame: ", tick.tv_sec, S->ttyname);
-		  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		  printf("\n");
+			printf("%ld\tTTY %s: Bad CMD byte on KISS frame: ", tick.tv_sec, S->ttyname);
+			hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+			printf("\n");
 		}
-                rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+		rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
 		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 		return -1;
 	}
 
 	if (S->linetype == LINETYPE_KISS && (cmdbyte & 0x20)) {
-	  // Huh?  Perhaps a FLEXNET packet?
-	  int crcflex = calc_crc_flex(S->rdline, S->rdlinelen);
-	  if (crcflex == 0x7070) {
-	    if (debug) printf("ALERT: Looks like received KISS frame is a FLEXNET with CRC!\n");
-	    S->linetype = LINETYPE_KISSFLEXNET;
-	  }
+		// Huh?  Perhaps a FLEXNET packet?
+		int crcflex = calc_crc_flex(S->rdline, S->rdlinelen);
+		if (crcflex == 0x7070) {
+			if (debug) printf("ALERT: Looks like received KISS frame is a FLEXNET with CRC!\n");
+			S->linetype = LINETYPE_KISSFLEXNET;
+		}
 	}
 	if (S->linetype == LINETYPE_KISS && (cmdbyte & 0x80)) {
-	  // Huh?  Perhaps a SMACK packet?
-	  int smack_ok = check_crc_16(S->rdline, S->rdlinelen);
-	  if (smack_ok == 0) {
-	    if (debug) printf("ALERT: Looks like received KISS frame is a SMACK with CRC!\n");
-	    S->linetype = LINETYPE_KISSSMACK;
-	  }
+		// Huh?  Perhaps a SMACK packet?
+		int smack_ok = check_crc_16(S->rdline, S->rdlinelen);
+		if (smack_ok == 0) {
+			if (debug) printf("ALERT: Looks like received KISS frame is a SMACK with CRC!\n");
+			S->linetype = LINETYPE_KISSSMACK;
+		}
 	}
 
 	/* Are we expecting FLEXNET KISS ? */
 	if (S->linetype == LINETYPE_KISSFLEXNET && (cmdbyte & 0x20)) {
-	    int crc;
-	    tncid &= ~0x20; // FlexNet puts 0x20 as indication of CRC presence..
+		int crc;
+		tncid &= ~0x20; // FlexNet puts 0x20 as indication of CRC presence..
 
-	    if (S->ttycallsign[tncid] == NULL) {
-	      /* D'OH!  received packet on multiplexer tncid without
-		 callsign definition!  We discard this packet! */
-	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
-		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		printf("\n");
-	      }
-              rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
-	      return -1;
-	    }
-	    crc = calc_crc_flex(S->rdline, S->rdlinelen);
-	    if (crc != 0x7070) {
-              aprxlog("Received FLEXNET frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
-	      if (debug) {
-		printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",
-		       tick.tv_sec, S->ttyname, tncid, crc);
-		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		printf("\n");
-	      }
-              rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);  // Account one packet
-	      return -1;	// The CRC was invalid..
-	    }
-	    S->rdlinelen -= 2; // remove 2 bytes!
+		if (S->ttycallsign[tncid] == NULL) {
+			/* D'OH!  received packet on multiplexer tncid without
+			   callsign definition!  We discard this packet! */
+			if (debug > 0) {
+				printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
+			}
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+			return -1;
+		}
+		crc = calc_crc_flex(S->rdline, S->rdlinelen);
+		if (crc != 0x7070) {
+			aprxlog("Received FLEXNET frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
+			if (debug) {
+				printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",
+						tick.tv_sec, S->ttyname, tncid, crc);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
+			}
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);  // Account one packet
+			return -1;	// The CRC was invalid..
+		}
+		S->rdlinelen -= 2; // remove 2 bytes!
 	}
 
 	/* Are we excepting BPQ "CRC" (XOR-sum of data) */
@@ -261,16 +261,16 @@ static int kissprocess(struct serialport *S)
 		int xorsum = 0;
 
 		if (S->ttycallsign[tncid] == NULL) {
-		  /* D'OH!  received packet on multiplexer tncid without
-		     callsign definition!  We discard this packet! */
-		  if (debug > 0) {
-		    printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
-		    hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		    printf("\n");
-		  }
-                  rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-		  erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
-		  return -1;
+			/* D'OH!  received packet on multiplexer tncid without
+			   callsign definition!  We discard this packet! */
+			if (debug > 0) {
+				printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
+			}
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+			return -1;
 		}
 
 		for (i = 1; i < S->rdlinelen; ++i)
@@ -278,11 +278,11 @@ static int kissprocess(struct serialport *S)
 		xorsum &= 0xFF;
 		if (xorsum != 0) {
 			if (debug) {
-			  printf("%ld\tTTY %s tncid %d: Received bad BPQCRC: %02x: ", tick.tv_sec, S->ttyname, tncid, xorsum);
-			  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-			  printf("\n");
+				printf("%ld\tTTY %s tncid %d: Received bad BPQCRC: %02x: ", tick.tv_sec, S->ttyname, tncid, xorsum);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
 			}
-                        rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
 			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 			return -1;
 		}
@@ -293,126 +293,126 @@ static int kissprocess(struct serialport *S)
 	/* Are we expecting SMACK ? */
 	if (S->linetype == LINETYPE_KISSSMACK) {
 
-	    tncid &= 0x07;	/* Chop off top bit */
+		tncid &= 0x07;	/* Chop off top bit */
 
-	    if (S->ttycallsign[tncid] == NULL) {
-	      /* D'OH!  received packet on multiplexer tncid without
-		 callsign definition!  We discard this packet! */
-	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
-		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		printf("\n");
-	      }
-              rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
-	      return -1;
-	    }
-
-	    if ((cmdbyte & 0x8F) == 0x80) {
-	        /* SMACK data frame */
-
-		if (debug > 3)
-		    printf("%ld\tTTY %s tncid %d: Received SMACK frame\n", tick.tv_sec, S->ttyname, tncid);
-
-		if (!(S->smack_subids & (1 << tncid))) {
-			aprxlog("Received SMACK frame TTY=%s tncid=%d",S->ttyname,tncid);
-			if (debug)
-				printf("%ld\t... marking received SMACK\n", tick.tv_sec);
-		}
-		S->smack_subids |= (1 << tncid);
-
-		/* It is SMACK frame -- KISS with CRC16 at the tail.
-		   Now we ignore the TNC-id number field.
-		   Verify the CRC.. */
-
-		// Whole buffer including CMD-byte!
-		if (check_crc_16(S->rdline, S->rdlinelen) != 0) {
-                        aprxlog("Received SMACK frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
-			if (debug) {
-			  printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC: ",
-				 tick.tv_sec, S->ttyname, tncid);
-			  hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-			  printf("\n");
+		if (S->ttycallsign[tncid] == NULL) {
+			/* D'OH!  received packet on multiplexer tncid without
+			   callsign definition!  We discard this packet! */
+			if (debug > 0) {
+				printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
 			}
-                        rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);  // Account one packet
-			return -1;	/* The CRC was invalid.. */
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+			return -1;
 		}
 
-		S->rdlinelen -= 2;	/* Chop off the two CRC bytes */
+		if ((cmdbyte & 0x8F) == 0x80) {
+			/* SMACK data frame */
 
-	    } else if ((cmdbyte & 0x8F) == 0x00) {
-	    	/*
-		 * Expecting SMACK data, but got plain KISS data.
-		 * Send a flow-rate limited probes to TNC to enable
-		 * SMACK -- lets use 30 minutes window...
-		 */
+			if (debug > 3)
+				printf("%ld\tTTY %s tncid %d: Received SMACK frame\n", tick.tv_sec, S->ttyname, tncid);
+
+			if (!(S->smack_subids & (1 << tncid))) {
+				aprxlog("Received SMACK frame TTY=%s tncid=%d",S->ttyname,tncid);
+				if (debug)
+					printf("%ld\t... marking received SMACK\n", tick.tv_sec);
+			}
+			S->smack_subids |= (1 << tncid);
+
+			/* It is SMACK frame -- KISS with CRC16 at the tail.
+			   Now we ignore the TNC-id number field.
+			   Verify the CRC.. */
+
+			// Whole buffer including CMD-byte!
+			if (check_crc_16(S->rdline, S->rdlinelen) != 0) {
+				aprxlog("Received SMACK frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
+				if (debug) {
+					printf("%ld\tTTY %s tncid %d: Received SMACK frame with invalid CRC: ",
+							tick.tv_sec, S->ttyname, tncid);
+					hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+					printf("\n");
+				}
+				rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+				erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);  // Account one packet
+				return -1;	/* The CRC was invalid.. */
+			}
+
+			S->rdlinelen -= 2;	/* Chop off the two CRC bytes */
+
+		} else if ((cmdbyte & 0x8F) == 0x00) {
+			/*
+			 * Expecting SMACK data, but got plain KISS data.
+			 * Send a flow-rate limited probes to TNC to enable
+			 * SMACK -- lets use 30 minutes window...
+			 */
 
 
-		S->smack_subids &= ~(1 << tncid); // Turn off the SMACK mode indication bit..
+			S->smack_subids &= ~(1 << tncid); // Turn off the SMACK mode indication bit..
 
-		if (debug > 2)
-		    printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", tick.tv_sec, S->ttyname, tncid);
+			if (debug > 2)
+				printf("%ld\tTTY %s tncid %d: Expected SMACK, got KISS.\n", tick.tv_sec, S->ttyname, tncid);
 
-		if (timecmp(S->smack_probe[tncid], tick.tv_sec) < 0) {
-		    uint8_t probe[4];
-		    uint8_t kissbuf[12];
-		    int kisslen;
+			if (timecmp(S->smack_probe[tncid], tick.tv_sec) < 0) {
+				uint8_t probe[4];
+				uint8_t kissbuf[12];
+				int kisslen;
 
-		    probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
-		    probe[1] = 0;
+				probe[0] = cmdbyte | 0x80;  /* Make it into SMACK */
+				probe[1] = 0;
 
-		    /* Convert the probe packet to KISS frame */
-		    kisslen = kissencoder( kissbuf, sizeof(kissbuf), S->linetype,
-					   &(probe[1]), 1, probe[0] );
+				/* Convert the probe packet to KISS frame */
+				kisslen = kissencoder( kissbuf, sizeof(kissbuf), S->linetype,
+						&(probe[1]), 1, probe[0] );
 
-		    /* Send probe message..  */
-		    if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
-			/* There is enough space in writebuf! */
+				/* Send probe message..  */
+				if (S->wrlen + kisslen < sizeof(S->wrbuf)) {
+					/* There is enough space in writebuf! */
 
-			memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
-			S->wrlen += kisslen;
-			/* Flush it out..  and if not successfull,
-			   poll(2) will take care of it soon enough.. */
-			ttyreader_linewrite(S);
+					memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
+					S->wrlen += kisslen;
+					/* Flush it out..  and if not successfull,
+					   poll(2) will take care of it soon enough.. */
+					ttyreader_linewrite(S);
 
-			S->smack_probe[tncid] = tick.tv_sec + 1800; /* 30 minutes */
+					S->smack_probe[tncid] = tick.tv_sec + 1800; /* 30 minutes */
 
-			aprxlog("Sent SMACK activation probe TTY=%s tncid=%d",S->ttyname,tncid);
-			if (debug)
-				printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", tick.tv_sec, S->ttyname, tncid);
+					aprxlog("Sent SMACK activation probe TTY=%s tncid=%d",S->ttyname,tncid);
+					if (debug)
+						printf("%ld\tTTY %s tncid %d: Sending SMACK activation probe packet\n", tick.tv_sec, S->ttyname, tncid);
 
-		    }
-		    /* Else no space to write ?  Huh... */
+				}
+				/* Else no space to write ?  Huh... */
+			}
+		} else {
+			// Else...  there should be no other kind data frames
+			if (debug) {
+				printf("%ld\tTTY %s: Bad CMD byte on expected SMACK frame: %02x, len=%d: ",
+						tick.tv_sec, S->ttyname, cmdbyte, S->rdlinelen);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
+			}
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+			return -1;
 		}
-	    } else {
-		// Else...  there should be no other kind data frames
-		if (debug) {
-		    printf("%ld\tTTY %s: Bad CMD byte on expected SMACK frame: %02x, len=%d: ",
-			   tick.tv_sec, S->ttyname, cmdbyte, S->rdlinelen);
-		    hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		    printf("\n");
-		}
-                rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
-		return -1;
-	    }
 	}
 
 	/* Are we expecting Basic KISS ? */
 	if (S->linetype == LINETYPE_KISS) {
-	    if (S->ttycallsign[tncid] == NULL) {
-	      /* D'OH!  received packet on multiplexer tncid without
-		 callsign definition!  We discard this packet! */
-	      if (debug > 0) {
-		printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
-		hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
-		printf("\n");
-	      }
-              rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-	      erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
-	      return -1;
-	    }
+		if (S->ttycallsign[tncid] == NULL) {
+			/* D'OH!  received packet on multiplexer tncid without
+			   callsign definition!  We discard this packet! */
+			if (debug > 0) {
+				printf("%ld\tTTY %s: Bad TNCID on CMD byte on a KISS frame: %02x  No interface configured for it! ", tick.tv_sec, S->ttyname, cmdbyte);
+				hexdumpfp(stdout, S->rdline, S->rdlinelen, 1);
+				printf("\n");
+			}
+			rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+			erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+			return -1;
+		}
 	}
 
 
@@ -421,14 +421,14 @@ static int kissprocess(struct serialport *S)
 
 		/* Too short frame.. */
 		/* printf(" ..too short a frame for anything\n");  */
-                rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+		rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
 		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 		return -1;
 	}
 
 	/* Valid AX.25 HDLC frame byte sequence is now at
 	   S->rdline[1..S->rdlinelen-1]
-	 */
+	   */
 
 	/* Send the frame to APRS-IS, return 1 if valid AX.25 UI message, does not
 	   validate against valid APRS message rules... (TODO: it could do that too) */
@@ -441,7 +441,7 @@ static int kissprocess(struct serialport *S)
 	erlang_add(S->ttycallsign[tncid], ERLANG_RX, S->rdlinelen, 1);	/* Account one packet */
 
 	if (ax25_to_tnc2(S->interface[tncid], S->ttycallsign[tncid], tncid,
-			 cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
+				cmdbyte, S->rdline + 1, S->rdlinelen - 1)) {
 		// The packet is valid per AX.25 header bit rules.
 
 #ifdef PF_AX25	/* PF_AX25 exists -- highly likely a Linux system ! */
@@ -451,24 +451,24 @@ static int kissprocess(struct serialport *S)
 #endif
 
 	} else {
-	  // The packet is not valid per AX.25 header bit rules
-          rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
-	  erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
+		// The packet is not valid per AX.25 header bit rules
+		rfloghex(S->ttyname, 'D', 1, S->rdline, S->rdlinelen);
+		erlang_add(S->ttycallsign[tncid], ERLANG_DROP, S->rdlinelen, 1);	/* Account one packet */
 
-	  if (aprxlogfile) {
-            // NOT replaced with aprxlog() -- because this is a bit more complicated..
-	    FILE *fp = fopen(aprxlogfile, "a");
-	    if (fp) {
-	      char timebuf[60];
-	      printtime(timebuf, sizeof(timebuf));
-              setlinebuf(fp);
+		if (aprxlogfile) {
+			// NOT replaced with aprxlog() -- because this is a bit more complicated..
+			FILE *fp = fopen(aprxlogfile, "a");
+			if (fp) {
+				char timebuf[60];
+				printtime(timebuf, sizeof(timebuf));
+				setlinebuf(fp);
 
-	      fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message: ", timebuf, S->ttycallsign[tncid], S->rdlinelen-1);
-	      hexdumpfp(fp, S->rdline, S->rdlinelen, 1);
-	      fprintf(fp, "\n");
-	      fclose(fp);
-	    }
-	  }
+				fprintf(fp, "%s ax25_to_tnc2(%s,len=%d) rejected the message: ", timebuf, S->ttycallsign[tncid], S->rdlinelen-1);
+				hexdumpfp(fp, S->rdline, S->rdlinelen, 1);
+				fprintf(fp, "\n");
+				fclose(fp);
+			}
+		}
 	}
 
 	return 0;
