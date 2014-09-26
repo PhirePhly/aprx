@@ -376,6 +376,7 @@ static void telemetry_labeltx()
 				      E->name);
                   break;
                 default:
+			   s = buf+2;
                   break;
                 }
 

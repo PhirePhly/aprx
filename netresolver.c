@@ -18,7 +18,6 @@ pthread_attr_t pthr_attrs;
 
 static int                 nrcount;
 static struct netresolver **nr;
-static int                 netresolv_die_now;
 
 static int RE_RESOLVE_INTERVAL = 300; // 15 minutes ?
 

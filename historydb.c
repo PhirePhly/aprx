@@ -367,7 +367,6 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	time_t expirytime   = tick.tv_sec - lastposition_storetime;
 
 	char keybuf[CALLSIGNLEN_MAX+2];
-	char *s;
 
 
 	/* NOTE: Parser does set on MESSAGES the RECIPIENTS

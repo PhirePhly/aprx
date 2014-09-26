@@ -194,7 +194,7 @@ extern void aprxlog(const char *fmt, ...);
 extern void aprxlog(va_list);
 #endif
 extern void rflog(const char *portname, char direction, int discard, const char *tnc2buf, int tnc2len);
-extern void rfloghex(const char *portname, char direction, int discard, const char *buf, int buflen);
+extern void rfloghex(const char *portname, char direction, int discard, const uint8_t *buf, int buflen);
 
 /* netresolver.c */
 extern void netresolv_start(void); // separate thread working on this!

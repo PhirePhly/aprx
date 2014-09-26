@@ -759,7 +759,6 @@ static void aprsis_main(void)
 	/* The main loop */
 	while (!die_now) {
 		struct pollfd *pfd;
-		int i;
 
 		timetick();
 
@@ -769,6 +768,7 @@ static void aprsis_main(void)
 
 #if !(defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD))
 		// Parent-pid makes no sense in threaded setup
+		int i;
 		i = getppid();
 		if (i != ppid)
 			break;	/* die now, my parent is gone.. */
@@ -787,7 +787,7 @@ static void aprsis_main(void)
 			pfd->revents = 0;
 		}
 
-		i = aprsis_prepoll_(&app);
+		aprsis_prepoll_(&app);
 
 		// Prepolls are done
 		time_reset = 0;
@@ -796,7 +796,7 @@ static void aprsis_main(void)
 			tv_timeradd_seconds( &app.next_timeout, &tick, 1 ); // Just to be on safe side..
 		}
 
-		i = poll(app.polls, app.pollcount, aprxpolls_millis(&app));
+		poll(app.polls, app.pollcount, aprxpolls_millis(&app));
 
 		timetick();
 
@@ -807,7 +807,7 @@ static void aprsis_main(void)
 			   the channel reports EOF, we exit there and then. */
 			aprsis_readup();
 		}
-		i = aprsis_postpoll_(&app);
+		aprsis_postpoll_(&app);
 	}
 	aprxpolls_free(&app); // valgrind..
 	/* Got "DIE NOW" signal... */

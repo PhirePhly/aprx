@@ -680,7 +680,6 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 
 	if (!dprsgw_ratelimit( dp, tnc2buf )) {
 
-	  char *fromcall, *origtocall;
 	  char *b;
 
           if (aif != NULL) {

@@ -492,7 +492,7 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 {
 	// const char *p = ax25;
 	int colonidx;
-	int ok_to_relay, i;
+	int i;
 	const char *b;
 	// const char *e = p + ax25len; /* string end pointer */
 //	char  axbuf[3000]; /* enough and then some more.. */
@@ -536,7 +536,6 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	headscount = 0;
 	pick_heads(headsbuf, colonidx, heads, &headscount);
 
-	ok_to_relay = 0;
 	if (headscount < 4) {
 	  // Less than 3 header fields coming from APRS-IS ?
 	  if (debug)

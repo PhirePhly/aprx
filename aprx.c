@@ -637,7 +637,7 @@ va_dcl
 
 /* ---------------------------------------------------------- */
 
-void rfloghex(const char *portname, char direction, int discard, const char *buf, int buflen)
+void rfloghex(const char *portname, char direction, int discard, const uint8_t *buf, int buflen)
 {
 }
 
