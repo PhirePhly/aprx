@@ -1,7 +1,7 @@
 Source: aprx
 Section: hamradio
 Priority: extra
-Maintainer: HAM APRX release  maintenance <aprx@ham>
+Maintainer: Kenneth Finnegan <kennethfinnegan2007@gmail.com>
 Build-Depends: debhelper (>= 4), libssl-dev
 Standards-Version: 3.7.2
 

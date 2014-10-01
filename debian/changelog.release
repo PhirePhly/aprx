@@ -1,8 +1,8 @@
 aprx (@VERSION@) unstable; urgency=low
 
-  * See main ChangeLog.
+  * See changelog: https://github.com/PhirePhly/aprx/commits/master
 
- -- aprx maintainer <arpx@ham>  @RFCDATE@
+ -- Kenneth Finnegan <kennethfinnegan2007@gmail.com>  @RFCDATE@
 
 aprx (0.0.0-1) unstable; urgency=low
 

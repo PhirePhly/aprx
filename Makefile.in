@@ -48,7 +48,7 @@ MANDIR:=$(strip $(MANDIR))
 
 # generate version strings
 
-VERSION	= $(shell git describe --tags)
+VERSION	= $(shell git describe --tags | cut -b 2-)
 #VERSION	= @VERSION_STRING@
 
 DATE:=$(shell date +"%Y %B %d")
@@ -197,9 +197,7 @@ dist:
 
 make-deb:
 	if [ -f debian/changelog.release ] ; then \
-	perl -ne "\$$ver = '$(DISTVERSION)'; 	\
-		  \$$ver =~ tr/0-9.//cd;	\
-		  \$$ver .= '-1';		\
+	perl -ne "\$$ver = '$(VERSION)'; 	\
 		  s{\@VERSION\@}{\$$ver}g;	\
 		  s{\@RFCDATE\@}{$(RFCDATE)}g;	\
 		  print;"			\
