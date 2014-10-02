@@ -542,7 +542,7 @@ int interface_config(struct configfile *cf)
 		  }
 #else
 		  printf("%s:%d ERROR: AX25-DEVICE interfaces are not supported at this system!\n",
-			 cf->name, cf->linenum, param1);
+			 cf->name, cf->linenum);
 		  have_fault = 1;
 #endif
 
