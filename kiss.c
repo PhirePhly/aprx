@@ -241,7 +241,7 @@ static int kissprocess(struct serialport *S)
 		}
 		crc = calc_crc_flex(S->rdline, S->rdlinelen);
 		if (crc != 0x7070) {
-			aprxlog("Received FLEXNET frame with invalid CTC TTY=%s tncid=%d",S->ttyname,tncid);
+			aprxlog("Received FLEXNET frame with invalid CRC TTY=%s tncid=%d",S->ttyname,tncid);
 			if (debug) {
 				printf("%ld\tTTY %s tncid %d: Received FLEXNET frame with invalid CRC %04x: ",
 						tick.tv_sec, S->ttyname, tncid, crc);
