@@ -10,6 +10,17 @@ aprx-stat
 aprx-stat.8
 aprx.8
 
+build-stamp
+configure-stamp
+debian/aprx.debhelper.log
+debian/aprx.logrotate
+debian/aprx.postinst.debhelper
+debian/aprx.postrm.debhelper
+debian/aprx.prerm.debhelper
+debian/aprx.substvars
+debian/changelog
+debian/files
+
 
 *.o
 *.d
