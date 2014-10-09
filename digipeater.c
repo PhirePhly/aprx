@@ -183,7 +183,12 @@ static int match_aliases(const char *via, struct aprx_interface *txif)
         return 0;
 }
 
-static int count_single_tnc2_tracewide(struct viastate *state, const char *viafield, const int istrace, const int matchlen, const int viaindex)
+// Counts the number of requested and consumed hops in an alias
+// and adds those to the viastate->{digireq,digidone,tracereq,tracedone}.
+// returns 1 on horrific failure
+static int count_single_tnc2_tracewide(struct viastate *state,
+		const char *viafield, const int istrace,
+		const int matchlen, const int viaindex)
 {
         const char *p = viafield + matchlen;
         const char reqc = p[0];
@@ -195,95 +200,66 @@ static int count_single_tnc2_tracewide(struct viastate *state, const char *viafi
 
         // Non-matched case, may have H-bit flag
         if (matchlen == 0) {
-          /*
-                state->hopsreq  += 0;
-                state->hopsdone += 0;
-                state->tracereq  += 0;
-                state->tracedone += 0;
-          */
-                state->digireq  += 1;
-                state->digidone += hasHflag;
+                req  = 1;
+                done = hasHflag;
                 if (viaindex == 2 && !hasHflag)
                   state->probably_heard_direct = 1;
                 // if (debug>1) printf(" a[req=%d,done=%d,trace=%d]",0,0,hasHflag);
-                return 0;
+			 goto addtostate;
         }
 
-        // Is the character following matched part one of: [1-7]
+        // Is the character following matched part not [1-7]
         if (!('1' <= reqc && reqc <= '7')) {
                 // Not a digit, this is single matcher..
-                state->hopsreq  += 1;
-                state->hopsdone += hasHflag;
-                if (istrace) {
-                  state->tracereq  += 1;
-                  state->tracedone += hasHflag;
-                }
+                req = 1;
+                done = hasHflag;
+
                 if (viaindex == 2 && !hasHflag)
                   state->probably_heard_direct = 1;
                 // if (debug>1) printf(" d[req=%d,done=%d]",1,hasHflag);
-                return 0;
+			 goto addtostate;
         }
 
         req = reqc - '0';
 
         if (c == '*' && remc == 0) { // WIDE1*
-                state->hopsreq  += req;
-                state->hopsdone += req;
-                if (istrace) {
-                  state->tracereq  += req;
-                  state->tracedone += req;
-                }
+		   done = req;
                 // if (debug>1) printf(" e[req=%d,done=%d]",req,req);
-                return 0;
+		goto addtostate;
         }
         if (c == 0) { // Bogus WIDE1 - uidigi puts these out.
                 state->fixthis = 1;
-                state->hopsreq  += req;
-                state->hopsdone += req;
-                if (istrace) {
-                  state->tracereq  += req;
-                  state->tracedone += req;
-                }
+			 done = req;
                 // if (debug>1) printf(" E[req=%d,done=%d]",req,req);
-                return 0;
+		goto addtostate;
         }
         // Not WIDE1-
         if (c != '-') {
-                state->hopsreq  += 1;
-                state->hopsdone += hasHflag;
-                if (istrace) {
-                  state->tracereq  += 1;
-                  state->tracedone += hasHflag;
-                }
+		   req = 1;
+		   done = hasHflag;
                 // if (debug>1) printf(" f[req=%d,done=%d]",1,hasHflag);
-                return 0;
+		goto addtostate;
         }
 
         // OK, it is "WIDEn-" plus "N"
         if ('0' <= remc  && remc <= '7' && p[3] == 0) {
-          state->hopsreq  += req;
           done = req - (remc - '0');
-          state->hopsdone += done;
           if (done < 0) {
             // Something like "WIDE3-7", which is definitely bogus!
             state->fixall = 1;
             if (viaindex == 2 && !hasHflag)
               state->probably_heard_direct = 1;
-            return 0;
-          }
-          if (istrace) {
-            state->tracereq  += req;
-            state->tracedone += done;
+		  goto addtostate;
           }
           if (viaindex == 2) {
-            if (memcmp("TRACE",viafield,5)==0) // A real "TRACE" in first slot?
+            if (istrace) // A real "TRACE" in first slot?
               state->probably_heard_direct = 1;
 
-            else if (!hasHflag && done == 0) // WIDE3-3 on first slot
+            else if (!hasHflag && done == 0) // WIDE1-1/2-2/3-3/etc on first slot
               state->probably_heard_direct = 1;
           }
           // if (debug>1) printf(" g[req=%d,done=%d%s]",req,done,hasHflag ? ",Hflag!":"");
-          return 0;
+		goto addtostate;
 
         } else if (('8' <= remc && remc <= '9' && p[3] == 0) ||
                    (remc == '1' && '0' <= p[3] && p[3] <= '5' && p[4] == 0)) {
@@ -306,6 +282,16 @@ static int count_single_tnc2_tracewide(struct viastate *state, const char *viafi
           // if (debug>1) printf(" h[req=%d,done=%d]",1,hasHflag);
           return 1;
         }
+
+addtostate:;
+	// We've successfully parsed the field. Update the viastate and return 0
+	state->hopsreq  += req;
+	state->hopsdone += done;
+	if (istrace) {
+		state->tracereq  += req;
+		state->tracedone += done;
+	}
+	return 0;
 }
 
 static int match_transmitter(const char *viafield, const struct digipeater_source *src, const int lastviachar)
