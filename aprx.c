@@ -649,6 +649,7 @@ void rflog(const char *portname, char direction, int discard, const char *tnc2bu
 #endif
 
 		FILE *fp = NULL;
+                const char *p;
 		if (strcmp("-",rflogfile)==0) {
 		  if (debug < 2) return;
 		  fp = stdout;
@@ -669,8 +670,14 @@ void rflog(const char *portname, char direction, int discard, const char *tnc2bu
 		  if (discard > 0) {
 		    fprintf(fp, "#");
 		  }
-		  (void)fwrite( tnc2buf, tnc2len, 1, fp);
-		  (void)fprintf( fp, "\n" );
+                  //replace non printing TNC2 characters in log print
+                  for(p=tnc2buf;p<tnc2buf+tnc2len;p++){
+                    if(*p<0x20 || *p>0x7e)
+                      fprintf(fp,"<0x%02x>",*p);
+                    else
+                      fputc(*p,fp);
+                  }
+                  fputc('\n',fp);
 
 		  if (fp != stdout)
 		    fclose(fp);
