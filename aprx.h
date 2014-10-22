@@ -157,7 +157,6 @@ extern const char *aprsis_login;
 extern int die_now;
 extern const char *mycall;
 extern const char *tocall;
-extern const uint8_t tocall25[7];
 extern float myloc_lat;
 extern float myloc_coslat;
 extern float myloc_lon;
