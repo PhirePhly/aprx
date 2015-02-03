@@ -48,13 +48,10 @@ A rough-cut version of the installation instructions
 For Debian users wanting to compile themselves instead of using
 precompiled binaries:
 
-     $ make make-deb
+	# aptitude install git build-essential debhelper libssl-dev
+	$ git clone https://github.com/PhirePhly/aprx.git
+	$ cd aprx
+	$ ./configure
+	$ make make-deb
+	# dpkg -i ../aprx_....deb
 
-     # dpkg -i aprx_2.07-....deb
-
-
-For RedHat/Fedora users:
-
-    $ make make-rpm
-
-    # rpm -Uvh aprx-2.07.svn###-1.i386.rpm
