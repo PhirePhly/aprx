@@ -193,6 +193,27 @@ aprxlog @VARLOG@/aprx.log
 #   #telem-to-is true # set to 'false' to disable
 #</interface>
 
+# 
+# tcp-device behaves identically to local serial port, but allows
+# access to remote TCP/IP sockets. A common application is remote
+# KISS modems connected to Ethernet-to-serial adapters from suppliers
+# such as Lantronix.
+# It's important that this remote socket is a raw TCP socket and not
+# handle any byte codes as command escapes.
+#
+#   tcp-device    hostname    portnumber  mode
+#     - hostname may be a domain name, IPv4 address, or a IPv6 address
+#     - portnumber is any valid TCP port (1-65535)
+#     - mode is the same as serial-device (KISS, TNC2, etc.)
+#
+
+#<interface>
+#   tcp-device    192.0.2.10  10001    KISS
+#   #callsign     $mycall  # callsign defaults to $mycall
+#   #tx-ok        false    # transmitter enable defaults to false
+#   #telem-to-is  true # set to 'false' to disable
+#</interface>
+
 
 # ***********  Multiple <beacon>  definitions can follow   *********
 <beacon>
