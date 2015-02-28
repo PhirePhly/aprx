@@ -246,6 +246,7 @@ static int count_single_tnc2_tracewide(struct viastate *state,
           done = req - (remc - '0');
           if (done < 0) {
             // Something like "WIDE3-7", which is definitely bogus!
+		  done = 0;
             state->fixall = 1;
             if (viaindex == 2 && !hasHflag)
               state->probably_heard_direct = 1;
