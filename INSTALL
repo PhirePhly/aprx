@@ -2,8 +2,8 @@
           INSTALL of  APRX 2.08
 
 
-Pre-made binary package building system exists for Debian and
-Redhat/Fedora systems.  See details at the end of this file.
+Instructions for how to build Debian apt packages are provided
+at the end of this file
 
 
 A rough-cut version of the installation instructions
@@ -35,11 +35,11 @@ A rough-cut version of the installation instructions
 
   5) Edit the configuration file to match your system:
 
-        # emacs /etc/aprx.conf
+        # $EDITOR /etc/aprx.conf
 
      See the  aprx(8) man-page for more info (man 8 aprx)
 
-  6) Program startup scripts ("init-scripts") exist for
+  6) Program startup scripts ("init-scripts") exist for a
      couple system environments, others may need manual
      adapting.
 
