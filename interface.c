@@ -997,17 +997,17 @@ int interface_config(struct configfile *cf)
  */
 
 void interface_receive_ax25(const struct aprx_interface *aif,
-			    const char *ifaddress, const int is_aprs, const int ui_pid,
-			    const uint8_t *axbuf, const int axaddrlen, const int axlen,
-			    const char    *tnc2buf, const int tnc2addrlen, const int tnc2len)
+		const char *ifaddress, const int is_aprs, const int ui_pid,
+		const uint8_t *axbuf, const int axaddrlen, const int axlen,
+		const char    *tnc2buf, const int tnc2addrlen, const int tnc2len)
 {
 	int i;
 	int digi_like_aprs = is_aprs;
 
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digisourcecount == 0) {
-	  if (debug>1) printf("interface_receive_ax25() no receivers for source %s\n",aif->callsign);
-	  return; // No receivers for this source
+		if (debug>1) printf("interface_receive_ax25() no receivers for source %s\n",aif->callsign);
+		return; // No receivers for this source
 	}
 
 	if (debug) printf("interface_receive_ax25() from %s axlen=%d tnc2len=%d\n",aif->callsign,axlen,tnc2len);
@@ -1016,87 +1016,87 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	// AX.25 address length is missing at least a SRCADDR>DESTADDR
 	if (axaddrlen < 14) return;     
 
-// FIXME: match ui_pid to list of UI PIDs that are treated with similar
-//        digipeat rules as is APRS New-N.
+	// FIXME: match ui_pid to list of UI PIDs that are treated with similar
+	//        digipeat rules as is APRS New-N.
 
 	// ui_pid < 0 means that this frame is not an UI frame at all.
 	if (ui_pid >= 0)  digi_like_aprs = 1; // FIXME: more precise matching?
 
 
 	for (i = 0; i < aif->digisourcecount; ++i) {
-	    struct digipeater_source *digisource = aif->digisources[i];
+		struct digipeater_source *digisource = aif->digisources[i];
 #ifndef DISABLE_IGATE
-            // Transmitter's HistoryDB
-	    historydb_t *historydb = digisource->parent->historydb;
+		// Transmitter's HistoryDB
+		historydb_t *historydb = digisource->parent->historydb;
 #endif
 
-	    // Allocate pbuf, it is born "gotten" (refcount == 1)
-	    struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs,
-                                         tnc2addrlen, tnc2buf, tnc2len,
-                                         axaddrlen, axbuf, axlen);
-	    if (pb == NULL) {
-	      // Urgh!  Can't do a thing to this!
-	      // Likely reason: axlen+tnc2len  > 2100 bytes!
-	      continue;
-	    }
-
-	    pb->source_if_group = aif->ifgroup;
-
-	    // If APRS packet, then parse for APRS meaning ...
-	    if (is_aprs) {
-		int rc = parse_aprs(pb,
-#ifndef DISABLE_IGATE
-				    historydb
-#else
-				    NULL
-#endif
-				    ); // don't look inside 3rd party
-		char *srcif = aif->callsign;
-		if (debug)
-		  printf(".. parse_aprs() rc=%s  type=0x%02x  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
-			 rc ? "OK":"FAIL", pb->packettype, srcif, pb->data, pb->info_start);
-
-		// If there are no filters, permit all packets
-		if (digisource->src_filters != NULL) {
-		  int filter_discard =
-		    filter_process(pb,
-				   digisource->src_filters,
-#ifndef DISABLE_IGATE
-				   historydb // Transmitter HistoryDB
-#else
-				   NULL
-#endif
-				   );
-		  // filter_discard > 0: accept
-		  // filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
-		  // filter_discard < 0: reject
-		  if (debug)
-		    printf("source filtering result: %s\n",
-			   (filter_discard < 0 ? "DISCARD" :
-			    (filter_discard > 0 ? "ACCEPT" : "no-match")));
-
-		  if (filter_discard <= 0) {
-		    pbuf_put(pb);
-		    continue; // allow only explicitly accepted
-		  }
+		// Allocate pbuf, it is born "gotten" (refcount == 1)
+		struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs,
+				tnc2addrlen, tnc2buf, tnc2len,
+				axaddrlen, axbuf, axlen);
+		if (pb == NULL) {
+			// Urgh!  Can't do a thing to this!
+			// Likely reason: axlen+tnc2len  > 2100 bytes!
+			continue;
 		}
 
+		pb->source_if_group = aif->ifgroup;
+
+		// If APRS packet, then parse for APRS meaning ...
+		if (is_aprs) {
+			int rc = parse_aprs(pb,
 #ifndef DISABLE_IGATE
-		// Find out IGATE callsign (if any), and record it on transmitter's historydb.
-		if (pb->packettype & T_THIRDPARTY) {
-		  rx_analyze_3rdparty( historydb, pb );
-		} else {
-		  // Everything else, feed to history-db
-		  historydb_insert_heard( historydb, pb );
-		}
+					historydb
+#else
+					NULL
 #endif
-	    }
+					); // don't look inside 3rd party
+			char *srcif = aif->callsign;
+			if (debug)
+				printf(".. parse_aprs() rc=%s  type=0x%02x  srcif=%s  tnc2addr='%s'  info_start='%s'\n",
+						rc ? "OK":"FAIL", pb->packettype, srcif, pb->data, pb->info_start);
 
-	    // Feed it to digipeater ...
-	    digipeater_receive( digisource, pb);
+			// If there are no filters, permit all packets
+			if (digisource->src_filters != NULL) {
+				int filter_discard =
+					filter_process(pb,
+							digisource->src_filters,
+#ifndef DISABLE_IGATE
+							historydb // Transmitter HistoryDB
+#else
+							NULL
+#endif
+							);
+				// filter_discard > 0: accept
+				// filter_discard = 0: indifferent (not reject, not accept), tx-igate rules as is.
+				// filter_discard < 0: reject
+				if (debug)
+					printf("source filtering result: %s\n",
+							(filter_discard < 0 ? "DISCARD" :
+							 (filter_discard > 0 ? "ACCEPT" : "no-match")));
 
-	    // .. and finally free up the pbuf (if refcount goes to zero)
-	    pbuf_put(pb);
+				if (filter_discard <= 0) {
+					pbuf_put(pb);
+					continue; // allow only explicitly accepted
+				}
+			}
+
+#ifndef DISABLE_IGATE
+			// Find out IGATE callsign (if any), and record it on transmitter's historydb.
+			if (pb->packettype & T_THIRDPARTY) {
+				rx_analyze_3rdparty( historydb, pb );
+			} else {
+				// Everything else, feed to history-db
+				historydb_insert_heard( historydb, pb );
+			}
+#endif
+		}
+
+		// Feed it to digipeater ...
+		digipeater_receive( digisource, pb);
+
+		// .. and finally free up the pbuf (if refcount goes to zero)
+		pbuf_put(pb);
 	}
 }
 
