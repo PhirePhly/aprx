@@ -1007,6 +1007,20 @@ void interface_receive_ax25(const struct aprx_interface *aif,
 	if (aif == NULL) return;         // Not a real interface for digi use
 	if (aif->digisourcecount == 0) {
 		if (debug>1) printf("interface_receive_ax25() no receivers for source %s\n",aif->callsign);
+
+		if (!is_aprs) return;
+		if (debug > 1) printf("  Adding to histroydb anyways...");
+		struct digipeater *digi = digipeater_find_by_iface(aif);
+		if (digi == NULL) return;
+		historydb_t *historydb = digi->historydb;
+		struct pbuf_t *pb = pbuf_new(is_aprs, digi_like_aprs,
+				tnc2addrlen, tnc2buf, tnc2len,
+				axaddrlen, axbuf, axlen);
+		if (pb == NULL) return;
+		pb->source_if_group = aif->ifgroup;
+		parse_aprs(pb, historydb);
+		historydb_insert_heard(historydb, pb);
+		pbuf_put(pb);
 		return; // No receivers for this source
 	}
 

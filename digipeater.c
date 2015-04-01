@@ -1672,6 +1672,18 @@ dupecheck_t *digipeater_find_dupecheck(const struct aprx_interface *aif)
 	return NULL;
 }
 
+struct digipeater* digipeater_find_by_iface(const struct aprx_interface *aif) {
+	int i;
+	for (i = 0; i < digi_count; i++) {
+		if (aif == digis[i]->transmitter)
+			return digis[i];
+	}
+
+	if (debug > 1) printf(" Failed to find digipeater by aprx_interface\n");
+	return NULL;
+}
+
+
 static void digipeater_resettime(void *arg)
 {
 	struct timeval *tv = (struct timeval *)arg;
