@@ -7,6 +7,8 @@
  *                                                                  *
  ********************************************************************/
 /*
+ *	Some parts of this code are copied from:
+ *
  *	aprsc
  *
  *	(c) Matti Aarnio, OH2MQK, <oh2mqk@sral.fi>

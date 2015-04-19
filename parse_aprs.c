@@ -1,4 +1,14 @@
+/********************************************************************
+ *  APRX -- 2nd generation APRS-i-gate with                         *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
+ *                                                                  *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
+ *                                                                  *
+ ********************************************************************/
 /*
+ *	Some parts of this code are copied from:
+ *
  *	aprsc
  *
  *	(c) Heikki Hannikainen, OH7LZB <hessu@hes.iki.fi>
@@ -9,7 +19,7 @@
  */
 
 /*
- *	A simple APRS parser for aprsc. Translated from Ham::APRS::FAP
+ *	A simple APRS parser from aprsc. Translated from Ham::APRS::FAP
  *	perl module (by OH2KKU).
  *
  *	Only needs to get lat/lng out of the packet, other features would
@@ -1101,7 +1111,7 @@ int parse_aprs(struct pbuf_t*const pb, historydb_t*const historydb)
 	 */
 	
 	// ignore the CRLF in the end of the body
-	body_end = pb->data + pb->packet_len; // NOTE! Difference from original aprsc code
+	body_end = pb->data + pb->packet_len;
 
 	do {
 		// body is right after the packet type character

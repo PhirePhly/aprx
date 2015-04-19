@@ -1,4 +1,14 @@
+/********************************************************************
+ *  APRX -- 2nd generation APRS-i-gate with                         *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
+ *                                                                  *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
+ *                                                                  *
+ ********************************************************************/
 /*
+ *	Some parts of this code are copied from:
+ *
  *	aprsc
  *
  *	(c) Heikki Hannikainen, OH7LZB <hessu@hes.iki.fi>
@@ -38,13 +48,13 @@ int log_level = LOG_INFO;	/* Logging level */
 int log_facility = LOG_DAEMON;	/* Logging facility */
 char *log_name = NULL;		/* Logging name */
 
-char log_basename[] = "aprsc.log";
+char log_basename[] = "aprx.log";
 char *log_dir = NULL;		/* Access log directory */
 char *log_fname = NULL;		/* Access log file name */
 int log_file = -1;		/* If logging to a file, the file name */
 rwlock_t log_file_lock = RWL_INITIALIZER;
 
-char accesslog_basename[] = "aprsc.access.log";
+char accesslog_basename[] = "aprx.access.log";
 char *accesslog_dir = NULL;	/* Access log directory */
 char *accesslog_fname = NULL;	/* Access log file name */
 int accesslog_file = -1;	/* Access log fd */
@@ -165,7 +175,7 @@ int open_log(char *name, int reopen)
 		hfree(log_name);
 		
 	if (!(log_name = hstrdup(name))) {
-		fprintf(stderr, "aprsc logger: out of memory!\n");
+		fprintf(stderr, "aprx logger: out of memory!\n");
 		exit(1);
 	}
 	
@@ -181,7 +191,7 @@ int open_log(char *name, int reopen)
 		
 		log_file = open(log_fname, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP);
 		if (log_file < 0) {
-			fprintf(stderr, "aprsc logger: Could not open %s: %s\n", log_fname, strerror(errno));
+			fprintf(stderr, "aprx logger: Could not open %s: %s\n", log_fname, strerror(errno));
 			exit(1);
 		}
 	}
@@ -218,7 +228,7 @@ int close_log(int reopen)
 	} else if (log_dest == L_FILE) {
 		if (log_file >= 0) {
 			if (close(log_file))
-				fprintf(stderr, "aprsc logger: Could not close log file %s: %s\n", log_fname, strerror(errno));
+				fprintf(stderr, "aprx logger: Could not close log file %s: %s\n", log_fname, strerror(errno));
 			log_file = -1;
 		}
 		if (log_fname) {
@@ -265,17 +275,17 @@ int rotate_log(void)
 	tmp = hmalloc(strlen(log_fname) + 6);
 	sprintf(tmp, "%s.tmp", log_fname);
 	if (rename(log_fname, tmp) != 0) {
-		fprintf(stderr, "aprsc logger: Failed to rename %s to %s: %s\n", log_fname, tmp, strerror(errno));
+		fprintf(stderr, "aprx logger: Failed to rename %s to %s: %s\n", log_fname, tmp, strerror(errno));
 		// continue anyway, try to reopen
 	}
 	
 	// reopen
 	if (close(log_file))
-		fprintf(stderr, "aprsc logger: Could not close log file %s: %s\n", log_fname, strerror(errno));
+		fprintf(stderr, "aprx logger: Could not close log file %s: %s\n", log_fname, strerror(errno));
 	
 	log_file = open(log_fname, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP);
 	if (log_file < 0) {
-		fprintf(stderr, "aprsc logger: Could not open %s: %s\n", log_fname, strerror(errno));
+		fprintf(stderr, "aprx logger: Could not open %s: %s\n", log_fname, strerror(errno));
 		log_file = -1;
 	}
 	
@@ -294,7 +304,7 @@ int rotate_log(void)
 	}
 	
 	if (rename(tmp, r1) != 0) {
-		fprintf(stderr, "aprsc logger: Failed to rename %s to %s: %s\n", tmp, r1, strerror(errno));
+		fprintf(stderr, "aprx logger: Failed to rename %s to %s: %s\n", tmp, r1, strerror(errno));
 	}
 	
 	hfree(tmp);
@@ -319,7 +329,7 @@ static int hlog_write(int priority, const char *s)
 		rwl_rdlock(&log_file_lock);
 		fprintf(stderr, "%4d/%02d/%02d %02d:%02d:%02d.%06d %s[%d:%lx] %s: %s\n",
 			lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, (int)tv.tv_usec,
-			(log_name) ? log_name : "aprsc", (int)getpid(), (unsigned long int)pthread_self(), log_levelnames[priority], s);
+			(log_name) ? log_name : "aprx", (int)getpid(), (unsigned long int)pthread_self(), log_levelnames[priority], s);
 		rwl_rdunlock(&log_file_lock);
 		
 	}
@@ -327,11 +337,11 @@ static int hlog_write(int priority, const char *s)
 	if ((log_dest & L_FILE) && (log_file >= 0)) {
 		len = snprintf(wb, LOG_LEN, "%4d/%02d/%02d %02d:%02d:%02d.%06d %s[%d:%lx] %s: %s\n",
 			       lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, (int)tv.tv_usec,
-			       (log_name) ? log_name : "aprsc", (int)getpid(), (unsigned long int)pthread_self(), log_levelnames[priority], s);
+			       (log_name) ? log_name : "aprx", (int)getpid(), (unsigned long int)pthread_self(), log_levelnames[priority], s);
 		wb[LOG_LEN-1] = 0;
 		rwl_rdlock(&log_file_lock);
 		if ((w = write(log_file, wb, len)) != len)
-			fprintf(stderr, "aprsc logger: Could not write to %s (fd %d): %s\n", log_fname, log_file, strerror(errno));
+			fprintf(stderr, "aprx logger: Could not write to %s (fd %d): %s\n", log_fname, log_file, strerror(errno));
 		rwl_rdunlock(&log_file_lock);
 		
 		if (log_rotate_size) {

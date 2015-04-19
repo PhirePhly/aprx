@@ -1,4 +1,14 @@
+/********************************************************************
+ *  APRX -- 2nd generation APRS-i-gate with                         *
+ *          minimal requirement of esoteric facilities or           *
+ *          libraries of any kind beyond UNIX system libc.          *
+ *                                                                  *
+ * (c) Matti Aarnio - OH2MQK,  2007-2014                            *
+ *                                                                  *
+ ********************************************************************/
 /*
+ *	Some parts of this code are copied from:
+ *
  *	aprsc
  *
  *	(c) Heikki Hannikainen, OH7LZB <hessu@hes.iki.fi>

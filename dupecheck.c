@@ -12,8 +12,7 @@
 
 /*
  *	Some parts of this code are copied from:
- */
-/*
+ *
  *	aprsc
  *
  *	(c) Heikki Hannikainen, OH7LZB <hessu@hes.iki.fi>
