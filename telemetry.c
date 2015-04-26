@@ -179,8 +179,8 @@ static void telemetry_datatx(void)
 		    erlmax = E->e10[k].bytes_rx;
 		}
 #endif
-		f = (200.0 * erlcapa * erlmax);
-		s += sprintf(s, "%.1f,", f);
+		f = (2000.0 * erlcapa * erlmax);
+		s += sprintf(s, "%.0f,", f);
 		
 		// Raw Tx Erlang - plotting scale factor: 1/200
 		erlmax = 0;
@@ -213,8 +213,8 @@ static void telemetry_datatx(void)
 		    erlmax = E->e10[k].bytes_tx;
 		}
 #endif
-		f = (200.0 * erlcapa * erlmax);
-		s += sprintf(s, "%.1f,", f);
+		f = (2000.0 * erlcapa * erlmax);
+		s += sprintf(s, "%.0f,", f);
 
 		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
@@ -243,8 +243,8 @@ static void telemetry_datatx(void)
 		  erlmax += E->e10[k].packets_rx;
 		}
 #endif
-		f = erlmax / telemetry_timescaler;
-		s += sprintf(s, "%.1f,", f);
+		f = 10.0 * erlmax / telemetry_timescaler;
+		s += sprintf(s, "%.0f,", f);
 
 		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
@@ -272,8 +272,8 @@ static void telemetry_datatx(void)
 		  erlmax += E->e10[k].packets_rxdrop;
 		}
 #endif
-		f = erlmax / telemetry_timescaler;
-		s += sprintf(s, "%.1f,", f);
+		f = 10.0 * erlmax / telemetry_timescaler;
+		s += sprintf(s, "%.0f,", f);
 
 		erlmax = 0;
 #if (USE_ONE_MINUTE_DATA == 1)
@@ -301,8 +301,8 @@ static void telemetry_datatx(void)
 		  erlmax += E->e10[k].packets_tx;
 		}
 #endif
-		f = erlmax / telemetry_timescaler;
-		s += sprintf(s, "%.1f,", f);
+		f = 10.0 * erlmax / telemetry_timescaler;
+		s += sprintf(s, "%.0f,", f);
 		
 		/* Tail filler */
 		s += sprintf(s, "00000000");  // FIXME: flag telemetry?
@@ -372,7 +372,7 @@ static void telemetry_labeltx()
                 case 2:
 		  
 		  s = buf+2 + sprintf(buf+2,
-				      ":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
+				      ":%-9s:EQNS.0,0.0005,0,0,0.0005,0,0,0.1,0,0,0.1,0,0,0.1,0",
 				      E->name);
                   break;
                 default:
