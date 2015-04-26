@@ -337,7 +337,7 @@ static void beacon_set(struct configfile *cf,
 			str = config_SKIPSPACE(str);
 			if (strlen(code) != 2) {
 			  has_fault = 1;
-			  printf("Symbol code lenth is not exactly 2 chars\n");
+			  printf("Symbol code length is not exactly 2 chars\n");
 			}
 
 			if (debug)
