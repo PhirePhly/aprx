@@ -169,7 +169,6 @@ extern const char *swname;
 extern const char *swversion;
 
 extern void timetick(void);
-extern struct timeval now; // Public wall lock time that can jump around
 extern struct timeval tick;  // Monotonic clock, progresses regularly from boot. NOT wall clock time.
 extern int time_reset;      // Set during ONE call cycle of prepolls
 extern int debug;
