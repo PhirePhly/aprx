@@ -254,8 +254,8 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 // APRS-IS communicator
 static void aprsis_reconnect(struct aprsis *A)
 {
-	struct addrinfo req, *ai, *a, *ap[21];
-	int i, n;
+	struct addrinfo req, *ai, *a;
+	int i;
 	char *s;
 	char aprsislogincmd[3000];
 	const char *errstr;
@@ -286,11 +286,7 @@ static void aprsis_reconnect(struct aprsis *A)
 	req.ai_socktype = SOCK_STREAM;
 	req.ai_protocol = IPPROTO_TCP;
 	req.ai_flags = 0;
-#if 1
-	req.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 are both OK */
-#else
-	req.ai_family = AF_INET;	/* IPv4 only */
-#endif
+	req.ai_family = AF_UNSPEC;
 	ai = NULL;
 
 
@@ -313,27 +309,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		return;
 	}
 
-	/* Count the addresses */
-	memset(ap, 0, sizeof(ap));
-	for (n = 0, a = ai; a; a = a->ai_next, ++n) {
-		if (n < 20)
-			ap[n] = a;
-		else
-			break;
-	}
-	ap[n] = NULL;
-
-	if (n > 1) {		/* more than one ?  choose one at random as the first address,
-				   then go through the address list in new sequence. */
-		n = rand() % n;
-		if (n > 0) {
-			a = ap[n];
-			ap[n] = ap[0];
-			ap[0] = a;
-		}
-	}
-
-	for (n = 0; (a = ap[n]) && A->server_socket < 0; ++n) {
+	for (a = ai; (a = a->ai_next) && A->server_socket < 0;) {
 
 		errstr = "socket formation failed";
 
