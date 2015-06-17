@@ -153,6 +153,9 @@ char *config_SKIPTEXT(char *Y, int *lenp)
 					i = (int) strtol(hx, NULL, 16);
 					*O++ = i;
 					++len;
+				} else {
+					*O++ = '\\';
+					*O++ = *Y;
 				}
 			} else {
 				*O++ = *Y;
