@@ -309,7 +309,7 @@ static void aprsis_reconnect(struct aprsis *A)
 		return;
 	}
 
-	for (a = ai; (a = a->ai_next) && A->server_socket < 0;) {
+	for (a = ai; (a != NULL) && (A->server_socket < 0); a = a->ai_next) {
 
 		errstr = "socket formation failed";
 
