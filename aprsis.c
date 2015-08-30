@@ -1248,7 +1248,7 @@ int aprsis_config(struct configfile *cf)
                 }
 
 		AISh = realloc(AISh, sizeof(AISh[0]) * (AIShcount + 1));
-		AISh[AIShcount] = AIH;
+		AISh[AIShcount++] = AIH;
 	}
 	return has_fault;
 }
