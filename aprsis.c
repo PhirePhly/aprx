@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <signal.h>
 
 #ifdef HAVE_NETINET_SCTP_H
@@ -255,11 +256,13 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 static void aprsis_reconnect(struct aprsis *A)
 {
 	struct addrinfo req, *ai, *a;
-	int i;
+	int i,opts;
 	char *s;
 	char aprsislogincmd[3000];
 	const char *errstr;
 	int errcode;
+	fd_set fdset;
+	struct timeval tv;
 
 	memset(aprsislogincmd, 0, sizeof(aprsislogincmd)); // please valgrind
 
@@ -318,14 +321,53 @@ static void aprsis_reconnect(struct aprsis *A)
 			       a->ai_protocol);
 		errcode = errno;
 
-		if (A->server_socket < 0)
+		if (A->server_socket < 0) {
+			if(debug) printf("aprsis failed to open socket.\n");
 			continue;
+		}
 
+		if(debug) {
+			char addrstr[100];
+			void *ptr;
+			inet_ntop (a->ai_family, a->ai_addr->sa_data, addrstr, 100);
+			switch (a->ai_family) {
+				case AF_INET:
+				  ptr = &((struct sockaddr_in *) a->ai_addr)->sin_addr;
+				  break;
+				case AF_INET6:
+				  ptr = &((struct sockaddr_in6 *) a->ai_addr)->sin6_addr;
+				  break;
+			}
+			inet_ntop (a->ai_family, ptr, addrstr, 100);
+
+			printf("aprsis connection attempt IPv%d address: %s\n", a->ai_family == PF_INET6 ? 6 : 4, addrstr);
+		}
 		errstr = "connection failed";
-		i = connect(A->server_socket, a->ai_addr, a->ai_addrlen);
-		errcode = errno;
 
+		opts = fcntl(A->server_socket, F_GETFL);
+		opts |= O_NONBLOCK;
+		fcntl(A->server_socket, F_SETFL, opts);
+		FD_ZERO(&fdset);
+		FD_SET(A->server_socket, &fdset);
+		tv.tv_sec=20;
+		tv.tv_usec=0;
+
+		connect(A->server_socket, a->ai_addr, a->ai_addrlen);
+		i=-1;
+
+		if(select(A->server_socket+1, NULL, &fdset, NULL, &tv) ==1) {
+			int so_error;
+			socklen_t len = sizeof(so_error);
+			getsockopt(A->server_socket, SOL_SOCKET, SO_ERROR, &so_error, &len);
+			i=so_error;
+		}
+		opts = fcntl(A->server_socket, F_GETFL);
+		opts &= ~O_NONBLOCK;
+		fcntl(A->server_socket, F_SETFL, opts);
+
+		errcode = errno;
 		if (i < 0) {
+			if(debug) printf("aprsis connection failed.\n");
 			/* If connection fails, try next possible address */
 			close(A->server_socket);
 			A->server_socket = -1;
