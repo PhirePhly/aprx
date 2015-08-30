@@ -48,7 +48,7 @@ MANDIR:=$(strip $(MANDIR))
 
 # generate version strings
 
-VERSION	= $(shell git describe --tags | cut -b 2-)
+VERSION	= $(shell (git describe --tags || echo -n v; cat VERSION) | cut -b 2-)
 #VERSION	= @VERSION_STRING@
 
 DATE:=$(shell date +"%Y %B %d")
