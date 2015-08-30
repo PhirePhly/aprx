@@ -295,6 +295,8 @@ static int erlang_backingstore_open(int do_create)
 		       "Open of '%s' for erlang_backingstore file failed!  errno=%d: %s",
 		       erlang_backingstore, errno, strerror(errno));
 		erlang_data_is_nonshared = 1;
+	} else {
+		erlang_data_is_nonshared = 0;
 	}
 #endif
 	return erlang_backingstore_grow(do_create, 0);	/* Just open */
