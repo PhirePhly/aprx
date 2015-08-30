@@ -318,14 +318,34 @@ static void aprsis_reconnect(struct aprsis *A)
 			       a->ai_protocol);
 		errcode = errno;
 
-		if (A->server_socket < 0)
+		if (A->server_socket < 0) {
+			if (debug) printf("aprsis failed to open socket.\n");
 			continue;
+		}
+
+		if(debug) {
+			char addrstr[INET6_ADDRSTRLEN];
+			void *sin_ptr = NULL;
+			switch (a->ai_family) {
+				case AF_INET:
+					sin_ptr = &((struct sockaddr_in *) a->ai_addr)->sin_addr;
+					break;
+				case AF_INET6:
+					sin_ptr = &((struct sockaddr_in6 *) a->ai_addr)->sin6_addr;
+					break;
+			}
+			inet_ntop (a->ai_family, sin_ptr, addrstr, INET6_ADDRSTRLEN);
+
+			printf("aprsis connection attempt IPv%d address: %s\n",
+					(a->ai_family == PF_INET6) ? 6 : 4, addrstr);
+		}
 
 		errstr = "connection failed";
 		i = connect(A->server_socket, a->ai_addr, a->ai_addrlen);
 		errcode = errno;
 
 		if (i < 0) {
+			if (debug) printf("aprsis connection failed.\n");
 			/* If connection fails, try next possible address */
 			close(A->server_socket);
 			A->server_socket = -1;
