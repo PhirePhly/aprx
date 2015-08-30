@@ -18,6 +18,7 @@ int erlangout;
 int epochtime;
 const char *aprxlogfile;	/* linkage dummy */
 const char *mycall;		/* linkage dummy */
+struct timeval now; // public wall clock that can jump around
 
 #ifdef ERLANGSTORAGE
 
