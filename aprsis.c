@@ -327,19 +327,18 @@ static void aprsis_reconnect(struct aprsis *A)
 		}
 
 		if(debug) {
-			char addrstr[100];
-			void *ptr;
-			inet_ntop (a->ai_family, a->ai_addr->sa_data, addrstr, 100);
+			char addrstr[INET6_ADDRSTRLEN];
 			switch (a->ai_family) {
 				case AF_INET:
-				  ptr = &((struct sockaddr_in *) a->ai_addr)->sin_addr;
+				  inet_ntop(AF_INET, &((struct sockaddr_in *) a->ai_addr)->sin_addr, addrstr, INET6_ADDRSTRLEN);
 				  break;
 				case AF_INET6:
-				  ptr = &((struct sockaddr_in6 *) a->ai_addr)->sin6_addr;
+				  inet_ntop(AF_INET6, &((struct sockaddr_in6 *) a->ai_addr)->sin6_addr;, addrstr, INET6_ADDRSTRLEN);
+				  break;
+				default:
+				  strncpy(addrstr,"Unknown IP",INET6_ADDRSTRLEN);
 				  break;
 			}
-			inet_ntop (a->ai_family, ptr, addrstr, 100);
-
 			printf("aprsis connection attempt IPv%d address: %s\n", a->ai_family == PF_INET6 ? 6 : 4, addrstr);
 		}
 		errstr = "connection failed";
