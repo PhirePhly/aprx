@@ -265,8 +265,8 @@ static void aprsis_reconnect(struct aprsis *A)
 
 	aprsis_close(A, "reconnect");
 
-	if (!A->H) {
-		A->H = AISh[0];
+	if (A->H == NULL) {
+		A->H = AISh[AIShindex=0];
 	} else {
 		++AIShindex;
 		if (AIShindex >= AIShcount)
