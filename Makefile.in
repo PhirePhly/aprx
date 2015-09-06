@@ -48,7 +48,7 @@ MANDIR:=$(strip $(MANDIR))
 
 # generate version strings
 
-VERSION	= $(shell git describe --tags || echo @VERSION_STRING@ | cut -b 2-)
+VERSION	= $(shell git describe --tags | cut -b 2- || echo @VERSION_STRING@ | cut -b 2-)
 
 DATE:=$(shell date +"%Y %B %d")
 RFCDATE:=$(shell date +"%a, %d %b %Y %H:%M:%S %z")
