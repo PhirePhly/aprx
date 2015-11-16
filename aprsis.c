@@ -207,7 +207,6 @@ void *gpio_thread (void *arg) {
 		}
 
 		/* blink the led */
-printf("(%d)\n",rxtx);
 		write(fd, "1", 1);
 		usleep(50000);
 		write(fd, "0", 1);
@@ -372,11 +371,13 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 		A->wrbuf_cur += i;
 		if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all ! */
 			A->wrbuf_cur = A->wrbuf_len = 0;
-			
-			/* blink the tx led */
-			pthread_mutex_lock(&gpio.tx_mutex);
-			pthread_cond_signal(&gpio.tx_cond);
-			pthread_mutex_unlock(&gpio.tx_mutex);
+
+			if (gpio.enabled == 1) {			
+				/* blink the tx led */
+				pthread_mutex_lock(&gpio.tx_mutex);
+				pthread_cond_signal(&gpio.tx_cond);
+				pthread_mutex_unlock(&gpio.tx_mutex);
+			}
 		}
 	}
 
@@ -570,10 +571,12 @@ static int aprsis_sockreadline(struct aprsis *A)
 	A->rdbuf_cur = 0;
 	A->rdbuf_len = 0;	/* we ignore line reading */
 
-	/* blink the rx led */
-	pthread_mutex_lock(&gpio.rx_mutex);
-	pthread_cond_signal(&gpio.rx_cond);
-	pthread_mutex_unlock(&gpio.rx_mutex);
+	if (gpio.enabled == 1) {
+		/* blink the rx led */
+		pthread_mutex_lock(&gpio.rx_mutex);
+		pthread_cond_signal(&gpio.rx_cond);
+		pthread_mutex_unlock(&gpio.rx_mutex);
+	}
 
 	return 0;		/* .. this is placeholder.. */
 }
@@ -898,7 +901,7 @@ static void aprsis_main(void)
 	signal(SIGPIPE, SIG_IGN);
 #endif
 
-	gpio_init();
+	if (gpio.enabled == 1) gpio_init();
 
 	/* The main loop */
 	while (!die_now) {
