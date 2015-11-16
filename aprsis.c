@@ -75,6 +75,19 @@ struct aprsis {
 	char rdline[500];
 };
 
+struct gpio_s {
+	int enabled;
+	int tx;
+	int rx;
+	pthread_t tx_thread;
+	pthread_t rx_thread;
+	pthread_mutex_t tx_mutex;
+	pthread_mutex_t rx_mutex;
+	pthread_cond_t tx_cond;
+	pthread_cond_t rx_cond;
+};
+
+static struct gpio_s gpio; 
 char * const aprsis_loginid;
 static struct aprsis *AprsIS;
 static struct aprsis_host **AISh;
@@ -92,6 +105,128 @@ static int aprsis_down = -1;	/* down talking socket(pair),
 
 extern int log_aprsis;
 extern int die_now;
+
+void export_gpio(int gpio) {
+	int fd;
+	char stemp[80];
+	struct stat finfo;
+	int err;
+
+	fd = open("/sys/class/gpio/export", O_WRONLY);
+	if (fd < 0) {
+	  printf ("Permissions do not allow ordinary users to access GPIO.\n");
+	  printf ("Log in as root and type this command:\n");
+	  printf ("    chmod go+w /sys/class/gpio/export /sys/class/gpio/unexport\n");
+	  exit (1);
+	}
+	sprintf (stemp, "%d", gpio);
+	if (write (fd, stemp, strlen(stemp)) != strlen(stemp)) {
+	  int e = errno;
+	  /* Ignore EBUSY error which seems to mean */
+	  /* the device node already exists. */
+	  if (e != EBUSY) {
+	    printf ("Error writing \"%s\" to /sys/class/gpio/export, errno=%d\n", stemp, e);
+	    printf ("%s\n", strerror(e));
+	    exit (1);
+	  }
+	}
+	close (fd);
+
+/*
+ * We will have the same permission problem if not root.
+ * We only care about "direction" and "value".
+ */
+	sprintf (stemp, "sudo chmod go+rw /sys/class/gpio/gpio%d/direction", gpio);
+	err = system (stemp);
+	sprintf (stemp, "sudo chmod go+rw /sys/class/gpio/gpio%d/value", gpio);
+	err = system (stemp);
+
+	sprintf (stemp, "/sys/class/gpio/gpio%d/value", gpio);
+
+	if (stat(stemp, &finfo) < 0) {
+	  int e = errno;
+	  printf ("Failed to get status for %s \n", stemp);
+	  printf ("%s\n", strerror(e));
+	  exit (1);
+	}
+
+	if (geteuid() != 0) {
+	  if ( ! (finfo.st_mode & S_IWOTH)) {
+	    printf ("Permissions do not allow ordinary users to access GPIO.\n");
+	    printf ("Log in as root and type these commands:\n");
+	    printf ("    chmod go+rw /sys/class/gpio/gpio%d/direction", gpio);
+	    printf ("    chmod go+rw /sys/class/gpio/gpio%d/value", gpio);
+	    exit (1);
+	  }
+	}
+
+/*
+ * Set direction and initial value.
+ */
+
+	sprintf (stemp, "/sys/class/gpio/gpio%d/direction", gpio);
+	fd = open(stemp, O_WRONLY);
+	if (fd < 0) {
+	  int e = errno;
+	  printf ("Error opening %s\n", stemp);
+	  printf ("%s\n", strerror(e));
+	  exit (1);
+	}
+
+	char gpio_val[4];
+	strcpy (gpio_val, "low");
+
+	if (write (fd, gpio_val, strlen(gpio_val)) != strlen(gpio_val)) {
+	  int e = errno;
+	  printf ("Error writing direction to %s\n", stemp);
+	  printf ("%s\n", strerror(e));
+	  exit (1);
+	}
+	close (fd);
+}
+
+void *gpio_thread (void *arg) {
+	int rxtx = (int)arg;
+	int fd;
+
+	/* open the gpio file */
+        char stemp[80];
+        sprintf(stemp, "/sys/class/gpio/gpio%d/value", (rxtx == 0 ? gpio.tx : gpio.rx));
+        fd = open(stemp, O_WRONLY);
+
+	for (;;) {
+		/* wait for the main thread to signal us */
+		if (rxtx == 0) {
+			pthread_mutex_lock(&gpio.tx_mutex);
+			pthread_cond_wait(&gpio.tx_cond, &gpio.tx_mutex);
+			pthread_mutex_unlock(&gpio.tx_mutex);
+		} else {
+			pthread_mutex_lock(&gpio.rx_mutex);
+			pthread_cond_wait(&gpio.rx_cond, &gpio.rx_mutex);
+			pthread_mutex_unlock(&gpio.rx_mutex);
+		}
+
+		/* blink the led */
+printf("(%d)\n",rxtx);
+		write(fd, "1", 1);
+		usleep(50000);
+		write(fd, "0", 1);
+	}
+}
+
+void gpio_init(void) {
+	export_gpio(gpio.tx);
+	export_gpio(gpio.rx);
+	
+	pthread_mutex_init(&gpio.tx_mutex, NULL);
+	pthread_mutex_init(&gpio.rx_mutex, NULL);
+	pthread_cond_init(&gpio.tx_cond, NULL);
+	pthread_cond_init(&gpio.rx_cond, NULL);
+	int i = 0;
+	pthread_create(&gpio.tx_thread, NULL, gpio_thread, (void *)i);
+	i = 1;
+	pthread_create(&gpio.rx_thread, NULL, gpio_thread, (void *)i);
+}
 
 void aprsis_init(void)
 {
@@ -237,6 +372,11 @@ static int aprsis_queue_(struct aprsis *A, const char * const addr, const char q
 		A->wrbuf_cur += i;
 		if (A->wrbuf_cur >= A->wrbuf_len) {	/* Wrote all ! */
 			A->wrbuf_cur = A->wrbuf_len = 0;
+			
+			/* blink the tx led */
+			pthread_mutex_lock(&gpio.tx_mutex);
+			pthread_cond_signal(&gpio.tx_cond);
+			pthread_mutex_unlock(&gpio.tx_mutex);
 		}
 	}
 
@@ -429,6 +569,12 @@ static int aprsis_sockreadline(struct aprsis *A)
 	}
 	A->rdbuf_cur = 0;
 	A->rdbuf_len = 0;	/* we ignore line reading */
+
+	/* blink the rx led */
+	pthread_mutex_lock(&gpio.rx_mutex);
+	pthread_cond_signal(&gpio.rx_cond);
+	pthread_mutex_unlock(&gpio.rx_mutex);
+
 	return 0;		/* .. this is placeholder.. */
 }
 
@@ -751,6 +897,8 @@ static void aprsis_main(void)
 	signal(SIGHUP, sig_handler);
 	signal(SIGPIPE, SIG_IGN);
 #endif
+
+	gpio_init();
 
 	/* The main loop */
 	while (!die_now) {
@@ -1235,7 +1383,12 @@ int aprsis_config(struct configfile *cf)
 			 cf->name, cf->linenum, param1);
 		    has_fault = 1;
 		  }
-
+		} else if (strcmp(name, "gpio_tx") == 0) {
+		  gpio.enabled = 1;
+		  gpio.tx = atoi(param1);
+		} else if (strcmp(name, "gpio_rx") == 0) {
+		  gpio.enabled = 1;
+		  gpio.rx = atoi(param1);
 		} else	{
 		  printf("%s:%d: ERROR: Unknown configuration keyword in <aprsis> block: '%s'\n",
 			 cf->name, cf->linenum, name);
