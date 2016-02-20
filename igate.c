@@ -501,8 +501,6 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	char  *headsbuf;
 	int    headscount = 0;
 //	char  *s;
-	char  *fromcall  = NULL;
-	char  *origtocall = NULL;
 
 	if (ax25[0] == '#') {  // Comment line, timer tick, something such...
           aprsis_commentframe(ax25, ax25len);
@@ -549,8 +547,6 @@ void igate_from_aprsis(const char *ax25, int ax25len)
 	  return;
 	}
 
-	fromcall   = heads[0];
-	origtocall = heads[1];
 	for (i = 0; i < headscount; ++i) {
 	  /* 3) */
 	  if (forbidden_to_gate_addr(heads[i])) {
