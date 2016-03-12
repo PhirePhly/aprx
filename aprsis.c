@@ -18,6 +18,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <arpa/inet.h>
 
 #ifdef HAVE_NETINET_SCTP_H
 #include <netinet/sctp.h>
