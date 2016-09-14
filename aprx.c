@@ -34,7 +34,7 @@ float myloc_lon;
 const char *myloc_latstr;
 const char *myloc_lonstr;
 
-const char *tocall = "APRX28";
+const char *tocall = "APRX29";
 
 #ifndef CFGFILE
 #define CFGFILE "/etc/aprx.conf"
