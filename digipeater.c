@@ -1403,12 +1403,12 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 				if (debug) printf(" TRACE overgrows the VIA fields! Discard.\n");
 				return;
 			}
-			memmove(axaddr+AX25ADDRLEN, axaddr, taillen);
-			state.ax25addrlen += AX25ADDRLEN;
 
-			newssid = decrement_ssid(axaddr+AX25ADDRLEN);
-			if (newssid <= 0)
-				axaddr[2*AX25ADDRLEN-1] |= AX25HBIT; // Set H-bit
+			newssid = decrement_ssid(axaddr);
+			if (newssid > 0) {
+				memmove(axaddr+AX25ADDRLEN, axaddr, taillen);
+				state.ax25addrlen += AX25ADDRLEN;
+			}
 			// Put the transmitter callsign in, and set the H-bit.
 			memcpy(axaddr, digi->transmitter->ax25call, AX25ADDRLEN);
 			axaddr[AX25ADDRLEN-1] |= AX25HBIT; // Set H-bit
