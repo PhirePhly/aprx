@@ -530,7 +530,7 @@ static void aprsis_readup(void)
 	if (textlen <= 2) {
 		return;		// BAD!
 	}
-	if ((text + textlen) > (buf + i)) {
+	if ((text + textlen) > (buf + recv_len)) {
 		return;		// BAD!
 	}
 
