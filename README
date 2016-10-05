@@ -1,7 +1,7 @@
 
 		APRX    v2.9
 
-A multitalented APRS / DPRS / APRSIS "i-gate" with following properties:
+A multitalented APRS i-gate / digipeater
 
    Config file (-f option) default is:  /etc/aprx.conf
    Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
@@ -12,7 +12,7 @@ A multitalented APRS / DPRS / APRSIS "i-gate" with following properties:
    - Can do APRS New-N and generic AX.25 node digipeater functionality
      with transmitters
 
-   - Has same-channel Viscous Digipeater functionality to not to digipeat
+   - Has same-channel Viscous Digipeater functionality to not digipeat
      at all, if during initial wait period the packet is heard again.
 
    - Has cross-interface Viscous Digipeater functionality to not to digipeat,
@@ -68,19 +68,16 @@ A multitalented APRS / DPRS / APRSIS "i-gate" with following properties:
      port, but only for ports with valid AX.25 callsigns. See aprx-manual.pdf
 
    - The netbeacons are distributed timewise more evenly around the interval,
-     and even the interval length is varied at random in between 20 and 30
-     minutes.  Number of netbeacons are unlimited, but their minimum transmit
-     interval is 3 seconds making the amount of beacons sendable in 20 minutes
-     to be: 20*60/3 = 400.  All will be sent, but the cycle will just take
-     longer.
+     and even the interval length is varied at random to statistically spread
+     out traffic.  Number of netbeacons are unlimited, but their minimum
+     transmit interval is 3 seconds making the amount of beacons sendable in
+     20 minutes to be: 20*60/3 = 400.  All will be sent, but the cycle will
+     just take longer.
 
-   - Source code is at SVN repository:   http://repo.ham.fi/svn/aprx
-   - A Wiki page of this package:        http://wiki.ham.fi/Aprx.en
+   - Project homepage: http://thelifeofkenneth.com/aprx
+   - Source code repository: https://github.com/PhirePhly/aprx/
    - A google-group for Aprx:   http://groups.google.com/group/aprx-software
-
-   - This program is also compilable as "EMBEDDED" target without
-     any statistics buffer required at the system disk (or RAM-disk).
-     See the INSTALL file.
 
 
 by Matti Aarnio - OH2MQK - oh2mqk-at-sral-fi - 2007-2014
+by Kenneth W. Finnegan - W6KWF - kennethfinnegan2007-at-gmail.com - 2014-
