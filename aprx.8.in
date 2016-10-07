@@ -1,5 +1,4 @@
 .TH aprx 8 "@DATEVERSION@"
-.LO 8
 .SH NAME
 .B Aprx-2
 \- An APRS iGate application with integrated Digipeater.
@@ -20,7 +19,7 @@ infrastructure services for APRS protocol use.
 .PP
 A more detailed manual is available at:
 .br
-http://ham.zmailer.org/oh2mqk/aprx/aprx-manual.pdf
+http://thelifeofkenneth.com/aprx/aprx-manual.pdf
 .PP
 .SH FEATURES
 The Aprx begun as a receive-only APRS iGate application with minimum system
@@ -329,7 +328,7 @@ mycall  N0CALL-1
 # Unique code for your callsign to allow transmitting packets
 # into the APRS-IS.
 #
-passcode -1
+passcode \-1
 
 
 
@@ -1403,9 +1402,9 @@ Couple web sites:
 .br
 .IR "http://www.aprs-is.net/" ,
 .br
-.IR "http://wiki.ham.fi/Aprx.en" ,
+.IR "http://thelifeofkenneth.com/aprx/" ,
 .br
-.I "http://ham.zmailer.org/oh2mqk/aprx/aprx-manual.pdf"
+.I "http://thelifeofkenneth.com/aprx/aprx-manual.pdf"
 .PP
 .BR aprx-stat (8)
 
