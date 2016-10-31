@@ -4,7 +4,7 @@
 A multitalented APRS i-gate / digipeater
 
    Config file (-f option) default is:  /etc/aprx.conf
-   Other runtime options are: -v,  -d,  -h/-?  (verbout, debug and help)
+   Other runtime options are: -v,  -d,  -h/-?  (verbose, debug and help)
 
    - Rx-IGate functionality works correctly
    - Tx-IGate functionality works correctly
