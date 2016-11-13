@@ -1405,6 +1405,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 			}
 
 			newssid = decrement_ssid(axaddr);
+			int alias_aterm = axaddr[AX25ADDRLEN-1] & AX25ATERM;
 			if (newssid > 0) {
 				memmove(axaddr+AX25ADDRLEN, axaddr, taillen);
 				state.ax25addrlen += AX25ADDRLEN;
@@ -1412,6 +1413,9 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 			// Put the transmitter callsign in, and set the H-bit.
 			memcpy(axaddr, digi->transmitter->ax25call, AX25ADDRLEN);
 			axaddr[AX25ADDRLEN-1] |= AX25HBIT; // Set H-bit
+			if (newssid <= 0) { // Copy over the ATERM bit if we dropped it
+				axaddr[AX25ADDRLEN-1] |= alias_aterm;
+			}
 
 		} else if (viastate.hopsreq > viastate.hopsdone) {
 			// If configuration didn't process "WIDE" et.al. as
