@@ -1468,11 +1468,11 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 		}
 		digi->tokenbucket -= 1.0;
 
+		// Log outgoing traffic to the RF log
 		if (pb->is_aprs && rflogfile) {
 			int t2l2;
-			// Essentially Debug logging.. to file
 
-			if (sizeof(tbuf) - pb->ax25datalen > t2l && t2l > 0) {
+			if (sizeof(tbuf) > t2l + pb->ax25datalen && t2l > 0) {
 				// Have space for body too, skip leading Ctrl+PID bytes
 				memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skiped
 				t2l2 = t2l + pb->ax25datalen-2; // tbuf size sans Ctrl+PID
