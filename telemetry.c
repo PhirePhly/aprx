@@ -26,7 +26,6 @@ static int telemetry_10min_steps = 2;
 static struct timeval telemetry_time;
 static struct timeval telemetry_labeltime;
 static int telemetry_seq;
-static int telemetry_params;
 
 
 struct rftelemetry {
@@ -325,7 +324,6 @@ static void telemetry_datatx(void) {
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 
 	}
-	++telemetry_params;
 }
 
 // Telemetry Labels are transmitted separately
@@ -392,7 +390,6 @@ static void telemetry_labeltx()
 #endif
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 	}
-	++telemetry_params;
 
 	// Switch to the next label-index..
 	telemetry_labelindex = (telemetry_labelindex + 1) % 3;
