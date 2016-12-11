@@ -341,7 +341,6 @@ static void telemetry_labeltx()
 	}
 
 
-	telemetry_seq = (telemetry_seq + 1) % 1000;
 	for (i = 0; i < ErlangLinesCount; ++i) {
 		struct erlangline *E = ErlangLines[i];
 		struct aprx_interface *sourceaif = find_interface_by_callsign(E->name);
