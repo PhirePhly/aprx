@@ -364,13 +364,16 @@ static void telemetry_labeltx()
 						E->name);
 				break;
 			case 2:
-
 				s = s + sprintf(s,
 						":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 						E->name);
 				break;
+			case 3:
+				s = s + sprintf(s,
+						":%-9s:BITS.11111111%s",
+						E->name, swversion);
+				break;
 			default:
-				s = buf+2;
 				break;
 		}
 
@@ -390,8 +393,8 @@ static void telemetry_labeltx()
 		rf_telemetry(sourceaif, beaconaddr, buf, buflen);
 	}
 
-	// Switch to the next label-index..
-	telemetry_labelindex = (telemetry_labelindex + 1) % 3;
+	// Switch to the next label-index modulo the number of different formatters
+	telemetry_labelindex = (telemetry_labelindex + 1) % 4;
 }
 
 /*
