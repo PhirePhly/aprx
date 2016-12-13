@@ -370,7 +370,7 @@ static void telemetry_labeltx()
 				break;
 			case 3:
 				s = s + sprintf(s,
-						":%-9s:BITS.11111111%s",
+						":%-9s:BITS.11111111,Aprx v%s",
 						E->name, swversion);
 				break;
 			default:
