@@ -164,7 +164,17 @@ static int match_tracewide(const char *via, const struct tracewide *twp)
 	for (i = 0; i < twp->nkeys; ++i) {
 		// if (debug>2) printf(" match:'%s'",twp->keys[i]);
 		if (memcmp(via, twp->keys[i], twp->keylens[i]) == 0) {
-			return twp->keylens[i];
+			int keylen = twp->keylens[i];
+			if (via[keylen] == '\0') {
+				// Match bare alias
+				return keylen;
+			}
+			if (via[keylen] > '0' && via[keylen] <= '7' &&
+			    (via[keylen+1] == '-' || via[keylen+1] == '\0')) {
+				// Match n-N alias, either "WIDEn-..." or "WIDEn"
+				return keylen;
+			}
+			// False alarm; doesn't really match the whole alias
 		}
 	}
 	return 0;
