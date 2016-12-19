@@ -355,23 +355,23 @@ static void telemetry_labeltx()
 		switch (telemetry_labelindex) {
 			case 0:
 				s = s + sprintf(s,
-						":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
-						E->name);
+						":%-9s:BITS.11111111,Aprx v%s",
+						E->name, swversion);
 				break;
 			case 1:
-				s = s + sprintf(s,
-						":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
-						E->name);
-				break;
-			case 2:
 				s = s + sprintf(s,
 						":%-9s:EQNS.0,0.005,0,0,0.005,0,0,1,0,0,1,0,0,1,0",
 						E->name);
 				break;
+			case 2:
+				s = s + sprintf(s,
+						":%-9s:UNIT.Rx Erlang,Tx Erlang,count/10m,count/10m,count/10m",
+						E->name);
+				break;
 			case 3:
 				s = s + sprintf(s,
-						":%-9s:BITS.11111111,Aprx v%s",
-						E->name, swversion);
+						":%-9s:PARM.Avg 10m,Avg 10m,RxPkts,IGateDropRx,TxPkts",
+						E->name);
 				break;
 			default:
 				break;
