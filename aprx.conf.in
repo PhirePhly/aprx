@@ -389,7 +389,7 @@ aprxlog @VARLOG@/aprx.log
 #    #                              #          burst max 120 packets/minute
 #    ##  filter         a/la/lo/la/lo  # service area filter
 #    ##  filter         -b/CALL        # always block these
-#    </source>
+#    #</source>
 #
 #    #<source>                # APRSIS source adds a TX-IGATE behaviour
 #    #   source        APRSIS
