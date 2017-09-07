@@ -430,8 +430,8 @@ static int kissprocess(struct serialport *S)
 	   S->rdline[1..S->rdlinelen-1]
 	   */
 
-	/* Send the frame to APRS-IS, return 1 if valid AX.25 UI message, does not
-	   validate against valid APRS message rules... (TODO: it could do that too) */
+	/* Send the frame to APRS-IS, return 1 if valid AX.25 UI message, must not
+	   validate against valid APRS message rules; not igate's job to judge */
 
 	// The AX25_TO_TNC2 does validate the AX.25 packet,
 	// converts it to "TNC2 monitor format" and sends it to

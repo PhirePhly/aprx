@@ -312,25 +312,18 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		goto redo_frame_filter;
 	}
 
-
-
-	/* TODO: Verify message being of recognized APRS packet type */
-	/*   '\0x60', '\0x27':  MIC-E, len >= 9
-	 *   '!','=','/','{':   Normal or compressed location packet..
-	 *   '$':               NMEA data, if it begins as '$GP'
-	 *   '$':               WX data (maybe) if not NMEA data
-	 *   ';':               Object data, len >= 31
-	 *   ')':               Item data, len >= 18
-	 *   ':':               message, bulletin or aanouncement, len >= 11
-	 *   '<':               Station Capabilities, len >= 2
-	 *   '>':               Status report
-	 *   '}':               Third-party message
-	 * ...  and many more ...
+	/* At this point, the packet is good for igating. The receiving igate
+	 * must not perform duplicate filtering, since the APRS-IS server
+	 * may well use those duplicates for something, such as propagation
+	 * analysis or smarter message routing. The APRS-IS server will do
+	 * duplicate filtering just fine.
+	 *
+	 * The receiving igate should also not validate or limit the packet
+	 * format/contents either, because that would impose limits on
+	 * future packet formats, experiments and improvements. The
+	 * packet's sender and recipient should agree on the format only.
 	 */
-
-	// FIXME: Duplicate filter messages to APRSIS
 	
-
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	/*
