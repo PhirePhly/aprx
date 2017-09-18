@@ -1,6 +1,6 @@
 /* **************************************************************** *
  *                                                                  *
- *  APRX -- 2nd generation APRS iGate and digi with                 *
+ *  Aprx -- 2nd generation APRS I-gate and digi with                *
  *          minimal requirement of esoteric facilities or           *
  *          libraries of any kind beyond UNIX system libc.          *
  *                                                                  *
@@ -142,21 +142,6 @@ static const char *tnc2_forbidden_via_stationid(const char *t, const int stricta
 	return s;
 }
 
-/*
-static int tnc2_forbidden_data(const char *t)
-{
-	int i;
-
-	for (i = 0; i < dataregscount; ++i) {
-		int stat = regexec(dataregs[i], t, 0, NULL, 0);
-		if (stat == 0)
-			return 1;	// MATCH!
-	}
-
-	return 0;
-}
-*/
-
 void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
     if (verbout) {
         printf("%ld\t%-9s ", (long) tick.tv_sec, portname);
@@ -167,7 +152,7 @@ void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
 }
 
 /*
- * The  tnc2_rxgate()  is actual RX-iGate filter function, and processes
+ * The  tnc2_rxgate()  is actual RX I-gate filter function, and processes
  * prepated TNC2 format text presentation of the packet.
  * It does presume that the record is in a buffer that can be written on!
  */
@@ -257,13 +242,8 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	/* Now we have processed the address, this should be ABORT time if
 	   the current character is not ':' !  */
 	if (*t == ':') {
-#if 0
-	  // *t++ = 0;	/* turn it to NUL character */
-#else
 	  /* Don't zero! */
 	  ++t;
-#endif
-	  ;
 	} else {
 		if (debug)
 			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
@@ -312,13 +292,13 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		goto redo_frame_filter;
 	}
 
-	/* At this point, the packet is good for igating. The receiving igate
+	/* At this point, the packet is good for I-gating. The receiving I-gate
 	 * must not perform duplicate filtering, since the APRS-IS server
 	 * may well use those duplicates for something, such as propagation
 	 * analysis or smarter message routing. The APRS-IS server will do
 	 * duplicate filtering just fine.
 	 *
-	 * The receiving igate should also not validate or limit the packet
+	 * The receiving I-gate should also not validate or limit the APRS packet
 	 * format/contents either, because that would impose limits on
 	 * future packet formats, experiments and improvements. The
 	 * packet's sender and recipient should agree on the format only.
@@ -326,9 +306,6 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
-	/*
-	  printf("alen=%d  tlen=%d  tnc2buf=%s\n",t0-1-tnc2buf, e-t0, tnc2buf);
-	*/
 	discard = aprsis_queue(tp, tnc2addrlen, qTYPE_IGATED, portname, t0, e - t0); /* Send it.. */
 	/* DEBUG OUTPUT TO STDOUT ! */
 	verblog(portname, 0, tp, tnc2len);
@@ -372,7 +349,7 @@ static int forbidden_to_gate_addr(const char *s)
 
 
 /*
- * For APRSIS -> APRX -> RF gatewaying.
+ * For APRSIS -> Aprx -> RF gatewaying.
  * Have to convert incoming TNC2 format messge to AX.25..
  *
  * See:  http://www.aprs-is.net/IGateDetails.aspx
