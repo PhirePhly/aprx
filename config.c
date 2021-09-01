@@ -22,6 +22,10 @@ char *config_SKIPSPACE(char *Y) {
 	return Y;
 }
 
+// Validate the callsign configured for APRX
+// Ensure that it meets the requirements for an APRS callsign
+// and if it is also a valid AX.25 callsign if strict is true.
+//
 // return 0 for failures, 1 for OK.
 int validate_callsign_input(char *callsign, int strict) {
 	int i = strlen(callsign);
@@ -82,6 +86,15 @@ int validate_callsign_input(char *callsign, int strict) {
 		callsign[i - 2] = 0;
 		/* If tailed with "-0" SSID, chop it off.. */
 	}
+
+	// Check for invalid default callsigns
+	if (strncmp(callsign, "N0CALL", 6) == 0) {
+		return 0;
+	}
+	if (strncmp(callsign, "NOCALL", 6) == 0) {
+		return 0;
+	}
+
 	return 1;
 }
 
