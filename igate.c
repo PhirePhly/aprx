@@ -13,6 +13,8 @@
 #include "aprx.h"
 
 
+// Verify the sanity of a TNC2 formatted call,
+//  and return a pointer to after the callsign
 const char *tnc2_verify_callsign_format(const char *t, int starok, int strictax25, const char *e)
 {
 	const char *s = t;
@@ -157,8 +159,15 @@ void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
  * It does presume that the record is in a buffer that can be written on!
  */
 
-void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf, int tnc2addrlen, int tnc2len, const int discard0, const int strictax25_)
-{
+void igate_to_aprsis(
+		const char *portname,
+		const int tncid,
+		const char *tnc2buf,
+		int tnc2addrlen,
+		int tnc2len,
+		const int discard0,
+		const int strictax25_) {
+
 	const char *tp, *t, *t0;
 	const char *s;
 	const char *ae;
@@ -170,26 +179,20 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	ae = tp + tnc2addrlen;  // 3rd-party recursion moves ae
 	e  = tp + tnc2len;      // stays the same all the time
 
-	redo_frame_filter:;
+redo_frame_filter:;
 
 	t  = tp;
 	t0 = NULL;
 
 	/* t == beginning of the TNC2 format packet */
 
-	/*
-	 * If any of following matches, discard the packet!
-	 * next if ($axpath =~ m/^WIDE/io); # Begins with = is sourced by..
-	 * next if ($axpath =~ m/^RELAY/io);
-	 * next if ($axpath =~ m/^TRACE/io);
-	 */
+	// Check the source callsign to see if it's an invalid source
 	s = tnc2_forbidden_source_stationid(t, strictax25, e);
 	if (s)
 		t = (char *) s;
 	else {
 		/* Forbidden in source fields.. */
-		if (debug)
-			printf("TNC2 forbidden source stationid: '%.20s'\n", t);
+		if (debug) printf("TNC2 forbidden source stationid: '%.20s'\n", t);
 		goto discard;
 	}
 
@@ -198,8 +201,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	if (*t == '>') {
 		++t;
 	} else {
-		if (debug)
-		    printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
+		if (debug) printf("TNC2 bad address format, expected '>', got: '%.20s'\n", t);
 		goto discard;
 	}
 
@@ -207,8 +209,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	if (s)
 		t = (char *) s;
 	else {
-		if (debug)
-			printf("TNC2 forbidden (by REGEX) destination stationid: '%.20s'\n", t);
+		if (debug) printf("TNC2 forbidden (by REGEX) destination stationid: '%.20s'\n", t);
 		goto discard;
 	}
 
@@ -216,37 +217,30 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		if (*t == ',') {
 			++t;
 		} else {
-			if (debug)
-				printf("TNC2 via address syntax bug, wanted ',' or ':', got: '%.20s'\n", t);
+			if (debug) printf("TNC2 via address syntax bug, wanted ',' or ':', got: '%.20s'\n", t);
 			goto discard;
 		}
 
-		/*
-		 *  next if ($axpath =~ m/RFONLY/io); # Has any of these in via fields..
-		 *  next if ($axpath =~ m/TCPIP/io);
-		 *  next if ($axpath =~ m/TCPXX/io);
-		 *  next if ($axpath =~ m/NOGATE/io); # .. drop it.
-		 */
+		// Sanity check the via hops to make sure we don't have a TCP/IP via
+		//  or a NOGATE via so we shouldn't gateway this to the Internet
 
 		s = tnc2_forbidden_via_stationid(t, strictax25, e);
 		if (!s) {
 			/* Forbidden in via fields.. */
-			if (debug)
-				printf("TNC2 forbidden VIA stationid, got: '%.20s'\n", t);
+			if (debug) printf("TNC2 forbidden VIA stationid, got: '%.20s'\n", t);
 			goto discard;
 		} else
 			t = (char *) s;
 
-
 	}
-	/* Now we have processed the address, this should be ABORT time if
-	   the current character is not ':' !  */
+
+	// We've now parsed the whole header. The next character REALLY needs to be
+	// a colon, or something is terribly wrong.
 	if (*t == ':') {
-	  /* Don't zero! */
-	  ++t;
+		/* Don't zero! */
+		++t;
 	} else {
-		if (debug)
-			printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
+		if (debug) printf("TNC2 address parsing did not find ':':  '%.20s'\n",t);
 		goto discard;
 	}
 	t0 = t;  // Start of payload
@@ -254,18 +248,9 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	/* Now 't' points to data.. */
 
 
-/*
-	if (tnc2_forbidden_data(t)) {
-		if (debug)
-			printf("Forbidden data in TNC2 packet - REGEX match");
-		goto discard;
-	}
-*/
-
-	/* Will not relay messages that begin with '?' char: */
+	// DON'T I-gate ? APRS query packets, since that can cause bad things
 	if (*t == '?') {
-		if (debug)
-			printf("Will not relay packets where payload begins with '?'\n");
+		if (debug) printf("Will not I-gate packets where payload begins with '?'\n");
 		goto discard;
 	}
 
@@ -273,6 +258,10 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
 		verblog(portname, 0, tp, tnc2len);
+		// Let's log the whole packet which we received
+		// But we're definitely discarding the outer packet because it's
+		// Third party
+		rflog(portname, 'd', discard, tp, tnc2len);
 
 		strictax25 = 0;
 		/* Copy the 3rd-party message content into begining of the buffer... */
@@ -283,8 +272,8 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 		// Address end must be searched again
 		ae = memchr(tp, ':', tnc2len);
 		if (ae == NULL) {
-		  // Bad 3rd-party frame
-		  goto discard;
+			// Bad 3rd-party frame
+			goto discard;
 		}
 		tnc2addrlen = (int)(ae - tp);
 
@@ -303,7 +292,7 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	 * future packet formats, experiments and improvements. The
 	 * packet's sender and recipient should agree on the format only.
 	 */
-	
+
 	/* _NO_ ending CRLF, the APRSIS subsystem adds it. */
 
 	discard = aprsis_queue(tp, tnc2addrlen, qTYPE_IGATED, portname, t0, e - t0); /* Send it.. */
@@ -311,16 +300,15 @@ void igate_to_aprsis(const char *portname, const int tncid, const char *tnc2buf,
 	verblog(portname, 0, tp, tnc2len);
 
 	if (0) {
- discard:;
-
+discard:;
 		discard = -1;
 	}
 
 	if (discard) {
 		erlang_add(portname, ERLANG_DROP, tnc2len, 1);
-                rflog(portname, 'd', discard, tp, tnc2len);
+		rflog(portname, 'd', discard, tp, tnc2len);
 	} else {
-                rflog(portname, 'R', discard, tp, tnc2len);
+		rflog(portname, 'R', discard, tp, tnc2len);
 	}
 }
 
