@@ -672,7 +672,7 @@ void rflog(const char *portname, char direction, int discard, const char *tnc2bu
 			//replace non printing TNC2 characters in log print
 			for(p=tnc2buf;p<tnc2buf+tnc2len;p++){
 				if(*p<0x20 || *p>0x7e)
-					fprintf(fp,"<0x%02x>",*p);
+					fprintf(fp,"<0x%02x>",(unsigned char)*p);
 				else
 					fputc(*p,fp);
 			}
