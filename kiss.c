@@ -372,7 +372,7 @@ static int kissprocess(struct serialport *S)
 
 					memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
 					S->wrlen += kisslen;
-					/* Flush it out..  and if not successfull,
+					/* Flush it out..  and if not successful,
 					   poll(2) will take care of it soon enough.. */
 					ttyreader_linewrite(S);
 
@@ -538,7 +538,7 @@ int kiss_pullkiss(struct serialport *S)
 					S->rdlinelen = 0;
 				}
 
-				/* rdlinelen == 0 because we are receiving consequtive
+				/* rdlinelen == 0 because we are receiving consecutive
 				   FENDs, or just processed our previous frame.  Treat
 				   them the same: discard this byte. */
 
@@ -726,7 +726,7 @@ void kiss_poll(struct serialport *S)
           
 	        	memcpy(S->wrbuf + S->wrlen, kissbuf, kisslen);
                         S->wrlen += kisslen;
-                        /* Flush it out..  and if not successfull,
+                        /* Flush it out..  and if not successful,
                            poll(2) will take care of it soon enough.. */
                         ttyreader_linewrite(S);
           

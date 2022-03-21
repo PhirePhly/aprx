@@ -399,7 +399,7 @@ static void telemetry_labeltx()
 
 /*
  * Transmit telemetry to the RF interface that is being monitored.
- * Interface 'flags' contain controls on thist.
+ * Interface 'flags' contain controls on this.
  */
 static void rf_telemetry(const struct aprx_interface *sourceaif,
 		const char *beaconaddr,

@@ -4,7 +4,7 @@
  *
  * The NTP timebase is 00:00 Jan 1 1900.  The local
  * time base is 00:00 Jan 1 1970.  Convert between
- * these two by added or substracting 70 years
+ * these two by added or subtracting 70 years
  * worth of time.  Note that 17 of these years were
  * leap years.
  */

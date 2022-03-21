@@ -1484,7 +1484,7 @@ static void digipeater_receive_backend(struct digipeater_source *src, struct pbu
 
 			if (sizeof(tbuf) > t2l + pb->ax25datalen && t2l > 0) {
 				// Have space for body too, skip leading Ctrl+PID bytes
-				memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skiped
+				memcpy(tbuf+t2l, pb->ax25data+2, pb->ax25datalen-2); // Ctrl+PID skipped
 				t2l2 = t2l + pb->ax25datalen-2; // tbuf size sans Ctrl+PID
 
 				rflog( digi->transmitter->callsign, 'T', 0, tbuf, t2l2 );

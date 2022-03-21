@@ -961,7 +961,7 @@ static void beacon_it(struct beaconset *bset, struct beaconmsg *bm)
 			syslog(LOG_ERR, "Failed to exec file %s", bm->execfile);
 			return;
 		}
-                return; // spawning done, successfull or not..
+                return; // spawning done, successful or not..
 	} else {
           if (debug>1) printf("Nothing to beacon now.\n");
           return;

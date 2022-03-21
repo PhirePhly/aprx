@@ -233,7 +233,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 			goto redo_open;	/* redo mapping */
 		}
 
-		/* Ok, successfull open, correct linecount */
+		/* Ok, successful open, correct linecount */
 		ErlangLines =
 			(void *) realloc((void *) ErlangLines,
 					 (ErlangLinesCount +
@@ -263,7 +263,7 @@ static int erlang_backingstore_grow(int do_create, int add_count)
 	EF = erlang_mmap;
 	ErlangHead = &EF->head;
 
-	/* Ok, successfull open, correct linecount */
+	/* Ok, successful open, correct linecount */
 	ErlangLines =
 		(void *) realloc((void *) ErlangLines,
 				 (ErlangLinesCount + 1) * sizeof(void *));

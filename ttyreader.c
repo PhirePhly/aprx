@@ -438,7 +438,7 @@ static void ttyreader_linesetup(struct serialport *S)
 		  }
 		}
 
-		/* Flush it out..  and if not successfull,
+		/* Flush it out..  and if not successful,
 		   poll(2) will take care of it soon enough.. */
 		ttyreader_linewrite(S);
 

@@ -334,7 +334,7 @@ static int parse_aprs_nmea(struct pbuf_t *pb, const char *body, const char *body
 	   $GPRMC  Remommended Minimum Specific GPS/Transit Data
 	   $GPWPT  Way Point Location ?? (bug in APRS specs ?)
 	   $GPWPL  Waypoint Load (not in APRS specs, but in NMEA specs)
-	   $PNTS   Seen on APRS-IS, private sentense based on NMEA..
+	   $PNTS   Seen on APRS-IS, private sentence based on NMEA..
 	   $xxTLL  Not seen on radio network, usually $RATLL - Target positions
 	           reported by RAdar.
 	 */

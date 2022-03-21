@@ -540,7 +540,7 @@
 2012-12-09 Matt Maguire VK2RQ <matt.vk2rq@gmail.com>
 
 	* telemetry.c:
-	    Sometimes the Erlang registery contains interface
+	    Sometimes the Erlang registry contains interface
 	    entries that are no longer actually in the system.
 	    Avoid NULL referral at such situations.
 
@@ -916,7 +916,7 @@
 	* filter.c:
 	    Negative ranges on filters means "outside the distance".
 	    This allows adding "substractive" filters that tell
-	    "don't pass messages to receipients outside given range".
+	    "don't pass messages to recipients outside given range".
 
 	* configure.in, interface.c, cellmalloc.c, timestamp.c,
 	  kiss.c, historydb.h, netax25.c, pbuf.h, aprx.c, aprx.h,
@@ -1230,7 +1230,7 @@
 	    TNC2 format address formats.
 
 	* parse_aprs.c:
-	    Remove unnecessary double precission floating point math.
+	    Remove unnecessary double precision floating point math.
 	    Use of 'float' is quite enough.
 
 	* debian/control:
@@ -1741,7 +1741,7 @@
 2009-10-21  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* config.c:
-	    Clean away some superflous debugs.
+	    Clean away some superfluous debugs.
 
 	* digipeater.c:
 	    Viscous mode debug printout crashes on SEGV.. Oops.
@@ -1995,7 +1995,7 @@
 
 	* ttyreader.c:
 	    Fix on serial port startup - always turn on flows on
-	    the port, and explicitely flush the driver level
+	    the port, and explicitly flush the driver level
 	    buffers discarding possibly accumulated data.
 
 2009-09-28  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
@@ -2105,7 +2105,7 @@
 	    parameter.  There is no longer a wild-card receiving
 	    mode in Linux internal AX.25 network receiving.
 	    All APRS receiving interface callsigns must be listed
-	    explicitely.
+	    explicitly.
 
 	* netax25.c, ttyreader.c, aprx.h:
 	    SMACK probe transmits on link that is configured for it.
@@ -2130,7 +2130,7 @@
 	    the use of new IP resolver API a bit.
 
 	* ttyreader.c:
-	    Explicitely set "KISSSTATE_SYNCHUNT = 0" in enumeration.
+	    Explicitly set "KISSSTATE_SYNCHUNT = 0" in enumeration.
 	    Memory blocks are created with memset() call clearing them.
 
 	* aprx.h, beacon.c:
@@ -2251,7 +2251,7 @@
 	    and usage codes -- pass a struct block as message leader.
 
 	* ttyreader.c, netax25.c, aprsis, ax25.c, beacon.c, aprx.h:
-	    Pass explicite parameter towards the APRSIS telling, which
+	    Pass explicit parameter towards the APRSIS telling, which
 	    callsign (radio receiver) the message came in from.
 
 	* aprx.h, config.c, ttyreader.c, beacon.c:
@@ -2480,7 +2480,7 @@
 	    Now initstring, and various KISS modes are configurable
 
 	* erlang.c:
-	    Carefull approach on erlang-file opening, if file exists,
+	    Careful approach on erlang-file opening, if file exists,
 	    and is non-zero size, open it only if magics match.
 
 	* config.c:
@@ -2537,7 +2537,7 @@
 2007-12-06  Matti Aarnio - OH2MQK - KP20NG  <oh2mqk@sral.fi>
 
 	* aprsg.8, erlang.c, aprsg.c, netax25.c, ttyreader.c:
-	    Erlang logging now uses syslog(3), unless explicitely told to use
+	    Erlang logging now uses syslog(3), unless explicitly told to use
 	    output to stdout.  Also the Erlang log format was altered a bit,
 	    now it reports also number of packets in the interval.
 

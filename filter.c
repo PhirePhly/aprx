@@ -36,7 +36,7 @@
   m/dist  		My Range filter
   o/obj1/obj2...  	Object filter (*)
   p/aa/bb/cc...  	Prefix filter
-  q/con/ana 	 	q Contruct filter
+  q/con/ana 	 	q Construct filter
   r/lat/lon/dist  	Range filter
   s/pri/alt/over  	Symbol filter
   t/poimntqsu3*c	Type filter
@@ -67,7 +67,7 @@
 
   Undocumented at above web-page, but apparent behaviour is:
 
-  - Everything not explicitely stated to be case sensitive is
+  - Everything not explicitly stated to be case sensitive is
     case INSENSITIVE
 
   - Minus-prefixes on filters behave as is there are two sets of
@@ -1215,7 +1215,7 @@ int filter_parse(struct filter_t **ffp, const char *filt)
 #if 0
 	case 'q':
 	case 'Q':
-		/* q/con/ana           q Contruct filter */
+		/* q/con/ana           q Construct filter */
 		s = filt+1;
 		f0.h.type = 'q';
 		f0.h.u4.bitflags = 0; /* For QC_*  flags */
@@ -1895,7 +1895,7 @@ static int filter_process_one_p(struct pbuf_t *pb, struct filter_t *f)
 #if 0
 static int filter_process_one_q(struct pbuf_t *pb, struct filter_t *f)
 {
-	/* q/con/ana  	q Contruct filter
+	/* q/con/ana  	q Construct filter
 
 	   q = q Construct command
 	   con = list of q Construct to pass (case sensitive)

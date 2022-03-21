@@ -75,7 +75,7 @@
 
 // ASK To start receiving AX25 RAW Frames
 //
-// Sending again thos command will disable this service.
+// Sending again this command will disable this service.
 // You can start and stop this service any times you needed
 //
 // Port field no needed set it to 0
@@ -138,7 +138,7 @@
 // [port][DataKind][CallFrom][CallTo ][DataLen][USER][Data         ]
 //  4bytes  4bytes     10bytes  10bytes   4bytes     4bytes    DataLen Bytes
 // the data field format is as follow in plain text
-// howmany ports ;1st radioport description;2nd radioport;....;last radioport describtion
+// howmany ports ;1st radioport description;2nd radioport;....;last radioport description
 // like
 // 2;TNC2 on serialport 1;OE5DXL on serialport2;
 // We have here 2 radioports. The separator is the ';'
@@ -152,7 +152,7 @@
 // CallTo is empty(NULL)
 // DataLen =The number of bytes of DATA field
 // USER is undefined
-// DATA field conatins the radioport description
+// DATA field contains the radioport description
 // [ HEADER                                   ]
 // [port][DataKind][CallFrom][CallTo ][DataLen][USER] [DATA]
 //  4bytes  4bytes     10bytes  10bytes   4bytes     4bytes    Datalen bytes.

@@ -128,7 +128,7 @@ every kind of frame received in KISS variants.
 .I "Erlang output"
 prints 10 minute and 60 minute traffic accumulation byte counts, and guestimates
 on channel occupancy, alias "Erlang".
-These outputs are sent to STDOUT, which system operator may choose to log elsewere.
+These outputs are sent to STDOUT, which system operator may choose to log elsewhere.
 This is independent if the "\-l" option below.
 .TP
 .BI "\-f " "@CFGFILE@"
@@ -1198,7 +1198,7 @@ The
 .B viscous\-delay
 defines a number of seconds from 0 (default) maximum of 9 that
 the source will put the message on duplicate detector delay processing.
-All occurrances of same packet per duplicate detector during that time
+All occurrences of same packet per duplicate detector during that time
 will be accounted on duplicate detection, and if at the end of the delay
 period there are more than one hit, the packet is discarded.
 Use delay of 0 seconds for normal digipeater, 5 seconds for a fill-in,
@@ -1384,13 +1384,13 @@ The
 .IR Erlang -monitor
 mechanisms are of rudimentary quality, and can seriously underestimate
 the channel occupancy by ignoring pre- and postample transmissions,
-which can be as high as 50 centiseconds for preample, and 20 centiseconds
+which can be as high as 50 centiseconds for preamble, and 20 centiseconds
 for postample!
-When entire packet takes 50 centiseconds, such preample alone doubles channel
+When entire packet takes 50 centiseconds, such preamble alone doubles channel
 occupancy.
 A 6pack protocol on serial link (instead of KISS) could inform receiver
-better on carrier presense times, however even that underestimates RF power
-presense (RSSI) signal.  (6pack is not supported.)
+better on carrier presence times, however even that underestimates RF power
+presence (RSSI) signal.  (6pack is not supported.)
 .PP
 On serial lines supports really only 8n1 mode, not at all like: 7e1.
 On the other hand, there really is no sensible usage for anything but 8n1...
