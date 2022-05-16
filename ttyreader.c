@@ -502,7 +502,9 @@ static void ttyreader_linesetup(struct serialport *S)
 					close(S->fd);
 					S->fd = -1;
                                         aprxlog("TTY %s Socket open failed.\n", S->ttyname);
-				}
+				} else {
+                                        aprxlog("TTY %s Socket open successfully!.\n", S->ttyname);
+                                }
 			}
 
 			freeaddrinfo(ai);
