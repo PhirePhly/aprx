@@ -16,7 +16,7 @@
  *	Keying varies, origination callsign of positions, name
  *	for object/item.
  *
- *	Inserting does incidential cleanup scanning while traversing
+ *	Inserting does incidental cleanup scanning while traversing
  *	hash chains.
  *
  *	In APRS-IS there are about 25 000 distinct callsigns or

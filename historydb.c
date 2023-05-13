@@ -256,7 +256,7 @@ history_cell_t *historydb_insert_(historydb_t *db, const struct pbuf_t *pb, cons
 	cp = cp1 = NULL;
 	hp = &db->hash[i];
 
-	// scan the hash-bucket chain, and do incidential obsolete data discard
+	// scan the hash-bucket chain, and do incidental obsolete data discard
 	while (( cp = *hp )) {
 		if (timecmp(cp->arrivaltime, expirytime) < 0) {
 			// OLD...
@@ -424,7 +424,7 @@ history_cell_t *historydb_insert_heard(historydb_t *db, const struct pbuf_t *pb)
 	cp1 = NULL;
 	hp = &db->hash[i];
 
-	// scan the hash-bucket chain, and do incidential obsolete data discard
+	// scan the hash-bucket chain, and do incidental obsolete data discard
 	while (( cp = *hp ) != NULL) {
         	if (timecmp(cp->arrivaltime, expirytime) < 0) {
 			// OLD...

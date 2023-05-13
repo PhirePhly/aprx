@@ -155,7 +155,7 @@ void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
 
 /*
  * The  tnc2_rxgate()  is actual RX I-gate filter function, and processes
- * prepated TNC2 format text presentation of the packet.
+ * prepared TNC2 format text presentation of the packet.
  * It does presume that the record is in a buffer that can be written on!
  */
 
