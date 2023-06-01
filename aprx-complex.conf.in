@@ -376,7 +376,7 @@ aprxlog @VARLOG@/aprx.log
 # Aprx configuration parser.  If you want a '\' on APRS content,
 # then you encode it on configuration file as:  '\\'
 #
-# Stranger combinations with explicite "transmit this to interface X":
+# Stranger combinations with explicit "transmit this to interface X":
 #
 #
 #beacon                     file /tmp/wxbeacon.txt

@@ -55,7 +55,7 @@ struct cellarena_t {
 #ifdef MEMDEBUG
 	int	 cellblocks_count;
 #define CELLBLOCKS_MAX 40 /* track client cell allocator limit! */
-	char	*cellblocks[CELLBLOCKS_MAX];	/* ref as 'char pointer' for pointer arithmetics... */
+	char	*cellblocks[CELLBLOCKS_MAX];	/* ref as 'char pointer' for pointer arithmetic... */
 #endif
 };
 
@@ -122,7 +122,7 @@ int new_cellblock(cellarena_t *ca)
 #endif
 
 	for (i = 0; i <= ca->createsize-ca->increment; i += ca->increment) {
-		struct cellhead *ch = (struct cellhead *)(cb + i); /* pointer arithmentic! */
+		struct cellhead *ch = (struct cellhead *)(cb + i); /* pointer arithmetic! */
 		if (!ca->free_head) {
 		  ca->free_head = ch;
 		} else {

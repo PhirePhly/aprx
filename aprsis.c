@@ -614,7 +614,7 @@ int aprsis_queue(
 											   slow reconnection. */
 
 	return (i != len);
-	/* Return 0 if ANY of the queue operations was successfull
+	/* Return 0 if ANY of the queue operations was successful
 	   Return 1 if there was some error.. */
 }
 
@@ -921,7 +921,7 @@ static void aprsis_runthread(void) {
 	sigaddset(&sigs_to_block, SIGUSR1);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
-	// generally the cancelability is enabled
+	// generally the cancellability is enabled
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
 	if (debug) printf("aprsis_runthread()\n");

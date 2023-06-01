@@ -439,7 +439,7 @@ void *netax25_addrxport(const char *callsign, const struct aprx_interface *inter
 	    return NULL;
 	  }
 	  nax25p->callsign  = strdup(callsign);
-	} else {  // new config fule
+	} else {  // new config file
 	  memcpy(&nax25p->ax25addr.sax25_call, interface->ax25call, sizeof(interface->ax25call));
 	  nax25p->callsign  = interface->callsign;
 	}

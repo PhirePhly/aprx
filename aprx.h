@@ -106,7 +106,7 @@ extern void   *memrchr(const void *s, int c, size_t n);
 #include <netdb.h>
 #include <netinet/in.h>
 
-/* Radio interface groups on igate receiption history tracking.
+/* Radio interface groups on igate reception history tracking.
  * Value range:  1 to MAX_IF_GROUP-1.
  * Value 0 is reserved for APRSIS.
  */

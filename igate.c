@@ -155,7 +155,7 @@ void verblog(const char *portname, int istx, const char *tnc2buf, int tnc2len) {
 
 /*
  * The  tnc2_rxgate()  is actual RX I-gate filter function, and processes
- * prepated TNC2 format text presentation of the packet.
+ * prepared TNC2 format text presentation of the packet.
  * It does presume that the record is in a buffer that can be written on!
  */
 
@@ -254,7 +254,7 @@ redo_frame_filter:;
 		goto discard;
 	}
 
-	/* Messages begining with '}' char are 3rd-party frames.. */
+	/* Messages beginning with '}' char are 3rd-party frames.. */
 	if (*t == '}') {
 		/* DEBUG OUTPUT TO STDOUT ! */
 		verblog(portname, 0, tp, tnc2len);
@@ -264,7 +264,7 @@ redo_frame_filter:;
 		rflog(portname, 'd', discard, tp, tnc2len);
 
 		strictax25 = 0;
-		/* Copy the 3rd-party message content into begining of the buffer... */
+		/* Copy the 3rd-party message content into beginning of the buffer... */
 		++t;				/* Skip the '}'		*/
 		tp = t;
 		tnc2len = e - t;		/* New length		*/
@@ -338,7 +338,7 @@ static int forbidden_to_gate_addr(const char *s)
 
 /*
  * For APRSIS -> Aprx -> RF gatewaying.
- * Have to convert incoming TNC2 format messge to AX.25..
+ * Have to convert incoming TNC2 format message to AX.25..
  *
  * See:  http://www.aprs-is.net/IGateDetails.aspx
  *

@@ -593,7 +593,7 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  p = p2+7;
 	}
 	while (p2+7 > p) { // Too short!
-	  *p++ = ' '; // unprecise position
+	  *p++ = ' '; // imprecise position
 	}
 	if (gga[2] != NULL) {
 	  s = gga[3]; // <N|S>
@@ -624,7 +624,7 @@ static void dprsgw_nmea_igate( const struct aprx_interface *aif,
 	  p = p2+8;
 	}
 	while (p2+8 > p) { // Too short!
-	  *p++ = ' '; // unprecise position
+	  *p++ = ' '; // imprecise position
 	}
 	if (gga[2] != NULL) {
 	  p += sprintf(p, "%s", gga[5]); // <E|W>

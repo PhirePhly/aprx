@@ -10,7 +10,7 @@
 /*
  * Keyhash routines for the system.
  *
- * What is needed is _fast_ hash function.  Preferrably arithmethic one,
+ * What is needed is _fast_ hash function.  Preferably arithmetic one,
  * which does not need table lookups, and can work with aligned 32 bit
  * data -- but also on unaligned, and on any byte counts...
  *

@@ -12,7 +12,7 @@
 #include "aprx.h"
 
 
-/* aprxpolls libary functions.. */
+/* aprxpolls library functions.. */
 
 
 void aprxpolls_reset(struct aprxpolls *app)

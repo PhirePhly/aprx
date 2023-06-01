@@ -215,7 +215,7 @@ static int logging_config(struct configfile *cf) {
 			continue;	/* Comment line, or empty line */
 
 		str = cf->buf;
-		str = config_SKIPSPACE(str); // arbitrary indention
+		str = config_SKIPSPACE(str); // arbitrary indentation
 		name = str;
 		str = config_SKIPTEXT(str, NULL);
 		str = config_SKIPSPACE(str);
@@ -299,7 +299,7 @@ static int cfgparam(struct configfile *cf) {
 	char *name, *param1;
 	char *str = cf->buf;
 
-	str = config_SKIPSPACE(str); // arbitrary indention
+	str = config_SKIPSPACE(str); // arbitrary indentation
 	name = str;
 	str = config_SKIPTEXT(str, NULL);
 	str = config_SKIPSPACE(str);

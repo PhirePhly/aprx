@@ -216,5 +216,5 @@ make-rpm: # actually just a reminder of how to do it..
 
 # -------------------------------------------------------------------- #
 
-# include object depencies if available
+# include object dependencies if available
 -include $(OBJS:.o=.d)

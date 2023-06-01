@@ -90,7 +90,7 @@
   the network delays have been excessive and message is discarded.
 
   This SNTP client _does_ _not_ adjust host system clock, only tracks
-  difference of it against a high(er)-quality NTP service elsewere.
+  difference of it against a high(er)-quality NTP service elsewhere.
   The difference and drift parameters are used to convert current system
   gettimeofday() result to NTP timestamp within the code, and to determine
   how old something is, a NTP timestamp is compared against "current time."
@@ -120,7 +120,7 @@ BoB:
 		"176RX, 109TX, 243 busy"
 
 	ON a ten minute basis (total 600 1 sec slots) this tells us that
-	176 packets were decoded at this site, 109 were elegible for
+	176 packets were decoded at this site, 109 were eligible for
 	further digipeating, and another 243 seconds the channel was
 	busy with other collisions and non decodable traffic.  Leaving
 	72 secnds the channel was clear.

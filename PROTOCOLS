@@ -44,7 +44,7 @@ APRS-IS interchange
 	something that the server replies..)
 
 
-	After successfull login, communication carries "TNC2" format
+	After successful login, communication carries "TNC2" format
 	APRS messages.  Namely text encoding of AX.25 UI frames in
 	what became known as "TNC2 monitor style":
 
