@@ -3,7 +3,7 @@ Description=Amateur Radio APRS Gateway & Digipeater
 Documentation=man:aprx(8)
 
 [Service]
-Type=simple
+Type=forking
 ExecStart=/usr/sbin/aprx
 # doesn't do any internal reload
 
