@@ -14,7 +14,7 @@ static int aprspass(const char *mycall)
 	return h;
 }
 
-main()
+int main()
 {
 	printf("APRSPASS: %d\n", aprspass("OH2MQK-1"));
 	return 0;
