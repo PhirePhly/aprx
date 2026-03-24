@@ -13,7 +13,6 @@
 #include <signal.h>
 #include <pthread.h>
 pthread_t      netresolv_thread;
-pthread_attr_t pthr_attrs;
 #endif
 
 static int                 nrcount;
@@ -129,6 +128,7 @@ void netresolv_start(void) {
 	resolve_all();
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
+        pthread_attr_t pthr_attrs;
 	pthread_attr_init(&pthr_attrs);
 	/* 64 kB stack is enough for this thread (I hope!)
 	   default of 2 MB is way too much...*/

@@ -19,7 +19,6 @@
 #endif
 #include <fcntl.h>
 
-struct timeval now; // public wall clock that can jump around
 struct timeval tick;  // monotonic clock
 
 /*
