@@ -481,7 +481,10 @@ void netax25_start(void)
 	if (!ax25rxports) return;	/* No configured receiver ports.
 					   No receiver socket creation. */
 
-	rx_protocol = ETH_P_AX25;	/* Choosing ETH_P_ALL would pick also
+	rx_protocol = ETH_P_ALL;        /* This picks up ethernet traffic,
+                                           but we have code to filter that
+                                           later */
+	/*rx_protocol = ETH_P_AX25;*/	/* Choosing ETH_P_ALL would pick also
 					   outbound packets, but also all of
 					   the ethernet traffic..  ETH_P_AX25
 					   picks only inbound-at-ax25-devices
@@ -603,9 +606,14 @@ Leads with 00 byte, then AX.25 address..
 	if (sll.sll_family   != PF_PACKET         ||
 	    sll.sll_protocol != htons(ETH_P_AX25) ||
 	    sll.sll_hatype   != SOCK_RAW          ||
-	    sll.sll_pkttype  != 0                 ||
+	    !(sll.sll_pkttype  == PACKET_HOST ||
+	      sll.sll_pkttype == PACKET_OUTGOING) ||
 	    sll.sll_halen    != 0                 ||
 	    rxbuf[0]         != 0 ) {
+	  if (debug>2) {
+	    printf("netax25rx packet len=%d from rx_socket;  family=%d protocol=%x ifindex=%d hatype=%d pkttype=%d halen=%d, dropping on the floor\n",
+		 rcvlen, sll.sll_family, sll.sll_protocol, sll.sll_ifindex, sll.sll_hatype, sll.sll_pkttype, sll.sll_halen);
+	  }
 	  return 1; // Not of our interest
 	}
 	ifindex = sll.sll_ifindex;
