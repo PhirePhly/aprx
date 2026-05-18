@@ -27,7 +27,6 @@
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
 #include <pthread.h>
 pthread_t aprsis_thread;
-pthread_attr_t pthr_attrs;
 #endif
 
 /*
@@ -933,6 +932,7 @@ static void aprsis_runthread(void) {
 void aprsis_start(void) {
 	int i;
 	int pipes[2];
+        pthread_attr_t pthr_attrs;
 
 	if (AISh == NULL || AprsIS == NULL) {
 		fprintf(stderr,"***** NO APRSIS SERVER CONNECTION DEFINED *****");

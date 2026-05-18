@@ -41,8 +41,6 @@
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
 #include <pthread.h>
-pthread_t aprsis_thread;
-pthread_attr_t pthr_attrs;
 #endif
 
 #ifdef _FOR_VALGRIND_
