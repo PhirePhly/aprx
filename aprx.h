@@ -41,8 +41,8 @@
 
 #if defined(HAVE_PTHREAD_CREATE) && defined(ENABLE_PTHREAD)
 #include <pthread.h>
-pthread_t aprsis_thread;
-pthread_attr_t pthr_attrs;
+extern pthread_t aprsis_thread;
+extern pthread_attr_t pthr_attrs;
 #endif
 
 #ifdef _FOR_VALGRIND_
@@ -170,6 +170,7 @@ extern const char *swversion;
 
 extern void timetick(void);
 extern struct timeval tick;  // Monotonic clock, progresses regularly from boot. NOT wall clock time.
+extern struct timeval now;   // Wall clock time; can jump around (defined in timercmp.c).
 extern int time_reset;      // Set during ONE call cycle of prepolls
 extern int debug;
 extern int verbout;
