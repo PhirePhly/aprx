@@ -703,8 +703,7 @@ int ttyreader_postpoll(struct aprxpolls *app)
  * mode with no characters interpreted, 8-bit data path.
  */
 void
-aprx_cfmakeraw(t, f)
-	struct termios *t;
+aprx_cfmakeraw(struct termios *t, int f)
 {
 
 	t->c_iflag &= ~(IMAXBEL|IXOFF|INPCK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON|IGNPAR);

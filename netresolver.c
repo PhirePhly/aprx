@@ -13,7 +13,6 @@
 #include <signal.h>
 #include <pthread.h>
 pthread_t      netresolv_thread;
-pthread_attr_t pthr_attrs;
 #endif
 
 static int                 nrcount;
