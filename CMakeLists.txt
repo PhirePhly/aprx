@@ -22,7 +22,7 @@ add_compile_definitions(
 set(SOURCES
     agwpesocket.c aprsis.c aprx.c aprx-stat.c aprxpolls.c ax25.c
     beacon.c cellmalloc.c config.c crc.c digipeater.c dprsgw.c
-    dupecheck.c erlang.c filter.c historydb.c hlog.c igate.c
+    dupecheck.c erlang.c filter.c historydb.c igate.c
     interface.c keyhash.c kiss.c netax25.c netresolver.c
     parse_aprs.c pbuf.c ssl.c telemetry.c timercmp.c
     timestamp.c ttyreader.c valgrind.c
