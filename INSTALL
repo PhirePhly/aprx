@@ -69,10 +69,13 @@ sudo git clone https://github.com/EA7JRS/aprx.git #(New)
 #(orig)git clone https://github.com/PhirePhly/aprx.git
 
 cd aprx
-mkdir build && cd build
+mkdir build
+./configure
+cd build
 cmake ..
 make
 sudo make install
+
 
 sudo nano /etc/aprx.conf
 edit your new APRS-LoRa desvice 
