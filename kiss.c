@@ -205,3 +205,8 @@ static int kissprocess(struct serialport *S)
 
 	if (S->linetype == LINETYPE_KISSBPQCRC) {
 		/* Continuación lógica del código original para el parseo final de BPQ */
+    
+        }
+
+        return 0;
+    }
