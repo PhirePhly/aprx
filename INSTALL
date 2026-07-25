@@ -43,8 +43,6 @@ A rough-cut version of the installation instructions
      couple system environments, others may need manual
      adapting.
 
-
-
 For Debian users wanting to compile themselves instead of using
 precompiled binaries:
 
@@ -55,3 +53,30 @@ precompiled binaries:
 	$ make make-deb
 	# dpkg -i ../aprx_....deb
 
+
+##NEW For Debian 13.x users wanting to compile themselves instead of using
+precompiled binaries:
+
+lsusb
+
+sudo nano /etc/udev/rules.d/99-lora-aprs.rules
+SUBSYSTEM=="tty", ATTRS{idVendor}=="YOURidVendor", ATTRS{idProduct}=="YOURidProduct", SYMLINK+="ttyLoraAPRS", MODE="0660", GROUP="dialout"
+
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+cd /opt
+sudo git clone https://github.com/EA7JRS/aprx.git #(New)
+#(orig)git clone https://github.com/PhirePhly/aprx.git
+
+cd aprx
+mkdir build
+./configure
+cd build
+cmake ..
+make
+sudo make install
+
+
+sudo nano /etc/aprx.conf
+edit your new APRS-LoRa desvice 
+serial-device /dev/ttyLoraAPRS 115200 8N1 kiss
